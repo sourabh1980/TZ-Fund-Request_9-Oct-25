@@ -1,0 +1,358 @@
+<style>
+  /* Modal overlay with dimmed, blurred background */
+  .confirmation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+  }
+
+  .confirmation-overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Modal card with spring animation */
+  .confirmation-modal {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 24px;
+    padding: 40px 32px;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.15);
+    transform: scale(0.7) translateY(50px);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .confirmation-overlay.show .confirmation-modal {
+    transform: scale(1) translateY(0);
+  }
+
+  /* Pulsing badge */
+  .confirmation-badge {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    margin: 0 auto 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .confirmation-badge::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    opacity: 0.3;
+    animation: pulse-ring 2s ease-in-out infinite;
+  }
+
+  .confirmation-badge svg {
+    width: 40px;
+    height: 40px;
+    fill: white;
+    z-index: 1;
+    position: relative;
+  }
+
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  @keyframes pulse-ring {
+    0% { transform: scale(1); opacity: 0.3; }
+    50% { transform: scale(1.1); opacity: 0.1; }
+    100% { transform: scale(1.2); opacity: 0; }
+  }
+
+  /* Modal content */
+  .confirmation-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 12px;
+    line-height: 1.2;
+  }
+
+  .confirmation-message {
+    font-size: 16px;
+    color: #718096;
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+
+  /* Button container */
+  .confirmation-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Yes button with gradient tilt and ripple effect */
+  .confirmation-btn-yes {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    padding: 16px 32px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    transform-origin: center;
+  }
+
+  .confirmation-btn-yes:hover {
+    transform: perspective(1000px) rotateX(-5deg) rotateY(5deg);
+    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
+  }
+
+  .confirmation-btn-yes:active {
+    transform: scale(0.98);
+  }
+
+  /* Ripple effect */
+  .confirmation-btn-yes::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    transition: width 0.6s ease, height 0.6s ease;
+  }
+
+  .confirmation-btn-yes.ripple::before {
+    width: 300px;
+    height: 300px;
+  }
+
+  /* Success halo effect */
+  .confirmation-btn-yes.success {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7);
+    animation: success-halo 0.6s ease-out;
+  }
+
+  @keyframes success-halo {
+    0% {
+      box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 20px rgba(72, 187, 120, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(72, 187, 120, 0);
+    }
+  }
+
+  /* No button */
+  .confirmation-btn-no {
+    background: transparent;
+    color: #718096;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 14px 32px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .confirmation-btn-no:hover {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+    color: #4a5568;
+  }
+
+  /* View cost breakdown link */
+  .confirmation-link {
+    color: #667eea;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 16px;
+    display: inline-block;
+    transition: color 0.3s ease;
+  }
+
+  .confirmation-link:hover {
+    color: #5a67d8;
+    text-decoration: underline;
+  }
+
+  /* Close indicator */
+  .confirmation-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 8px;
+    height: 8px;
+    background: #f56565;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+
+  .confirmation-close:hover {
+    transform: scale(1.2);
+  }
+</style>
+
+<div class="confirmation-overlay" id="confirmationModal">
+  <div class="confirmation-modal">
+    <div class="confirmation-close" onclick="closeConfirmationModal()"></div>
+    
+    <div class="confirmation-badge">
+      <svg viewBox="0 0 24 24">
+        <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 7.5V9M15 11.5V9.5L21 9V11L15 11.5ZM11 12C8.8 12 7 10.2 7 8S8.8 4 11 4 15 5.8 15 8 13.2 12 11 12ZM11 14C14.3 14 17 16.7 17 20V22H5V20C5 16.7 7.7 14 11 14Z"/>
+      </svg>
+    </div>
+    
+    <h2 class="confirmation-title" id="confirmationTitle">Reactivate beneficiary?</h2>
+    <p class="confirmation-message" id="confirmationMessage">Re-enabling means you'll fund their expenses. Continue?</p>
+    
+    <div class="confirmation-buttons">
+      <button class="confirmation-btn-yes" id="confirmationYes" onclick="handleConfirmationYes()">Yes, Reactivate</button>
+      <button class="confirmation-btn-no" id="confirmationNo" onclick="handleConfirmationNo()">No, Keep Inactive</button>
+    </div>
+    
+    <a href="#" class="confirmation-link" onclick="viewCostBreakdown()">View cost breakdown</a>
+  </div>
+</div>
+
+<script>
+(function() {
+  let currentCallback = null;
+  let currentRejectCallback = null;
+
+  // Show confirmation modal
+  window.showConfirmationModal = function(options = {}) {
+    return new Promise((resolve, reject) => {
+      currentCallback = resolve;
+      currentRejectCallback = reject;
+      
+      const modal = document.getElementById('confirmationModal');
+      const title = document.getElementById('confirmationTitle');
+      const message = document.getElementById('confirmationMessage');
+      const yesBtn = document.getElementById('confirmationYes');
+      
+      // Set content
+      title.textContent = options.title || 'Reactivate beneficiary?';
+      message.textContent = options.message || "Re-enabling means you'll fund their expenses. Continue?";
+      yesBtn.textContent = options.yesText || 'Yes, Reactivate';
+      
+      // Show modal with spring animation
+      modal.classList.add('show');
+      
+      // Focus management
+      setTimeout(() => yesBtn.focus(), 100);
+    });
+  };
+
+  // Close confirmation modal
+  window.closeConfirmationModal = function() {
+    const modal = document.getElementById('confirmationModal');
+    modal.classList.remove('show');
+    
+    if (currentRejectCallback) {
+      currentRejectCallback(false);
+      currentRejectCallback = null;
+    }
+    currentCallback = null;
+  };
+
+  // Handle Yes button click
+  window.handleConfirmationYes = function() {
+    const yesBtn = document.getElementById('confirmationYes');
+    
+    // Add ripple effect
+    yesBtn.classList.add('ripple');
+    
+    setTimeout(() => {
+      // Add success halo
+      yesBtn.classList.add('success');
+      yesBtn.textContent = '✓ Confirmed';
+      
+      setTimeout(() => {
+        if (currentCallback) {
+          currentCallback(true);
+          currentCallback = null;
+        }
+        closeConfirmationModal();
+        
+        // Reset button state
+        setTimeout(() => {
+          yesBtn.classList.remove('ripple', 'success');
+          yesBtn.textContent = 'Yes, Reactivate';
+        }, 300);
+      }, 800);
+    }, 100);
+  };
+
+  // Handle No button click
+  window.handleConfirmationNo = function() {
+    if (currentCallback) {
+      currentCallback(false);
+      currentCallback = null;
+    }
+    closeConfirmationModal();
+  };
+
+  // View cost breakdown (placeholder)
+  window.viewCostBreakdown = function() {
+    console.log('View cost breakdown clicked');
+    // Implement cost breakdown functionality here
+  };
+
+  // Keyboard support
+  document.addEventListener('keydown', function(e) {
+    const modal = document.getElementById('confirmationModal');
+    if (!modal.classList.contains('show')) return;
+    
+    if (e.key === 'Escape') {
+      closeConfirmationModal();
+    } else if (e.key === 'Enter') {
+      handleConfirmationYes();
+    }
+  });
+
+  // Click outside to close
+  document.getElementById('confirmationModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeConfirmationModal();
+    }
+  });
+})();
+</script>

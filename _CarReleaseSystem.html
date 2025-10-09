@@ -1,0 +1,1730 @@
+<!-- _CarReleaseSystem.html -->
+  <!-- Vehicle Release System with Approved Design -->
+
+  <!-- Historical Data Modal -->
+  <div id="historicalModal" class="modal-backdrop" data-open="false">
+    <div class="modal" role="dialog" aria-labelledby="historicalModalTitle" aria-modal="true">
+      <!-- Header -->
+      <div class="modal-header">
+        <div class="window-controls">
+          <button class="window-control window-control--close" type="button" onclick="window.closeHistoricalModal()" aria-label="Close window"></button>
+          <button class="window-control window-control--minimize" type="button" aria-hidden="true" tabindex="-1"></button>
+          <button class="window-control window-control--zoom" type="button" aria-hidden="true" tabindex="-1"></button>
+        </div>
+        <h2 id="historicalModalTitle" class="modal-title">Vehicle Usage History</h2>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+        <div id="historicalData" class="historical-data">
+          <!-- Historical data will be populated here -->
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <button class="btn btn--secondary" onclick="window.closeHistoricalModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vehicle Modal -->
+  <div id="carModal" class="modal-backdrop" data-open="false">
+    <div class="modal" role="dialog" aria-labelledby="carModalTitle" aria-modal="true">
+      <!-- Header -->
+      <div class="modal-header">
+        <div class="window-controls">
+          <button class="window-control window-control--close" type="button" onclick="window.closeCarModal()" aria-label="Close window"></button>
+          <button class="window-control window-control--minimize" type="button" aria-hidden="true" tabindex="-1"></button>
+          <button class="window-control window-control--zoom" type="button" aria-hidden="true" tabindex="-1"></button>
+        </div>
+        <h2 id="carModalTitle" class="modal-title">Vehicle Release System</h2>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+        <!-- Vehicle Details Section -->
+        <div class="details-grid">
+          <div class="label">Project</div>
+          <div class="value" id="car-project"></div>
+
+          <div class="label">Team</div>
+          <div class="value" id="car-team"></div>
+
+          <div class="label">Vehicle Number</div>
+          <div class="value value--mono" id="car-number"></div>
+
+          <div class="label">Make & Model</div>
+          <div class="value" id="car-make-model"></div>
+
+          <div class="label">Usage Type</div>
+          <div class="value" id="car-usage-type"></div>
+
+          <div class="label">Owner</div>
+          <div class="value" id="car-owner"></div>
+
+          <div class="label">Status</div>
+          <div class="value">
+            <span id="car-status" class="status-chip">IN USE</span>
+          </div>
+
+          <div class="label">Last Users</div>
+          <div class="value" id="car-last-users"></div>
+            <div class="label">Name of Responsible Beneficiary</div>
+            <div class="value" id="car-responsible-beneficiary"></div>
+
+            <div class="label">Other Team Members</div>
+            <div class="value" id="car-other-team-members"></div>
+        </div>
+
+        <!-- History Section -->
+        <div id="carHistorySection" class="car-history-section" style="display: none;">
+          <div class="section-header" onclick="carReleaseSystem.toggleHistorySection()">
+            <h3>Vehicle Usage History</h3>
+            <span class="toggle-icon">▼</span>
+          </div>
+          <div id="historyContent" class="history-content expanded">
+            <div class="history-item">
+              <span class="history-label">Last 3 Remarks</span>
+              <div class="remarks-history" id="car-remarks-history">
+                <div class="remark-item">No previous remarks available</div>
+              </div>
+            </div>
+            <div class="history-item">
+              <span class="history-label">Average Rating</span>
+              <div class="rating-display" id="car-avg-rating">
+                <span class="rating-value">0.0</span>
+                <div class="stars-display">
+                  <span class="star">★</span>
+                  <span class="star">★</span>
+                  <span class="star">★</span>
+                  <span class="star">★</span>
+                  <span class="star">★</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Release Form Section -->
+        <div id="carReleaseSection" class="car-release-section" style="display: none;">
+          <div class="section-header">
+            <h3>Release Vehicle</h3>
+          </div>
+          <div class="release-form">
+            <div class="form-group" id="release-user-selector" style="display: none;">
+              <label class="form-label" for="release-user-select">
+                User to Release <span class="required" id="release-user-required" style="display: none;">*</span>
+              </label>
+              <select id="release-user-select" class="form-select"></select>
+              <div id="release-user-help" class="field-help"></div>
+              <div id="release-user-error" class="field-error"></div>
+            </div>
+
+            <div id="release-feedback-fields">
+              <div class="form-group">
+                <label class="form-label" for="release-remarks">
+                  Remarks <span class="required">*</span>
+                </label>
+                <textarea 
+                  id="release-remarks" 
+                  class="form-textarea" 
+                  placeholder="Please provide detailed remarks about the vehicle condition, usage, or any issues..."
+                  rows="4"
+                  maxlength="500"
+                ></textarea>
+                <div class="char-counter">
+                  <span id="remarks-counter">0</span>/500
+                </div>
+                <div id="remarks-error" class="field-error"></div>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">
+                  Rating <span class="required">*</span>
+                </label>
+                <div id="release-stars" class="stars-input">
+                  <span class="star-input" data-rating="1">★</span>
+                  <span class="star-input" data-rating="2">★</span>
+                  <span class="star-input" data-rating="3">★</span>
+                  <span class="star-input" data-rating="4">★</span>
+                  <span class="star-input" data-rating="5">★</span>
+                </div>
+                <div class="rating-labels">
+                  <span>Poor</span>
+                  <span>Excellent</span>
+                </div>
+                <div id="rating-error" class="field-error"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="modal-footer">
+        <div class="footer-actions">
+          <button class="btn btn--secondary" id="btnReleaseHistory">RELEASE History</button>
+          <button class="btn btn--secondary" id="btnInUseHistory">IN USE History</button>
+          <button class="btn btn--secondary" id="releaseUserBtn">Release User</button>
+          <button class="btn btn--danger" id="releaseCarBtn">Release Vehicle</button>
+          <button class="btn btn--primary" id="closeModalBtn">Close</button>
+        </div>
+        
+        <div id="releaseActions" class="release-actions" style="display: none;">
+          <button class="btn btn--secondary" id="cancelReleaseBtn">Cancel</button>
+          <button class="btn btn--danger" id="confirmReleaseBtn" disabled>Confirm Release</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Import Shared Styles -->
+  <!-- Shared styles loaded externally -->
+
+  <!-- Modal Styles -->
+  <style>
+    :root{
+      --mac-backdrop: rgba(15,17,26,0.45);
+      --mac-surface: rgba(247,249,255,0.82);
+      --mac-border: rgba(255,255,255,0.55);
+      --mac-divider: rgba(12,18,32,0.08);
+      --mac-shadow: 0 32px 80px rgba(15,23,42,0.38);
+      --mac-ink-primary: #0b1220;
+      --mac-ink-secondary: rgba(11,18,32,0.68);
+      --mac-ink-muted: rgba(11,18,32,0.45);
+      --mac-blue: #0a84ff;
+      --mac-blue-dark: #0060df;
+      --mac-red: #ff453a;
+      --mac-red-dark: #d70015;
+      --mac-green: #30d158;
+      --mac-yellow: #ffd60a;
+      --mac-gray: rgba(118,122,134,0.18);
+      --modal-radius: 20px;
+    }
+
+    .modal-backdrop{
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      background: var(--mac-backdrop);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .24s ease;
+      z-index: 9999;
+    }
+    .modal-backdrop[data-open="true"]{
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal{
+      width: min(680px, 92vw);
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      background: var(--mac-surface);
+      border: 1px solid var(--mac-border);
+      border-radius: var(--modal-radius);
+      box-shadow: var(--mac-shadow);
+      backdrop-filter: blur(42px) saturate(180%);
+      -webkit-backdrop-filter: blur(42px) saturate(180%);
+      color: var(--mac-ink-primary);
+      transform: translateY(12px) scale(.98);
+      opacity: 0;
+      transition: transform .28s cubic-bezier(.18,.82,.22,1), opacity .24s ease;
+      font-family: "SF Pro Text", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .modal-backdrop[data-open="true"] .modal{
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .modal-header{
+      position: relative;
+      padding: 22px 24px 14px;
+      text-align: center;
+    }
+    .modal-header::after{
+      content: "";
+      display: block;
+      height: 1px;
+      background: var(--mac-divider);
+      margin-top: 14px;
+    }
+    .modal-title{
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: .14px;
+      color: var(--mac-ink-primary);
+    }
+    .window-controls{
+      position: absolute;
+      top: 18px;
+      left: 18px;
+      display: flex;
+      gap: 8px;
+    }
+    .window-control{
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.1);
+      background: var(--mac-gray);
+      box-shadow: inset 0 0 0 0 rgba(255,255,255,0.4);
+      padding: 0;
+      cursor: default;
+    }
+    .window-control--close{
+      background: #ff5f57;
+      border-color: rgba(214,71,63,0.5);
+      cursor: pointer;
+    }
+    .window-control--minimize{
+      background: #febc2e;
+      border-color: rgba(206,151,31,0.5);
+    }
+    .window-control--zoom{
+      background: #28c840;
+      border-color: rgba(33,155,63,0.5);
+    }
+    .window-control:focus-visible{
+      outline: 2px solid rgba(10,132,255,0.5);
+      outline-offset: 2px;
+    }
+    .window-control--close:hover{
+      box-shadow: inset 0 0 0 999px rgba(0,0,0,0.08);
+    }
+    .window-control[aria-hidden="true"]{
+      opacity: .55;
+      cursor: default;
+    }
+
+    .modal-body{
+      padding: 18px 24px 24px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+    .modal-body::-webkit-scrollbar{ width: 8px; }
+    .modal-body::-webkit-scrollbar-thumb{
+      border-radius: 999px;
+      background: rgba(30,41,59,0.25);
+    }
+
+    .details-grid{
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 14px 24px;
+      margin-bottom: 20px;
+      padding: 20px 22px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.58);
+      border: 1px solid var(--mac-divider);
+      box-shadow: 0 12px 30px rgba(12,16,28,0.08);
+    }
+    .label{
+      font-size: 12px;
+      letter-spacing: .36px;
+      text-transform: uppercase;
+      color: var(--mac-ink-muted);
+      font-weight: 700;
+    }
+    .value{
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--mac-ink-secondary);
+    }
+    .value strong{ font-weight: 600; color: var(--mac-ink-primary); }
+    .value--mono{
+      font-family: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      letter-spacing: .4px;
+      font-weight: 600;
+      color: var(--mac-ink-primary);
+    }
+
+    .status-chip{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+      background: rgba(134,233,175,0.24);
+      color: #1c6b3a;
+      border: 1px solid rgba(76,175,120,0.36);
+    }
+    .status-chip.status--in-use{
+      background: rgba(134,233,175,0.24);
+      color: #1c6b3a;
+      border-color: rgba(76,175,120,0.36);
+    }
+    .status-chip.status--release{
+      background: rgba(255,69,58,0.15);
+      color: #ff453a;
+      border-color: rgba(255,99,88,0.32);
+    }
+    .status-chip.status--pending{
+      background: rgba(255,214,10,0.18);
+      color: #b97d00;
+      border-color: rgba(255,214,10,0.32);
+    }
+
+    .status-pill{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .4px;
+      text-transform: uppercase;
+      background: rgba(134,233,175,0.18);
+      color: #1c6b3a;
+      border: 1px solid rgba(76,175,120,0.28);
+      white-space: nowrap;
+    }
+    .status-pill.status-pill--in-use{
+      background: rgba(134,233,175,0.22);
+      border-color: rgba(76,175,120,0.36);
+      color: #1c6b3a;
+    }
+
+    .car-history-section{
+      border-radius: 16px;
+      border: 1px solid var(--mac-divider);
+      background: rgba(255,255,255,0.52);
+      box-shadow: 0 12px 28px rgba(12,16,28,0.08);
+      margin-bottom: 20px;
+    }
+    .section-header{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 20px;
+      cursor: pointer;
+      font-weight: 600;
+      color: var(--mac-ink-primary);
+      user-select: none;
+    }
+    .section-header h3{ margin: 0; font-size: 15px; }
+    .section-header:hover{ background: rgba(255,255,255,0.6); }
+    .toggle-icon{
+      font-size: 12px;
+      color: var(--mac-ink-muted);
+      transition: transform .2s ease;
+    }
+    .section-header.expanded .toggle-icon{ transform: rotate(180deg); }
+
+    .history-content{
+      padding: 0 20px 18px;
+      display: grid;
+      gap: 18px;
+    }
+    .history-item{ display: flex; flex-direction: column; gap: 8px; }
+    .history-label{
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .34px;
+      color: var(--mac-ink-muted);
+    }
+    .remarks-history{ display: flex; flex-direction: column; gap: 10px; }
+    .remark-item{
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.65);
+      border: 1px solid var(--mac-divider);
+      color: var(--mac-ink-secondary);
+    }
+    .rating-display{ display: flex; align-items: center; gap: 12px; }
+    .rating-value{ font-size: 24px; font-weight: 700; color: var(--mac-ink-primary); }
+    .stars-display{ display: flex; gap: 4px; color: #f7b500; font-size: 18px; }
+
+    .car-release-section{
+      border-radius: 16px;
+      border: 1px solid var(--mac-divider);
+      background: rgba(255,255,255,0.55);
+      box-shadow: 0 12px 28px rgba(12,16,28,0.08);
+      padding: 18px 20px 20px;
+    }
+    .car-release-section .section-header{ cursor: default; padding: 4px 0 10px; }
+    .release-form{ display: flex; flex-direction: column; gap: 18px; }
+    .form-group{ display: flex; flex-direction: column; gap: 10px; }
+    .form-label{ font-size: 14px; font-weight: 600; color: var(--mac-ink-primary); }
+    .required{ color: var(--mac-red); }
+
+    .form-textarea{
+      min-height: 110px;
+      border-radius: 12px;
+      border: 1px solid rgba(142,142,147,0.28);
+      background: rgba(255,255,255,0.78);
+      padding: 12px 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--mac-ink-secondary);
+      resize: vertical;
+      transition: border-color .2s ease, box-shadow .2s ease;
+      box-shadow: inset 0 1px 1px rgba(12,16,28,0.05);
+    }
+    .form-textarea:focus{
+      outline: none;
+      border-color: rgba(10,132,255,0.45);
+      box-shadow: 0 0 0 3px rgba(10,132,255,0.16);
+    }
+    .form-select{
+      height: 44px;
+      border-radius: 12px;
+      border: 1px solid rgba(142,142,147,0.28);
+      background: rgba(255,255,255,0.78);
+      padding: 0 14px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--mac-ink-secondary);
+      transition: border-color .2s ease, box-shadow .2s ease;
+      box-shadow: inset 0 1px 1px rgba(12,16,28,0.05);
+    }
+    .form-select:focus{
+      outline: none;
+      border-color: rgba(10,132,255,0.45);
+      box-shadow: 0 0 0 3px rgba(10,132,255,0.16);
+    }
+    .field-help{
+      font-size: 12px;
+      color: var(--mac-ink-muted);
+      line-height: 1.4;
+    }
+    .char-counter{ align-self: flex-end; font-size: 12px; color: var(--mac-ink-muted); }
+    .field-error{ font-size: 12px; color: var(--mac-red); min-height: 16px; }
+
+    .stars-input{ display: flex; gap: 8px; font-size: 22px; color: rgba(10,132,255,0.35); cursor: pointer; }
+    .star-input{ transition: transform .18s ease, color .18s ease; }
+    .star-input.active,
+    .star-input:hover,
+    .star-input:hover ~ .star-input{ color: rgba(10,132,255,0.8); }
+    .star-input:hover{ transform: translateY(-1px); }
+    .rating-labels{ display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .3px; text-transform: uppercase; color: var(--mac-ink-muted); }
+
+    .modal-footer{
+      padding: 16px 24px 20px;
+      border-top: 1px solid var(--mac-divider);
+      background: rgba(255,255,255,0.55);
+      display: flex;
+      justify-content: flex-end;
+    }
+    .footer-actions,
+    .release-actions{ display: flex; gap: 12px; width: 100%; justify-content: flex-end; }
+
+    .btn{
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform .18s ease, box-shadow .18s ease, background .18s ease;
+      font-family: inherit;
+    }
+    .btn:focus-visible{ outline: 2px solid rgba(10,132,255,0.45); outline-offset: 2px; }
+    .btn--primary{
+      background: linear-gradient(180deg, var(--mac-blue) 0%, var(--mac-blue-dark) 100%);
+      color: #fff;
+      box-shadow: 0 12px 26px rgba(10,132,255,0.35);
+    }
+    .btn--primary:hover{ transform: translateY(-1px); box-shadow: 0 16px 32px rgba(10,132,255,0.45); }
+    .btn--secondary{
+      background: rgba(148,152,160,0.18);
+      color: var(--mac-ink-primary);
+      border: 1px solid rgba(120,125,135,0.22);
+    }
+    .btn--secondary:hover{ background: rgba(148,152,160,0.28); transform: translateY(-1px); }
+    .btn--danger{
+      background: linear-gradient(180deg, var(--mac-red) 0%, var(--mac-red-dark) 100%);
+      color: #fff;
+      box-shadow: 0 12px 26px rgba(255,69,58,0.32);
+    }
+    .btn--danger:hover{ transform: translateY(-1px); box-shadow: 0 16px 32px rgba(255,69,58,0.38); }
+    .btn:disabled{ opacity: .55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    @media (max-width: 720px){
+      .details-grid{ grid-template-columns: 1fr; }
+      .modal{ width: min(600px, 96vw); }
+      .footer-actions, .release-actions{ flex-direction: column; align-items: stretch; }
+      .window-controls{ left: 16px; top: 16px; }
+    }
+
+    @media (prefers-color-scheme: dark){
+      .modal{
+        background: rgba(26,30,40,0.85);
+        border-color: rgba(148,163,184,0.18);
+        color: #f8fafc;
+        box-shadow: 0 38px 90px rgba(0,0,0,0.65);
+      }
+      .modal-header::after{ background: rgba(148,163,184,0.18); }
+      .details-grid,
+      .car-history-section,
+      .car-release-section{
+        background: rgba(31,36,48,0.8);
+        border-color: rgba(148,163,184,0.22);
+        box-shadow: none;
+      }
+      .value,
+      .value strong,
+      .modal-title{ color: #f1f5f9; }
+      .label{ color: rgba(226,232,240,0.55); }
+      .section-header{ color: #f8fafc; }
+      .section-header:hover{ background: rgba(46,58,78,0.45); }
+      .remark-item{ background: rgba(40,49,68,0.85); border-color: rgba(148,163,184,0.22); color: #e2e8f0; }
+      .form-textarea{ background: rgba(24,32,45,0.9); border-color: rgba(148,163,184,0.24); color: #e2e8f0; }
+      .form-select{ background: rgba(24,32,45,0.9); border-color: rgba(148,163,184,0.24); color: #e2e8f0; }
+      .field-help{ color: rgba(226,232,240,0.55); }
+      .modal-footer{ background: rgba(26,30,40,0.85); border-top-color: rgba(148,163,184,0.22); }
+      .btn--secondary{ background: rgba(148,163,184,0.18); border-color: rgba(148,163,184,0.22); color: #f8fafc; }
+      .window-control{ border-color: rgba(0,0,0,0.35); }
+      .status-chip,
+      .status-pill{
+        background: rgba(57,153,110,0.28);
+        border-color: rgba(73,194,132,0.42);
+        color: #b6f5d1;
+      }
+      .status-chip.status--in-use,
+      .status-pill.status-pill--in-use{
+        background: rgba(57,153,110,0.33);
+        border-color: rgba(73,194,132,0.48);
+        color: #bffbd7;
+      }
+    }
+  </style>
+
+
+  <!-- JavaScript -->
+  <script>
+    /**
+     * Vehicle Release System - Refactored Architecture
+     * Single modal with multiple states for better UX
+     */
+    class CarReleaseSystem {
+      constructor() {
+        this.modal = null;
+        this.currentCarData = null;
+        this.currentState = 'view'; // 'view', 'history', 'release'
+        this.selectedRating = 0;
+        this.originalCarInput = null;
+        this.hideTimer = null;
+        this.historyContentTemplate = '';
+        this.releaseMode = 'vehicle'; // 'vehicle' | 'user'
+        this.isRemarksRequired = true;
+        this.userReleaseHasOtherUsers = false;
+        
+        this.init();
+      }
+
+      init() {
+        this.modal = document.getElementById('carModal');
+        this.setupEventListeners();
+        this.setupStarRating();
+        this.setupRemarksCounter();
+        const historyContent = document.getElementById('historyContent');
+        if (historyContent) {
+          this.historyContentTemplate = historyContent.innerHTML;
+        }
+      }
+
+      setupEventListeners() {
+        // Close modal events
+        this.modal?.querySelector('.window-control--close')?.addEventListener('click', () => this.closeModal());
+        document.getElementById('closeModalBtn')?.addEventListener('click', () => this.closeModal());
+        
+        // Footer action buttons
+        document.getElementById('btnReleaseHistory')?.addEventListener('click', () => this.showReleaseHistory());
+        document.getElementById('btnInUseHistory')?.addEventListener('click', () => this.showInUseHistory());
+        document.getElementById('viewHistoryBtn')?.addEventListener('click', () => this.toggleHistorySection());
+        document.getElementById('releaseUserBtn')?.addEventListener('click', () => this.showUserReleaseForm());
+        document.getElementById('releaseCarBtn')?.addEventListener('click', () => this.showReleaseForm('vehicle'));
+        document.getElementById('release-user-select')?.addEventListener('change', () => this.validateForm());
+        
+        // Release form actions
+        document.getElementById('cancelReleaseBtn')?.addEventListener('click', () => this.hideReleaseForm());
+        document.getElementById('confirmReleaseBtn')?.addEventListener('click', () => this.confirmRelease());
+        
+        // Modal backdrop click
+        this.modal?.addEventListener('click', (e) => {
+          if (e.target === this.modal) this.closeModal();
+        });
+        
+        // Escape key
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && this.isModalOpen()) {
+            this.closeModal();
+          }
+        });
+        
+        // Form validation
+        document.getElementById('release-remarks')?.addEventListener('input', () => this.validateForm());
+      }
+
+      setupStarRating() {
+        const starsContainer = document.getElementById('release-stars');
+        if (!starsContainer) return;
+        
+        const stars = starsContainer.querySelectorAll('.star-input');
+        
+        stars.forEach((star, index) => {
+          star.addEventListener('mouseenter', () => this.highlightStars(index + 1));
+          star.addEventListener('mouseleave', () => this.highlightStars(this.selectedRating));
+          star.addEventListener('click', () => this.selectRating(index + 1));
+        });
+      }
+
+      setupRemarksCounter() {
+        const textarea = document.getElementById('release-remarks');
+        const counter = document.getElementById('remarks-counter');
+        
+        if (!textarea || !counter) return;
+        
+        textarea.addEventListener('input', () => {
+          const length = textarea.value.length;
+          counter.textContent = length;
+          
+          if (length > 450) {
+            counter.style.color = 'var(--danger-color)';
+          } else if (length > 400) {
+            counter.style.color = 'var(--warning-color)';
+          } else {
+            counter.style.color = 'var(--text-muted)';
+          }
+        });
+      }
+
+      // Public API Methods
+      openModal(carData, options = {}) {
+        console.log('Opening car modal with data:', carData, 'Options:', options);
+        
+        this.currentCarData = this.normalizeCarData(carData);
+        this.originalCarInput = options.carInput || null;
+        this.resetModalState();
+        this.populateCarDetails();
+        this.showModal();
+        
+          // Fetch responsible beneficiary and other team members from backend
+          const carNumber = this.currentCarData.carNumber || this.currentCarData.car_number || '';
+          if (carNumber) {
+            google.script.run
+              .withSuccessHandler((result) => {
+                if (result && result.ok) {
+                  // Populate new fields
+                  document.getElementById('car-responsible-beneficiary').textContent = result.responsible || 'N/A';
+                  document.getElementById('car-other-team-members').textContent = Array.isArray(result.teamMembers) && result.teamMembers.length > 0 ? result.teamMembers.join(', ') : 'None';
+                  // Also store in currentCarData for release
+                  this.currentCarData.responsibleBeneficiary = result.responsible || '';
+                  this.currentCarData.otherTeamMembers = result.teamMembers || [];
+                } else {
+                  document.getElementById('car-responsible-beneficiary').textContent = 'N/A';
+                  document.getElementById('car-other-team-members').textContent = 'None';
+                }
+                if (result && result.ok && result.carData) {
+                  this.currentCarData = this.normalizeCarData({ ...this.currentCarData, ...result.carData });
+                }
+                this.populateCarDetails();
+              })
+              .withFailureHandler((err) => {
+                document.getElementById('car-responsible-beneficiary').textContent = 'N/A';
+                document.getElementById('car-other-team-members').textContent = 'None';
+                console.error('Failed to retrieve vehicle details for modal:', err);
+              })
+              .getCarReleaseDetails(carNumber);
+          } else {
+            document.getElementById('car-responsible-beneficiary').textContent = 'N/A';
+            document.getElementById('car-other-team-members').textContent = 'None';
+          }
+      }
+
+      closeModal() {
+        this.hideModal();
+        this.resetModalState();
+        this.currentCarData = null;
+        this.originalCarInput = null;
+      }
+
+      // Private Methods
+      normalizeCarData(data) {
+        return {
+          project: data.project || '',
+          projectName: data.projectName || data.project || '',
+          team: data.team || '',
+          teamName: data.teamName || data.team || '',
+          carNumber: data.carNumber || data.car_number || '',
+          category: data.category || data.Category || data.vehicleCategory || data.categoryName || '',
+          make: data.make || '',
+          model: data.model || '',
+          usageType: data.usageType || data.usage_type || '',
+          owner: data.owner || '',
+          status: data.status || 'IN USE',
+          lastUsers: Array.isArray(data.lastUsers) ? data.lastUsers : (data.lastUsers || '').split(',').map(u => u.trim()).filter(u => u),
+          remarks: data.remarks || '',
+          stars: data.stars || 0,
+          submitter: data.submitter || 'Current User',
+          responsibleBeneficiary: data.responsibleBeneficiary || data['R.Beneficiary'] || '',
+          history: data.history || {
+            remarks: [],
+            averageRating: 0
+          }
+        };
+      }
+
+      getCurrentUsers() {
+        if (!this.currentCarData) return [];
+        const users = [];
+        const seen = new Set();
+        const addUser = (name) => {
+          const trimmed = String(name || '').trim();
+          if (!trimmed) return;
+          const key = trimmed.toLowerCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          users.push(trimmed);
+        };
+        addUser(this.currentCarData.responsibleBeneficiary);
+        if (Array.isArray(this.currentCarData.otherTeamMembers)) {
+          this.currentCarData.otherTeamMembers.forEach(addUser);
+        }
+        if (!users.length && Array.isArray(this.currentCarData.lastUsers)) {
+          this.currentCarData.lastUsers.forEach(addUser);
+        }
+        return users;
+      }
+
+      populateCarDetails() {
+        const data = this.currentCarData;
+        const currentUsers = this.getCurrentUsers();
+        this.currentCarData.lastUsers = currentUsers;
+        
+        document.getElementById('car-project').textContent = data.project || 'N/A';
+        document.getElementById('car-team').textContent = data.team || 'N/A';
+        document.getElementById('car-number').textContent = data.carNumber || 'N/A';
+        document.getElementById('car-make-model').textContent = `${data.make || 'N/A'} ${data.model || ''}`.trim();
+        document.getElementById('car-usage-type').textContent = data.usageType || 'N/A';
+        document.getElementById('car-owner').textContent = data.owner || 'N/A';
+        document.getElementById('car-last-users').textContent = currentUsers.length ? currentUsers.join(', ') : 'No previous users';
+        const responsibleEl = document.getElementById('car-responsible-beneficiary');
+        if (responsibleEl) {
+          responsibleEl.textContent = data.responsibleBeneficiary || 'N/A';
+        }
+        const otherMembersEl = document.getElementById('car-other-team-members');
+        if (otherMembersEl) {
+          const others = Array.isArray(data.otherTeamMembers) ? data.otherTeamMembers.filter(Boolean) : [];
+          otherMembersEl.textContent = others.length ? others.join(', ') : 'None';
+        }
+        
+        // Status
+        const statusEl = document.getElementById('car-status');
+        statusEl.textContent = data.status || 'IN USE';
+        statusEl.className = `status-chip status--${(data.status || 'IN USE').toLowerCase().replace(' ', '-')}`;
+        
+        // History data
+        this.populateHistoryData();
+      }
+
+      populateHistoryData() {
+        this.ensureHistoryContentStructure();
+        const history = this.currentCarData.history;
+        
+        // Remarks history
+        const remarksContainer = document.getElementById('car-remarks-history');
+        if (!remarksContainer) {
+          console.warn('Vehicle release modal missing remarks container; skipping history population.');
+          return;
+        }
+
+        if (history.remarks && history.remarks.length > 0) {
+          remarksContainer.innerHTML = history.remarks.slice(-3).map(remark => 
+            `<div class="remark-item">${this.escapeHtml(remark)}</div>`
+          ).join('');
+        } else {
+          remarksContainer.innerHTML = '<div class="remark-item">No previous remarks available</div>';
+        }
+        
+        // Average rating
+        const avgRating = history.averageRating || 0;
+        const ratingValue = document.querySelector('#car-avg-rating .rating-value');
+        if (ratingValue) {
+          ratingValue.textContent = avgRating.toFixed(1);
+        }
+        
+        const stars = document.querySelectorAll('#car-avg-rating .stars-display .star');
+        const fullStars = Math.floor(avgRating);
+        stars.forEach((star, index) => {
+          star.classList.toggle('filled', index < fullStars);
+        });
+      }
+
+      resetModalState() {
+        this.currentState = 'view';
+        this.selectedRating = 0;
+        this.releaseMode = 'vehicle';
+        this.isRemarksRequired = true;
+        this.userReleaseHasOtherUsers = false;
+        this.restoreHistoryContent();
+        
+        // Hide sections
+        document.getElementById('carHistorySection').style.display = 'none';
+        document.getElementById('carReleaseSection').style.display = 'none';
+        
+        // Show default footer
+        document.querySelector('.footer-actions').style.display = 'flex';
+        document.getElementById('releaseActions').style.display = 'none';
+        
+        // Reset form
+        document.getElementById('release-remarks').value = '';
+        document.getElementById('remarks-counter').textContent = '0';
+        this.highlightStars(0);
+        this.clearErrors();
+        const select = document.getElementById('release-user-select');
+        if (select) select.innerHTML = '';
+        const userSelector = document.getElementById('release-user-selector');
+        if (userSelector) userSelector.style.display = 'none';
+        const userHelp = document.getElementById('release-user-help');
+        if (userHelp) userHelp.textContent = '';
+        const feedbackFields = document.getElementById('release-feedback-fields');
+        if (feedbackFields) feedbackFields.style.display = 'block';
+        const sectionTitle = document.querySelector('#carReleaseSection .section-header h3');
+        if (sectionTitle) sectionTitle.textContent = 'Release Vehicle';
+        const confirmBtn = document.getElementById('confirmReleaseBtn');
+        if (confirmBtn) {
+          confirmBtn.textContent = 'Confirm Release';
+          confirmBtn.disabled = true;
+        }
+      }
+
+      showModal() {
+        if (this.hideTimer) {
+          clearTimeout(this.hideTimer);
+          this.hideTimer = null;
+        }
+        this.modal.style.display = 'grid';
+        requestAnimationFrame(() => {
+          this.modal.setAttribute('data-open', 'true');
+          this.modal.setAttribute('aria-hidden', 'false');
+          
+          // Focus management
+          const firstFocusable = this.modal.querySelector('button, input, textarea, select');
+          if (firstFocusable) {
+            setTimeout(() => firstFocusable.focus(), 100);
+          }
+        });
+      }
+
+      hideModal() {
+        this.modal.setAttribute('data-open', 'false');
+        this.modal.setAttribute('aria-hidden', 'true');
+        if (this.hideTimer) {
+          clearTimeout(this.hideTimer);
+        }
+        this.hideTimer = setTimeout(() => {
+          this.modal.style.display = 'none';
+          this.hideTimer = null;
+        }, 200);
+      }
+
+      ensureHistoryContentStructure() {
+        const historyContent = document.getElementById('historyContent');
+        if (!historyContent) return;
+        if (!this.historyContentTemplate) {
+          this.historyContentTemplate = historyContent.innerHTML;
+        }
+        if (!historyContent.querySelector('#car-remarks-history') && this.historyContentTemplate) {
+          historyContent.innerHTML = this.historyContentTemplate;
+        }
+      }
+
+      restoreHistoryContent() {
+        const historyContent = document.getElementById('historyContent');
+        if (!historyContent) return;
+        if (!this.historyContentTemplate) {
+          this.historyContentTemplate = historyContent.innerHTML;
+        }
+        if (this.historyContentTemplate) {
+          historyContent.innerHTML = this.historyContentTemplate;
+        }
+      }
+
+      isModalOpen() {
+        return this.modal && this.modal.style.display !== 'none';
+      }
+
+      toggleHistorySection() {
+        const section = document.getElementById('carHistorySection');
+        const content = document.getElementById('historyContent');
+        const header = section.querySelector('.section-header');
+        
+        if (section.style.display === 'none') {
+          section.style.display = 'block';
+          content.classList.add('expanded');
+          header.classList.add('expanded');
+          document.getElementById('viewHistoryBtn').textContent = 'Hide History';
+        } else {
+          section.style.display = 'none';
+          content.classList.remove('expanded');
+          header.classList.remove('expanded');
+          document.getElementById('viewHistoryBtn').textContent = 'View History';
+        }
+      }
+
+      showReleaseForm(mode = 'vehicle') {
+        this.currentState = 'release';
+        this.releaseMode = mode;
+        
+        const hasUserSelector = mode === 'user';
+        const feedbackFields = document.getElementById('release-feedback-fields');
+        const userSelector = document.getElementById('release-user-selector');
+        const userRequiredBadge = document.getElementById('release-user-required');
+        const sectionTitle = document.querySelector('#carReleaseSection .section-header h3');
+        const confirmBtn = document.getElementById('confirmReleaseBtn');
+
+        if (hasUserSelector) {
+          this.userReleaseHasOtherUsers = this.getCurrentUsers().length > 1;
+          this.isRemarksRequired = !this.userReleaseHasOtherUsers;
+        } else {
+          this.userReleaseHasOtherUsers = false;
+          this.isRemarksRequired = true;
+        }
+
+        if (sectionTitle) {
+          sectionTitle.textContent = hasUserSelector ? 'Release User' : 'Release Vehicle';
+        }
+        if (confirmBtn) {
+          confirmBtn.textContent = hasUserSelector ? 'Release User' : 'Confirm Release';
+        }
+
+        if (userSelector) {
+          userSelector.style.display = hasUserSelector ? 'flex' : 'none';
+        }
+        const userHelp = document.getElementById('release-user-help');
+        if (userHelp) {
+          userHelp.textContent = hasUserSelector
+            ? (this.userReleaseHasOtherUsers
+                ? 'Select the team member to release. Remarks and rating are optional while other users remain.'
+                : 'This is the last user on this vehicle. Please provide remarks and a rating to complete the release.')
+            : '';
+        }
+        if (userRequiredBadge) {
+          userRequiredBadge.style.display = hasUserSelector && !this.userReleaseHasOtherUsers ? 'inline' : 'none';
+        }
+        if (feedbackFields) {
+          feedbackFields.style.display = this.isRemarksRequired ? 'block' : 'none';
+        }
+        if (!this.isRemarksRequired) {
+          this.selectedRating = 0;
+          this.highlightStars(0);
+        }
+        this.showError('release-user-error', '');
+        this.showError('remarks-error', '');
+        this.showError('rating-error', '');
+        this.validateForm();
+
+        // Show release section
+        document.getElementById('carReleaseSection').style.display = 'block';
+        
+        // Switch footer
+        document.querySelector('.footer-actions').style.display = 'none';
+        document.getElementById('releaseActions').style.display = 'flex';
+        
+        // Focus on remarks
+        setTimeout(() => {
+          if (hasUserSelector) {
+            document.getElementById('release-user-select')?.focus();
+          } else if (this.isRemarksRequired) {
+            document.getElementById('release-remarks')?.focus();
+          }
+        }, 100);
+      }
+
+      showUserReleaseForm() {
+        const users = this.getCurrentUsers();
+        if (!users.length) {
+          alert('No users are currently assigned to this vehicle.');
+          return;
+        }
+
+        const select = document.getElementById('release-user-select');
+        if (select) {
+          select.innerHTML = '';
+          users.forEach(user => {
+            const option = document.createElement('option');
+            option.value = user;
+            option.textContent = user;
+            select.appendChild(option);
+          });
+          select.selectedIndex = 0;
+        }
+
+        this.showReleaseForm('user');
+      }
+
+      hideReleaseForm() {
+        this.currentState = 'view';
+        this.releaseMode = 'vehicle';
+        this.isRemarksRequired = true;
+        this.userReleaseHasOtherUsers = false;
+        
+        // Hide release section
+        document.getElementById('carReleaseSection').style.display = 'none';
+        
+        // Switch footer back
+        document.querySelector('.footer-actions').style.display = 'flex';
+        document.getElementById('releaseActions').style.display = 'none';
+        
+        // Reset form
+        document.getElementById('release-remarks').value = '';
+        document.getElementById('remarks-counter').textContent = '0';
+        this.selectedRating = 0;
+        this.highlightStars(0);
+        this.clearErrors();
+        const select = document.getElementById('release-user-select');
+        if (select) {
+          select.innerHTML = '';
+        }
+        const userSelector = document.getElementById('release-user-selector');
+        if (userSelector) {
+          userSelector.style.display = 'none';
+        }
+        const userHelp = document.getElementById('release-user-help');
+        if (userHelp) {
+          userHelp.textContent = '';
+        }
+        const feedbackFields = document.getElementById('release-feedback-fields');
+        if (feedbackFields) {
+          feedbackFields.style.display = 'block';
+        }
+        const sectionTitle = document.querySelector('#carReleaseSection .section-header h3');
+        if (sectionTitle) {
+          sectionTitle.textContent = 'Release Vehicle';
+        }
+        const confirmBtn = document.getElementById('confirmReleaseBtn');
+        if (confirmBtn) {
+          confirmBtn.textContent = 'Confirm Release';
+        }
+      }
+
+      highlightStars(count) {
+        const stars = document.querySelectorAll('#release-stars .star-input');
+        stars.forEach((star, index) => {
+          star.classList.toggle('hover', index < count);
+          star.classList.toggle('filled', index < count);
+        });
+      }
+
+      selectRating(rating) {
+        this.selectedRating = rating;
+        const stars = document.querySelectorAll('#release-stars .star-input');
+        stars.forEach((star, index) => {
+          star.classList.toggle('active', index < rating);
+          star.classList.toggle('filled', index < rating);
+          star.classList.remove('hover');
+        });
+        this.validateForm();
+      }
+
+      validateForm() {
+        const confirmBtn = document.getElementById('confirmReleaseBtn');
+        const userSelect = document.getElementById('release-user-select');
+
+        if (this.releaseMode === 'user' && !this.isRemarksRequired) {
+          const selectedUser = userSelect ? String(userSelect.value || '').trim() : '';
+          const isValid = !!selectedUser;
+          this.showError('release-user-error', isValid ? '' : 'Please select a user');
+          if (confirmBtn) {
+            confirmBtn.disabled = !isValid;
+          }
+          return isValid;
+        }
+
+        const remarksEl = document.getElementById('release-remarks');
+        const remarks = remarksEl ? remarksEl.value.trim() : '';
+        const remarksValid = remarks.length >= 10;
+        const ratingValid = this.selectedRating > 0;
+        let isValid = remarksValid && ratingValid;
+
+        if (this.releaseMode === 'user') {
+          const selectedUser = userSelect ? String(userSelect.value || '').trim() : '';
+          const userValid = !!selectedUser;
+          this.showError('release-user-error', userValid ? '' : 'Please select a user');
+          isValid = isValid && userValid;
+        } else {
+          this.showError('release-user-error', '');
+        }
+
+        this.showError('remarks-error', remarksValid ? '' : 'Please provide at least 10 characters of remarks');
+        this.showError('rating-error', ratingValid ? '' : 'Please provide a rating');
+
+        if (confirmBtn) {
+          confirmBtn.disabled = !isValid;
+        }
+
+        return isValid;
+      }
+
+      showError(elementId, message) {
+        const errorEl = document.getElementById(elementId);
+        if (errorEl) {
+          errorEl.textContent = message;
+          errorEl.classList.toggle('show', !!message);
+        }
+      }
+
+      clearErrors() {
+        ['remarks-error', 'rating-error', 'release-user-error'].forEach(id => {
+          this.showError(id, '');
+        });
+      }
+
+      async confirmRelease() {
+        if (this.releaseMode === 'user') {
+          await this.confirmUserRelease();
+          return;
+        }
+
+        if (!this.validateForm()) return;
+        
+        const confirmBtn = document.getElementById('confirmReleaseBtn');
+        const originalText = confirmBtn.textContent;
+        
+        try {
+          // Show loading state
+          confirmBtn.classList.add('loading');
+          confirmBtn.disabled = true;
+          
+          const teamMembers = this.getCurrentUsers();
+          const teamMembersString = teamMembers.join(', ');
+
+          const releaseData = {
+            project: this.currentCarData.project,
+            projectName: this.currentCarData.projectName || this.currentCarData.project || '',
+            team: this.currentCarData.team,
+            teamName: this.currentCarData.teamName || this.currentCarData.team || '',
+            category: this.currentCarData.category,
+            carNumber: this.currentCarData.carNumber,
+            make: this.currentCarData.make,
+            model: this.currentCarData.model,
+            usageType: this.currentCarData.usageType,
+            owner: this.currentCarData.owner,
+            status: 'RELEASE',
+            lastUsers: teamMembersString,
+            remarks: document.getElementById('release-remarks').value.trim(),
+            stars: this.selectedRating,
+            submitter: this.currentCarData.submitter,
+            responsibleBeneficiary: this.currentCarData.responsibleBeneficiary || '',
+            teamMembers: teamMembers,
+            otherTeamMembers: this.currentCarData.otherTeamMembers || []
+          };
+          
+          const result = await this.submitCarRelease(releaseData);
+          
+          if (result.ok) {
+            // Clear original car input
+            if (this.originalCarInput) {
+              this.originalCarInput.value = '';
+              try { delete this.originalCarInput.dataset.responsibleBeneficiary; } catch(_){ }
+            }
+            
+            // Show success message
+            const refSuffix = result.refNumber ? ` Reference: ${result.refNumber}` : '';
+            this.showSuccessMessage(`Vehicle released successfully!${refSuffix}`);
+            
+            // Close modal after delay
+            setTimeout(() => {
+              this.closeModal();
+            }, 2000);
+          } else {
+            throw new Error(result.error || 'Unknown error occurred');
+          }
+        } catch (error) {
+          this.showErrorMessage(`Vehicle release failed: ${error.message}`);
+        } finally {
+          // Reset button state
+          confirmBtn.classList.remove('loading');
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = originalText;
+        }
+      }
+
+      async confirmUserRelease() {
+        const select = document.getElementById('release-user-select');
+        const selectedUser = select ? String(select.value || '').trim() : '';
+        if (!selectedUser) {
+          this.showError('release-user-error', 'Please select a user');
+          this.validateForm();
+          return;
+        }
+
+        if (this.isRemarksRequired && !this.validateForm()) {
+          return;
+        }
+
+        const confirmBtn = document.getElementById('confirmReleaseBtn');
+        const originalText = confirmBtn.textContent;
+        const remarksValue = this.isRemarksRequired ? document.getElementById('release-remarks').value.trim() : '';
+        const payload = {
+          scope: 'user',
+          carNumber: this.currentCarData.carNumber,
+          project: this.currentCarData.project,
+          projectName: this.currentCarData.projectName || this.currentCarData.project || '',
+          team: this.currentCarData.team,
+          teamName: this.currentCarData.teamName || this.currentCarData.team || '',
+          category: this.currentCarData.category,
+          make: this.currentCarData.make,
+          model: this.currentCarData.model,
+          usageType: this.currentCarData.usageType,
+          owner: this.currentCarData.owner,
+          user: selectedUser,
+          remarks: remarksValue,
+          stars: this.isRemarksRequired ? this.selectedRating : 0,
+          requireFeedback: this.isRemarksRequired,
+          submitter: this.currentCarData.submitter,
+          responsibleBeneficiary: this.currentCarData.responsibleBeneficiary || '',
+          otherTeamMembers: this.currentCarData.otherTeamMembers || [],
+          lastUsers: this.currentCarData.lastUsers || []
+        };
+
+        try {
+          confirmBtn.classList.add('loading');
+          confirmBtn.disabled = true;
+
+          const result = await this.submitUserRelease(payload);
+          if (result.ok) {
+            if (result.partial) {
+              this.showSuccessMessage(`Released ${selectedUser} from vehicle ${this.currentCarData.carNumber}.`);
+              this.removeUserFromCurrentData(selectedUser);
+              this.hideReleaseForm();
+              this.populateCarDetails();
+            } else {
+              if (this.originalCarInput) {
+                this.originalCarInput.value = '';
+                try { delete this.originalCarInput.dataset.responsibleBeneficiary; } catch(_){ }
+              }
+              const refSuffix = result.refNumber ? ` Reference: ${result.refNumber}` : '';
+              this.showSuccessMessage(`Vehicle released successfully!${refSuffix}`);
+              setTimeout(() => {
+                this.closeModal();
+              }, 2000);
+            }
+          } else {
+            throw new Error(result.error || 'Unknown error occurred');
+          }
+        } catch (error) {
+          this.showErrorMessage(`User release failed: ${error.message}`);
+        } finally {
+          confirmBtn.classList.remove('loading');
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = originalText;
+        }
+      }
+
+      async submitCarRelease(releaseData) {
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .submitCarRelease(releaseData);
+        });
+      }
+
+      async submitUserRelease(releaseData) {
+        return new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .releaseCarUser(releaseData);
+        });
+      }
+
+      removeUserFromCurrentData(user) {
+        if (!this.currentCarData) return;
+        const normalized = String(user || '').trim().toLowerCase();
+        if (!normalized) return;
+
+        const filterNames = (list) => Array.isArray(list)
+          ? list.filter(name => String(name || '').trim().toLowerCase() !== normalized)
+          : list;
+
+        this.currentCarData.lastUsers = filterNames(this.currentCarData.lastUsers);
+        this.currentCarData.otherTeamMembers = filterNames(this.currentCarData.otherTeamMembers);
+
+        if (this.currentCarData.responsibleBeneficiary && this.currentCarData.responsibleBeneficiary.trim().toLowerCase() === normalized) {
+          const fallback = (this.currentCarData.otherTeamMembers || []).find(name => name && name.trim());
+          this.currentCarData.responsibleBeneficiary = fallback || '';
+          if (fallback) {
+            const fallbackKey = fallback.trim().toLowerCase();
+            this.currentCarData.otherTeamMembers = this.currentCarData.otherTeamMembers.filter(name => String(name || '').trim().toLowerCase() !== fallbackKey);
+          }
+        }
+      }
+
+      showSuccessMessage(message) {
+        // You can implement a toast notification system here
+        alert(message);
+      }
+
+      showErrorMessage(message) {
+        // You can implement a toast notification system here
+        alert(message);
+      }
+
+      showReleaseHistory() {
+        const carNumber = this.currentCarData?.carNumber || this.currentCarData?.car_number || '';
+        console.log('showReleaseHistory - carNumber:', carNumber);
+        console.log('showReleaseHistory - currentCarData:', this.currentCarData);
+        
+        if (!carNumber) {
+          alert('No car selected');
+          return;
+        }
+        
+        google.script.run
+          .withSuccessHandler((data) => {
+            console.log('RELEASE history data received:', data);
+            this.renderHistoryTable(data, 'RELEASE History');
+          })
+          .withFailureHandler((error) => {
+            console.error('Failed to load RELEASE history:', error);
+            alert('Failed to load RELEASE history: ' + error.message);
+          })
+          .getReleaseHistoryForcedWorking(carNumber);
+      }
+
+      showInUseHistory() {
+        const carNumber = this.currentCarData?.carNumber || this.currentCarData?.car_number || '';
+        const teamName = this.currentCarData?.teamName || this.currentCarData?.team || '';
+        console.log('showInUseHistory - carNumber:', carNumber, 'team:', teamName);
+        console.log('showInUseHistory - currentCarData:', this.currentCarData);
+        
+        if (!carNumber) {
+          alert('No car selected');
+          return;
+        }
+        
+        google.script.run
+          .withSuccessHandler((data) => {
+            console.log('IN USE history data received:', data);
+            console.log('Data type:', typeof data);
+            console.log('Is array?:', Array.isArray(data));
+            console.log('Data content:', JSON.stringify(data));
+            this.renderHistoryTable(data, 'IN USE History');
+          })
+          .withFailureHandler((error) => {
+            console.error('Failed to load IN USE history:', error);
+            alert('Failed to load IN USE history: ' + error.message);
+          })
+          .getInUseHistoryForcedWorking(carNumber, teamName);
+      }
+
+      findColumnIndex(headers = [], matchers = []) {
+        if (!Array.isArray(headers)) return -1;
+        const lowered = headers.map(header => String(header || '').toLowerCase());
+        for (const matcher of matchers) {
+          const normalized = matcher.toLowerCase();
+          const index = lowered.findIndex(header => header.includes(normalized));
+          if (index !== -1) {
+            return index;
+          }
+        }
+        return -1;
+      }
+
+      parseDateValue(value) {
+        if (value instanceof Date) {
+          return value;
+        }
+
+        if (typeof value === 'number' && !Number.isNaN(value)) {
+          const dateFromNumber = new Date(value);
+          if (!Number.isNaN(dateFromNumber.getTime())) {
+            return dateFromNumber;
+          }
+        }
+
+        if (value === null || value === undefined) {
+          return null;
+        }
+
+        const strValue = String(value).trim();
+        if (!strValue) {
+          return null;
+        }
+
+        const parsed = new Date(strValue);
+        if (!Number.isNaN(parsed.getTime())) {
+          return parsed;
+        }
+
+        const dateMatch = strValue.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+        if (dateMatch) {
+          let [ , part1, part2, part3 ] = dateMatch;
+          let day;
+          let month;
+          const first = parseInt(part1, 10);
+          const second = parseInt(part2, 10);
+          const year = parseInt(part3.length === 2 ? `20${part3}` : part3, 10);
+
+          if (first > 12 && second <= 12) {
+            day = first;
+            month = second;
+          } else if (second > 12 && first <= 12) {
+            month = first;
+            day = second;
+          } else {
+            day = first;
+            month = second;
+          }
+
+          const normalizedDate = new Date(year, month - 1, day);
+          if (!Number.isNaN(normalizedDate.getTime())) {
+            return normalizedDate;
+          }
+        }
+
+        return null;
+      }
+
+      formatDateForDisplay(value) {
+        const parsed = this.parseDateValue(value);
+        if (!parsed) {
+          return value ? String(value) : '';
+        }
+
+        const day = String(parsed.getDate()).padStart(2, '0');
+        const month = String(parsed.getMonth() + 1).padStart(2, '0');
+        const year = parsed.getFullYear();
+        return `${day}-${month}-${year}`;
+      }
+
+      calculateDaysInUse(rows, dateColumnIndex) {
+        if (!Array.isArray(rows) || rows.length < 2 || dateColumnIndex < 0) {
+          return null;
+        }
+
+        let earliestDate = null;
+        for (let i = 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!Array.isArray(row)) continue;
+          const rawValue = row[dateColumnIndex];
+          const parsed = this.parseDateValue(rawValue);
+          if (!parsed) continue;
+          if (!earliestDate || parsed < earliestDate) {
+            earliestDate = parsed;
+          }
+        }
+
+        if (!earliestDate) {
+          return null;
+        }
+
+        const startOfUse = new Date(earliestDate.getFullYear(), earliestDate.getMonth(), earliestDate.getDate());
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const diffMs = today.getTime() - startOfUse.getTime();
+        if (diffMs < 0) {
+          return 0;
+        }
+
+        const dayMs = 24 * 60 * 60 * 1000;
+        const diffDays = Math.floor(diffMs / dayMs) + 1;
+        return diffDays;
+      }
+
+      renderHistoryTable(rows, title) {
+        console.log('renderHistoryTable called with:', { rows, title });
+        console.log('Rows type:', typeof rows);
+        console.log('Rows value:', rows);
+        console.log('Is rows an array?:', Array.isArray(rows));
+        
+        if (!Array.isArray(rows)) {
+          console.error('rows is not an array:', rows);
+          console.error('Actual type received:', typeof rows);
+          console.error('Actual value received:', JSON.stringify(rows));
+          alert(`Invalid history data received. Expected array, got ${typeof rows}: ${JSON.stringify(rows)}`);
+          return;
+        }
+        
+        if (rows.length === 0) {
+          console.log('Empty array received');
+          alert(`No ${title.toLowerCase()} found for this vehicle.`);
+          return;
+        }
+        
+        // Check if this is an error message (single row with error text)
+        if (rows.length === 1 && rows[0].length === 1) {
+          const errorMessage = String(rows[0][0]);
+          console.log('Error message received:', errorMessage);
+          
+          // Show error/info message in the history section
+          const section = document.getElementById('carHistorySection');
+          section.style.display = 'block';
+          section.querySelector('.section-header h3').textContent = title;
+          document.getElementById('historyContent').innerHTML = `
+            <div style="padding: 20px; text-align: center; color: #666; font-style: italic;">
+              ${this.escapeHtml(errorMessage)}
+            </div>
+          `;
+          return;
+        }
+        
+        // Handle normal data with header + data rows
+        if (rows.length < 2) {
+          console.log('Insufficient data - rows length:', rows.length);
+          alert(`No ${title.toLowerCase()} data found for this vehicle.`);
+          return;
+        }
+        
+        // Build HTML table from rows
+        let html = '';
+
+        const processedRows = rows.map(row => Array.isArray(row) ? [...row] : row);
+        let daysInUse = null;
+        let inUseDateColumnIndex = -1;
+
+        if (title === 'IN USE History') {
+          const headerRow = Array.isArray(rows[0]) ? rows[0] : [];
+          inUseDateColumnIndex = this.findColumnIndex(headerRow, [
+            'Date and time of entry',
+            'Date of entry',
+            'Date'
+          ]);
+          daysInUse = this.calculateDaysInUse(rows, inUseDateColumnIndex);
+
+          if (inUseDateColumnIndex !== -1) {
+            for (let i = 1; i < processedRows.length; i++) {
+              const row = processedRows[i];
+              if (!Array.isArray(row)) continue;
+              row[inUseDateColumnIndex] = this.formatDateForDisplay(row[inUseDateColumnIndex]);
+            }
+          }
+        }
+
+        // Add vehicle details for IN USE History
+        if (title === 'IN USE History' && this.currentCarData) {
+          const makeModel = `${this.currentCarData.make || ''} ${this.currentCarData.model || ''}`.trim();
+          const daysLabel = daysInUse !== null && daysInUse !== undefined
+            ? `${daysInUse} day${daysInUse === 1 ? '' : 's'}`
+            : 'N/A';
+
+          html += `
+            <div style="background-color: #f8f9fa; padding: 15px; margin-bottom: 15px; border-radius: 5px; border-left: 4px solid #007bff;">
+              <h4 style="margin: 0 0 10px 0; color: #333;">Vehicle Details</h4>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+                <div><strong>Vehicle Number:</strong> ${this.escapeHtml(this.currentCarData.carNumber || 'N/A')}</div>
+                <div><strong>Make & Model:</strong> ${this.escapeHtml(makeModel || 'N/A')}</div>
+                <div><strong>Category:</strong> ${this.escapeHtml(this.currentCarData.category || 'N/A')}</div>
+                <div><strong>Usage Type:</strong> ${this.escapeHtml(this.currentCarData.usageType || 'N/A')}</div>
+                <div><strong>Days in Use:</strong> ${this.escapeHtml(daysLabel)}</div>
+                <div><strong>Owner:</strong> ${this.escapeHtml(this.currentCarData.owner || 'N/A')}</div>
+              </div>
+            </div>
+          `;
+        }
+
+        // Filter out vehicle detail columns for IN USE History to avoid duplication
+        let filteredRows = processedRows;
+        if (title === 'IN USE History' && processedRows.length > 0) {
+          const columnsToRemove = ['Vehicle Number', 'Make', 'Model', 'Category', 'Usage Type', 'Owner'];
+          const headerRow = processedRows[0];
+          const columnsToKeep = [];
+
+          headerRow.forEach((header, index) => {
+            if (!columnsToRemove.includes(header)) {
+              columnsToKeep.push(index);
+            }
+          });
+
+          filteredRows = processedRows.map(row => {
+            return Array.isArray(row) ? columnsToKeep.map(index => row[index]) : row;
+          });
+        }
+
+        html += `<table style="width:100%;border-collapse:collapse;">`;
+        html += '<tr>' + filteredRows[0].map(h => `<th style="border:1px solid #ccc;padding:4px;">${this.escapeHtml(String(h))}</th>`).join('') + '</tr>';
+
+        const statusColumnIndex = Array.isArray(filteredRows[0])
+          ? filteredRows[0].findIndex(header => String(header || '').toLowerCase().includes('status'))
+          : -1;
+
+        for (let i = 1; i < filteredRows.length; i++) {
+          const row = filteredRows[i];
+          if (!Array.isArray(row)) continue;
+
+          const rowHtml = row.map((cell, cellIndex) => {
+            const rawText = cell === null || cell === undefined ? '' : String(cell);
+            let cellContent = this.escapeHtml(rawText);
+
+            if (
+              cellIndex === statusColumnIndex &&
+              rawText.trim().toUpperCase() === 'IN USE'
+            ) {
+              cellContent = `<span class="status-pill status-pill--in-use">${cellContent}</span>`;
+            }
+
+            return `<td style="border:1px solid #ccc;padding:4px;">${cellContent}</td>`;
+          }).join('');
+
+          html += `<tr>${rowHtml}</tr>`;
+        }
+        html += '</table>';
+        
+        // Show in modal (replace carHistorySection content)
+        const section = document.getElementById('carHistorySection');
+        section.style.display = 'block';
+        section.querySelector('.section-header h3').textContent = title;
+        document.getElementById('historyContent').innerHTML = html;
+      }
+
+      escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+    }
+
+    // Initialize the system
+    const carReleaseSystem = new CarReleaseSystem();
+    
+    // Expose global functions for backward compatibility
+    window.openCarModal = (data, options) => carReleaseSystem.openModal(data, options);
+    window.closeCarModal = () => carReleaseSystem.closeModal();
+    
+    // Legacy support for historical modal (redirect to main modal)
+    window.openHistoricalModal = (carData, historicalData) => {
+      const combinedData = { ...carData, history: historicalData };
+      carReleaseSystem.openModal(combinedData);
+      // Auto-show history section
+      setTimeout(() => carReleaseSystem.toggleHistorySection(), 100);
+    };
+    window.closeHistoricalModal = () => carReleaseSystem.closeModal();
+    
+    // Car assignment modal removed; only car release modal remains
+    
+    // Note: Car number input click handlers are managed by _Table.html to avoid conflicts
+    
+    // Initialize vehicle popup functionality
+    console.log('Setting up car number input click handlers');
+    
+    // Check for car-number-input elements after DOM is ready
+    setTimeout(() => {
+      const carInputs = document.querySelectorAll('.car-number-input');
+      console.log('Found car-number-input elements:', carInputs.length);
+      carInputs.forEach((input, index) => {
+        console.log(`Car input ${index + 1}:`, input.value || '(empty)');
+      });
+      console.log('Vehicle popups functionality loaded successfully');
+    }, 1000);
+  </script>

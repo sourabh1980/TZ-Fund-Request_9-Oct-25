@@ -1,0 +1,2894 @@
+<!-- Chat Widget Component -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+:root {
+  --bg-start: #eef7ff;
+  --bg-end: #f5f2ff;
+  --brand-1: #1aa6b7;  /* teal */
+  --brand-2: #6a5acd;  /* indigo */
+  --ink: #0f172a;      /* slate-900 */
+  --muted: #607084;    /* slate-500 */
+  --surface: #ffffff;
+  --border: #e6ebf2;
+  --shadow: 0 10px 30px rgba(17, 24, 39, 0.08);
+  --gold: #FFD700;     /* approved gold tone */
+  --gray-star: #C9CFD6;
+  --success: #10b981;
+  --whatsapp: #075e54;  /* WhatsApp brand color */
+  --whatsapp-light: #0b7a63;
+  
+  /* Message category colors */
+  --category-expense: #3b82f6;
+  --category-vehicle: #10b981;
+  --category-team: #8b5cf6;
+}
+
+/* Expense head colors */
+:root {
+  --expense-fuel: #0ea5e9;      /* sky-500 */
+  --expense-da: #ef4444;      /* red-500 */
+  --expense-vehicle-rent: #10b981; /* green-500 */
+  --expense-transport: #f59e0b; /* amber-500 */
+  --expense-misc: #8b5cf6;      /* violet-500 */
+  --expense-total: #374151;     /* slate-700 */
+}
+
+/* Autocomplete loading item */
+.autocomplete-item.loading { color: var(--muted); font-style: italic; opacity: 0.9; }
+
+/* Dark mode variables */
+[data-theme="dark"] {
+  --bg-start: #1a1a1a;
+  --bg-end: #2a2a2a;
+  --surface: #333333;
+  --border: #404040;
+  --ink: #ffffff;
+  --muted: #a0a0a0;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  --whatsapp: #1f2937;
+  --whatsapp-light: #374151;
+}
+
+/* Theme toggle */
+.theme-toggle {
+  padding: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  cursor: pointer;
+  color: white;
+  margin-right: 8px;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* Message enhancements */
+.message {
+  position: relative;
+}
+
+.message-time {
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  margin-top: 4px;
+}
+
+.message:hover .message-time {
+  opacity: 1;
+}
+
+.copy-button, .bookmark-button {
+  position: absolute;
+  padding: 6px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  color: var(--muted);
+}
+
+.copy-button {
+  right: 8px;
+  top: 8px;
+}
+
+.bookmark-button {
+  right: 8px;
+  bottom: 8px;
+}
+
+.message:hover .copy-button,
+.message:hover .bookmark-button {
+  opacity: 1;
+}
+
+.bookmark-button.active {
+  color: var(--gold);
+}
+
+/* Category indicators */
+.message[data-category="expense"] {
+  border-left: 4px solid var(--category-expense);
+}
+
+.message[data-category="vehicle"] {
+  border-left: 4px solid var(--category-vehicle);
+}
+
+.message[data-category="team"] {
+  border-left: 4px solid var(--category-team);
+}
+
+/* Message status indicators */
+.message-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+/* Scroll to bottom button */
+.scroll-bottom {
+  position: fixed;
+  right: 24px;
+  bottom: 120px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+.scroll-bottom.visible {
+  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+
+.scroll-bottom:hover {
+  transform: translateY(-2px);
+  color: var(--brand-1);
+  box-shadow: var(--shadow), 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Related questions */
+.related-questions {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  animation: slideUp 0.3s ease-out;
+}
+
+.related-question {
+  font-size: 13px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.related-question:hover {
+  border-color: var(--brand-1);
+  background: var(--bg-start);
+  transform: translateY(-1px);
+}
+
+/* Message status indicators */
+.message-status {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  transition: all 0.3s ease;
+}
+
+.message-status .status-icon {
+  font-size: 12px;
+  transition: all 0.3s ease;
+}
+
+.message-status .fa-check {
+  color: var(--muted);
+}
+
+.message-status .fa-check-double {
+  color: var(--brand-1);
+}
+
+.message-status .fa-check-double.read {
+  color: var(--brand-2);
+}
+
+.message-time {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.status-icon {
+  font-size: 12px;
+}
+
+.status-sent .status-icon {
+  color: var(--muted);
+}
+
+.status-delivered .status-icon {
+  color: var(--brand-1);
+}
+
+.status-read .status-icon {
+  color: var(--brand-2);
+}
+
+/* Related questions */
+.related-questions {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  animation: slideUp 0.3s ease-out;
+}
+
+.related-question {
+  font-size: 12px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--ink);
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.related-question:hover {
+  border-color: var(--brand-1);
+  background: var(--bg-start);
+  transform: translateY(-1px);
+}
+
+/* Voice input */
+.voice-input {
+  padding: 8px;
+  margin-right: 8px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s ease;
+}
+
+.voice-input:hover {
+  color: var(--brand-1);
+}
+
+.voice-input.active {
+  color: #ef4444;
+  animation: pulse 1.5s infinite;
+}
+
+/* Mobile enhancements and compact mode */
+@media (max-width: 480px) {
+  .chat-container {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+  
+  .swipe-handle {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+  }
+  
+  .chat-input {
+    font-size: 16px; /* Prevent zoom on iOS */
+    padding: 12px; /* Larger touch target */
+  }
+  
+  .copy-button,
+  .bookmark-button,
+  .voice-input {
+    padding: 12px; /* Larger touch targets */
+    min-width: 44px; /* iOS minimum touch target */
+    min-height: 44px;
+  }
+
+  /* Improve keyboard handling */
+  .chat-input:focus {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  /* Composer (multiline, wrapping) */
+  .chat-composer {
+    min-height: 44px;
+    max-height: 140px;
+    padding: 12px 16px;
+    border-radius: 24px;
+    background: var(--surface);
+    color: var(--ink);
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    outline: none;
+  }
+
+  .send-column {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    align-items:center;
+    margin-left:8px;
+  }
+
+  .send-button {
+    width:48px; height:48px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    background: linear-gradient(135deg, var(--brand-1), var(--brand-2)); color:white; border:none; cursor:pointer;
+  }
+}
+
+/* Compact mode */
+@media (max-height: 600px) {
+  .chat-container {
+    --header-height: 48px;
+    --input-height: 48px;
+  }
+
+  .wa-header {
+    padding: 8px 12px;
+    height: var(--header-height);
+  }
+
+  .wa-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+
+  .wa-title {
+    font-size: 14px;
+  }
+
+  .wa-sub {
+    font-size: 11px;
+  }
+
+  .message {
+    padding: 8px 12px;
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+
+  .quick-questions {
+    padding: 8px;
+  }
+
+  .quick-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+</style>
+
+<div id="chatWidget" class="chat-widget">
+  <!-- Chat Toggle Button -->
+  <div id="chatToggle" class="chat-toggle">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
+    </svg>
+  </div>
+
+  <!-- Chat Container -->
+  <div id="chatContainer" class="chat-container">
+    <!-- Chat Header (WhatsApp-like) -->
+    <div class="chat-header wa-header">
+      <div class="wa-left">
+        <div class="wa-avatar" aria-hidden="true">FA</div>
+        <div class="wa-meta">
+    <div class="wa-title">Ask EMAI</div>
+          <div class="wa-sub">Available • Tap to manage</div>
+        </div>
+      </div>
+      <div class="chat-tools">
+            <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+          <i class="fas fa-moon"></i>
+        </button>
+        <div id="aiToggle" class="ai-toggle" title="Switch between Work and Play">
+          <span class="dot"></span>
+          <span class="label">Work</span>
+        </div>
+        <button id="chatClose" class="chat-close" aria-label="Close chat">×</button>
+      </div>
+      <div class="swipe-handle"></div>
+    </div>
+
+    <!-- Chat Messages -->
+    <div id="chatMessages" class="chat-messages">
+      <div class="message bot-message">
+        <div class="message-content">
+          Hello! I’m your Fund Assistant—here to help with requests, expenses, teams, and vehicles. Ask me anything when you’re ready.
+          <div class="message-time">Just now</div>
+          <div class="message-status">
+            <i class="fas fa-check status-icon" aria-hidden="true"></i>
+            <i class="fas fa-check-double status-icon" style="display: none;" aria-hidden="true"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scroll to bottom button -->
+    <button class="scroll-bottom" onclick="scrollToBottom()" title="Scroll to bottom">
+      <i class="fas fa-chevron-down"></i>
+    </button>
+
+  <!-- Quick Questions removed per user request -->
+
+    <!-- Chat Input -->
+    <div class="chat-input-container">
+      <div class="input-wrapper">
+        <div id="chatComposer" class="chat-composer" contenteditable="true" role="textbox" aria-multiline="true" placeholder="Ask about fund requests, expenses, teams...">
+        </div>
+        <div id="autocompleteDropdown" class="autocomplete-dropdown"></div>
+        <div id="datePicker" class="date-picker" style="display:none">
+          <div class="dp-header">
+            <button type="button" class="dp-nav" id="dpPrev">‹</button>
+            <div class="dp-title" id="dpTitle"></div>
+            <button type="button" class="dp-nav" id="dpNext">›</button>
+          </div>
+          <div class="dp-week">
+            <span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span><span>Su</span>
+          </div>
+          <div class="dp-grid" id="dpGrid"></div>
+          <div class="dp-actions">
+            <button type="button" id="dpCancel" class="dp-btn">Cancel</button>
+            <button type="button" id="dpApply" class="dp-btn dp-apply" disabled>Apply</button>
+          </div>
+        </div>
+      </div>
+      <div class="send-column">
+  <button id="chatSend" type="button" class="send-button" aria-label="Send message">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M2.01 21L23 12 2.01 3 2 10L17 12 2 14L2.01 21Z" fill="currentColor"/>
+        </svg>
+        </button>
+        <button class="voice-input" onclick="toggleVoiceInput()" title="Voice input" aria-label="Voice input">
+          <i class="fas fa-microphone"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Typing Indicator -->
+    <div id="typingIndicator" class="typing-indicator" style="display: none;">
+      <div class="typing-dots" aria-hidden="true">
+        <!-- SVG-based typing dots for consistent rendering across browsers -->
+        <svg class="typing-dots-svg" width="48" height="12" viewBox="0 0 48 12" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Typing indicator">
+          <circle cx="6" cy="6" r="5" class="tdot" />
+          <circle cx="24" cy="6" r="5" class="tdot" />
+          <circle cx="42" cy="6" r="5" class="tdot" />
+        </svg>
+      </div>
+      <span>Assistant is typing...</span>
+    </div>
+  </div>
+
+  <!-- Confirmations and pin functionality removed -->
+</div>
+
+<style>
+.chat-widget {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 10000;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.chat-toggle {
+  width: 60px;
+  height: 60px;
+  background: linear-gradient(135deg, var(--brand-1) 0%, var(--brand-2) 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  transition: all 0.3s ease;
+  color: white;
+  animation: float 6s ease-in-out infinite;
+}
+
+.chat-toggle:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 25px rgba(0,0,0,0.2);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.chat-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: min(420px, 96vw);
+  height: 100vh;
+  background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+  border-radius: 18px 0 0 18px; /* round exposed corners */
+  /* subtle 3D look: layered drop shadows + inner highlights */
+  border: 1px solid rgba(15,23,42,0.08);
+  box-shadow:
+    -16px 24px 48px rgba(2,6,23,0.22),
+    -6px 0 16px rgba(2,6,23,0.08),
+    inset -1px 0 0 rgba(255,255,255,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.35),
+    inset 0 -1px 0 rgba(2,6,23,0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-left: 1px solid rgba(0,0,0,0.06);
+  transform: translateX(100%);
+  transition: transform 320ms cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+}
+
+.chat-container.open {
+  transform: translateX(0);
+  animation: slideIn 0.3s ease-out;
+}
+
+.chat-header.wa-header {
+  background: linear-gradient(180deg, var(--whatsapp) 0%, var(--whatsapp-light) 100%);
+  color: #fff;
+  padding: 16px 18px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: var(--shadow);
+  position: relative;
+  z-index: 2;
+  border-top-left-radius: 18px; /* match container rounding */
+}
+.chat-header .wa-left{display:flex;align-items:center;gap:10px}
+.wa-avatar{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700}
+.wa-meta{display:flex;flex-direction:column}
+.wa-title{font-size:15px;font-weight:600}
+.wa-sub{font-size:12px;opacity:0.9}
+
+.chat-tools{display:flex;gap:10px;align-items:center}
+.ai-toggle{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,.45);cursor:pointer;background:rgba(255,255,255,.08);backdrop-filter: blur(2px);font-size:12px}
+.ai-toggle .dot{width:10px;height:10px;border-radius:50%;background:#e2e8f0;box-shadow:0 0 0 2px rgba(255,255,255,.25) inset}
+.ai-toggle.active .dot{background:#22c55e}
+.ai-toggle .label{color:#fff;opacity:.9}
+/* .model-badge removed per request */
+
+.chat-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 12px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.01) 0%, rgba(0,0,0,0.00) 100%);
+}
+
+.chat-messages {
+  flex: 1;
+  padding: 18px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.5), rgba(255,255,255,0.3));
+  scroll-behavior: smooth;
+}
+
+.message {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  max-width: 86%;
+  animation: messageAppear 0.3s ease-out;
+}
+
+@keyframes messageAppear {
+  from { 
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.bot-message {
+  align-self: flex-start;
+  flex-direction: row;
+}
+
+.user-message {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+
+.msg-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  color: white;
+  font-size: 13px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  border: 2px solid rgba(255,255,255,0.8);
+}
+
+.message-bubble {
+  padding: 8px 12px 28px; /* reserve space for timestamp/status placed at bottom */
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  position: relative;
+  box-shadow: var(--shadow);
+  transition: all 0.2s ease;
+}
+
+/* Ensure very short messages (single-word) don't collapse the bubble too much
+   and that long words wrap instead of breaking the layout. Reduce min-width on mobile. */
+.message-bubble {
+  min-width: 120px; /* default minimum pill width for readability */
+  word-break: break-word;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.bot-message .message-bubble {
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-top-left-radius: 4px;
+}
+
+.user-message .message-bubble {
+  background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
+  color: white;
+  border-top-right-radius: 4px;
+}
+.message-bubble .msg-time{display:inline-block;font-size:11px;opacity:0.85;margin:0;text-align:right;vertical-align:middle;position:absolute;right:12px;bottom:8px}
+
+/* bubble tails */
+.bot-message .message-bubble::after{
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 12px;
+  width: 0; height: 0;
+  border-top: 8px solid transparent;
+  border-right: 8px solid #ffffff;
+  border-bottom: 8px solid transparent;
+}
+.user-message .message-bubble::after{
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 12px;
+  width: 0; height: 0;
+  border-top: 8px solid transparent;
+  border-left: 8px solid #25d366;
+  border-bottom: 8px solid transparent;
+}
+
+/* message status (checks) */
+.message-status {
+  display: inline-flex;
+  align-items: center;
+  margin: 0;
+  vertical-align: middle;
+  font-size: 12px;
+  gap: 6px;
+  position: absolute;
+  bottom: 8px;
+  right: 44px; /* default: status sits left of time */
+}
+
+/* Bot (left) messages: status goes to left edge */
+.bot-message .message-bubble .message-status { left: 12px; right: auto; }
+
+/* User (right) messages: keep status left of time inside bubble */
+.user-message .message-bubble .message-status { right: 44px; left: auto; }
+
+.status-tick {
+  transition: all 0.3s ease;
+  font-family: system-ui;
+}
+
+.status-tick.single {
+  color: var(--muted);
+}
+
+.status-tick.double {
+  display: none;
+  color: var(--brand-1);
+}
+
+.status-tick.double.read {
+  color: var(--brand-2);
+  transform: scale(1.05);
+}
+
+/* Animation for tick transition */
+@keyframes tickFade {
+  from { opacity: 0; transform: scale(0.8); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.status-tick {
+  animation: tickFade 0.2s ease-out;
+}
+
+/* Expense head chip and row styles */
+.expense-chip {
+  display:inline-block;
+  padding:2px 8px;
+  border-radius:999px;
+  font-size:12px;
+  color: white;
+  margin-right:6px;
+}
+
+.expense-row-highlight {
+  background: rgba(59,130,246,0.06); /* subtle default */
+}
+
+.expense-fuel { background: var(--expense-fuel); }
+.expense-da { background: var(--expense-da); }
+.expense-vehicle-rent { background: var(--expense-vehicle-rent); }
+.expense-transport { background: var(--expense-transport); }
+.expense-misc { background: var(--expense-misc); }
+.expense-total { background: var(--expense-total); }
+
+/* tail animation */
+.message-bubble::after{transition:transform .18s ease, opacity .18s ease}
+.user-message.status-delivered .message-bubble::after{transform:translateX(2px)}
+.user-message.status-read .message-bubble::after{transform:translateX(4px)}
+
+/* mobile: increase horizontal space */
+@media (max-width: 480px){
+  .chat-container{width:calc(100vw - 8px);right:4px;left:4px;border-radius:14px}
+  .chat-messages{padding:10px}
+  .message{max-width:92%}
+  .message-bubble { min-width: 80px; }
+}
+
+.quick-questions {
+  padding: 14px 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: rgba(255,255,255,0.7);
+  backdrop-filter: blur(8px);
+}
+
+.quick-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--ink);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  /* Ensure long text wraps inside the bubble instead of expanding layout */
+  max-width: calc(100% - 84px);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.quick-btn:hover {
+  background: linear-gradient(135deg, var(--bg-start), var(--bg-end));
+  border-color: var(--brand-1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.chat-input-container {
+  padding: 16px 18px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: rgba(255,255,255,0.9);
+  backdrop-filter: blur(8px);
+  position: relative;
+  z-index: 3;
+  border-bottom-left-radius: 18px; /* match container rounding */
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.6); /* subtle top highlight */
+}
+
+.input-wrapper {
+  flex: 1;
+  position: relative;
+}
+
+.input-wrapper {
+  flex: 1;
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  box-shadow: var(--shadow);
+  transition: all 0.2s ease;
+}
+
+.input-wrapper:focus-within {
+  border-color: var(--brand-1);
+  box-shadow: 0 4px 12px rgba(26,166,183,0.15);
+}
+
+.chat-composer {
+  width: 100%;
+  min-height: 40px;
+  border-radius: 24px;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  box-sizing: border-box;
+}
+
+.chat-composer[placeholder]:empty:before {
+  content: attr(placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1001;
+  display: none;
+  box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+}
+
+.autocomplete-item {
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f3f5;
+  transition: background-color 0.2s ease;
+}
+
+/* Priority (base / From-To / short predictive) items */
+.autocomplete-item--priority {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(246,250,255,0.9); /* subtle highlight */
+}
+.autocomplete-item--priority .priority-icon{
+  width:18px; height:18px; display:inline-flex; align-items:center; justify-content:center; flex:0 0 18px; opacity:0.95;
+}
+
+/* Separator between priority items and the rest */
+.autocomplete-separator {
+  height: 1px;
+  background: #eef2f6;
+  margin: 6px 0;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.selected {
+  background-color: #f8f9fa;
+}
+
+.autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-highlight {
+  background-color: #fff3cd;
+  font-weight: 600;
+}
+
+.autocomplete-calendar { display:inline-flex; align-items:center; justify-content:center; margin-left:8px; vertical-align:middle; color: #0f172a; opacity:0.9 }
+.autocomplete-calendar svg { display:block; width:14px; height:14px; }
+
+/* Date picker */
+.date-picker{position:absolute;bottom:110%;left:0;min-width:260px;background:#fff;border:1px solid #e1e5e9;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.12);padding:10px;z-index:1002}
+.dp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.dp-title{font-weight:600;color:#334155}
+.dp-nav{border:1px solid #e2e8f0;background:#fff;border-radius:6px;width:28px;height:28px;cursor:pointer}
+.dp-week{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin:6px 0 4px 0;font-size:11px;color:#64748b;text-align:center}
+.dp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.dp-day{height:28px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;color:#334155;display:flex;align-items:center;justify-content:center;cursor:pointer;background:#fff}
+.dp-day.out{color:#cbd5e1}
+.dp-day.sel{background:#e0e7ff;border-color:#6366f1}
+.dp-day.range{background:#eef2ff}
+.dp-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:8px}
+.dp-btn{border:1px solid #e2e8f0;background:#fff;border-radius:6px;padding:6px 10px;font-size:12px;cursor:pointer}
+.dp-apply{background:#6366f1;color:#fff;border-color:#6366f1}
+
+#chatSend {
+  width: 46px;
+  height: 46px;
+  background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
+  border: none;
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow);
+}
+
+#chatSend:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(26,166,183,0.25);
+}
+
+#chatSend:active {
+  transform: scale(0.95);
+}
+
+#chatSend:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+#chatSend svg {
+  width: 22px;
+  height: 22px;
+  transition: transform 0.2s ease;
+}
+
+#chatSend:hover svg {
+  transform: translateX(2px);
+}
+
+.typing-indicator {
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  /* Ensure dots inherit readable color and can be overridden when showing AI Writing */
+  color: var(--muted);
+  background: rgba(255,255,255,0.8);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--border);
+  animation: slideUp 0.3s ease-out;
+}
+
+.typing-dots {
+  display: flex;
+  gap: 4px;
+  padding: 6px 12px;
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  animation: slideIn 0.3s ease-out;
+}
+/* SVG typing dots */
+.typing-dots-svg { display: block; }
+.typing-dots-svg .tdot { fill: currentColor; opacity: 0.95; }
+.typing-dots-svg .tdot { transform-origin: center; }
+.typing-dots-svg .tdot:nth-child(1) { animation: tdotPulse 1.4s infinite ease-in-out; }
+.typing-dots-svg .tdot:nth-child(2) { animation: tdotPulse 1.4s infinite ease-in-out 0.2s; }
+.typing-dots-svg .tdot:nth-child(3) { animation: tdotPulse 1.4s infinite ease-in-out 0.4s; }
+
+@keyframes tdotPulse {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* Scroll to bottom button */
+.scroll-bottom {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  display: none;
+  /* Keep composer from growing past available space */
+  max-width: calc(100% - 84px);
+  white-space: pre-wrap;
+  word-break: break-word;
+  justify-content: center;
+  color: var(--muted);
+  transition: all 0.2s ease;
+  z-index: 1000;
+}
+
+.scroll-bottom.visible {
+  display: flex;
+  animation: fadeIn 0.3s ease;
+}
+
+.scroll-bottom:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow), 0 4px 12px rgba(0,0,0,0.1);
+  color: var(--brand-1);
+}
+
+/* Message status indicators */
+.message-status {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.status-icon {
+  width: 16px;
+  height: 16px;
+  transition: all 0.3s ease;
+}
+
+.status-sent .status-icon {
+  color: var(--muted);
+}
+
+.status-delivered .status-icon {
+  color: var(--brand-1);
+}
+
+.status-read .status-icon {
+  color: var(--brand-2);
+}
+
+/* Timestamps */
+.message-time {
+  font-size: 11px;
+  color: var(--muted);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  margin-top: 4px;
+}
+
+.message:hover .message-time {
+  opacity: 1;
+}
+
+/* Copy message button */
+.copy-button {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  padding: 4px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+}
+
+.message:hover .copy-button {
+  opacity: 1;
+}
+
+.copy-button:hover {
+  background: var(--surface);
+  transform: scale(1.1);
+}
+
+/* Message categories */
+.category-expense {
+  border-left: 4px solid #3b82f6;
+}
+
+.category-vehicle {
+  border-left: 4px solid #10b981;
+}
+
+.category-team {
+  border-left: 4px solid #8b5cf6;
+}
+
+/* Bookmark button */
+.bookmark-button {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 4px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s ease;
+  color: var(--muted);
+}
+
+.message:hover .bookmark-button {
+  opacity: 1;
+}
+
+.bookmark-button.active {
+  color: var(--gold);
+}
+
+/* Related questions */
+.related-questions {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.related-question {
+  font-size: 12px;
+  padding: 4px 10px;
+  background: rgba(255,255,255,0.8);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.related-question:hover {
+  background: var(--surface);
+  border-color: var(--brand-1);
+}
+
+/* Voice input */
+.voice-input {
+  padding: 8px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  transition: all 0.2s ease;
+}
+
+.voice-input:hover {
+  color: var(--brand-1);
+}
+
+.voice-input.active {
+  color: #ef4444;
+  animation: pulse 1.5s infinite;
+}
+
+/* Inline pill tokens inside the composer */
+.pill {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 13px;
+  line-height: 1;
+  margin-right: 6px;
+  vertical-align: middle;
+  color: #0f172a; /* dark text on light pastel */
+  background: #f3f4f6; /* default very light */
+  border: 1px solid rgba(0,0,0,0.04);
+}
+.pill.pill-predictive { color: #0f172a; }
+.pill.pill-date-from { background: #FEF3C7; color: #92400e; padding:4px 8px; font-size:12px; } /* yellow pastel */
+.pill.pill-date-to { background: #D1FAE5; color: #065f46; padding:4px 8px; font-size:12px; } /* light green pastel */
+
+/* Additional pastel classes (used programmatically) */
+.pill.pastel-1 { background: #FDE68A; color:#92400e; }
+.pill.pastel-2 { background: #DDEBF7; color:#08306B; }
+.pill.pastel-3 { background: #EDE9FE; color:#4C1D95; }
+.pill.pastel-4 { background: #FEF6EA; color:#7C2D12; }
+.pill.pastel-5 { background: #FFF7ED; color:#7C2D12; }
+
+/* pill internals */
+.pill { position: relative; padding-right: 6px; }
+.pill { position: relative; display:inline-flex; align-items:center; gap:4px; padding-right:2px; }
+.pill-label { display: inline-block; padding: 4px 3px; }
+.pill-close { position: relative; margin-left: 0; border: none; background: rgba(0,0,0,0.04); border-radius:50%; width:16px; height:16px; cursor:pointer; line-height:14px; padding:0; display:inline-flex; align-items:center; justify-content:center; font-size:12px; color: #dc2626; }
+.pill-close svg { width:10px; height:10px; display:block; }
+.pill-close:hover { background: rgba(0,0,0,0.08); }
+
+/* Dark mode toggle */
+.dark-mode-toggle {
+  padding: 8px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  cursor: pointer;
+  color: white;
+  margin-right: 8px;
+}
+
+/* Scroll to bottom */
+.scroll-bottom {
+  position: absolute;
+  bottom: 80px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: all 0.3s ease;
+}
+
+.scroll-bottom.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Mobile enhancements */
+@media (max-width: 480px) {
+  .chat-container {
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+  }
+  
+  .quick-btn {
+    padding: 12px 16px; /* Larger touch target */
+  }
+  
+  .voice-input,
+  .bookmark-button,
+  .copy-button {
+    padding: 8px; /* Larger touch target */
+  }
+  
+  /* Swipe handle */
+  .chat-header::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 40px;
+    height: 4px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 2px;
+  }
+}
+
+/* Animations */
+@keyframes slideUp {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+.typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .chat-container {
+    width: calc(100vw - 12px);
+    height: 100vh;
+    border-radius: 0;
+  }
+}
+
+/* Inline rating row */
+.rating-row{display:flex;gap:8px;align-items:center;margin:8px 0 0 0}
+.rating-label{font-size:12px;color:#666;margin-right:2px}
+.rating-btn{min-width:34px;height:28px;border-radius:999px;border:1px solid #e1e5e9;background:#fff;cursor:pointer;font-weight:700;font-size:12px;color:#475569}
+.rating-btn:hover{background:#f8fafc}
+.rating-btn[disabled]{opacity:.5;cursor:default}
+
+/* Star rating styles */
+.rating-star{background:transparent;border:none;font-size:18px;line-height:1;cursor:pointer;color:#c9c9c9;padding:4px 6px;border-radius:4px}
+.rating-star:hover{color:#f1c40f}
+.rating-star.filled{color:#f1c40f}
+.rating-star[disabled]{opacity:.6;cursor:default}
+</style>
+
+<script>
+(function() {
+  // Dark mode toggle
+  window.toggleTheme = function() {
+    const html = document.documentElement;
+    const currentTheme = html.getAttribute('data-theme') || 'light';
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    html.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    const themeIcon = document.querySelector('.theme-toggle i');
+    if (themeIcon) {
+      themeIcon.className = newTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+  };
+
+  // Voice input toggle
+  window.toggleVoiceInput = function() {
+    if (!window.speechRecognition) {
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+      if (!SpeechRecognition) {
+        console.log('Speech recognition not supported');
+        return;
+      }
+      window.speechRecognition = new SpeechRecognition();
+      window.speechRecognition.continuous = false;
+      window.speechRecognition.interimResults = false;
+      window.speechRecognition.lang = 'en-US';
+      
+      window.speechRecognition.onstart = function() {
+        const voiceButton = document.querySelector('.voice-input');
+        voiceButton.classList.add('active');
+        voiceButton.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+      };
+      
+      window.speechRecognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+  const composer = document.getElementById('chatComposer');
+  if (composer) { composer.textContent = transcript; composer.focus(); }
+      };
+      
+      window.speechRecognition.onend = function() {
+        const voiceButton = document.querySelector('.voice-input');
+        voiceButton.classList.remove('active');
+        voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+      };
+    }
+    
+    if (window.speechRecognition.state === 'recording') {
+      window.speechRecognition.stop();
+    } else {
+      window.speechRecognition.start();
+    }
+  };
+
+  // Initialize theme on load
+  function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    const themeIcon = document.querySelector('.theme-toggle i');
+    if (themeIcon) {
+      themeIcon.className = savedTheme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+    }
+  }
+
+  // Initialize voice recognition
+  function initVoiceInput() {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+      const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+      window.speechRecognition = new SpeechRecognition();
+      window.speechRecognition.continuous = false;
+      window.speechRecognition.interimResults = false;
+      window.speechRecognition.lang = 'en-US';
+      
+      window.speechRecognition.onstart = function() {
+        const voiceButton = document.querySelector('.voice-input');
+        if (voiceButton) {
+          voiceButton.classList.add('active');
+          voiceButton.innerHTML = '<i class="fas fa-microphone-slash"></i>';
+        }
+      };
+      
+      window.speechRecognition.onresult = function(event) {
+        const transcript = event.results[0][0].transcript;
+        const composer = document.getElementById('chatComposer');
+        if (composer) {
+          composer.textContent = transcript;
+          composer.focus();
+        }
+      };
+      
+      window.speechRecognition.onend = function() {
+        const voiceButton = document.querySelector('.voice-input');
+        if (voiceButton) {
+          voiceButton.classList.remove('active');
+          voiceButton.innerHTML = '<i class="fas fa-microphone"></i>';
+        }
+      };
+    }
+  }
+
+  // Initialize all features
+  function init() {
+    initTheme();
+    initVoiceInput();
+    initScrollButton();
+    initMessageObserver();
+  // New thread button removed (functionality disabled)
+  }
+
+  // Initialize scroll button
+  function initScrollButton() {
+    const messages = document.getElementById('chatMessages');
+    const scrollButton = document.querySelector('.scroll-bottom');
+    
+    messages.addEventListener('scroll', () => {
+      const { scrollTop, scrollHeight, clientHeight } = messages;
+      scrollButton.classList.toggle('visible', scrollHeight - scrollTop - clientHeight > 100);
+    });
+  }
+
+  // Scroll to bottom
+  function scrollToBottom() {
+    const messages = document.getElementById('chatMessages');
+    messages.scrollTo({ top: messages.scrollHeight, behavior: 'smooth' });
+  }
+
+  // Confirm/pin modal helpers and pinned UI removed
+
+  // Set input text
+  function setInput(text) {
+  setComposerText(text);
+  }
+
+  // Initialize message observer for status updates
+  function initMessageObserver() {
+    const messages = document.getElementById('chatMessages');
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach(mutation => {
+        if (mutation.addedNodes.length) {
+          mutation.addedNodes.forEach(node => {
+            if (node.classList && node.classList.contains('message')) {
+              updateMessageStatus(node);
+              scrollToBottom();
+            }
+          });
+        }
+      });
+    });
+
+    observer.observe(messages, { childList: true });
+  }
+
+  // Colorize expense heads inside tables or text: looks for common expense head keywords and adds classes
+  function colorizeExpenseHeads(container) {
+    if (!container) return;
+    // normalize container to element
+    const el = container instanceof Element ? container : document.getElementById(container);
+
+    // Map keywords to class names
+    const map = [
+      { kws: ['fuel', 'petrol', 'diesel'], cls: 'expense-fuel' },
+  { kws: ['da', 'er da', 'erda', 'er/da', 'er_da'], cls: 'expense-da' },
+      { kws: ['vehicle rent', 'vehicle_rent', 'rent'], cls: 'expense-vehicle-rent' },
+      { kws: ['transport', 'transportation'], cls: 'expense-transport' },
+      { kws: ['misc', 'miscellaneous', 'other'], cls: 'expense-misc' },
+      { kws: ['total', 'grand total', 'total expense'], cls: 'expense-total' }
+    ];
+
+    // Color table header cells or first column cells that match
+    const tables = el.querySelectorAll('table');
+    tables.forEach(tbl => {
+      // try header cells first
+      const headers = Array.from(tbl.querySelectorAll('th'));
+      if (headers.length) {
+        headers.forEach(h => {
+          const text = (h.textContent || '').toLowerCase();
+          map.forEach(m => {
+            m.kws.forEach(k => { if (text.includes(k)) h.classList.add(m.cls); });
+          });
+        });
+      }
+
+      // try first column cells
+      const rows = Array.from(tbl.querySelectorAll('tr'));
+      rows.forEach(r => {
+        const first = r.querySelector('td,th');
+        if (!first) return;
+        const text = (first.textContent || '').toLowerCase();
+        map.forEach(m => {
+          m.kws.forEach(k => { if (text.includes(k)) {
+            // add chip inside the first cell
+            const chip = document.createElement('span');
+            chip.className = 'expense-chip ' + m.cls;
+            chip.textContent = (first.textContent || '').trim().split('\n')[0];
+            // replace content visually while keeping original in title
+            chip.title = first.textContent.trim();
+            first.innerHTML = '';
+            first.appendChild(chip);
+            // highlight the row
+            r.classList.add('expense-row-highlight');
+          }});
+        });
+      });
+    });
+
+    // Also color any inline labels/pills that match
+    const possibles = el.querySelectorAll('span,div');
+    possibles.forEach(node => {
+      const txt = (node.textContent || '').toLowerCase();
+      map.forEach(m => { m.kws.forEach(k => { if (txt.trim().toLowerCase() === k) node.classList.add('expense-chip', m.cls); }); });
+    });
+  }
+
+  // Update message status
+  function updateMessageStatus(message) {
+    if (!message.classList.contains('bot-message')) {
+      const statusContainer = message.querySelector('.message-status');
+      const singleTick = statusContainer.querySelector('.fa-check');
+      const doubleTick = statusContainer.querySelector('.fa-check-double');
+      
+      // Start with single tick
+      singleTick.style.display = 'inline-block';
+      singleTick.style.color = 'var(--muted)';
+      doubleTick.style.display = 'none';
+      
+      // After 1s, show double tick (delivered)
+      setTimeout(() => {
+        singleTick.style.display = 'none';
+        doubleTick.style.display = 'inline-block';
+        doubleTick.style.color = 'var(--brand-1)';
+        
+        // After another 1s, change color to read
+        setTimeout(() => {
+          doubleTick.style.color = 'var(--brand-2)';
+        }, 1000);
+      }, 1000);
+    }
+  }
+
+  // Chat Widget Functionality
+  const chatWidget = document.getElementById('chatWidget');
+  const chatToggle = document.getElementById('chatToggle');
+  const chatContainer = document.getElementById('chatContainer');
+  const chatClose = document.getElementById('chatClose');
+
+  // Call init when the DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+  const chatMessages = document.getElementById('chatMessages');
+  const chatComposer = document.getElementById('chatComposer');
+  const chatSend = document.getElementById('chatSend');
+  const typingIndicator = document.getElementById('typingIndicator');
+  const quickBtns = document.querySelectorAll('.quick-btn');
+  const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+  const datePicker = document.getElementById('datePicker');
+  const dpTitle = document.getElementById('dpTitle');
+  const dpGrid = document.getElementById('dpGrid');
+  const dpPrev = document.getElementById('dpPrev');
+  const dpNext = document.getElementById('dpNext');
+  const dpApply = document.getElementById('dpApply');
+  const dpCancel = document.getElementById('dpCancel');
+  const aiToggle = document.getElementById('aiToggle');
+
+  // Work/Play mode: 'work' => Dual (no prefix), 'play' => Open (prefix 'ai:')
+  let chatMode = 'work';
+
+  // Predefined questions for autocomplete
+  const predefinedQuestions = [
+    'What are the monthly expenses?',
+    'What are the fuel costs this month?',
+    'What expenses does John have?',
+    'What is the team expense breakdown?',
+    'What are the transport costs?',
+    'What are the airtime expenses?',
+    'What are the miscellaneous expenses?',
+    'What vehicles are available?',
+    'What are the recent vehicle releases?',
+    'What teams are using vehicles?',
+    'What makes and models do we have?',
+    'What are the highest rated vehicles?',
+    'What is the monthly vehicle usage?',
+    'What is the vehicle information?',
+    'What beneficiaries have expenses?',
+    'What projects have the highest costs?',
+  'What are the DA expenses?',
+    'What are the vehicle rental costs?',
+    'When were the last submissions made?',
+    'Where are the expense reports?',
+    'Who submitted the most expenses?',
+    'Who has the highest fuel costs?',
+    'Who is using which vehicle?',
+    'Which team has the most expenses?',
+    'Which project costs the most?',
+    'Which vehicles need maintenance?',
+    'Why are expenses so high?',
+    'How much was spent on fuel?',
+    'How many vehicles are in use?',
+    'How can I reduce costs?'
+  ];
+
+  let selectedIndex = -1;
+  let filteredQuestions = [];
+  // Settings: editable in one place
+  const WIDGET_SETTINGS = {
+  fromToBases: ['Fuel','DA','Car','Airtime','Transport','Misc'],
+    dateBlockKeywords: ['amount','expense','expenses'],
+  baseVariants: ['fuel','da','er da','erda','car','vehicle rent','vehicle rental','vehicle','rent','rental','airtime','transport','misc']
+  };
+  const fromToBases = WIDGET_SETTINGS.fromToBases;
+  const DATE_BLOCK_KEYWORDS = WIDGET_SETTINGS.dateBlockKeywords;
+  // Performance tuning
+  const DEBOUNCE_MS = 60; // shorter delay for snappier suggestions
+  const MIN_SERVER_PREFIX = 2; // don't call server for very short tokens
+  const serverCache = new Map(); // prefix -> suggestions array
+  let latestFetchId = 0;
+  const FALLBACK_LOCAL_MS = 120; // show local suggestions if server is slow (reduced for server-first behavior)
+  // prevent duplicate sends
+  let sendInFlight = false;
+
+  // Detect whether a suggestion should open the date picker and what base to use.
+  function detectCalendarBase(qStr) {
+    const s = String(qStr || '').trim();
+    const _blockRegex = new RegExp('\\b(' + DATE_BLOCK_KEYWORDS.map(k=>k.replace(/[.*+?^${}()|[\\]\\]/g,'\\$&')).join('|') + ')\\b','i');
+    const containsBlocked = _blockRegex.test(s);
+    // From/To pattern
+    const m = s.match(/^(.*)\s+(From|To)\s*$/i);
+    const base = m ? (m[1] || '').trim() : '';
+    const isFromTo = !containsBlocked && !!m && fromToBases.some(b => b.toLowerCase() === base.toLowerCase());
+    // base variants to match more flexibly from settings
+    const baseVariants = WIDGET_SETTINGS.baseVariants || [];
+    const norm = s.toLowerCase();
+    const startsWithBase = baseVariants.some(v => norm === v || norm.startsWith(v + ' ') || norm.startsWith(v + 's '));
+    const isBaseOnly = !containsBlocked && startsWithBase;
+    const baseText = isFromTo ? base : (isBaseOnly ? s : '');
+    return { isFromTo, isBaseOnly, baseText };
+  }
+
+  // Date picker state
+  let dpState = {
+    visible: false,
+    base: '',
+    y: 0,
+    m: 0,
+    start: null,
+    end: null
+  };
+
+  // Toggle chat
+  chatToggle.addEventListener('click', () => {
+    chatContainer.classList.add('open');
+    const composer = document.getElementById('chatComposer'); if (composer) composer.focus();
+  });
+
+  chatClose.addEventListener('click', () => {
+    chatContainer.classList.remove('open');
+  });
+
+  // Prefetch common prefixes to warm serverCache (optional, keeps startup light)
+  function prewarmServerCache(prefixes){
+    if (!prefixes || !prefixes.length) return;
+    prefixes.forEach(p => {
+      const lower = String(p||'').toLowerCase();
+      if (!lower || serverCache.has(lower)) return;
+      try{
+        google.script.run.withSuccessHandler(function(res){
+          const server = Array.isArray(res) ? res : (res && res.suggestions) ? res.suggestions : [];
+          if (server && server.length) serverCache.set(lower, server.slice(0,20));
+        }).getTypeaheadSuggestions(p, 12, ['expense','date','beneficiary','project','team','vehicle','header']);
+      }catch(_e){}
+    });
+  }
+
+  // Send message
+  function sendMessage() {
+    if (sendInFlight) return; // guard against duplicate sends
+    const composer = document.getElementById('chatComposer');
+    if (!composer) return;
+    // Serialize composer: collect pill data-values and text nodes, preserving spaces
+    function serializeComposer(el){
+      let out = '';
+      el.childNodes.forEach(n => {
+        if (n.nodeType === Node.ELEMENT_NODE && n.classList && n.classList.contains('pill')) {
+          out += (n.dataset && n.dataset.value ? n.dataset.value : n.textContent) + ' ';
+        } else if (n.nodeType === Node.TEXT_NODE) {
+          out += n.textContent;
+        } else if (n.nodeType === Node.ELEMENT_NODE) {
+          out += n.textContent;
+        }
+      });
+      return out.replace(/\s+/g,' ').trim();
+    }
+    let message = serializeComposer(composer);
+    if (!message) return;
+
+  // Add user message and capture DOM node to update status later
+  const userMsgEl = addMessage(message, 'user');
+  composer.textContent = '';
+  chatSend.disabled = true;
+
+  // Show typing indicator
+  showTyping();
+  // mark send in-flight
+  sendInFlight = true;
+
+    // Play mode => Open: prefix 'ai:' to trigger open LLM path server-side
+    if (chatMode === 'play' && !/^\s*ai\s*[:\-]/i.test(message)) {
+      message = 'ai: ' + message;
+    }
+
+    // Send to backend using google.script.run (proper GAS method)
+    console.log('Sending chat request:', message);
+    
+    // Use google.script.run for proper GAS communication
+    if (typeof google !== 'undefined' && google.script && google.script.run) {
+      // include convId if available
+      var convToSend = window.currentConvId || null;
+      google.script.run
+        .withSuccessHandler(function(response) {
+          console.log('GAS response:', response);
+          try { console.log('GAS response (stringified):', JSON.stringify(response)); } catch(_e){}
+          // If the server returned a table object but the HTML is missing/null,
+          // surface a debug message in the chat and log the full response so
+          // we can inspect what the client actually received.
+          try {
+            if (response && typeof response === 'object') {
+              if (response.table === null) {
+                console.warn('GAS response.table is null', response);
+                hideTyping(); sendInFlight = false;
+                addMessage('Debug: server returned response.table === null. Full response:\n' + JSON.stringify(response), 'bot');
+                chatSend.disabled = false;
+                return;
+              }
+              if (response.table && !response.table.html) {
+                console.warn('GAS response.table exists but table.html is missing/null', response.table);
+                hideTyping(); sendInFlight = false;
+                addMessage('Debug: server returned a table object but table.html is missing. Full response:\n' + JSON.stringify(response), 'bot');
+                chatSend.disabled = false;
+                return;
+              }
+            }
+          } catch(_e){}
+          hideTyping();
+          sendInFlight = false;
+          try {
+            // mark user message as delivered
+            try{ if (userMsgEl && userMsgEl.querySelector){ const s = userMsgEl.querySelector('.msg-status'); if(s){ s.classList.add('delivered'); } } }catch(_e){}
+            // If the server returned a structured object with table, pass it through
+            let botMsg;
+            // If server returns a conversation id, store it for follow-ups
+            try{ if (response && typeof response === 'object' && response.convId) { window.currentConvId = response.convId; } }catch(_e){}
+            if (response && typeof response === 'object' && response.table) {
+              botMsg = addMessage(response, 'bot');
+            } else if (typeof response === 'string') {
+              botMsg = addMessage(response, 'bot');
+            } else if (response && response.response) {
+              // legacy shape
+              botMsg = addMessage(response.response, 'bot');
+            } else {
+              botMsg = addMessage(JSON.stringify(response), 'bot');
+            }
+            // mark user message as read when bot message is appended
+            try{ if (userMsgEl && userMsgEl.querySelector){ const s = userMsgEl.querySelector('.msg-status'); if(s){ s.classList.remove('delivered'); s.classList.add('read'); } } }catch(_e){}
+          } catch (e) {
+            console.error('Response handling error:', e);
+            addMessage('Sorry, I could not process the assistant response.', 'bot');
+          }
+          chatSend.disabled = false;
+        })
+        .withFailureHandler(function(error) {
+          console.error('GAS error:', error);
+          hideTyping();
+          sendInFlight = false;
+          // mark user message as failed/delivered-failed
+          try{ if (userMsgEl && userMsgEl.querySelector){ const s = userMsgEl.querySelector('.msg-status'); if(s){ s.classList.remove('delivered'); s.classList.add('failed'); } } }catch(_e){}
+          addMessage('Sorry, I encountered an error processing your request.', 'bot');
+          chatSend.disabled = false;
+        })
+    .processChatQuery(message, convToSend);
+  } else {
+  // Fallback to fetch for deployed web apps
+      let baseUrl = window.location.href;
+      if (baseUrl.includes('?')) {
+        baseUrl = baseUrl.split('?')[0];
+      }
+      const url = baseUrl + '?action=chat&message=' + encodeURIComponent(message);
+      console.log('Request URL:', url);
+      
+      // fetch fallback
+      fetch(url, { method: 'GET' })
+      .then(response => response.text())
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
+            // store convId from fallback response if present
+            try{ if (data && data.convId) { window.currentConvId = data.convId; } }catch(_e){}
+          hideTyping();
+          sendInFlight = false;
+          // mark user delivered
+          try{ if (userMsgEl && userMsgEl.querySelector){ const s = userMsgEl.querySelector('.msg-status'); if(s){ s.classList.add('delivered'); } } }catch(_e){}
+          addMessage(data.response || data.error || 'Sorry, I could not process your request.', 'bot');
+          // mark read
+          try{ if (userMsgEl && userMsgEl.querySelector){ const s = userMsgEl.querySelector('.msg-status'); if(s){ s.classList.remove('delivered'); s.classList.add('read'); } } }catch(_e){}
+          chatSend.disabled = false;
+        } catch (parseError) {
+          hideTyping();
+          addMessage('Sorry, there was an error processing your request.', 'bot');
+          chatSend.disabled = false;
+        }
+      })
+        .catch(error => {
+        hideTyping();
+        sendInFlight = false;
+        try{ if (userMsgEl && userMsgEl.querySelector){ const s = userMsgEl.querySelector('.msg-status'); if(s){ s.classList.add('failed'); } } }catch(_e){}
+        addMessage('Sorry, there was an error processing your request.', 'bot');
+        chatSend.disabled = false;
+        console.error('Chat error:', error);
+      });
+    }
+  }
+
+  // Paste handler: paste as plain text and force black color to ensure visibility
+  if (chatComposer) {
+    chatComposer.addEventListener('paste', function(e){
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text');
+      // Insert plain text and ensure it is black so it's visible in the editor
+      const span = document.createElement('span');
+      span.textContent = text;
+      span.style.color = '#000';
+      span.className = '';
+      insertNodeAtCaret(span);
+    });
+  }
+
+  // Work/Play toggle behavior
+  aiToggle.addEventListener('click', () => {
+    chatMode = (chatMode === 'work') ? 'play' : 'work';
+    aiToggle.classList.toggle('active', chatMode === 'play');
+    const lbl = aiToggle.querySelector('.label');
+    if (lbl) lbl.textContent = (chatMode === 'play') ? 'Play' : 'Work';
+  });
+
+    // Add message to chat
+  function addMessage(content, type) {
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${type}-message`;
+
+  // avatar: bot uses EMAI; user uses initials from window.chatUserName or fallback 'ME'
+    const avatar = document.createElement('div');
+    avatar.className = 'msg-avatar';
+    if (type === 'bot') {
+      avatar.textContent = 'EMAI';
+    } else {
+      const name = window.chatUserName || ''; const initials = (name || 'ME').split(/\s+/).filter(Boolean).map(s=>s[0].toUpperCase()).slice(0,2).join('') || 'ME';
+      avatar.textContent = initials;
+    }
+
+    // bubble
+    const bubble = document.createElement('div');
+    bubble.className = 'message-bubble';
+
+    // content handling
+    if (type === 'bot' && content && typeof content === 'object' && content.table && content.table.html) {
+      const tableHolder = document.createElement('div');
+      tableHolder.innerHTML = content.table.html;
+      tableHolder.style.marginBottom = '8px';
+  bubble.appendChild(tableHolder);
+
+  // Colorize expense heads in any inserted table
+  try{ colorizeExpenseHeads(tableHolder); }catch(e){console.warn('colorizeExpenseHeads failed',e); }
+
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = 'Download CSV';
+      btn.className = 'rating-btn';
+      btn.addEventListener('click', function(){
+        const csv = content.table.csv || '';
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'report.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      });
+      bubble.appendChild(btn);
+    } else {
+      // Sanitize bot text to remove server-side rating instruction lines such as:
+      // 💡 *Rate this response: Type "rate [1-5] conv_1757532144555" (1=poor, 5=excellent)
+      let displayText = (typeof content === 'string') ? content : JSON.stringify(content);
+      if (type === 'bot' && typeof displayText === 'string') {
+        // Remove common patterns containing 'Rate this response' or 'Type "rate' and trailing parentheticals
+        displayText = displayText.replace(/\n?\s*💡[^\n]*Rate this response[^\n]*/gi, '');
+        displayText = displayText.replace(/\n?\s*\*Rate this response[^\n]*/gi, '');
+        displayText = displayText.replace(/\n?\s*💡[^\n]*Type\s+"rate[^"]*"[^\n]*/gi, '');
+        displayText = displayText.replace(/\(1=poor,[^\)]*\)/gi, '');
+        displayText = displayText.replace(/\s+$/g, '');
+      }
+      const txt = document.createElement('div');
+      txt.innerHTML = escapeHtml(displayText);
+      bubble.appendChild(txt);
+    }
+
+    // time
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'msg-time';
+    const now = new Date();
+  timeSpan.textContent = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', timeZone: 'Africa/Dar_es_Salaam'});
+    bubble.appendChild(timeSpan);
+
+    // status (for user messages)
+    if (type === 'user'){
+      const status = document.createElement('div');
+      status.className = 'message-status';
+      // Use actual tick symbols instead of Font Awesome icons
+      status.innerHTML = `
+        <span class="status-tick single">✓</span>
+        <span class="status-tick double">✓✓</span>
+      `;
+      bubble.appendChild(status);
+      
+      // Simulated message flow: sent -> delivered -> read
+      (async function() {
+        const singleTick = status.querySelector('.single');
+        const doubleTick = status.querySelector('.double');
+        
+        // Start with single tick
+        singleTick.style.display = 'inline';
+        doubleTick.style.display = 'none';
+        
+        // After 500ms, show delivered status
+        await new Promise(resolve => setTimeout(resolve, 500));
+        singleTick.style.display = 'none';
+        doubleTick.style.display = 'inline';
+        doubleTick.style.color = 'var(--brand-1)';
+        
+        singleTick.style.display = 'none';
+        doubleTick.style.display = 'inline-block';
+        doubleTick.style.color = 'var(--brand-1)';
+        
+        // Show read status
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        doubleTick.style.color = 'var(--brand-2)';
+      })();
+    }
+
+    // assemble
+    messageDiv.appendChild(avatar);
+    messageDiv.appendChild(bubble);
+    chatMessages.appendChild(messageDiv);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    // If bot message contains a conversation id, render rating buttons
+  if(type==='bot'){
+      try{
+    const raw = (typeof content === 'string') ? content : (content && content.text ? content.text : JSON.stringify(content));
+    const convMatch = raw.match(/\b(conv_\d+)\b/i) || raw.match(/rate\s+\[1-5\]\s+(conv_\d+)/i);
+    const convId = convMatch ? (convMatch[1]||convMatch[0]) : '';
+        if(convId){
+          const row = document.createElement('div');
+          row.className='rating-row';
+          // Left label 'Poor'
+          const poorLabel = document.createElement('span'); poorLabel.className='rating-label'; poorLabel.textContent='Poor'; row.appendChild(poorLabel);
+          // Stars
+          for(let n=1;n<=5;n++){
+            const sbtn = document.createElement('button');
+            sbtn.type = 'button';
+            sbtn.className = 'rating-star';
+            sbtn.innerHTML = '☆';
+            sbtn.dataset.value = String(n);
+            sbtn.addEventListener('click', ()=>{
+              const val = Number(sbtn.dataset.value || 0);
+              // fill up to selected
+              row.querySelectorAll('.rating-star').forEach((el, idx)=>{
+                const index = idx + 1;
+                if (index <= val) { el.classList.add('filled'); el.innerHTML = '★'; }
+                else { el.classList.remove('filled'); el.innerHTML = '☆'; }
+              });
+              // disable to prevent repeats
+              row.querySelectorAll('button').forEach(btn=>btn.disabled=true);
+              const composer = document.getElementById('chatComposer');
+              if (composer) composer.textContent = `rate ${val} ${convId}`;
+              sendMessage();
+            });
+            row.appendChild(sbtn);
+          }
+          // Right label '5'
+          const topLabel = document.createElement('span'); topLabel.className='rating-label'; topLabel.textContent='5'; row.appendChild(topLabel);
+          bubble.appendChild(row);
+          chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+      }catch(e){ /* ignore */ }
+    }
+    return messageDiv;
+  }
+
+  // Show/hide typing indicator
+  function showTyping() {
+    typingIndicator.style.display = 'flex';
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function hideTyping() {
+    typingIndicator.style.display = 'none';
+  }
+
+  // Escape HTML
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Composer helpers for contenteditable chatComposer
+  function getComposerText(){
+    const c = document.getElementById('chatComposer');
+    return c ? c.textContent : '';
+  }
+  function setComposerText(s){
+    const c = document.getElementById('chatComposer');
+    if (!c) return;
+    c.textContent = s;
+    const range = document.createRange();
+    range.selectNodeContents(c);
+    range.collapse(false);
+    const sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
+    c.focus();
+  }
+
+  // --- Predictive suggestions (server-backed) ---
+  let taAbort = { cancel:false };
+  const debounce = (fn, ms)=>{
+    let t; return function(){ const args=arguments; clearTimeout(t); t=setTimeout(()=>fn.apply(this,args), ms); };
+  };
+
+  // Blend predefined with server suggestions; de-dup and rank.
+  function mergeSuggestions(localList, serverList){
+    const seen = new Set();
+    const out = [];
+    const add = (label)=>{ const k=(label||'').toLowerCase().trim(); if(!k||seen.has(k)) return; seen.add(k); out.push(label); };
+    (serverList||[]).forEach(s=> add(s && s.label ? s.label : ''));
+    (localList||[]).forEach(q=> add(q));
+    return out.slice(0, 12);
+  }
+
+  function getLastToken(s){
+    const m = String(s||'').match(/^(.*?)(?:\s+)?([^\s]+)$/);
+    if (!m) return { head:'', token: String(s||'') };
+    // If there is only one token, head can be empty
+    const head = (m[1] || '').trimEnd();
+    const token = (m[2] || '').trim();
+    return { head, token };
+  }
+
+  function replaceLastToken(s, replacement){
+    const m = getLastToken(s);
+    if (!m.token) return (m.head ? (m.head + ' ') : '') + replacement;
+    return (m.head ? (m.head + ' ') : '') + replacement;
+  }
+
+  // Create a pill element for insertion into the contenteditable composer
+  function createPill(text, type, pastelClass) {
+    const span = document.createElement('span');
+    span.className = 'pill';
+    if (type === 'date-from') span.classList.add('pill-date-from');
+    else if (type === 'date-to') span.classList.add('pill-date-to');
+    else span.classList.add('pill-predictive');
+    if (pastelClass) span.classList.add(pastelClass);
+  span.setAttribute('contenteditable', 'false');
+  span.setAttribute('tabindex', '0');
+  span.dataset.pillType = type || 'predictive';
+  span.dataset.value = text;
+  // label inside pill (so close button doesn't become part of textContent used for sending)
+  const lbl = document.createElement('span'); lbl.className='pill-label'; lbl.textContent = text;
+  span.appendChild(lbl);
+
+    // add a close button for mouse removal
+    const close = document.createElement('button');
+    close.type = 'button';
+  close.className = 'pill-close';
+  close.setAttribute('aria-label', 'Remove');
+  // inline SVG 'x' icon for crisper rendering and better sizing control
+  close.innerHTML = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18.3 5.71a1 1 0 0 0-1.41 0L12 10.59 7.11 5.7A1 1 0 1 0 5.7 7.11L10.59 12l-4.9 4.89a1 1 0 1 0 1.41 1.41L12 13.41l4.89 4.9a1 1 0 0 0 1.41-1.41L13.41 12l4.9-4.89a1 1 0 0 0 0-1.4z" fill="currentColor"/></svg>';
+  close.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      span.remove();
+      // place caret at composer end after removal
+      const c = document.getElementById('chatComposer'); placeCaretAtEnd(c);
+    });
+    span.appendChild(close);
+
+    // keyboard removal when pill is focused
+    span.addEventListener('keydown', (e)=>{
+      if (e.key === 'Backspace' || e.key === 'Delete' || e.key === 'Del'){
+        e.preventDefault();
+        const next = span.nextSibling;
+        span.remove();
+        const c = document.getElementById('chatComposer');
+        // place caret where the pill was
+        if (next) {
+          const r = document.createRange();
+          r.setStartBefore(next);
+          r.collapse(true);
+          const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        } else { placeCaretAtEnd(c); }
+      }
+    });
+    return span;
+  }
+
+  // Remove a trailing typed token (case-insensitive) from the composer so selecting a suggestion
+  // replaces the typed token instead of duplicating it.
+  function removeTrailingToken(token){
+    if (!token) return false;
+    const composer = document.getElementById('chatComposer');
+    if (!composer) return false;
+    const lower = String(token).toLowerCase();
+    const sel = window.getSelection();
+    // Determine the node to start scanning from (the node just before the caret)
+    let startNode = composer.lastChild;
+    if (sel && sel.rangeCount) {
+      let node = sel.getRangeAt(0).endContainer;
+      // climb up to immediate children of composer
+      while (node && node.parentNode !== composer) node = node.parentNode;
+      if (node && node.parentNode === composer) startNode = node;
+    }
+    // Walk child nodes backward starting from startNode
+    const children = Array.from(composer.childNodes);
+    let startIndex = children.indexOf(startNode);
+    if (startIndex === -1) startIndex = children.length - 1;
+    for (let i = startIndex; i >= 0; i--) {
+      const node = children[i];
+      if (node.nodeType === Node.TEXT_NODE) {
+        // If the selection is inside this text node, consider only up to the caret
+        let txt = node.textContent || '';
+        if (sel && sel.rangeCount) {
+          const r = sel.getRangeAt(0);
+          if (r.endContainer === node) txt = txt.slice(0, r.endOffset);
+        }
+        const trimmed = txt.replace(/\s+$/,'');
+        const lastWordMatch = trimmed.match(/(\S+)$/);
+        if (lastWordMatch && lastWordMatch[1].toLowerCase() === lower) {
+          const newText = trimmed.slice(0, trimmed.length - lastWordMatch[1].length).replace(/\s+$/,'');
+          if (newText) node.textContent = newText + '\u00A0';
+          else node.remove();
+          return true;
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE && node.classList && node.classList.contains('pill')) {
+        // stop when encountering a pill before token
+        return false;
+      }
+    }
+    return false;
+  }
+
+  // Remove the last contiguous non-space word before the caret regardless of its value.
+  // Returns true if a removal occurred.
+  function removeLastWord(){
+    const composer = document.getElementById('chatComposer');
+    if (!composer) return false;
+    const sel = window.getSelection();
+    let startNode = composer.lastChild;
+    if (sel && sel.rangeCount) {
+      let node = sel.getRangeAt(0).endContainer;
+      while (node && node.parentNode !== composer) node = node.parentNode;
+      if (node && node.parentNode === composer) startNode = node;
+    }
+    const children = Array.from(composer.childNodes);
+    let startIndex = children.indexOf(startNode);
+    if (startIndex === -1) startIndex = children.length - 1;
+    for (let i = startIndex; i >= 0; i--) {
+      const node = children[i];
+      if (node.nodeType === Node.TEXT_NODE) {
+        let txt = node.textContent || '';
+        if (sel && sel.rangeCount) {
+          const r = sel.getRangeAt(0);
+          if (r.endContainer === node) txt = txt.slice(0, r.endOffset);
+        }
+        const m = txt.match(/(.*?)(\S+)\s*$/s);
+        if (m) {
+          const newText = (m[1] || '').replace(/\s+$/,'');
+          if (newText) node.textContent = newText + '\u00A0'; else node.remove();
+          return true;
+        }
+      } else if (node.nodeType === Node.ELEMENT_NODE && node.classList && node.classList.contains('pill')) {
+        break;
+      }
+    }
+    return false;
+  }
+
+  // Deterministic pastel class per keyword via a simple hash, avoid matching previous sibling
+  function getPastelClassFor(key, prevSibling) {
+    const pastelPool = ['pastel-1','pastel-2','pastel-3','pastel-4','pastel-5'];
+    if (!key) return pastelPool[0];
+    // simple hash
+    let h = 0; for (let i=0;i<key.length;i++) h = ((h<<5)-h) + key.charCodeAt(i);
+    let idx = Math.abs(h) % pastelPool.length;
+    // avoid same as prevSibling
+    if (prevSibling && prevSibling.classList) {
+      for (let p of pastelPool){ if (prevSibling.classList.contains(p) && pastelPool[idx] === p){ idx = (idx+1) % pastelPool.length; break; } }
+    }
+    return pastelPool[idx];
+  }
+
+  // Saved selection range (used when clicks move focus away from composer)
+  let savedRange = null;
+  function saveCurrentRange(){ const s = window.getSelection(); if (s && s.rangeCount) savedRange = s.getRangeAt(0).cloneRange(); }
+
+  // update savedRange on common events
+  if (chatComposer) {
+    ['keyup','mouseup','input','click','focus','touchend'].forEach(ev => chatComposer.addEventListener(ev, saveCurrentRange));
+  }
+
+  // Insert a node at the caret inside the composer; also inserts a trailing NBSP for typing convenience
+  function insertNodeAtCaret(node) {
+    const composer = document.getElementById('chatComposer');
+    composer.focus();
+    let sel = window.getSelection();
+    let range = (sel && sel.rangeCount) ? sel.getRangeAt(0) : null;
+    if (!range && savedRange) { range = savedRange.cloneRange(); sel = window.getSelection(); }
+    if (!range) {
+      // append
+      composer.appendChild(node);
+      composer.appendChild(document.createTextNode('\u00A0'));
+      placeCaretAtEnd(composer);
+      return;
+    }
+    range.deleteContents();
+    range.insertNode(node);
+    // insert a NBSP after the pill
+    const space = document.createTextNode('\u00A0');
+    node.parentNode.insertBefore(space, node.nextSibling);
+    // move caret after the space
+    range.setStartAfter(space);
+    range.collapse(true);
+    sel.removeAllRanges(); sel.addRange(range);
+    // save new range
+    savedRange = range.cloneRange();
+  }
+
+  // Replace the token under the caret (if any) using Range and insert the replacement node.
+  // This handles mid-text insertion reliably.
+  function doRangeReplaceForLastToken(replacementNode) {
+    const composer = document.getElementById('chatComposer');
+    const sel = window.getSelection();
+    if (!sel || !sel.rangeCount) { insertNodeAtCaret(replacementNode); return; }
+    const range = sel.getRangeAt(0).cloneRange();
+    let node = range.endContainer;
+    let offset = range.endOffset;
+    // If caret is inside a text node, find the bounds of the current word
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.textContent || '';
+      // find start of the token (word characters) before offset
+      const left = text.slice(0, offset);
+      const right = text.slice(offset);
+      const leftMatch = left.match(/(\S+)$/);
+      const rightMatch = right.match(/^(\S+)/);
+      const tokenStart = leftMatch ? (offset - leftMatch[1].length) : offset;
+      const tokenEnd = rightMatch ? (offset + rightMatch[1].length) : offset;
+      const r = document.createRange();
+      r.setStart(node, tokenStart);
+      r.setEnd(node, tokenEnd);
+      r.deleteContents();
+      // Insert replacementNode at range
+      r.insertNode(replacementNode);
+      // Add a NBSP after
+      const space = document.createTextNode('\u00A0');
+      replacementNode.parentNode.insertBefore(space, replacementNode.nextSibling);
+      // Move caret after space
+      const newRange = document.createRange();
+      newRange.setStartAfter(space);
+      newRange.collapse(true);
+      sel.removeAllRanges(); sel.addRange(newRange);
+      savedRange = newRange.cloneRange();
+      return;
+    }
+
+    // Otherwise fall back to normal insert
+    insertNodeAtCaret(replacementNode);
+  }
+
+  // Top-level robustInsertSuggestion so click/keyboard handlers can call it.
+  function robustInsertSuggestion(tokenText, replacementNode) {
+    const composer = document.getElementById('chatComposer');
+    if (!composer) return;
+    // restore savedRange if available
+    if (savedRange) { try{ const s = window.getSelection(); s.removeAllRanges(); s.addRange(savedRange); }catch(_e){} }
+
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && sel.getRangeAt(0).endContainer.nodeType === Node.TEXT_NODE) {
+      // If caret is in a text node, prefer Range-based token replace
+      doRangeReplaceForLastToken(replacementNode);
+      return;
+    }
+
+    // Normalize the token we'll try to remove/replace
+    const lower = String(tokenText || '').toLowerCase().trim();
+
+    // Helper to attempt a substring replace inside the last text nodes
+    const tryReplaceWith = (tok) => {
+      if (!tok) return false;
+      const children = Array.from(composer.childNodes);
+      for (let i = children.length - 1; i >= 0; i--) {
+        const node = children[i];
+        if (node.nodeType === Node.TEXT_NODE) {
+          const txt = node.textContent || '';
+          const idx = txt.toLowerCase().lastIndexOf(tok);
+          if (idx !== -1) {
+            const r = document.createRange();
+            r.setStart(node, idx);
+            r.setEnd(node, idx + tok.length);
+            r.deleteContents();
+            r.insertNode(replacementNode);
+            const space = document.createTextNode('\u00A0');
+            replacementNode.parentNode.insertBefore(space, replacementNode.nextSibling);
+            const newRange = document.createRange();
+            newRange.setStartAfter(space);
+            newRange.collapse(true);
+            try{ sel.removeAllRanges(); sel.addRange(newRange); }catch(_e){}
+            savedRange = newRange.cloneRange();
+            return true;
+          }
+        } else if (node.nodeType === Node.ELEMENT_NODE && node.classList && node.classList.contains('pill')) {
+          // stop when encountering a pill
+          break;
+        }
+      }
+      return false;
+    };
+
+    // 1) Try using the explicit tokenText (what user typed)
+    if (lower && tryReplaceWith(lower)) return;
+
+    // 2) If that failed, try using the first word from the replacement (e.g., 'Fuel' from 'Fuel Amount')
+    const replText = (replacementNode && replacementNode.dataset && replacementNode.dataset.value) ? String(replacementNode.dataset.value) : '';
+    const firstWord = replText.split(/\s+/)[0] || '';
+    const firstLower = String(firstWord).toLowerCase().trim();
+    if (firstLower && firstLower !== lower && tryReplaceWith(firstLower)) return;
+
+    // 3) Fallbacks: try removing last word, then remove trailing token heuristically, then insert
+  if (removeLastWord()) { insertNodeAtCaret(replacementNode); return; }
+  if (removeTrailingToken(tokenText)) { insertNodeAtCaret(replacementNode); return; }
+  // final fallback
+  insertNodeAtCaret(replacementNode);
+  }
+
+  function placeCaretAtEnd(el) {
+    el.focus();
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+  }
+
+  const fetchTypeahead = debounce((fullQuery)=>{
+    const wantTypes = ['expense','date','beneficiary','project','team','vehicle','header'];
+    const { token } = getLastToken(fullQuery);
+    const prefix = token || '';
+    const lowerPrefix = prefix.toLowerCase();
+
+    // Precompute local list
+    const local = predefinedQuestions.filter(q => q.toLowerCase().includes(lowerPrefix));
+
+    // If prefix is very short, show local only (no server call)
+    if (!prefix || prefix.length < MIN_SERVER_PREFIX) {
+      filteredQuestions = mergeSuggestions(local, []);
+      if (filteredQuestions.length) { showAutocomplete(prefix); } else { hideAutocomplete(); }
+      return;
+    }
+
+    // For server-preferring flow: show a lightweight loading item, request server,
+    // and only show local suggestions if server hasn't responded within FALLBACK_LOCAL_MS.
+    autocompleteDropdown.innerHTML = '';
+    const loading = document.createElement('div');
+    loading.className = 'autocomplete-item loading';
+    loading.textContent = 'Loading...';
+    autocompleteDropdown.appendChild(loading);
+    autocompleteDropdown.style.display = 'block';
+
+    // If we have cached server suggestions for this prefix, use them immediately
+    if (serverCache.has(lowerPrefix)) {
+      const cached = serverCache.get(lowerPrefix) || [];
+      filteredQuestions = mergeSuggestions(local, cached);
+      if (filteredQuestions.length) { showAutocomplete(prefix); } else { hideAutocomplete(); }
+      // still allow a fresh server call to update cache
+    }
+
+    // Issue server call with request-id gating to ignore out-of-order responses
+    try{
+      const fetchId = ++latestFetchId;
+      let fallbackTimer = setTimeout(()=>{
+        // server slow -> show local suggestions as fallback
+        filteredQuestions = mergeSuggestions(local, []);
+        if (filteredQuestions.length) { showAutocomplete(prefix); } else { hideAutocomplete(); }
+      }, FALLBACK_LOCAL_MS);
+
+      google.script.run.withSuccessHandler(function(res){
+        if (fetchId !== latestFetchId) return; // stale
+        clearTimeout(fallbackTimer);
+        const server = Array.isArray(res) ? res : (res && res.suggestions) ? res.suggestions : [];
+        // Cache by prefix
+        serverCache.set(lowerPrefix, server.slice(0, 20));
+        const merged = mergeSuggestions(local, server);
+        filteredQuestions = merged;
+        if (filteredQuestions.length) { showAutocomplete(prefix); } else { hideAutocomplete(); }
+      }).withFailureHandler(function(){
+        // On failure, fallback timer will reveal local suggestions
+      }).getTypeaheadSuggestions(prefix, 12, wantTypes);
+    }catch(_e){
+      // ignore server errors; fallback timer will show local
+    }
+  }, DEBOUNCE_MS);
+
+  // Autocomplete entrypoint
+  function filterQuestions(input) {
+    if (!input.trim()) {
+      filteredQuestions = [];
+      hideAutocomplete();
+      return;
+    }
+    taAbort.cancel = false;
+    fetchTypeahead(input.trim());
+  }
+
+  function showAutocomplete(currentTerm) {
+    autocompleteDropdown.innerHTML = '';
+    selectedIndex = -1;
+  const searchTerm = (currentTerm != null ? currentTerm : getComposerText()).toLowerCase();
+
+    // Reorder filteredQuestions so short predictive/base items appear first
+    try{
+      const prioritized = [];
+      const others = [];
+      filteredQuestions.forEach(q => {
+        const ql = String(q||'').toLowerCase();
+        const cal = detectCalendarBase(q);
+        // predictive if it's a base-only or From/To suggestion, or if it starts with the token and is short
+        const isShort = (q || '').trim().split(/\s+/).length <= 3;
+        const startsWithToken = searchTerm && (ql === searchTerm || ql.startsWith(searchTerm + ' '));
+        if (cal.isBaseOnly || cal.isFromTo || (startsWithToken && isShort)) prioritized.push(q);
+        else others.push(q);
+      });
+      filteredQuestions = prioritized.concat(others);
+    }catch(_e){}
+
+    // Split into priority (base/From-To/short predictive) and others to render a separator
+    const priorityItems = [];
+    const otherItems = [];
+    filteredQuestions.forEach(q => {
+      const ql = String(q||'').toLowerCase();
+      const cal = detectCalendarBase(q);
+      const isShort = (q || '').trim().split(/\s+/).length <= 3;
+      const startsWithToken = searchTerm && (ql === searchTerm || ql.startsWith(searchTerm + ' '));
+      if (cal.isBaseOnly || cal.isFromTo || (startsWithToken && isShort)) priorityItems.push(q);
+      else otherItems.push(q);
+    });
+
+    const renderItem = (question, idx, isPriority)=>{
+      const item = document.createElement('div');
+      item.className = 'autocomplete-item' + (isPriority ? ' autocomplete-item--priority' : '');
+  // priority items are visually emphasized via class; no left-side icon (calendar hint stays after the text)
+      // Highlight matching text
+      const regex = new RegExp(`(${escapeRegex(searchTerm)})`, 'gi');
+      const highlightedText = question.replace(regex, '<span class="autocomplete-highlight">$1</span>');
+      const textHolder = document.createElement('span');
+      textHolder.innerHTML = highlightedText;
+      item.appendChild(textHolder);
+
+      // use mousedown to avoid losing selection when clicking suggestions
+      item.addEventListener('mousedown', (ev)=>{ ev.preventDefault(); });
+      item.addEventListener('click', () => {
+        const qStr = String(question||'');
+        const cal = detectCalendarBase(qStr);
+        const isFromTo = cal.isFromTo;
+        const isBaseOnly = cal.isBaseOnly;
+        const baseText = cal.baseText;
+        if (isFromTo || isBaseOnly){ hideAutocomplete(); showDatePicker(baseText); return; }
+        hideAutocomplete();
+        const composer = document.getElementById('chatComposer');
+        if (savedRange) { try{ const s = window.getSelection(); s.removeAllRanges(); s.addRange(savedRange); }catch(_e){} }
+        const prev = composer.lastChild && composer.lastChild.nodeType === 1 ? composer.lastChild : composer.previousSibling;
+        const pastel = getPastelClassFor(question, prev);
+        const pill = createPill(question, 'predictive', pastel);
+        const lastTyped = getLastToken(getComposerText()).token || question;
+        robustInsertSuggestion(lastTyped, pill);
+        if (chatComposer) chatComposer.focus();
+      });
+
+      // show calendar hint for items that would open the date picker
+      try{
+        const qStr3 = String(question||'');
+        const cal3 = detectCalendarBase(qStr3);
+        const isFromTo3 = cal3.isFromTo;
+        const isBaseOnly3 = cal3.isBaseOnly;
+        if (isFromTo3 || isBaseOnly3) {
+          const cal = document.createElement('span');
+          cal.className = 'autocomplete-calendar';
+          cal.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 11h5v5H7z" fill="currentColor" opacity="0.9"/><path d="M19 4h-1V2h-2v2H8V2H6v2H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 14H5V9h14v9z" fill="currentColor"/></svg>';
+          cal.setAttribute('title','Opens date picker');
+          cal.style.marginLeft = '8px';
+          cal.style.opacity = '0.85';
+          item.appendChild(cal);
+        }
+      }catch(_e){}
+
+      return item;
+    };
+
+    // render priority items
+    priorityItems.forEach((q, i) => { autocompleteDropdown.appendChild(renderItem(q, i, true)); });
+    // if both groups exist, insert a separator
+    if (priorityItems.length && otherItems.length) {
+      const sep = document.createElement('div'); sep.className = 'autocomplete-separator'; autocompleteDropdown.appendChild(sep);
+    }
+    // render other items
+    otherItems.forEach((q, i) => { autocompleteDropdown.appendChild(renderItem(q, i, false)); });
+
+    autocompleteDropdown.style.display = 'block';
+  }
+
+  function escapeRegex(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function hideAutocomplete() {
+    autocompleteDropdown.style.display = 'none';
+    selectedIndex = -1;
+  }
+
+  function selectAutocompleteItem(index) {
+    const items = autocompleteDropdown.querySelectorAll('.autocomplete-item');
+    items.forEach(item => item.classList.remove('selected'));
+    
+    if (index >= 0 && index < items.length) {
+      items[index].classList.add('selected');
+      selectedIndex = index;
+    }
+  }
+
+  // Event listeners
+  // Ensure send is invoked reliably on pointer interaction and via keyboard
+  if (chatSend) {
+    chatSend.addEventListener('pointerdown', (e)=>{ e.preventDefault(); if (!sendInFlight) sendMessage(); });
+    chatSend.addEventListener('keydown', (e)=>{ if ((e.key === 'Enter' || e.key === ' ') && !sendInFlight) { e.preventDefault(); sendMessage(); } });
+    // keep click as fallback (some browsers may not fire pointerdown in old modes)
+    chatSend.addEventListener('click', (e)=>{ e.preventDefault(); if (!sendInFlight) sendMessage(); });
+  }
+  
+  if (chatComposer) {
+    chatComposer.addEventListener('input', (e) => {
+      filterQuestions(getComposerText());
+    });
+
+    chatComposer.addEventListener('keydown', (e) => {
+    if (autocompleteDropdown.style.display === 'block') {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        const nextIndex = selectedIndex < filteredQuestions.length - 1 ? selectedIndex + 1 : 0;
+        selectAutocompleteItem(nextIndex);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        const prevIndex = selectedIndex > 0 ? selectedIndex - 1 : filteredQuestions.length - 1;
+        selectAutocompleteItem(prevIndex);
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < filteredQuestions.length) {
+          const sel = filteredQuestions[selectedIndex] || '';
+          const calSel = detectCalendarBase(String(sel));
+          const isFromTo = calSel.isFromTo;
+          const isBaseOnly = calSel.isBaseOnly;
+          const baseText = calSel.baseText;
+          if (isFromTo || isBaseOnly){
+            hideAutocomplete();
+            showDatePicker(baseText);
+          } else {
+            // insert predictive pill on keyboard selection; restore selection and prefer Range replacement
+            hideAutocomplete();
+            const composer = document.getElementById('chatComposer');
+            if (savedRange) { try{ const s = window.getSelection(); s.removeAllRanges(); s.addRange(savedRange); }catch(_e){} }
+            const prev2 = composer.lastChild && composer.lastChild.nodeType === 1 ? composer.lastChild : composer.previousSibling;
+            const pastel2 = getPastelClassFor(sel, prev2);
+            const pill = createPill(sel, 'predictive', pastel2);
+            // robust insert that replaces the last typed token when possible
+            const lastTypedSel = getLastToken(getComposerText()).token || sel;
+            robustInsertSuggestion(lastTypedSel, pill);
+          }
+        } else {
+          sendMessage();
+        }
+      } else if (e.key === 'Escape') {
+        hideAutocomplete();
+      }
+    } else if (e.key === 'Enter') {
+      sendMessage();
+    }
+    });
+  }
+
+  // Hide autocomplete when clicking outside
+  document.addEventListener('click', (e) => {
+    if (!(chatComposer && chatComposer.contains(e.target)) && !autocompleteDropdown.contains(e.target)) {
+      hideAutocomplete();
+    }
+    // Keep calendar open while selecting range (until Apply/Cancel),
+    // do not auto-close on first selection
+    if (!datePicker.contains(e.target) && e.target !== (chatComposer || null) && !autocompleteDropdown.contains(e.target)) {
+      if (!(dpState.visible && dpState.start && !dpState.end)) {
+        hideDatePicker();
+      }
+    }
+  });
+
+  // Quick questions
+  quickBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      setComposerText(btn.dataset.question || '');
+      sendMessage();
+    });
+  });
+
+  // Auto-resize on mobile
+  function handleResize() {
+    // Sidebar uses CSS height:100vh; keep JS from overriding
+    chatContainer.style.height = '';
+  }
+
+  window.addEventListener('resize', handleResize);
+  handleResize();
+
+  // --------------- Date Picker logic ---------------
+  function showDatePicker(base){
+    // initialize to current month
+    const today = new Date();
+    dpState.base = base;
+    dpState.y = today.getFullYear();
+    dpState.m = today.getMonth();
+    dpState.start = null; dpState.end = null;
+    dpApply.disabled = true;
+    renderDatePicker();
+    datePicker.style.display = 'block';
+    dpState.visible = true;
+  }
+
+  // ...existing code...
+
+  function hideDatePicker(){
+    dpState.visible = false;
+    datePicker.style.display = 'none';
+  }
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  function monthTitle(y,m){
+    const mm = (m>=0 && m<12) ? monthNames[m] : new Date(y,m,1).toLocaleString('default',{month:'long', year:'numeric'});
+    return `${mm} ${y}`;
+  }
+
+  function renderDatePicker(){
+    // Fix month boundaries by creating dates in local time
+    dpTitle.textContent = monthTitle(dpState.y, dpState.m);
+    dpGrid.innerHTML = '';
+    const first = new Date(Date.UTC(dpState.y, dpState.m, 1));
+    let startWeekday = first.getUTCDay(); // 0=Sun
+    // we want Monday-first grid
+    startWeekday = (startWeekday+6)%7; // 0=Mon
+    const lastOfMonth = new Date(Date.UTC(dpState.y, dpState.m + 1, 0));
+    const daysInMonth = lastOfMonth.getUTCDate();
+    const lastOfPrevMonth = new Date(Date.UTC(dpState.y, dpState.m, 0));
+    const prevDays = lastOfPrevMonth.getUTCDate();
+    const cells = [];
+    // leading from prev month
+    for (let i=startWeekday; i>0; i--){
+      const d = prevDays - i + 1;
+      cells.push({y: dpState.y, m: dpState.m-1, d, out:true});
+    }
+    // current month
+    for (let d=1; d<=daysInMonth; d++) cells.push({y:dpState.y, m:dpState.m, d, out:false});
+    // trailing to fill rows (up to 42 cells)
+    while (cells.length % 7 !== 0) {
+      const nextIndex = cells.length - (startWeekday + daysInMonth);
+      cells.push({y: dpState.y, m: dpState.m+1, d: nextIndex+1, out:true});
+    }
+    cells.forEach(c => {
+      const el = document.createElement('div');
+      el.className = 'dp-day' + (c.out?' out':'');
+      el.textContent = String(c.d);
+    const date = new Date(c.y, c.m, c.d);
+    const within = markClassForDate(date);
+    if (within.sel) el.classList.add('sel');
+    if (within.range) el.classList.add('range');
+    el.addEventListener('click', ()=> onPickDate(date));
+      dpGrid.appendChild(el);
+    });
+  }
+
+    function markClassForDate(date){
+      const st = dpState.start, en = dpState.end;
+      if (!st && !en) return {sel:false, range:false};
+      const t = date.setHours(0,0,0,0);
+      const s = st ? st.setHours(0,0,0,0) : null;
+      const e = en ? en.setHours(0,0,0,0) : null;
+      const sel = (s && t===s) || (e && t===e);
+      const range = s && e && t>s && t<e;
+      return {sel, range};
+    }
+
+  function onPickDate(date){
+    if (!dpState.start || (dpState.start && dpState.end)){
+      // Create date at noon to avoid timezone boundary issues
+      dpState.start = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+      dpState.end = null;
+    } else {
+      const s = dpState.start;
+      // Create date at noon to avoid timezone boundary issues
+      const d = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+      if (d < s){ dpState.end = s; dpState.start = d; }
+      else { dpState.end = d; }
+    }
+    dpApply.disabled = !dpState.start;
+    // Ensure the calendar stays open and the range is visible until Apply
+    dpState.visible = true;
+    datePicker.style.display = 'block';
+    renderDatePicker();
+  }
+
+  dpPrev.addEventListener('click', ()=>{
+    const m = new Date(dpState.y, dpState.m-1, 1);
+    dpState.y = m.getFullYear(); dpState.m = m.getMonth();
+    renderDatePicker();
+  });
+  dpNext.addEventListener('click', ()=>{
+    const m = new Date(dpState.y, dpState.m+1, 1);
+    dpState.y = m.getFullYear(); dpState.m = m.getMonth();
+    renderDatePicker();
+  });
+  dpCancel.addEventListener('click', hideDatePicker);
+  dpApply.addEventListener('click', ()=>{
+    if (!dpState.start) return;
+    const s = dpState.start;
+    const e = dpState.end || dpState.start;
+    const fmt = (dt)=>{
+      // Create date at noon to avoid timezone boundary issues
+      const tzDate = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 12, 0, 0);
+      // Format in the Tanzania timezone
+      const dd = ('0' + tzDate.getDate()).slice(-2);
+      const mmm = tzDate.toLocaleString('default', { month: 'short', timeZone: 'Africa/Dar_es_Salaam' });
+      const yy = String(tzDate.getFullYear()).slice(-2);
+      return `${dd}-${mmm}-${yy}`;
+    };
+    // Insert the date range but keep the base token (e.g., "Fuel") if provided.
+    // If dpState.base is set we replace the last token with: "<Base> From <start> To <end>"
+    const startText = fmt(s);
+    const endText = fmt(e);
+    let finalReplacement;
+  if (dpState.base && String(dpState.base).trim()){
+      // Capitalize base (first letter) for nicer presentation
+      const baseCap = dpState.base.trim().replace(/^./, function(c){ return c.toUpperCase(); });
+      finalReplacement = `${baseCap} From ${startText} To ${endText}`;
+    } else {
+      finalReplacement = `${startText} to ${endText}`;
+    }
+  // Insert date pills: From (yellow) and To (light green) preserving base token order
+  hideDatePicker();
+  const composer = document.getElementById('chatComposer');
+  // If dpState.base exists, replace last token (the base) with base + pills
+  if (dpState.base && String(dpState.base).trim()){
+  // For consistency with other insertions, restore savedRange and prefer Range-based replacement
+  if (savedRange) { try{ const s = window.getSelection(); s.removeAllRanges(); s.addRange(savedRange); }catch(_e){} }
+  const baseCap = dpState.base.trim().replace(/^./, function(c){ return c.toUpperCase(); });
+  // Insert the base as a predictive pill so it behaves like other predictive tokens
+  const prev = composer.lastChild && composer.lastChild.nodeType === 1 ? composer.lastChild : composer.previousSibling;
+  const pastelBase = getPastelClassFor(baseCap, prev);
+  const basePill = createPill(baseCap, 'predictive', pastelBase);
+  // If caret is inside a text node, replace the token under caret; otherwise attempt to remove trailing token then insert
+  const sBase = window.getSelection();
+  if (sBase && sBase.rangeCount && sBase.getRangeAt(0).endContainer.nodeType === Node.TEXT_NODE) {
+    doRangeReplaceForLastToken(basePill);
+  } else {
+    removeTrailingToken(baseCap);
+    insertNodeAtCaret(basePill);
+  }
+  // create From and To pills
+  const fromPill = createPill('FROM ' + startText, 'date-from');
+  const toPill = createPill('TO ' + endText, 'date-to');
+  insertNodeAtCaret(fromPill);
+  insertNodeAtCaret(toPill);
+  } else {
+    // No base: insert plain date range text as fallback
+    setComposerText(replaceLastToken(getComposerText(), finalReplacement));
+  }
+  if (chatComposer) chatComposer.focus();
+  });
+  
+  // Prevent outside click handlers from closing the calendar while selecting
+  datePicker.addEventListener('click', (e)=>{
+    e.stopPropagation();
+  });
+})();
+</script>

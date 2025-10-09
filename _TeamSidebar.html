@@ -1,0 +1,2228 @@
+<!-- _TeamSidebar.html — LEFT slide-in sidebar for team selection -->
+<style>
+  :root{
+    --team-accent1:#8b5cf6; /* primary accent */
+    --team-accent2:#ec4899; /* secondary accent */
+    --team-panel-bg: linear-gradient(160deg, rgba(10,10,14,.78), rgba(139,92,246,.20) 30%, rgba(236,72,153,.16) 75%);
+    --team-text: #eef3ff;
+    --team-item-bg: rgba(255,255,255,.94);
+    --team-item-text: #241a35;
+    --team-item-active-bg: linear-gradient(135deg, var(--team-accent1), var(--team-accent2));
+    --team-item-active-text: #ffffff;
+    --team-item-shadow: 0 8px 20px rgba(0,0,0,.22);
+  }
+  
+  /* Backdrop */
+  #teamSidebarOverlay{
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.35);
+    backdrop-filter: blur(4px);
+    z-index: 40;
+    display: none;
+  }
+
+  /* LEFT drawer */
+  #teamSidebar{
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 32rem;
+    max-width: 96vw;
+    background: var(--team-panel-bg);
+    backdrop-filter: blur(24px) saturate(140%);
+    border-right: 1px solid rgba(255,255,255,.16);
+    box-shadow: 16px 0 40px rgba(0,0,0,.35);
+    transform: translateX(-100%);
+    transition: transform .45s cubic-bezier(.2,.8,.2,1);
+    z-index: 50;
+    color: var(--team-text);
+    overflow: hidden;
+  }
+  
+  #teamSidebar.open{
+    transform: translateX(0);
+  }
+  
+  #teamSidebar .sidebar-body{
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 16px 10px;
+    gap: 8px;
+  }
+
+  /* Header capsule */
+  .team-header{
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 24px;
+    background: linear-gradient(90deg, var(--team-accent1), var(--team-accent2));
+    box-shadow: 0 10px 30px rgba(0,0,0,.18);
+  }
+  
+  .team-header .title{
+    font-size: clamp(16px, 4vw, 24px);
+    line-height: 1.1;
+    font-weight: 1000;
+    letter-spacing: .2px;
+    color: #fff;
+    text-shadow: 0 8px 20px rgba(0,0,0,.28);
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+    transition: font-size 0.2s ease;
+  }
+  
+  .team-header .nav{
+    margin-left: auto;
+    display: flex;
+    gap: 10px;
+  }
+  
+  .team-header .nav .iconbtn{
+    width: 48px;
+    height: 48px;
+    display: grid;
+    place-items: center;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.35);
+    background: rgba(255,255,255,.14);
+    color: #fff;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  
+  .team-header .nav .iconbtn:active{
+    transform: translateY(1px);
+  }
+
+  /* Search input */
+  .team-search{
+    margin: 12px 0;
+    position: relative;
+  }
+  
+  .team-search input{
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,.25);
+    background: rgba(255,255,255,.12);
+    color: var(--team-text);
+    font-size: 16px;
+    outline: none;
+  }
+  
+  .team-search input::placeholder{
+    color: rgba(255,255,255,.6);
+  }
+
+  /* Team list */
+  .team-list{
+    overflow-y: auto;
+    padding-right: 6px;
+    max-height: calc(100vh - 240px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .team-item{
+    border: 0;
+    border-radius: 16px;
+    padding: 12px 16px;
+    background: rgba(255,255,255,.92);
+    color: var(--team-item-text);
+    font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    transition: all .16s;
+    cursor: pointer;
+    position: relative;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .team-item:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0,0,0,.18);
+    background: rgba(255,255,255,.96);
+  }
+  
+  .team-item.active{
+    background: linear-gradient(135deg, rgba(139,92,246,.15), rgba(236,72,153,.12));
+    color: var(--team-accent1);
+    border: 2px solid rgba(139,92,246,.3);
+    box-shadow: 0 4px 16px rgba(139,92,246,.2);
+  }
+  
+  /* Show All Teams button styling */
+  .team-item.show-all {
+    background: rgba(255,255,255,.85);
+    border-bottom: 1px solid rgba(255,255,255,.3);
+    font-weight: 700;
+    color: var(--team-accent1);
+    margin-bottom: 4px;
+  }
+  
+  .team-item.show-all:hover {
+    background: rgba(255,255,255,.95);
+    color: var(--team-accent2);
+  }
+  
+  /* Horizontal selection mode and search */
+  .controls-row {
+    display: flex;
+    gap: 12px;
+    margin: 12px 0;
+    align-items: center;
+  }
+  
+  .selection-mode {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  
+  .selection-mode input[type="radio"] {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--team-accent1);
+  }
+  
+  .selection-mode label {
+    font-size: 12px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.9);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  
+  .search-compact {
+    flex: 1;
+  }
+  
+  .search-compact input {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,.25);
+    background: rgba(255,255,255,.12);
+    color: var(--team-text);
+    font-size: 13px;
+    outline: none;
+  }
+  
+  .search-compact input::placeholder {
+    color: rgba(255,255,255,.6);
+  }
+  
+  /* Team item input styling */
+  .team-item input[type="radio"],
+  .team-item input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--team-accent1);
+  }
+  
+  .team-item label {
+    font-weight: 700;
+    color: var(--team-item-text);
+  }
+  
+  /* Disabled state for select all mode */
+  .team-item input:disabled {
+    opacity: 0.6;
+  }
+  
+  /* Expense category symbols */
+  .expense-symbols {
+    display: flex;
+    gap: 4px;
+    margin-left: 8px;
+    align-items: center;
+  }
+  
+  .expense-symbol {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  
+  .expense-symbol.green {
+    background: linear-gradient(135deg, #10b981, #059669);
+  }
+  
+  .expense-symbol.red {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+  }
+  
+  .expense-symbol.grey {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+  }
+  
+  /* Compact filter symbols row */
+  .filter-symbols {
+    display: flex;
+    gap: 8px;
+    margin: 4px 0 8px 0;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .filter-symbol-item {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 6px;
+  }
+  
+  .filter-symbol-item:hover {
+    transform: scale(1.1);
+  }
+  
+  .filter-symbol-item .symbol {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 900;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+  
+  .filter-symbol-item .symbol svg {
+    width: 28px;
+    height: 28px;
+    fill: currentColor;
+  }
+
+  /* Actions */
+  #teamSidebar .actions{
+    margin-top: auto;
+    position: sticky;
+    bottom: 12px;
+    display: flex;
+    gap: 12px;
+    padding-top: 10px;
+  }
+  
+  #teamSidebar .btn{
+    flex: 1;
+    border: 0;
+    border-radius: 16px;
+    padding: 14px 16px;
+    font-weight: 900;
+    cursor: pointer;
+  }
+  
+  #teamSidebar .ghost{
+    background: rgba(20,23,40,.85);
+    color: #dbe3ff;
+    border: 1px solid rgba(255,255,255,.16);
+  }
+  
+  #teamSidebar .primary{
+    background: linear-gradient(135deg, var(--team-accent1), var(--team-accent2));
+    color: #fff;
+  }
+  
+  /* Team filtering styles */
+  .team-filtered .team-legend {
+    border: 2px solid var(--team-accent1);
+    border-radius: 8px;
+    padding: 4px 10px;
+    background: rgba(139,92,246,.1);
+  }
+  
+  /* Team sidebar button filtering state */
+  #teamSidebarBtn.filtering {
+    background: linear-gradient(135deg, var(--team-accent1), var(--team-accent2));
+    color: white;
+    box-shadow: 0 2px 10px rgba(139,92,246,.4);
+  }
+  
+  /* Filter notification styles */
+  #filter-notification {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 1000;
+    max-width: 320px;
+    transform: translateY(150%);
+    transition: transform 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  
+  #filter-notification.active {
+    transform: translateY(0);
+  }
+  
+  .filter-content {
+    display: flex;
+    align-items: center;
+    background: white;
+    padding: 12px;
+    border-left: 4px solid var(--team-accent1);
+  }
+  
+  .filter-icon {
+    font-size: 20px;
+    margin-right: 12px;
+  }
+  
+  .filter-text {
+    flex: 1;
+    font-size: 14px;
+  }
+  
+  .filter-stats {
+    font-size: 12px;
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+  
+  .filter-clear {
+    background: var(--team-accent2);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    margin-left: 8px;
+    transition: background 0.2s;
+  }
+  
+  .filter-clear:hover {
+    background: var(--team-accent1);
+  }
+
+  @media (max-width:760px){
+    #teamSidebar{
+      width: 100%;
+    }
+  }
+</style>
+
+<!-- Backdrop + LEFT drawer -->
+<div id="teamSidebarOverlay" onclick="closeTeamSidebar()"></div>
+<aside id="teamSidebar" aria-hidden="true">
+  <div class="sidebar-body">
+    <!-- Header capsule -->
+    <div class="team-header">
+      <div class="title" id="teamsTitle">Teams</div>
+      <div class="nav">
+        <button class="iconbtn" title="Close" onclick="closeTeamSidebar()">✕</button>
+      </div>
+    </div>
+
+    <!-- Horizontal controls row -->
+    <div class="controls-row">
+      <div class="selection-mode">
+        <input type="radio" id="singleSelect" name="selectionMode" value="single" checked onchange="changeSelectionMode()">
+        <label for="singleSelect">Single</label>
+        <input type="radio" id="multiSelect" name="selectionMode" value="multi" onchange="changeSelectionMode()">
+        <label for="multiSelect">Multi</label>
+        <input type="radio" id="selectAll" name="selectionMode" value="all" onchange="changeSelectionMode()">
+        <label for="selectAll">All</label>
+      </div>
+      <div class="search-compact">
+        <input type="text" id="teamSearchInput" placeholder="Search teams..." oninput="filterTeams()">
+      </div>
+    </div>
+
+    <!-- Compact filter symbols row -->
+    <div class="filter-symbols">
+      <div class="filter-symbol-item" onclick="filterByCategory('fuel')" title="Fuel">
+        <div class="symbol" id="filter-fuel">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="28" height="28">
+            <!-- Pump body -->
+            <rect x="12" y="10" width="28" height="44" rx="3" ry="3" stroke="currentColor" stroke-width="3" fill="none"/>
+            <!-- Pump screen -->
+            <rect x="18" y="16" width="16" height="10" stroke="currentColor" stroke-width="3" fill="none"/>
+            <!-- Hose -->
+            <path d="M40 20 C50 20, 50 40, 45 40 L45 50" stroke="currentColor" stroke-width="3" fill="none"/>
+            <!-- Nozzle -->
+            <rect x="42" y="45" width="6" height="10" rx="1" stroke="currentColor" stroke-width="3" fill="none"/>
+          </svg>
+        </div>
+      </div>
+  <div class="filter-symbol-item" onclick="filterByCategory('da')" title="DA">
+  <div class="symbol" id="filter-da">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="28" height="28">
+            <!-- Green Box -->
+            <rect x="8" y="16" width="48" height="32" rx="4" ry="4" fill="#10b981" stroke="currentColor" stroke-width="2"/>
+            <!-- DA Text in White -->
+            <text x="32" y="38" font-size="16" font-weight="bold" text-anchor="middle" fill="white">DA</text>
+          </svg>
+        </div>
+      </div>
+      <div class="filter-symbol-item" onclick="filterByCategory('carrent')" title="Vehicle Rent">
+        <div class="symbol" id="filter-carrent">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M5,11L6.5,6.5H17.5L19,11M17.5,16A1.5,1.5 0 0,1 16,14.5A1.5,1.5 0 0,1 17.5,13A1.5,1.5 0 0,1 19,14.5A1.5,1.5 0 0,1 17.5,16M6.5,16A1.5,1.5 0 0,1 5,14.5A1.5,1.5 0 0,1 6.5,13A1.5,1.5 0 0,1 8,14.5A1.5,1.5 0 0,1 6.5,16M18.92,6C18.72,5.42 18.16,5 17.5,5H6.5C5.84,5 5.28,5.42 5.08,6L3,12V20A1,1 0 0,0 4,21H5A1,1 0 0,0 6,20V19H18V20A1,1 0 0,0 19,21H20A1,1 0 0,0 21,20V12L18.92,6Z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="filter-symbol-item" onclick="filterByCategory('airtime')" title="Airtime">
+        <div class="symbol" id="filter-airtime">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17,19H7V5H17M17,1H7C5.89,1 5,1.89 5,3V21C5,22.11 5.89,23 7,23H17C18.11,23 19,22.11 19,21V3C19,1.89 18.11,1 17,1Z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="filter-symbol-item" onclick="filterByCategory('transport')" title="Transport">
+        <div class="symbol" id="filter-transport">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M18,18.5A1.5,1.5 0 0,1 16.5,17A1.5,1.5 0 0,1 18,15.5A1.5,1.5 0 0,1 19.5,17A1.5,1.5 0 0,1 18,18.5M19.5,9.5L21.46,12H17V9.5M6,18.5A1.5,1.5 0 0,1 4.5,17A1.5,1.5 0 0,1 6,15.5A1.5,1.5 0 0,1 7.5,17A1.5,1.5 0 0,1 6,18.5M20,8H17V4H3C1.89,4 1,4.89 1,6V17H3A3,3 0 0,0 6,20A3,3 0 0,0 9,17H15A3,3 0 0,0 18,20A3,3 0 0,0 21,17H23V12L20,8Z"/>
+          </svg>
+        </div>
+      </div>
+      <div class="filter-symbol-item" onclick="filterByCategory('misc')" title="Misc">
+        <div class="symbol" id="filter-misc">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M3,3V7H7V3H3M9,3V7H13V3H9M15,3V7H19V3H15M3,9V13H7V9H3M9,9V13H13V9H9M15,9V13H19V9H15M3,15V19H7V15H3M9,15V19H13V15H9M15,15V19H19V15H15Z"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- Team list -->
+    <div id="teamList" class="team-list">
+      <!-- Teams will be populated here dynamically -->
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn ghost" onclick="closeTeamSidebar()">Cancel</button>
+      <button id="applyTeamBtn" class="btn primary" onclick="applyTeamSelection()">Apply</button>
+    </div>
+  </div>
+</aside>
+
+<script>
+/* ===== Team Sidebar ===== */
+(() => {
+  // Store the selected teams from ProjectPicker
+  let selectedTeams = [];
+  let activeTeamId = null;
+  let selectedTeamIds = []; // For multi-select mode
+  let selectionMode = 'single'; // 'single', 'multi', or 'all'
+  
+  // teamSidebarBtn reference removed to prevent DOM access during script load
+  
+  // Change selection mode
+  window.changeSelectionMode = function() {
+    const selectedRadio = document.querySelector('input[name="selectionMode"]:checked');
+    selectionMode = selectedRadio.value;
+    
+    // Reset selections when changing mode
+    activeTeamId = null;
+    selectedTeamIds = [];
+    
+    // Handle "Select All" mode
+    if (selectionMode === 'all') {
+      selectedTeamIds = selectedTeams.map(team => team.id);
+    }
+    
+    // Repopulate the team list with new mode
+    populateTeamList();
+  };
+  
+  // Legacy function for compatibility
+  window.toggleSelectionMode = function() {
+    changeSelectionMode();
+  };
+
+  // Update Teams header with project information
+  function updateTeamsHeader() {
+    const teamsTitle = document.getElementById('teamsTitle');
+    if (!teamsTitle) return;
+    
+    try {
+      // Get current project information
+      let projectName = 'Unknown Project';
+      let teamCount = 0;
+      let totalBeneficiaries = 0;
+      
+      // Try to get project name from header bar
+      const headerProjectName = document.getElementById('selectedProjectName');
+      if (headerProjectName && headerProjectName.textContent.trim()) {
+        // Extract just the project name (remove existing counts if any)
+        const fullText = headerProjectName.textContent.trim();
+        projectName = fullText.split(' [')[0]; // Get text before first bracket
+      }
+      
+      // Get team count from current selected teams
+      teamCount = selectedTeams.length;
+      
+      // Calculate total beneficiaries across all teams
+      selectedTeams.forEach(team => {
+        const beneficiaryCount = getBeneficiaryCountForTeam(team.name);
+        totalBeneficiaries += beneficiaryCount;
+      });
+      
+      // Update the header text
+      teamsTitle.textContent = `Teams - ${projectName} [${teamCount}], [${totalBeneficiaries}]`;
+    } catch (error) {
+      console.log('Error updating teams header:', error);
+      teamsTitle.textContent = 'Teams';
+    }
+  }
+  
+  // Open the team sidebar
+  window.openTeamSidebar = function() {
+    // Get selected teams from ProjectPicker if available
+    if (window.ppGetSelectedTeams) {
+      selectedTeams = window.ppGetSelectedTeams() || [];
+    }
+    
+    // If no teams from ProjectPicker, populate from table data
+    if (selectedTeams.length === 0) {
+      // Force refresh of team names using actual team detection
+      const teamNames = getAllTeamNames();
+      console.log('Debug: Raw team names from getAllTeamNames():', teamNames);
+      
+      // Ensure we're getting actual team names, not individual beneficiaries
+      const actualTeamNames = [];
+      const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+      const teamSet = new Set();
+      
+      tableRows.forEach(row => {
+        const actualTeamName = getActualTeamNameFromRow(row);
+        if (actualTeamName && actualTeamName.trim()) {
+          teamSet.add(actualTeamName.trim());
+        }
+      });
+      
+      const finalTeamNames = Array.from(teamSet);
+      console.log('Debug: Final actual team names:', finalTeamNames);
+      
+      selectedTeams = finalTeamNames.map((name, index) => ({
+        id: `table-team-${index}`,
+        name: name
+      }));
+      console.log('Debug: Auto-populated teams from table:', selectedTeams);
+    }
+    
+    // Show the sidebar first
+    document.getElementById('teamSidebarOverlay').style.display = 'block';
+    document.getElementById('teamSidebar').classList.add('open');
+    document.getElementById('teamSidebar').setAttribute('aria-hidden', 'false');
+    
+    // Only then populate data (to avoid affecting main page during load)
+    setTimeout(function() {
+      // Debug: Log all team names found in table
+      console.log('Debug: All team names found:', getAllTeamNames());
+      
+      // Populate the team list
+      populateTeamList();
+      
+      // Update filter symbol colors
+      updateFilterSymbolColors();
+      
+      // Update the teams header with project information
+      updateTeamsHeader();
+    }, 100);
+  };
+  
+  // Enable team sidebar button when teams are available
+  function enableTeamSidebarButton() {
+    const teamSidebarBtn = document.getElementById('teamSidebarBtn');
+    if (teamSidebarBtn) {
+      const teamNames = getAllTeamNames();
+      if (teamNames.length > 0) {
+        teamSidebarBtn.disabled = false;
+        teamSidebarBtn.setAttribute('title', `Select Team (${teamNames.length} teams available)`);
+      } else {
+        teamSidebarBtn.disabled = true;
+        teamSidebarBtn.setAttribute('title', 'No teams available');
+      }
+    }
+  }
+  
+  // Initialize team sidebar button state when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    enableTeamSidebarButton();
+    
+    // Also check periodically in case table data loads later
+    const checkInterval = setInterval(() => {
+      const teamNames = getAllTeamNames();
+      if (teamNames.length > 0) {
+        enableTeamSidebarButton();
+        clearInterval(checkInterval);
+      }
+    }, 1000);
+    
+    // Stop checking after 10 seconds
+    setTimeout(() => clearInterval(checkInterval), 10000);
+    
+    // Listen for project picker changes to update header
+    document.addEventListener('pp:applied', function() {
+      setTimeout(updateTeamsHeader, 100);
+    });
+    
+    // Set up MutationObserver to watch for table changes and auto-refresh team symbols
+    const tbody = document.getElementById('tbody') || document.querySelector('.tbody');
+    if (tbody) {
+      let refreshScheduled = false;
+      const observer = new MutationObserver(function(mutations) {
+        // Check if any mutations involve row changes
+        const hasRowChanges = mutations.some(mutation => 
+          mutation.type === 'childList' || 
+          (mutation.type === 'attributes' && 
+           ['data-team', 'data-teamname', 'data-teamid'].includes(mutation.attributeName))
+        );
+        
+        if (hasRowChanges && !refreshScheduled) {
+          refreshScheduled = true;
+          // Use requestAnimationFrame to debounce updates
+          requestAnimationFrame(() => {
+            refreshScheduled = false;
+            // Auto-refresh team sidebar when table data changes
+            if (window.refreshTeamSidebar) {
+              window.refreshTeamSidebar();
+            }
+            populateTeamList();
+            updateFilterSymbolColors();
+          });
+        }
+      });
+      
+      // Observe table changes
+      observer.observe(tbody, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['data-team', 'data-teamname', 'data-teamid']
+      });
+    }
+  });
+
+  // Add "Show All Teams" option to the team list
+  function addShowAllTeamsOption() {
+    const teamList = document.getElementById('teamList');
+    
+    // Check if the option already exists
+    if (!document.getElementById('show-all-teams')) {
+      // Create the "Show All Teams" option
+      const showAllItem = document.createElement('button');
+      showAllItem.id = 'show-all-teams';
+      showAllItem.className = 'team-item show-all';
+      showAllItem.textContent = 'Show All Teams';
+      
+      // Add click handler
+      showAllItem.addEventListener('click', function() {
+        resetTeamFilter();
+        closeTeamSidebar();
+      });
+      
+      // Insert at the beginning of the list
+      if (teamList.firstChild) {
+        teamList.insertBefore(showAllItem, teamList.firstChild);
+      } else {
+        teamList.appendChild(showAllItem);
+      }
+    }
+  };
+  
+  // Reset team filtering to show all teams
+  function resetTeamFilter() {
+    // Show all rows
+    const rows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+    rows.forEach(function(row) {
+      row.style.display = '';
+    });
+    
+    // Remove filtering indicator
+    document.body.classList.remove('team-filtered');
+    
+    // Update button state
+    if (teamSidebarBtn) {
+      teamSidebarBtn.classList.remove('filtering');
+      teamSidebarBtn.setAttribute('title', 'Select Team (' + selectedTeams.length + ' available)');
+    }
+    
+    // Hide filter notification if visible
+    const notification = document.getElementById('filter-notification');
+    if (notification) {
+      notification.classList.remove('active');
+    }
+    
+    // Reset active team
+    activeTeamId = null;
+    
+    // Show a temporary "All Teams" notification
+    showAllTeamsNotification();
+  }
+  
+  // Show a notification that all teams are now visible
+  function showAllTeamsNotification() {
+    // Create or get the notification element
+    let notification = document.getElementById('filter-notification');
+    if (!notification) {
+      notification = document.createElement('div');
+      notification.id = 'filter-notification';
+      document.body.appendChild(notification);
+    }
+    
+    // Update notification content
+    notification.innerHTML = `
+      <div class="filter-content">
+        <div class="filter-icon">✓</div>
+        <div class="filter-text">
+          <strong>Filter Cleared:</strong> Showing all teams
+        </div>
+      </div>
+    `;
+    
+    // Show the notification
+    notification.classList.add('active');
+    
+    // Auto-hide after 3 seconds
+    setTimeout(() => {
+      notification.classList.remove('active');
+    }, 3000);
+  }
+  
+  // Close the team sidebar
+  window.closeTeamSidebar = function() {
+    document.getElementById('teamSidebarOverlay').style.display = 'none';
+    document.getElementById('teamSidebar').classList.remove('open');
+    document.getElementById('teamSidebar').setAttribute('aria-hidden', 'true');
+  };
+  
+  // Generate expense symbols for a team
+    function generateExpenseSymbols(teamName) {
+      console.log(`\n=== GENERATING SYMBOLS FOR TEAM: ${teamName} ===`);
+      const symbols = [];
+      const categories = [
+        { name: 'fuel', symbol: 'F' },
+  { name: 'da', symbol: 'D' },
+        { name: 'carrent', symbol: 'C' },
+        { name: 'airtime', symbol: 'A' },
+        { name: 'transport', symbol: 'T' },
+        { name: 'misc', symbol: 'M' }
+      ];
+      
+      // Check if team is deactivated
+      const isTeamDeactivated = checkTeamDeactivationStatus(teamName);
+      console.log(`Debug: ${teamName} - isTeamDeactivated:`, isTeamDeactivated);
+      
+      categories.forEach(category => {
+        const validationStatus = getExpenseValidationStatus(teamName, category.name);
+        let colorClass = 'green'; // Default to green (compliant)
+        
+        console.log(`Debug: ${teamName} - ${category.name} validation status:`, validationStatus);
+        
+        if (isTeamDeactivated) {
+          colorClass = 'grey';
+          console.log(`Debug: ${teamName} - ${category.symbol} set to GREY (deactivated)`);
+        } else if (validationStatus === 'violation') {
+          colorClass = 'red';
+          console.log(`Debug: ${teamName} - ${category.symbol} set to RED (violation)`);
+        } else if (validationStatus === 'no-data') {
+          colorClass = 'grey';
+          console.log(`Debug: ${teamName} - ${category.symbol} set to GREY (no data)`);
+        } else {
+          console.log(`Debug: ${teamName} - ${category.symbol} set to GREEN (compliant)`);
+        }
+        
+        symbols.push(`<div class="expense-symbol ${colorClass}">${category.symbol}</div>`);
+      });
+      
+      // Debug info available in console logs
+      
+      console.log(`Debug: Final symbols HTML for ${teamName}:`, symbols.join(''));
+      
+      // Notify Teams icon to update after symbol generation
+      if (window.notifyTeamsIconUpdate) {
+        setTimeout(window.notifyTeamsIconUpdate, 100);
+      }
+      
+      return symbols.join('');
+    }
+    
+    // Check if a team is deactivated (any team member is deactivated)
+    function checkTeamDeactivationStatus(teamName) {
+      // Check if any beneficiary in this team has the 'row-deactivated' class
+      // Use standard table selectors that work with main page structure
+      const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+      
+      for (let row of tableRows) {
+        const rowTeamName = getActualTeamNameFromRow(row);
+        if (rowTeamName === teamName && row.classList.contains('row-deactivated')) {
+          console.log(`Debug: Team ${teamName} has deactivated member`);
+          return true;
+        }
+      }
+      return false;
+    }
+    
+    // Get beneficiary name from table row (individual person name)
+     function getBeneficiaryNameFromRow(row) {
+       console.log('Debug: Getting beneficiary name from row:', row);
+       
+       // Check if row has .cells container (new structure)
+       const cellsContainer = row.querySelector('.cells');
+       let beneficiaryCell;
+       
+       if (cellsContainer) {
+         beneficiaryCell = cellsContainer.children[0];
+       } else {
+         // Fallback to direct children (old structure)
+         beneficiaryCell = row.children[0];
+       }
+       
+       // Get beneficiary name from the Name of Beneficiary column (index 0)
+       if (beneficiaryCell) {
+         const beneficiaryInput = beneficiaryCell.querySelector('input');
+         if (beneficiaryInput && beneficiaryInput.value && beneficiaryInput.value.trim()) {
+           const beneficiaryName = beneficiaryInput.value.trim();
+           console.log('Debug: Found beneficiary name:', beneficiaryName);
+           return beneficiaryName;
+         }
+       }
+       
+       console.log('Debug: No beneficiary name found for row');
+       return '';
+     }
+     
+     // Get team name from table row (uses same logic as getActualTeamNameFromRow)
+     function getTeamNameFromRow(row) {
+       return getActualTeamNameFromRow(row);
+     }
+    
+    // Get expense validation status for a team and category (aggregated across all team beneficiaries)
+    function getExpenseValidationStatus(teamName, category) {
+      // Check expense validation rules for ALL beneficiaries in the team
+      // Use standard table selectors that work with main page structure
+      const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+      
+      console.log(`\n--- VALIDATING ${category.toUpperCase()} FOR TEAM ${teamName} ---`);
+      console.log(`Debug: Found ${tableRows.length} total rows in table`);
+      console.log(`Debug: Checking all beneficiaries in team for violations`);
+      
+      let teamHasViolation = false;
+      let teamHasDeactivated = false;
+      let foundTeamMembers = 0;
+      
+      for (let row of tableRows) {
+         // Check if this beneficiary belongs to the team we're validating
+         const rowTeamName = getActualTeamNameFromRow(row);
+         const beneficiaryName = getBeneficiaryNameFromRow(row); // This gets individual beneficiary name
+         
+         console.log(`Debug: Checking beneficiary '${beneficiaryName}' in team '${rowTeamName}' against target team '${teamName}'`);
+         
+         if (rowTeamName === teamName) {
+           foundTeamMembers++;
+           console.log(`Debug: Found team member ${foundTeamMembers}: ${beneficiaryName} in team ${teamName}`);
+           
+           // Check if this beneficiary is deactivated
+           if (row.classList.contains('row-deactivated')) {
+             teamHasDeactivated = true;
+             console.log(`Debug: Team member ${beneficiaryName} is deactivated`);
+           }
+          // Get the category column based on category name
+          let categoryColumnIndex;
+          let dataCal; // The data-cal attribute to look for
+          switch(category) {
+            case 'fuel': 
+              categoryColumnIndex = 4; 
+              dataCal = 'fuel';
+              break; // Fuel D & Amt column
+            case 'da': 
+              categoryColumnIndex = 5; 
+              dataCal = 'da';
+              break; // DA & Amt column
+            case 'carrent': 
+              categoryColumnIndex = 6; 
+              dataCal = 'car';
+              break; // Car Rent D & Amt column
+            case 'airtime': 
+              categoryColumnIndex = 7; 
+              dataCal = 'air';
+              break; // Airtime D & Amt column
+            case 'transport': 
+              categoryColumnIndex = 8; 
+              dataCal = 'transport';
+              break; // Transport D & Amt column
+            case 'misc': 
+              categoryColumnIndex = 9; 
+              dataCal = 'misc';
+              break; // Misc D & Amt column
+            default: continue;
+          }
+          
+          // Check if row has .cells container (new structure)
+          const cellsContainer = row.querySelector('.cells');
+          let categoryCell;
+          if (cellsContainer) {
+            categoryCell = cellsContainer.children[categoryColumnIndex];
+          } else {
+            // Fallback to direct children (old structure)
+            categoryCell = row.children[categoryColumnIndex];
+          }
+          if (categoryCell) {
+            // Look for the split-calendar-container with the correct data-cal attribute
+            const calendarContainer = categoryCell.querySelector(`[data-cal="${dataCal}"]`);
+            
+            // Look for amount input - prioritize inputs with matching data-field or within the calendar container
+            let amountInput = categoryCell.querySelector(`input[data-field="${dataCal}"]`);
+            if (!amountInput) {
+              amountInput = categoryCell.querySelector('input[type="number"], input.amt, input.amount-input');
+            }
+            
+            // Look for date inputs - could be input[type="date"] or splitflap elements
+            const dateInputs = categoryCell.querySelectorAll('input[type="date"]');
+            const splitflapElements = categoryCell.querySelectorAll('.splitflap');
+            
+            // Debug logging for specific teams
+            if (teamName === 'Mompati' && category === 'fuel') {
+              console.log(`Debug: Checking fuel validation for beneficiary ${beneficiaryName} in team Mompati`);
+              console.log('Debug: Category cell:', categoryCell);
+              console.log('Debug: Amount input:', amountInput);
+              if (amountInput) {
+                console.log('Debug: Amount input value:', amountInput.value);
+                console.log('Debug: Amount input style:', amountInput.style.backgroundColor);
+                console.log('Debug: Amount input computed style:', window.getComputedStyle(amountInput).backgroundColor);
+              }
+            }
+            
+            // For fuel category, check for missing dates when amount > 0 OR missing amounts when date is selected
+            if (category === 'fuel') {
+              let hasViolation = false;
+              const amount = parseFloat(amountInput.value) || 0;
+              
+              // Check if date is selected
+              let hasDate = false;
+              
+              // Look for date inputs in the category cell
+              const dateInputs = categoryCell.querySelectorAll('input[type="date"]');
+              
+              // Check traditional date inputs
+              if (dateInputs.length > 0) {
+                hasDate = Array.from(dateInputs).some(input => input.value && input.value.trim());
+              }
+              
+              // Check splitflap date elements within the calendar container
+              if (!hasDate && calendarContainer) {
+                const splitflapElements = calendarContainer.querySelectorAll('.splitflap--holo, .calendar-pill');
+                if (splitflapElements.length > 0) {
+                  // Check if at least 1 splitflap element has actual dates (not DD - MM)
+                  let validDates = 0;
+                  splitflapElements.forEach(element => {
+                    const daySpan = element.querySelector('.day');
+                    const monthSpan = element.querySelector('.month');
+                    if (daySpan && monthSpan) {
+                      const day = daySpan.textContent.trim();
+                      const month = monthSpan.textContent.trim();
+                      console.log(`Debug: ${teamName} fuel - checking date element: day='${day}', month='${month}'`);
+                      if (day !== 'DD' && month !== 'MM' && day !== '' && month !== '') {
+                        validDates++;
+                      }
+                    }
+                  });
+                  hasDate = validDates >= 1; // Need at least one valid date
+                  console.log(`Debug: ${teamName} fuel - validDates found: ${validDates}, hasDate: ${hasDate}`);
+                }
+              }
+              
+              console.log(`Debug: ${teamName} fuel - Final check: amount=${amount}, hasDate=${hasDate}`);
+              
+              // Check for violations: amount without date OR date without amount
+              if ((amount > 0 && !hasDate) || (hasDate && amount <= 0)) {
+                hasViolation = true;
+                teamHasViolation = true;
+                console.log(`Debug: Team ${teamName}, beneficiary ${beneficiaryName} fuel - VIOLATION DETECTED: amount=${amount}, hasDate=${hasDate}`);
+              }
+              
+              if (hasViolation) {
+                console.log(`Debug: Team ${teamName}, beneficiary ${beneficiaryName} fuel - VIOLATION FOUND`);
+              }
+            } else {
+              // For other categories, use existing validation logic
+              if (amountInput) {
+                const amount = parseFloat(amountInput.value) || 0;
+                
+                // Check if any date is selected (either input[type="date"] or splitflap with selected state)
+                let hasDate = false;
+                
+                // Look for date inputs in the category cell
+                const dateInputs = categoryCell.querySelectorAll('input[type="date"]');
+                
+                // Check traditional date inputs
+                if (dateInputs.length > 0) {
+                  hasDate = Array.from(dateInputs).some(input => input.value && input.value.trim());
+                }
+                
+                // Check splitflap date elements within the calendar container
+                if (!hasDate && calendarContainer) {
+                  const splitflapElements = calendarContainer.querySelectorAll('.splitflap--holo, .calendar-pill');
+                  if (splitflapElements.length > 0) {
+                    // Check if at least 1 splitflap element has actual dates (not DD - MM)
+                    let validDates = 0;
+                    splitflapElements.forEach(element => {
+                      const daySpan = element.querySelector('.day');
+                      const monthSpan = element.querySelector('.month');
+                      if (daySpan && monthSpan) {
+                        const day = daySpan.textContent.trim();
+                        const month = monthSpan.textContent.trim();
+                        console.log(`Debug: ${teamName} ${category} - checking date element: day='${day}', month='${month}'`);
+                        if (day !== 'DD' && month !== 'MM' && day !== '' && month !== '') {
+                          validDates++;
+                        }
+                      }
+                    });
+                    hasDate = validDates >= 1; // Need at least one valid date
+                    console.log(`Debug: ${teamName} ${category} - validDates found: ${validDates}, hasDate: ${hasDate}`);
+                  }
+                }
+                
+                // Check for violations based on validation rules
+                if (category === 'carrent') {
+                  // Special Car Rent rules - check for car number
+                  const cellsContainer = row.querySelector('.cells');
+                  let accountHolderCell;
+                  
+                  if (cellsContainer) {
+                    accountHolderCell = cellsContainer.children[1];
+                  } else {
+                    accountHolderCell = row.children[1];
+                  }
+                  
+                  const carNumberInput = accountHolderCell ? accountHolderCell.querySelector('.car-number-input, input[placeholder*="Vehicle"], input[placeholder*="Car"]') : null;
+                  // Check for amount without date/car number OR date without amount
+                  if ((amount > 0 && (!hasDate || (carNumberInput && !carNumberInput.value))) || (hasDate && amount <= 0)) {
+                    teamHasViolation = true;
+                    console.log(`Debug: Team ${teamName}, beneficiary ${beneficiaryName} carrent - VIOLATION DETECTED`);
+                  }
+                } else if (category === 'da' || category === 'erda') {
+                  // DA / ER DA rules - amount and date required, check both directions
+                  console.log(`Debug: Team ${teamName}, beneficiary ${beneficiaryName} da/erda - Final check: amount=${amount}, hasDate=${hasDate}`);
+                  if ((amount > 0 && !hasDate) || (hasDate && amount <= 0)) {
+                    teamHasViolation = true;
+                    console.log(`Debug: Team ${teamName}, beneficiary ${beneficiaryName} da/erda - VIOLATION DETECTED: amount=${amount}, hasDate=${hasDate}`);
+                  }
+                } else {
+                  // Standard rules for other categories - amount and date required, check both directions
+                  if ((amount > 0 && !hasDate) || (hasDate && amount <= 0)) {
+                    teamHasViolation = true;
+                    console.log(`Debug: Team ${teamName}, beneficiary ${beneficiaryName} ${category} - VIOLATION DETECTED`);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Check if team has any data (amounts or dates) for this category
+  let teamHasData = false;
+      
+      for (let row of tableRows) {
+        const rowTeamName = getActualTeamNameFromRow(row);
+        
+        if (rowTeamName === teamName) {
+          // Get the category column based on category name
+          let categoryColumnIndex;
+          let dataCal;
+          switch(category) {
+            case 'fuel': 
+              categoryColumnIndex = 4; 
+              dataCal = 'fuel';
+              break;
+            case 'erda':
+            case 'da': 
+              categoryColumnIndex = 5; 
+              dataCal = 'da';
+              break;
+            case 'carrent': 
+              categoryColumnIndex = 6; 
+              dataCal = 'car';
+              break;
+            case 'airtime': 
+              categoryColumnIndex = 7; 
+              dataCal = 'air';
+              break;
+            case 'transport': 
+              categoryColumnIndex = 8; 
+              dataCal = 'transport';
+              break;
+            case 'misc': 
+              categoryColumnIndex = 9; 
+              dataCal = 'misc';
+              break;
+            default: continue;
+          }
+          
+          const cellsContainer = row.querySelector('.cells');
+          let categoryCell;
+          if (cellsContainer) {
+            categoryCell = cellsContainer.children[categoryColumnIndex];
+          } else {
+            categoryCell = row.children[categoryColumnIndex];
+          }
+          
+          if (categoryCell) {
+            const calendarContainer = categoryCell.querySelector(`[data-cal="${dataCal}"]`);
+            let amountInput = categoryCell.querySelector(`input[data-field="${dataCal}"]`);
+            if (!amountInput) {
+              amountInput = categoryCell.querySelector('input[type="number"], input.amt, input.amount-input');
+            }
+            
+            // Check if there's any amount data
+            if (amountInput && parseFloat(amountInput.value) > 0) {
+              teamHasData = true;
+              break;
+            }
+            
+            // Check if there's any date data
+            if (calendarContainer) {
+              const splitflapElements = calendarContainer.querySelectorAll('.splitflap--holo, .calendar-pill');
+              if (splitflapElements.length > 0) {
+                let validDates = 0;
+                splitflapElements.forEach(element => {
+                  const daySpan = element.querySelector('.day');
+                  const monthSpan = element.querySelector('.month');
+                  if (daySpan && monthSpan) {
+                    const day = daySpan.textContent.trim();
+                    const month = monthSpan.textContent.trim();
+                    if (day !== 'DD' && month !== 'MM' && day !== '' && month !== '') {
+                      validDates++;
+                    }
+                  }
+                });
+                if (validDates >= 1) {
+                  teamHasData = true;
+                  break;
+                }
+              }
+            }
+            
+            // Also check traditional date inputs
+            const dateInputs = categoryCell.querySelectorAll('input[type="date"]');
+            if (dateInputs.length > 0) {
+              const hasDateValue = Array.from(dateInputs).some(input => input.value && input.value.trim());
+              if (hasDateValue) {
+                teamHasData = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+      
+      // Return aggregated team-level status
+      console.log(`Debug: Team ${teamName} validation summary - Members found: ${foundTeamMembers}, Has violations: ${teamHasViolation}, Has deactivated: ${teamHasDeactivated}, Has data: ${teamHasData}`);
+      
+      if (foundTeamMembers === 0) {
+        console.log(`Debug: No team members found for team: ${teamName}`);
+        return 'no-data';
+      }
+      
+      if (teamHasViolation) {
+        console.log(`Debug: Returning 'violation' for team ${teamName} - ${category}`);
+        return 'violation';
+      }
+      
+      if (teamHasDeactivated) {
+        console.log(`Debug: Returning 'deactivated' for team ${teamName} - ${category}`);
+        return 'deactivated';
+      }
+      
+      if (!teamHasData) {
+        console.log(`Debug: Returning 'no-data' for team ${teamName} - ${category} (no calendar or amount data)`);
+        return 'no-data';
+      }
+      
+      console.log(`Debug: Returning 'compliant' for team ${teamName} - ${category}`);
+      return 'compliant';
+    }
+    
+    // Update filter symbol colors based on current data
+     function updateFilterSymbolColors() {
+       const categories = ['fuel', 'erda', 'carrent', 'airtime', 'transport', 'misc'];
+       
+       categories.forEach(category => {
+         const symbolElement = document.getElementById(`filter-${category}`);
+         if (symbolElement) {
+           const status = getOverallCategoryStatus(category);
+           
+           // Remove existing background styles
+           symbolElement.style.background = '';
+           
+           // Apply appropriate color based on status
+           if (status === 'violations') {
+             symbolElement.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+           } else if (status === 'deactivated') {
+             symbolElement.style.background = 'linear-gradient(135deg, #6b7280, #4b5563)';
+           } else {
+             symbolElement.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+           }
+         }
+       });
+       
+       // Notify Teams icon to update after filter symbol colors change
+       if (window.notifyTeamsIconUpdate) {
+         setTimeout(window.notifyTeamsIconUpdate, 100);
+       }
+     }
+     
+     // Get overall status for a category across all teams
+     function getOverallCategoryStatus(category) {
+       const allTeams = getAllTeamNames();
+       let hasViolations = false;
+       let hasDeactivated = false;
+       
+       allTeams.forEach(teamName => {
+         if (checkTeamDeactivationStatus(teamName)) {
+           hasDeactivated = true;
+         } else if (getExpenseValidationStatus(teamName, category) === 'violation') {
+           hasViolations = true;
+         }
+       });
+       
+       if (hasViolations) return 'violations';
+       if (hasDeactivated) return 'deactivated';
+       return 'compliant';
+     }
+     
+     // Get all unique team names from the table (actual teams, not individual beneficiaries)
+     function getAllTeamNames() {
+       // Use standard table selectors that work with main page structure
+       const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+       
+       const teamNames = new Set();
+       
+       tableRows.forEach(row => {
+         const teamName = getActualTeamNameFromRow(row);
+         if (teamName) {
+           teamNames.add(teamName);
+         }
+       });
+       
+       return Array.from(teamNames);
+     }
+     
+     // Get beneficiary count for a specific team
+     function getBeneficiaryCountForTeam(teamName) {
+       const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+       let count = 0;
+       
+       tableRows.forEach(row => {
+         const rowTeamName = getActualTeamNameFromRow(row);
+         if (rowTeamName === teamName) {
+           count++;
+         }
+       });
+       
+       return count;
+     }
+     
+     // Expose getBeneficiaryCountForTeam globally for header bar access
+     window.getBeneficiaryCountForTeam = getBeneficiaryCountForTeam;
+     
+     // Get actual team name from row (not individual beneficiary name)
+     // Uses same logic as teamFromRow in _Table.html for consistency
+     function getActualTeamNameFromRow(row) {
+       // First try data attributes (real data approach)
+       var ds = row.dataset || {};
+       var t = (ds.teamName || ds.team || ds.teamid || '').trim();
+       if(t) {
+         console.log('Debug: Found team name in data attributes:', t);
+         return t;
+       }
+       
+       // Look for child elements with data-team attribute
+       var el = row.querySelector('[data-team]');
+       if(el){
+         var v = (el.getAttribute('data-team') || el.dataset.team || '').trim();
+         if(v) {
+           console.log('Debug: Found team name in child data-team:', v);
+           return v;
+         }
+       }
+       
+       // Look for team tag element
+       var tag = row.querySelector('.team-tag');
+       if(tag && tag.textContent.trim()) {
+         console.log('Debug: Found team name in team-tag:', tag.textContent.trim());
+         return tag.textContent.trim();
+       }
+       
+       // Look for team input fields
+       var input = row.querySelector('input[name="team"], input[data-field="team"]');
+       if(input && input.value.trim()) {
+         console.log('Debug: Found team name in team input:', input.value.trim());
+         return input.value.trim();
+       }
+       
+       // Fallback to account holder input (test data approach)
+       const cellsContainer = row.querySelector('.cells');
+       let accountHolderCell;
+       
+       if (cellsContainer) {
+         accountHolderCell = cellsContainer.children[1]; // Account Holder column
+       } else {
+         accountHolderCell = row.children[1]; // Fallback to direct children
+       }
+       
+       if (accountHolderCell) {
+         const accountHolderInput = accountHolderCell.querySelector('.account-holder-input');
+         if (accountHolderInput && accountHolderInput.value && accountHolderInput.value.trim()) {
+           const teamName = accountHolderInput.value.trim();
+           console.log('Debug: Found team name in account holder input (fallback):', teamName);
+           return teamName;
+         }
+       }
+       
+       console.log('Debug: No team name found for row');
+       return '';
+     }
+     
+     // Filter by category function
+     window.filterByCategory = function(category) {
+       // Check the actual status for this category
+       const status = getOverallCategoryStatus(category);
+       
+       console.log(`Debug: Clicked ${category} symbol, status:`, status);
+       
+       if (status === 'violations') {
+         // Red symbol clicked - show only teams with violations in this category
+         console.log(`Debug: Showing violations for ${category}`);
+         filterRowsByViolation(category);
+       } else {
+         // Green or grey symbol clicked - do nothing (no filtering)
+         console.log(`Debug: No violations found for ${category}, no filtering applied`);
+         // Show a notification that there are no violations to filter
+         showCategoryFilterNotification(`No ${category} violations found - all teams are compliant`, 0, 0);
+       }
+     }
+    
+    // Check if individual beneficiary row has violation for specific category
+    function checkIndividualBeneficiaryViolation(row, category) {
+      // Skip deactivated rows
+      if (row.classList.contains('row-deactivated')) {
+        return false;
+      }
+      
+      // Get the category column based on category name
+      let categoryColumnIndex;
+      let dataCal; // The data-cal attribute to look for
+      switch(category) {
+        case 'fuel': 
+          categoryColumnIndex = 4; 
+          dataCal = 'fuel';
+          break;
+        case 'erda': 
+          categoryColumnIndex = 5; 
+          dataCal = 'erda';
+          break;
+        case 'carrent': 
+          categoryColumnIndex = 6; 
+          dataCal = 'car';
+          break;
+        case 'airtime': 
+          categoryColumnIndex = 7; 
+          dataCal = 'air';
+          break;
+        case 'transport': 
+          categoryColumnIndex = 8; 
+          dataCal = 'transport';
+          break;
+        case 'misc': 
+          categoryColumnIndex = 9; 
+          dataCal = 'misc';
+          break;
+        default: return false;
+      }
+      
+      // Check if row has .cells container (new structure)
+      const cellsContainer = row.querySelector('.cells');
+      let categoryCell;
+      if (cellsContainer) {
+        categoryCell = cellsContainer.children[categoryColumnIndex];
+      } else {
+        // Fallback to direct children (old structure)
+        categoryCell = row.children[categoryColumnIndex];
+      }
+      
+      if (!categoryCell) return false;
+      
+      // Look for the split-calendar-container with the correct data-cal attribute
+      const calendarContainer = categoryCell.querySelector(`[data-cal="${dataCal}"]`);
+      
+      // Look for amount input
+      let amountInput = categoryCell.querySelector(`input[data-field="${dataCal}"]`);
+      if (!amountInput) {
+        amountInput = categoryCell.querySelector('input[type="number"], input.amt, input.amount-input');
+      }
+      
+      if (!amountInput) return false;
+      
+      const amount = parseFloat(amountInput.value) || 0;
+      
+      // Check if date is selected
+      let hasDate = false;
+      
+      // Check traditional date inputs
+      const dateInputs = categoryCell.querySelectorAll('input[type="date"]');
+      if (dateInputs.length > 0) {
+        hasDate = Array.from(dateInputs).some(input => input.value && input.value.trim());
+      }
+      
+      // Check splitflap date elements within the calendar container
+      if (!hasDate && calendarContainer) {
+        const splitflapElements = calendarContainer.querySelectorAll('.splitflap--holo, .calendar-pill');
+        if (splitflapElements.length > 0) {
+          let validDates = 0;
+          splitflapElements.forEach(element => {
+            const daySpan = element.querySelector('.day');
+            const monthSpan = element.querySelector('.month');
+            if (daySpan && monthSpan) {
+              const day = daySpan.textContent.trim();
+              const month = monthSpan.textContent.trim();
+              if (day !== 'DD' && month !== 'MM' && day !== '' && month !== '') {
+                validDates++;
+              }
+            }
+          });
+          hasDate = validDates >= 1;
+        }
+      }
+      
+      // Apply category-specific validation rules
+      if (category === 'carrent') {
+        // Special Car Rent rules - check for car number
+        const cellsContainer = row.querySelector('.cells');
+        let accountHolderCell;
+        
+        if (cellsContainer) {
+          accountHolderCell = cellsContainer.children[1];
+        } else {
+          accountHolderCell = row.children[1];
+        }
+        
+        const carNumberInput = accountHolderCell ? accountHolderCell.querySelector('.car-number-input, input[placeholder*="Vehicle"], input[placeholder*="Car"]') : null;
+        // Check for amount without date/car number OR date without amount
+        return (amount > 0 && (!hasDate || (carNumberInput && !carNumberInput.value))) || (hasDate && amount <= 0);
+      } else {
+        // Standard rules for other categories - amount and date required, check both directions
+        return (amount > 0 && !hasDate) || (hasDate && amount <= 0);
+      }
+    }
+    
+    // Filter rows by violation status (show only individual beneficiaries with violations)
+    function filterRowsByViolation(category) {
+      const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+      let visibleRows = 0;
+      
+      tableRows.forEach(row => {
+        const hasViolation = checkIndividualBeneficiaryViolation(row, category);
+        if (hasViolation) {
+          row.style.display = '';
+          visibleRows++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      showCategoryFilterNotification(`Showing individual beneficiaries with ${category} violations`, visibleRows, tableRows.length);
+    }
+    
+    // Filter rows by deactivation status
+    function filterRowsByDeactivation() {
+      const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+      let visibleRows = 0;
+      
+      tableRows.forEach(row => {
+        const isDeactivated = row.classList.contains('row-deactivated');
+        if (isDeactivated) {
+          row.style.display = '';
+          visibleRows++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      showCategoryFilterNotification('Showing deactivated team beneficiaries', visibleRows, tableRows.length);
+    }
+    
+    // Filter rows by compliance status (show all beneficiaries in compliant teams)
+    function filterRowsByCompliance(category) {
+      const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+      let visibleRows = 0;
+      
+      tableRows.forEach(row => {
+        const teamName = getActualTeamNameFromRow(row);
+        const isCompliant = getExpenseValidationStatus(teamName, category) === 'compliant';
+        const isNotDeactivated = !row.classList.contains('row-deactivated');
+        if (isCompliant && isNotDeactivated) {
+          row.style.display = '';
+          visibleRows++;
+        } else {
+          row.style.display = 'none';
+        }
+      });
+      
+      showCategoryFilterNotification(`Showing compliant ${category} entries`, visibleRows, tableRows.length);
+    }
+    
+    // Show notification for category filtering
+    function showCategoryFilterNotification(message, visibleRows, totalRows) {
+      // Create or get the notification element
+      let notification = document.getElementById('filter-notification');
+      if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'filter-notification';
+        document.body.appendChild(notification);
+      }
+      
+      // Handle case where there are no violations (no filtering applied)
+      if (visibleRows === 0 && totalRows === 0) {
+        notification.innerHTML = `
+          <div class="filter-content">
+            <div class="filter-icon">✅</div>
+            <div class="filter-text">
+              <strong>Info:</strong> ${message}
+            </div>
+          </div>
+        `;
+      } else {
+        // Normal filtering case
+        notification.innerHTML = `
+          <div class="filter-content">
+            <div class="filter-icon">🔍</div>
+            <div class="filter-text">
+              <strong>Filter:</strong> ${message}
+              <div class="filter-stats">${visibleRows} of ${totalRows} rows visible</div>
+            </div>
+            <button class="filter-clear" onclick="resetTeamFilter()">Clear Filter</button>
+          </div>
+        `;
+      }
+      
+      // Show the notification
+      notification.classList.add('active');
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        notification.classList.remove('active');
+      }, 5000);
+    }
+  
+  // Populate the team list with selected teams
+  function populateTeamList() {
+    const teamList = document.getElementById('teamList');
+    teamList.innerHTML = '';
+    
+    if (selectedTeams.length === 0) {
+      teamList.innerHTML = '<div style="text-align: center; padding: 20px; color: rgba(255,255,255,.7);">No teams selected. Please select teams from the Project & Teams panel.</div>';
+      return;
+    }
+    
+    selectedTeams.forEach(team => {
+      const teamItem = document.createElement('div');
+      teamItem.className = 'team-item';
+      teamItem.dataset.id = team.id;
+      
+      // Generate expense symbols for the team
+      const expenseSymbols = generateExpenseSymbols(team.name);
+      
+      // Get beneficiary count for this team
+      const beneficiaryCount = getBeneficiaryCountForTeam(team.name);
+      const teamDisplayName = `${team.name} [${beneficiaryCount}]`;
+      
+      if (selectionMode === 'single') {
+        // Single select mode - radio button style
+        teamItem.innerHTML = `
+          <input type="radio" name="teamSelection" value="${team.id}" id="team_${team.id}" 
+                 ${team.id === activeTeamId ? 'checked' : ''} 
+                 onchange="selectTeam('${team.id}')" 
+                 style="margin-right: 12px;">
+          <label for="team_${team.id}" style="cursor: pointer; flex: 1; font-weight: 700;">${teamDisplayName}</label>
+          <div class="expense-symbols">${expenseSymbols}</div>
+        `;
+      } else if (selectionMode === 'multi') {
+        // Multi select mode - checkbox style
+        const isSelected = selectedTeamIds.includes(team.id);
+        teamItem.innerHTML = `
+          <input type="checkbox" value="${team.id}" id="team_${team.id}" 
+                 ${isSelected ? 'checked' : ''} 
+                 onchange="toggleTeamSelection('${team.id}')" 
+                 style="margin-right: 12px;">
+          <label for="team_${team.id}" style="cursor: pointer; flex: 1; font-weight: 700;">${teamDisplayName}</label>
+          <div class="expense-symbols">${expenseSymbols}</div>
+        `;
+      } else if (selectionMode === 'all') {
+        // Select all mode - all teams selected, read-only with improved readability
+        teamItem.innerHTML = `
+          <input type="checkbox" checked disabled style="margin-right: 12px;" name="selectedTeams" value="${team.name}">
+          <label style="cursor: default; flex: 1; color: #ffffff; font-weight: 500; opacity: 1;">${teamDisplayName}</label>
+          <div class="expense-symbols">${expenseSymbols}</div>
+        `;
+      }
+      
+      teamItem.style.display = 'flex';
+      teamItem.style.alignItems = 'center';
+      teamItem.style.cursor = selectionMode === 'all' ? 'default' : 'pointer';
+      
+      if (selectionMode === 'single' && team.id === activeTeamId) {
+        teamItem.classList.add('active');
+      } else if (selectionMode === 'multi' && selectedTeamIds.includes(team.id)) {
+        teamItem.classList.add('active');
+      } else if (selectionMode === 'all') {
+        teamItem.classList.add('active');
+      }
+      
+      teamList.appendChild(teamItem);
+    });
+  }
+  
+  // Debug function to check team detection and aggregation
+  window.debugTeamDetection = function() {
+    console.log('\n=== DEBUG TEAM DETECTION & AGGREGATION ===');
+    
+    // Check if table exists
+    const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+    console.log('Debug: Found table rows:', tableRows.length);
+    
+    // Check actual team names (not individual beneficiaries)
+    const teamNames = getAllTeamNames();
+    console.log('Debug: Detected actual team names:', teamNames);
+    
+    // Check individual beneficiaries per team
+    teamNames.forEach(teamName => {
+      console.log(`\n--- Analyzing Team: ${teamName} ---`);
+      let teamMembers = [];
+      tableRows.forEach(row => {
+        const rowTeamName = getActualTeamNameFromRow(row);
+        const beneficiaryName = getBeneficiaryNameFromRow(row);
+        if (rowTeamName === teamName) {
+          teamMembers.push(beneficiaryName);
+        }
+      });
+      console.log(`Team ${teamName} has ${teamMembers.length} members:`, teamMembers);
+      
+      // Test symbol generation for each team
+      const symbols = generateExpenseSymbols(teamName);
+      console.log(`Team ${teamName} symbols HTML: ${symbols}`);
+    });
+    
+    // Check if teams are populated in sidebar
+    console.log('Debug: selectedTeams array:', selectedTeams);
+    
+    return {
+      tableRows: tableRows.length,
+      teamNames: teamNames,
+      selectedTeams: selectedTeams
+    };
+  };
+  
+  // Global function to refresh team sidebar data
+  window.refreshTeamSidebar = function() {
+    console.log('\n=== REFRESHING TEAM SIDEBAR ===');
+    
+    // Force repopulate teams from table using actual team detection
+    const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+    const teamSet = new Set();
+    
+    tableRows.forEach(row => {
+      const actualTeamName = getActualTeamNameFromRow(row);
+      if (actualTeamName && actualTeamName.trim()) {
+        teamSet.add(actualTeamName.trim());
+      }
+    });
+    
+    const teamNames = Array.from(teamSet);
+    console.log('Debug: Refreshing with actual team names:', teamNames);
+    
+    if (teamNames.length > 0) {
+      selectedTeams = teamNames.map((name, index) => ({
+        id: `table-team-${index}`,
+        name: name
+      }));
+      console.log('Debug: Updated selectedTeams:', selectedTeams);
+    }
+    
+    // Update filter symbol colors
+    updateFilterSymbolColors();
+    
+    // If sidebar is open, refresh the team list
+    if (document.getElementById('teamSidebar').classList.contains('open')) {
+      console.log('Debug: Repopulating team list...');
+      populateTeamList();
+    }
+  };
+  
+  // Function to add test data for debugging
+  window.addTestData = function() {
+    console.log('=== ADDING TEAM-LEVEL TEST DATA ===');
+    const tbody = document.getElementById('tbody');
+    if (!tbody) {
+      console.log('No tbody found');
+      return;
+    }
+    
+    // Clear existing rows first
+    tbody.innerHTML = '';
+    
+    // Test data creation removed - will be populated from Google Sheets
+    
+
+    
+
+    
+
+    
+
+    
+  }; // End of addTestData function
+  
+  // Test violation detection function
+  window.testViolationDetection = function() {
+    console.log('\n=== TESTING VIOLATION DETECTION ===');
+    
+    const testTeams = ['HW_VOD_M_Kao', 'HW_VOD_M_Lon'];
+    const categories = ['fuel', 'erda', 'carrent', 'airtime', 'transport', 'misc'];
+    
+    testTeams.forEach(teamName => {
+      console.log(`\n--- Testing ${teamName} ---`);
+      categories.forEach(category => {
+        const status = getExpenseValidationStatus(teamName, category);
+        console.log(`${teamName} - ${category}: ${status}`);
+      });
+      
+      // Generate symbols for this team
+      const symbols = generateExpenseSymbols(teamName);
+      console.log(`${teamName} symbols HTML:`, symbols);
+    });
+    
+    console.log('\n=== VIOLATION DETECTION TEST COMPLETE ===');
+  };
+  
+  // Auto-debug functionality - run tests on page load
+   // Add debug button to page
+    window.addEventListener('DOMContentLoaded', function() {
+      // Add a debug button right after the existing buttons
+      const buttonsContainer = document.querySelector('.teams-sidebar');
+      if (buttonsContainer) {
+        const debugButton = document.createElement('button');
+        debugButton.textContent = 'Run Debug Test';
+        debugButton.style.cssText = 'margin: 10px; padding: 5px; background: #ff6b6b; color: white; border: none; border-radius: 3px; cursor: pointer;';
+        debugButton.onclick = function() {
+          runDebugTest();
+        };
+        buttonsContainer.appendChild(debugButton);
+      }
+    });
+    
+    function runDebugTest() {
+      // Create debug display area
+      let debugDiv = document.getElementById('debug-output');
+      if (!debugDiv) {
+        debugDiv = document.createElement('div');
+        debugDiv.id = 'debug-output';
+        debugDiv.style.cssText = 'position: fixed; top: 10px; right: 10px; width: 500px; height: 400px; background: rgba(0,0,0,0.95); color: #00ff00; font-family: monospace; font-size: 11px; padding: 15px; overflow-y: auto; z-index: 10000; border-radius: 8px; border: 2px solid #00ff00;';
+        document.body.appendChild(debugDiv);
+        
+        // Add close button
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = '×';
+        closeBtn.style.cssText = 'position: absolute; top: 5px; right: 5px; background: #ff0000; color: white; border: none; width: 20px; height: 20px; cursor: pointer; border-radius: 3px;';
+        closeBtn.onclick = () => debugDiv.remove();
+        debugDiv.appendChild(closeBtn);
+      }
+      
+      debugDiv.innerHTML = '<button style="position: absolute; top: 5px; right: 5px; background: #ff0000; color: white; border: none; width: 20px; height: 20px; cursor: pointer; border-radius: 3px;" onclick="this.parentElement.remove()">×</button>';
+      
+      function debugLog(message) {
+        console.log(message);
+        debugDiv.innerHTML += message + '<br>';
+        debugDiv.scrollTop = debugDiv.scrollHeight;
+      }
+      
+      debugLog('=== VIOLATION DETECTION DEBUG TEST ===');
+      
+      // First, add test data
+      if (window.addTestData) {
+        window.addTestData();
+        debugLog('✓ Test data added');
+      }
+      
+      // Test violation detection
+      debugLog('\n--- Testing Teams ---');
+      const testTeams = ['HW_VOD_M_Kao', 'HW_VOD_M_Lon'];
+      const categories = ['fuel', 'erda', 'carrent', 'airtime', 'transport', 'misc'];
+      
+      testTeams.forEach(teamName => {
+        debugLog(`\n--- Testing ${teamName} ---`);
+        categories.forEach(category => {
+          const status = getExpenseValidationStatus(teamName, category);
+          const color = status === 'violation' ? '#ff0000' : status === 'deactivated' ? '#888888' : '#00ff00';
+          debugLog(`<span style="color: ${color}">${teamName} - ${category}: ${status}</span>`);
+        });
+        
+        // Generate symbols for this team
+        const symbols = generateExpenseSymbols(teamName);
+        debugLog(`${teamName} symbols: ${symbols}`);
+      });
+      
+      debugLog('\n=== TEST COMPLETE ===');
+    }
+  // Test data can still be added manually using the "Add Test Data" button in the TeamSidebar
+    
+    // Debug: Auto-add test data functionality available via addTestData() function
+  
+  // Select a team (for single select mode)
+  window.selectTeam = function(teamId) {
+    if (selectionMode === 'single') {
+      activeTeamId = teamId;
+      selectedTeamIds = [teamId];
+      
+      // Update UI
+      document.querySelectorAll('.team-item').forEach(item => {
+        if (item.dataset.id === teamId) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+  };
+  
+  // Toggle team selection (for multi-select mode)
+  window.toggleTeamSelection = function(teamId) {
+    if (selectionMode === 'multi') {
+      const index = selectedTeamIds.indexOf(teamId);
+      if (index > -1) {
+        // Remove from selection
+        selectedTeamIds.splice(index, 1);
+      } else {
+        // Add to selection
+        selectedTeamIds.push(teamId);
+      }
+      
+      // Update UI
+      const teamItem = document.querySelector(`[data-id="${teamId}"]`);
+      if (teamItem) {
+        if (selectedTeamIds.includes(teamId)) {
+          teamItem.classList.add('active');
+        } else {
+          teamItem.classList.remove('active');
+        }
+      }
+    }
+  };
+  
+  // Duplicate toggleTeamSelection function removed - using the original one above
+   
+   // Legacy function for compatibility
+   window.toggleTeam = function(teamName) {
+     const team = selectedTeams.find(t => t.name === teamName);
+     if (team) {
+       toggleTeamSelection(team.id);
+     }
+   };
+  
+  // Filter teams based on search input
+  window.filterTeams = function() {
+    const searchTerm = document.getElementById('teamSearchInput').value.toLowerCase();
+    const teamItems = document.querySelectorAll('.team-item');
+    
+    teamItems.forEach(item => {
+      const teamName = item.textContent.toLowerCase();
+      if (teamName.includes(searchTerm)) {
+        item.style.display = 'block';
+      } else {
+        item.style.display = 'none';
+      }
+    });
+  };
+  
+  // Search teams function
+   window.searchTeams = function() {
+     populateTeamList();
+   };
+  
+  // Apply team selection
+  window.applyTeamSelection = function() {
+    if (selectionMode === 'single' && activeTeamId) {
+      // Single select mode
+      const selectedTeam = selectedTeams.find(team => team.id === activeTeamId);
+      if (selectedTeam) {
+        if (window.onTeamSelected) {
+          window.onTeamSelected(selectedTeam);
+        }
+        filterTableByTeam([selectedTeam.name]);
+      }
+    } else if (selectionMode === 'multi' && selectedTeamIds.length > 0) {
+      // Multi select mode
+      const selectedTeamNames = selectedTeams
+        .filter(team => selectedTeamIds.includes(team.id))
+        .map(team => team.name);
+      
+      if (selectedTeamNames.length > 0) {
+        filterTableByTeam(selectedTeamNames);
+      }
+    } else if (selectionMode === 'all') {
+      // Select all mode - show all rows without filtering
+      showAllTeams();
+    }
+    
+    // Dispatch event to update header display
+    document.dispatchEvent(new CustomEvent('teamSidebarApplied'));
+    
+    // Close the sidebar
+    closeTeamSidebar();
+  };
+  
+  // Function to show all teams (for Select All mode)
+  function showAllTeams() {
+    // Get all rows in the table body
+    const rows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+    
+    // Show all rows
+    rows.forEach(function(row) {
+      row.style.display = '';
+    });
+    
+    // Remove filtering indicator
+    document.body.classList.remove('team-filtered');
+    
+    // Update the team sidebar button
+    if (teamSidebarBtn) {
+      teamSidebarBtn.setAttribute('title', 'Viewing All Teams');
+      teamSidebarBtn.classList.remove('filtering');
+    }
+    
+    // Show notification
+    showFilterNotification(['All Teams'], rows.length, rows.length);
+  }
+  
+  // Function to filter table rows by team(s)
+  function filterTableByTeam(teamNames) {
+    // Ensure teamNames is an array
+    if (!Array.isArray(teamNames)) {
+      teamNames = [teamNames];
+    }
+    
+    // Get all rows in the table body
+    const rows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+    
+    // Count total and visible rows for statistics
+    let totalRows = 0;
+    let visibleRows = 0;
+    
+    // Show only rows matching the selected teams, hide others
+    rows.forEach(function(row) {
+      totalRows++;
+      const rowTeam = teamFromRow(row);
+      if (teamNames.includes(rowTeam)) {
+        row.style.display = '';
+        visibleRows++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+    
+    // Update the UI to indicate filtering is active
+    document.body.classList.add('team-filtered');
+    
+    // Update the team sidebar button to show which teams are active
+    if (teamSidebarBtn) {
+      let titleText;
+      if (teamNames.length === 1) {
+        titleText = 'Viewing Team: ' + teamNames[0];
+      } else if (teamNames.length === selectedTeams.length) {
+        titleText = 'Viewing All Teams';
+      } else {
+        titleText = `Viewing ${teamNames.length} Teams: ${teamNames.join(', ')}`;
+      }
+      teamSidebarBtn.setAttribute('title', titleText);
+      teamSidebarBtn.classList.add('filtering');
+    }
+    
+    // Show filter notification
+    showFilterNotification(teamNames, visibleRows, totalRows);
+  }
+  
+  // Show a notification about the current filter
+  function showFilterNotification(teamNames, visibleRows, totalRows) {
+    // Create or get the notification element
+    let notification = document.getElementById('filter-notification');
+    if (!notification) {
+      notification = document.createElement('div');
+      notification.id = 'filter-notification';
+      document.body.appendChild(notification);
+    }
+    
+    // Generate appropriate message based on selection mode and team count
+    let filterMessage;
+    if (selectionMode === 'all') {
+      filterMessage = 'Showing <strong>all teams</strong>';
+    } else if (teamNames.length === 1) {
+      filterMessage = `Showing only <strong>${teamNames[0]}</strong> team`;
+    } else {
+      filterMessage = `Showing <strong>${teamNames.length} selected teams</strong>: ${teamNames.join(', ')}`;
+    }
+    
+    // Update notification content
+    notification.innerHTML = `
+      <div class="filter-content">
+        <div class="filter-icon">👁️</div>
+        <div class="filter-text">
+          <strong>Filtering:</strong> ${filterMessage}
+          <div class="filter-stats">${visibleRows} of ${totalRows} rows visible</div>
+        </div>
+        <button class="filter-clear" onclick="resetTeamFilter()">Clear Filter</button>
+      </div>
+    `;
+    
+    // Show the notification
+    notification.classList.add('active');
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      notification.classList.remove('active');
+    }, 5000);
+  }
+  
+  // Helper function to get team name from a row
+  function teamFromRow(row) {
+    // Use the same logic as getTeamNameFromRow for consistency
+    return getTeamNameFromRow(row);
+  }
+  
+  // Expose function to set the callback for team selection
+  window.setTeamSelectionCallback = function(callback) {
+    window.onTeamSelected = callback;
+  };
+  
+  // Expose function to set active team
+  window.setActiveTeam = function(teamId) {
+    activeTeamId = teamId;
+    
+    // Update UI if sidebar is open
+    if (document.getElementById('teamSidebar').classList.contains('open')) {
+      document.querySelectorAll('.team-item').forEach(item => {
+        if (item.dataset.id === teamId) {
+          item.classList.add('active');
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+  };
+  
+  // Close on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && document.getElementById('teamSidebar').classList.contains('open')) {
+      closeTeamSidebar();
+    }
+  });
+  
+  // pp:applied event listener removed to prevent interference with main page
+  // Team selection will be handled when TeamSidebar is explicitly opened
+  
+  // DOMContentLoaded event listener removed to prevent interference with main page
+  // Button state will be initialized when TeamSidebar is explicitly opened
+  // Mutation observer disabled to prevent interference with main page
+  // TeamSidebar will only refresh when manually opened
+  window.teamSidebarMutationObserver = null;
+  
+  // Input event listener removed to prevent interference with main page
+  
+  // Function to debug real data structure
+  window.debugRealData = function() {
+    console.log('\n=== DEBUGGING REAL DATA STRUCTURE ===');
+    
+    const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+    console.log(`Found ${tableRows.length} rows in table`);
+    
+    if (tableRows.length === 0) {
+      console.log('No table rows found. Make sure you have selected a project and teams.');
+      return;
+    }
+    
+    // Analyze first few rows to understand structure
+    const maxRows = Math.min(3, tableRows.length);
+    for (let i = 0; i < maxRows; i++) {
+      const row = tableRows[i];
+      console.log(`\n--- Analyzing Row ${i + 1} ---`);
+      console.log('Row HTML:', row.outerHTML.substring(0, 200) + '...');
+      console.log('Row dataset:', row.dataset);
+      
+      // Test team name extraction methods
+      const teamFromDataset = (row.dataset.teamName || row.dataset.team || row.dataset.teamid || '').trim();
+      const teamFromDataAttr = row.querySelector('[data-team]');
+      const teamFromTag = row.querySelector('.team-tag');
+      const teamFromInput = row.querySelector('input[name="team"], input[data-field="team"]');
+      const teamFromAccountHolder = row.querySelector('.account-holder-input');
+      
+      console.log('Team from dataset:', teamFromDataset);
+      console.log('Team from data-team element:', teamFromDataAttr ? teamFromDataAttr.getAttribute('data-team') : 'none');
+      console.log('Team from .team-tag:', teamFromTag ? teamFromTag.textContent.trim() : 'none');
+      console.log('Team from team input:', teamFromInput ? teamFromInput.value : 'none');
+      console.log('Team from account holder input:', teamFromAccountHolder ? teamFromAccountHolder.value : 'none');
+      
+      // Test our extraction function
+      const detectedTeam = getActualTeamNameFromRow(row);
+      const detectedBeneficiary = getBeneficiaryNameFromRow(row);
+      console.log('Final detected team:', detectedTeam);
+      console.log('Final detected beneficiary:', detectedBeneficiary);
+    }
+    
+    // Get all unique teams
+    const allTeams = getAllTeamNames();
+    console.log('\nAll detected teams:', allTeams);
+    
+    // Test violation detection for each team
+    if (allTeams.length > 0) {
+      console.log('\n=== TESTING VIOLATION DETECTION ON REAL DATA ===');
+      const categories = ['fuel', 'erda', 'carrent', 'airtime', 'transport', 'misc'];
+      
+      allTeams.forEach(teamName => {
+        console.log(`\n--- Testing Team: ${teamName} ---`);
+        categories.forEach(category => {
+          const status = getExpenseValidationStatus(teamName, category);
+          console.log(`${teamName} - ${category}: ${status}`);
+        });
+        
+        // Generate symbols
+        const symbols = generateExpenseSymbols(teamName);
+        console.log(`${teamName} symbols: ${symbols}`);
+      });
+    }
+    
+    return {
+      totalRows: tableRows.length,
+      detectedTeams: allTeams,
+      sampleRowAnalysis: 'Check console for detailed row analysis'
+    };
+  };
+  
+})();
+</script>

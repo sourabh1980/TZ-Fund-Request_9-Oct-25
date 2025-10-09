@@ -1,0 +1,335 @@
+<!-- _ExpenseValidation.html — Expense field validation system with visual indicators -->
+<style>
+  /* Traffic light indicator for missing dates */
+  .traffic-light {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+    position: relative;
+    animation: pulse-red 2s infinite;
+  }
+  
+  .traffic-light::before {
+    content: "!";
+    color: white;
+    font-weight: 900;
+    font-size: 12px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  }
+  
+  @keyframes pulse-red {
+    0%, 100% { transform: scale(1); box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); }
+    50% { transform: scale(1.1); box-shadow: 0 4px 12px rgba(239, 68, 68, 0.6); }
+  }
+  
+  /* Amount input highlighting */
+  .amount-input.validation-error {
+    background: linear-gradient(135deg, #fecaca, #fca5a5) !important;
+    border-color: #f87171 !important;
+    box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.2) !important;
+  }
+  
+  .amount-input.validation-success {
+    background: linear-gradient(135deg, #bbf7d0, #a7f3d0) !important;
+    border-color: #4ade80 !important;
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.2) !important;
+  }
+  
+  /* Car number input highlighting */
+  .car-number-input.validation-error {
+    background: linear-gradient(135deg, #fecaca, #fca5a5) !important;
+    border-color: #f87171 !important;
+    box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.2) !important;
+  }
+  
+  /* Hide date pills when showing traffic light */
+  .calendar-pills-row.hidden-for-validation {
+    display: none !important;
+  }
+  
+  /* Traffic light container */
+  .traffic-light-container {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  .traffic-light-container.show {
+    display: flex;
+  }
+  
+  .traffic-light-message {
+    font-size: 11px;
+    color: #dc2626;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    text-decoration: underline;
+    transition: color 0.2s ease;
+  }
+  
+  .traffic-light-message:hover {
+    color: #b91c1c;
+    text-decoration: none;
+  }
+</style>
+
+<script>
+/* === Expense Field Validation System === */
+(function(){
+  'use strict';
+  
+  // Validation state tracking
+  const validationState = new Map();
+  
+  // Helper functions
+  function parseAmount(value) {
+    if (!value) return 0;
+    const cleaned = String(value).replace(/[^0-9.-]/g, '');
+    const parsed = parseFloat(cleaned);
+    return isNaN(parsed) ? 0 : parsed;
+  }
+  
+  function hasValidDates(container) {
+    const pills = container.querySelectorAll('.splitflap--holo');
+    if (pills.length < 2) return false;
+    
+    // Check if both pills have actual dates (not DD - MM)
+    let validDates = 0;
+    pills.forEach(pill => {
+      const daySpan = pill.querySelector('.day');
+      const monthSpan = pill.querySelector('.month');
+      if (daySpan && monthSpan) {
+        const day = daySpan.textContent.trim();
+        const month = monthSpan.textContent.trim();
+        if (day !== 'DD' && month !== 'MM') {
+          validDates++;
+        }
+      }
+    });
+    
+    return validDates >= 2;
+  }
+  
+  function getValidationKey(container) {
+    const field = container.dataset.cal;
+    const row = container.closest('.row-data');
+    const rowIndex = row ? Array.from(row.parentNode.children).indexOf(row) : 0;
+    return `${field}-${rowIndex}`;
+  }
+  
+  function createTrafficLight(calendarContainer) {
+    const container = document.createElement('div');
+    container.className = 'traffic-light-container';
+    container.innerHTML = `
+      <div class="traffic-light"></div>
+      <div class="traffic-light-message">Select dates</div>
+    `;
+    
+    // Make the message clickable to open calendar
+    const message = container.querySelector('.traffic-light-message');
+    message.addEventListener('click', function() {
+      const field = calendarContainer.dataset.cal;
+      const pill = calendarContainer.querySelector('.splitflap--holo');
+      if (pill && window.openCalendar) {
+        window.openCalendar(pill, field);
+      }
+    });
+    
+    return container;
+  }
+  
+  function validateExpenseField(container) {
+    if (!container || !container.dataset.cal) return;
+    
+    const field = container.dataset.cal;
+    const key = getValidationKey(container);
+    const amountInput = container.querySelector('.amount-input');
+    const pillsRow = container.querySelector('.calendar-pills-row');
+    
+    if (!amountInput || !pillsRow) return;
+    
+    const amount = parseAmount(amountInput.value);
+    const hasDates = hasValidDates(container);
+    
+    // Remove existing validation classes
+    amountInput.classList.remove('validation-error', 'validation-success');
+    pillsRow.classList.remove('hidden-for-validation');
+    
+    // Remove existing traffic light
+    const existingTrafficLight = container.querySelector('.traffic-light-container');
+    if (existingTrafficLight) {
+      existingTrafficLight.remove();
+    }
+    
+    // Apply validation rules
+    if (amount > 0 && !hasDates) {
+      // Rule 1: Amount > 0 but no dates selected → show red traffic light instead of date pills
+      pillsRow.classList.add('hidden-for-validation');
+      const trafficLight = createTrafficLight(container);
+      container.insertBefore(trafficLight, container.querySelector('.amount-input-row'));
+      trafficLight.classList.add('show');
+      
+      validationState.set(key, { type: 'missing-dates', amount, hasDates });
+    } else if (hasDates && amount === 0) {
+      // Rule 2: Dates selected but amount is 0 → highlight amount field in pastel red
+      amountInput.classList.add('validation-error');
+      
+      validationState.set(key, { type: 'missing-amount', amount, hasDates });
+    } else if (hasDates && amount > 0) {
+      // Rule 3: Both dates and amount present → highlight amount field in pastel green
+      amountInput.classList.add('validation-success');
+      
+      validationState.set(key, { type: 'complete', amount, hasDates });
+    } else {
+      // No validation needed (both empty)
+      validationState.delete(key);
+    }
+    
+    // Special rule for car rent: validate car number field
+    if (field === 'car') {
+      validateCarNumberField(container, amount, hasDates);
+    }
+  }
+  
+  function validateCarNumberField(carContainer, carAmount, carHasDates) {
+    const row = carContainer.closest('.row-data');
+    if (!row) return;
+    
+    const carNumberInput = row.querySelector('.car-number-input');
+    if (!carNumberInput) return;
+    
+    // Remove existing validation classes
+    carNumberInput.classList.remove('validation-error');
+    
+    // Check if car rent has amount or dates
+    const hasCarData = carAmount > 0 || carHasDates;
+    const carNumberValue = carNumberInput.value.trim();
+    
+    // Apply car number validation rule
+    if (hasCarData && !carNumberValue) {
+      // Car rent data exists but car number is empty → highlight in pastel red
+      carNumberInput.classList.add('validation-error');
+    }
+  }
+  
+  function validateAllExpenseFields() {
+    const containers = document.querySelectorAll('.split-calendar-container[data-cal]');
+    containers.forEach(validateExpenseField);
+  }
+  
+  // Event listeners for amount input changes
+  function setupAmountValidation() {
+    document.addEventListener('input', function(e) {
+      if (e.target.classList.contains('amount-input')) {
+        const container = e.target.closest('.split-calendar-container');
+        if (container) {
+          // Small delay to ensure value is processed
+          setTimeout(() => validateExpenseField(container), 50);
+        }
+      }
+      
+      // Handle car number input changes
+      if (e.target.classList.contains('car-number-input')) {
+        const row = e.target.closest('.row-data');
+        if (row) {
+          const carContainer = row.querySelector('.split-calendar-container[data-cal="car"]');
+          if (carContainer) {
+            setTimeout(() => validateExpenseField(carContainer), 50);
+          }
+        }
+      }
+    });
+    
+    document.addEventListener('blur', function(e) {
+      if (e.target.classList.contains('amount-input')) {
+        const container = e.target.closest('.split-calendar-container');
+        if (container) {
+          setTimeout(() => validateExpenseField(container), 50);
+        }
+      }
+      
+      // Handle car number input blur
+      if (e.target.classList.contains('car-number-input')) {
+        const row = e.target.closest('.row-data');
+        if (row) {
+          const carContainer = row.querySelector('.split-calendar-container[data-cal="car"]');
+          if (carContainer) {
+            setTimeout(() => validateExpenseField(carContainer), 50);
+          }
+        }
+      }
+    });
+  }
+  
+  // Event listeners for date selection changes
+  function setupDateValidation() {
+    // Listen for calendar apply events
+    document.addEventListener('click', function(e) {
+      if (e.target.id === 'applyBtn' || e.target.closest('#applyBtn')) {
+        // Validate all fields after date selection
+        setTimeout(validateAllExpenseFields, 500);
+      }
+    });
+    
+    // Listen for pill animations completion
+    document.addEventListener('animationend', function(e) {
+      if (e.target.classList.contains('splitflap--holo')) {
+        const container = e.target.closest('.split-calendar-container');
+        if (container) {
+          setTimeout(() => validateExpenseField(container), 100);
+        }
+      }
+    });
+  }
+  
+  // Initialize validation system
+  function initializeValidation() {
+    setupAmountValidation();
+    setupDateValidation();
+    
+    // Initial validation
+    setTimeout(validateAllExpenseFields, 1000);
+    
+    // Re-validate when new rows are added
+    const tbody = document.getElementById('tbody');
+    if (tbody) {
+      const observer = new MutationObserver(function(mutations) {
+        let shouldValidate = false;
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            mutation.addedNodes.forEach(function(node) {
+              if (node.nodeType === 1 && node.classList.contains('row-data')) {
+                shouldValidate = true;
+              }
+            });
+          }
+        });
+        if (shouldValidate) {
+          setTimeout(validateAllExpenseFields, 200);
+        }
+      });
+      observer.observe(tbody, { childList: true, subtree: true });
+    }
+  }
+  
+  // Expose validation functions globally
+  window.validateExpenseField = validateExpenseField;
+  window.validateAllExpenseFields = validateAllExpenseFields;
+  window.getValidationState = () => validationState;
+  
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeValidation);
+  } else {
+    initializeValidation();
+  }
+})();
+</script>

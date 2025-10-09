@@ -1,0 +1,874 @@
+<!-- _SideCalendar.html — LEFT slide-in GenZ calendar with field‑matched accents (range‑only) -->
+<style>
+  :root{
+    --accent1:#8b5cf6; /* fallback vivid A */
+    --accent2:#ec4899; /* fallback vivid B */
+    --panelA: rgba(139,92,246,.20);
+    --panelB: rgba(236,72,153,.16);
+    --range1: rgba(139,92,246,.18);
+    --range2: rgba(236,72,153,.18);
+  }
+  /* Backdrop */
+  #calendarOverlay{position:fixed;inset:0;background:rgba(0,0,0,.35);backdrop-filter:blur(4px);z-index:40;display:none}
+
+  /* LEFT drawer */
+  #genZCalendar{
+    position:fixed;top:0;left:0;height:100%;width:28rem;max-width:96vw;
+    background:linear-gradient(160deg, rgba(10,10,14,.78), var(--panelA) 30%, var(--panelB) 75%);
+    backdrop-filter:blur(24px) saturate(140%);
+    border-right:1px solid rgba(255,255,255,.16);
+    box-shadow:16px 0 40px rgba(0,0,0,.35);
+    transform:translateX(-100%); transition:transform .45s cubic-bezier(.2,.8,.2,1);
+    z-index:50; color:#eef3ff; overflow:hidden;
+  }
+  #genZCalendar.open{transform:translateX(0)}
+  #genZCalendar .cal-body{height:100%;display:flex;flex-direction:column;padding:16px 16px 10px;gap:8px}
+
+  /* Header capsule */
+  .cap{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:24px;
+       background:linear-gradient(90deg,var(--accent1),var(--accent2));box-shadow:0 10px 30px rgba(0,0,0,.18);}
+  .cap .monthTitle{font-size:32px;line-height:1; font-weight:1000; letter-spacing:.3px; color:#fff; text-shadow:0 8px 20px rgba(0,0,0,.28);}
+  .field-chip{display:inline-flex;align-items:center;justify-content:center;text-align:center;line-height:1.1;
+       padding:10px 16px; min-height:48px; min-width:112px; border-radius:999px; font-weight:900; color:#0b1220;
+       background:rgba(255,255,255,.92); border:1px solid rgba(255,255,255,.65); box-shadow:0 4px 10px rgba(0,0,0,.18) inset;}
+  .cap .nav{margin-left:auto; display:flex; gap:10px;}
+  .cap .nav .iconbtn{width:48px;height:48px;display:grid;place-items:center;border-radius:16px;
+      border:1px solid rgba(255,255,255,.35); background:rgba(255,255,255,.14); color:#fff; font-weight:900; cursor:pointer}
+  .cap .nav .iconbtn:active{transform:translateY(1px)}
+
+  /* Subinfo */
+  .subinfo{display:flex; align-items:center; justify-content:space-between; gap:10px; margin:4px 2px 2px; opacity:.95}
+  #calField{font-weight:1000; letter-spacing:.2px}
+  #calRange{font-weight:900; opacity:.95}
+
+  /* Week header + grid */
+  #genZCalendar .weekday{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin:8px 0 6px;opacity:.95;font-weight:950}
+  #genZCalendar .weekday div{text-align:center}
+  #genZCalendar .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;overflow-y:auto;padding-right:6px;max-height:50vh}
+  #genZCalendar .day{border:0;border-radius:20px;padding:16px 0;background:rgba(255,255,255,.94);color:#241a35;
+     font-weight:900; box-shadow:0 8px 20px rgba(0,0,0,.22); transition:all .16s; cursor:pointer; position:relative}
+  #genZCalendar .day:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(0,0,0,.28)}
+  #genZCalendar .day.muted{background:rgba(255,255,255,.65);color:#6b7280}
+  #genZCalendar .day.disabled{opacity:.35;filter:grayscale(.3);cursor:not-allowed}
+  #genZCalendar .day.range{background:linear-gradient(180deg,var(--range1),var(--range2))}
+  #genZCalendar .day.start,#genZCalendar .day.end{outline:3px solid rgba(255,255,255,.95);box-shadow:0 0 0 3px var(--accent1) inset}
+  #genZCalendar .day.today{box-shadow:inset 0 0 0 2px rgba(250,204,21,.95)}
+  /* Historical ranges ring overlay — color per range via --hist-color */
+  #genZCalendar .day.hist::after{content:"";position:absolute;inset:6px;border-radius:16px;border:3px solid var(--hist-color, rgba(99,102,241,.55));pointer-events:none}
+
+  /* Actions & counter */
+  .counter{text-align:center;font-weight:1000; opacity:.9; margin:8px 0 0; letter-spacing:.3px}
+  #genZCalendar .actions{margin-top:auto;position:sticky;bottom:12px;display:flex;gap:12px;padding-top:10px}
+  #genZCalendar .btn{flex:1;border:0;border-radius:16px;padding:14px 16px;font-weight:900;cursor:pointer;transition:all .3s ease}
+  #genZCalendar .ghost{background:rgba(20,23,40,.85);color:#dbe3ff;border:1px solid rgba(255,255,255,.16)}
+  #genZCalendar .primary{background:linear-gradient(135deg,var(--accent1),var(--accent2));color:#0b1220}
+  #genZCalendar .btn:disabled{opacity:.5;cursor:not-allowed}
+  #genZCalendar .btn.clear-btn{background:rgba(239,68,68,.15);color:#ef4444;border-color:rgba(239,68,68,.3)}
+  #genZCalendar .btn.clear-btn.glow{box-shadow:0 0 20px rgba(239,68,68,.6), 0 0 40px rgba(239,68,68,.4);animation:clearGlow 2s ease-in-out infinite alternate}
+  @keyframes clearGlow{0%{box-shadow:0 0 20px rgba(239,68,68,.6), 0 0 40px rgba(239,68,68,.4)}100%{box-shadow:0 0 30px rgba(239,68,68,.8), 0 0 60px rgba(239,68,68,.6)}}
+
+  @media (max-width:760px){#genZCalendar{width:100%}#genZCalendar .grid{max-height:52vh}}
+</style>
+
+<!-- Backdrop + LEFT drawer -->
+<div id="calendarOverlay" onclick="closeCalendar()"></div>
+<aside id="genZCalendar" aria-hidden="true">
+  <div class="cal-body">
+
+    <!-- Header capsule -->
+    <div class="cap">
+      <div class="monthTitle" id="monthLabel">August 2025</div>
+      <div id="fieldChip" class="field-chip">Fuel</div>
+      <div class="nav">
+        <button class="iconbtn" title="Prev month" onclick="shiftMonth(-1)">‹</button>
+        <button class="iconbtn" title="Next month" onclick="shiftMonth(1)">›</button>
+        <button class="iconbtn" title="Close" onclick="closeCalendar()">✕</button>
+      </div>
+    </div>
+
+    <div class="subinfo"><div id="calField">Fuel</div><div id="calRange">From: —  To: —</div></div>
+
+    <div class="weekday"><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div><div>Sun</div></div>
+    <div id="calendarGrid" class="grid"></div>
+
+    <div id="daysCounter" class="counter">0 days selected</div>
+
+    <div class="actions">
+      <button class="btn ghost" onclick="resetSelection()">Reset</button>
+      <button id="clearBtn" class="btn clear-btn" onclick="clearCalendarDates()" disabled>Clear</button>
+      <button id="applyBtn" class="btn primary" disabled>Apply</button>
+    </div>
+  </div>
+</aside>
+
+<script>
+/* ===== GenZ LEFT Calendar — range only ===== */
+(() => {
+  // Friendly names
+  function friendlyName(f){return ({fuel:'Fuel', da:'DA', car:'Vehicle Rent', air:'Airtime', misc:'Misc', transport:'Transport', total:'Total Req', global:'Global'})[f]|| (f||'');}
+
+  // Global calendar styling
+  function applyGlobalStyling() {
+    const panel = document.getElementById('genZCalendar');
+    panel.style.setProperty('--accent1', '#dc2626');
+    panel.style.setProperty('--accent2', '#ef4444');
+    panel.style.setProperty('--panelA', 'rgba(220,38,38,.22)');
+    panel.style.setProperty('--panelB', 'rgba(239,68,68,.16)');
+    panel.style.setProperty('--range1', 'rgba(220,38,38,.18)');
+    panel.style.setProperty('--range2', 'rgba(239,68,68,.18)');
+    
+    // Add global-specific background gradient
+    panel.style.background = 'linear-gradient(160deg, rgba(10,10,14,.78), rgba(220,38,38,.22) 30%, rgba(239,68,68,.16) 75%)';
+  }
+
+  // Theme maps (fallbacks)
+  const FIELD_ACCENTS = {
+    fuel:['#8b5cf6','#ec4899'],   // purple -> pink (matches your cards)
+  da:['#3b82f6','#06b6d4'],
+    car:['#22c55e','#06b6d4'],
+    air:['#f59e0b','#ef4444'],
+    misc:['#8b5cf6','#6366f1'],
+    transport:['#14b8a6','#06b6d4'],
+    total:['#ef5da8','#8b5cf6'],
+    global:['#dc2626','#ef4444'],  // red gradient for global (unique)
+  };
+  const FIELD_PASTELS = {
+    fuel:['#e9d5ff','#fbcfe8'],
+  da:['#d8f7fb','#d9e9ff'],
+    car:['#dffbe9','#d8f7fb'],
+    air:['#ffe1c7','#ffd1cc'],
+    misc:['#e6dafe','#dadcff'],
+    transport:['#d1faf5','#cff4ff'],
+    total:['#ffddeb','#e6dafe'],
+    global:['#fecaca','#fee2e2'],  // light red pastels for global
+  };
+
+  const monthAbbr = ['JA','FE','MA','AP','MY','JU','JL','AU','SE','OC','NO','DE'];
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const MASS_ANIMATION_THRESHOLD = 12;
+  const FAST_ANIM_DURATION = 2200; // ms (1s faster)
+  const NORMAL_ANIM_DURATION = 2800; // ms (1s faster)
+  const FINALIZE_BUFFER = 220; // ms cushion before final markup swap
+
+  // Helpers
+  const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const parse = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); };
+  const addMonths = (s, n) => ymd(new Date(parse(s).getFullYear(), parse(s).getMonth()+n, parse(s).getDate()));
+  const fmtLong = s => !s ? '—' : `${String(parse(s).getDate()).padStart(2,'0')} ${monthNames[parse(s).getMonth()].slice(0,3)} ${parse(s).getFullYear()}`;
+  const fmtShort = s => { if(!s) return 'DD - MM'; const d=parse(s); const dd=String(d.getDate()).padStart(2,'0'); return `${dd} - ${monthAbbr[d.getMonth()]}`; };
+
+  // State
+  const cs = { open:false, host:null, field:'fuel', from:'', to:'', viewY:0, viewM:0, min:'', max:'' };
+  // Historical submission ranges for beneficiary (client state)
+  cs.histRanges = []; // [{from:'YYYY-MM-DD', to:'YYYY-MM-DD'}]
+  cs.histColors = []; // ['#rrggbb'] aligned by index
+
+  function hexToRGBA(hex, a){
+    const v = hex.replace('#','');
+    const r = parseInt(v.slice(0,2),16), g = parseInt(v.slice(2,4),16), b = parseInt(v.slice(4,6),16);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+
+  function applyAccents(field, host){
+    const vivid = FIELD_ACCENTS[field] || FIELD_ACCENTS.fuel;
+    const pastel = FIELD_PASTELS[field] || FIELD_PASTELS.fuel;
+    const [c1,c2] = vivid; const [p1,p2] = pastel;
+    const panel = document.getElementById('genZCalendar');
+    panel.style.setProperty('--accent1', c1);
+    panel.style.setProperty('--accent2', c2);
+    panel.style.setProperty('--panelA', hexToRGBA(p1, .22));
+    panel.style.setProperty('--panelB', hexToRGBA(p2, .16));
+    panel.style.setProperty('--range1', hexToRGBA(c1, .18));
+    panel.style.setProperty('--range2', hexToRGBA(c2, .18));
+
+    // Try to read gradient from nearest card for a perfect match
+    try{
+      let card = host && host.closest && host.closest('[data-card], .summary-card, .card, .kpi-card');
+      if(card){
+        const bg = getComputedStyle(card).backgroundImage || '';
+        const m = bg.match(/(rgb[a]?\([^\)]+\)|#[0-9a-fA-F]{3,8})/g);
+        if(m && m.length >= 2){
+          panel.style.setProperty('--accent1', m[0]); panel.style.setProperty('--accent2', m[1]);
+        }
+      }
+    }catch(_){}
+  }
+
+  // Open/close
+  window.openCalendar = (host, field) => {
+    cs.host = host; cs.field = field || host?.dataset?.cal || 'fuel'; cs.from=''; cs.to=''; cs.min=''; cs.max='';
+    cs.histRanges = []; cs.histColors = [];
+    const now = new Date(); cs.viewY = now.getFullYear(); cs.viewM = now.getMonth();
+    
+    // Check if the field already has dates to determine Clear button state
+    const hasExistingDates = checkFieldHasExistingDates(host);
+    
+    // Apply special styling for global calendar
+    if (cs.field === 'global') {
+      applyGlobalStyling();
+      document.getElementById('fieldChip').textContent = 'Global Calendar';
+    } else {
+      applyAccents(cs.field, host);
+      document.getElementById('fieldChip').textContent = friendlyName(cs.field);
+    }
+    
+    document.getElementById('calendarOverlay').style.display='block';
+    document.getElementById('genZCalendar').classList.add('open');
+    
+    // Set initial Clear button state based on existing dates
+    const clearBtn = document.getElementById('clearBtn');
+    if (hasExistingDates) {
+      clearBtn.disabled = false;
+      clearBtn.classList.add('glow');
+    } else {
+      clearBtn.disabled = true;
+      clearBtn.classList.remove('glow');
+    }
+    
+  // Attempt to fetch historical ranges for DA for the row's beneficiary
+  if (cs.field === 'da') {
+      try {
+        const beneficiary = (() => {
+          // Try to locate the beneficiary input from the row of the clicked pill
+          const row = host && host.closest && host.closest('.row-data');
+          if (!row) return '';
+          // Beneficiary is the first text input in the row
+          const firstCellTxt = row.querySelector('.cells > .cell:first-child .txt');
+          const val = firstCellTxt && firstCellTxt.value ? firstCellTxt.value.trim() : '';
+          return val;
+        })();
+
+        if (beneficiary && window.google && google.script && google.script.run) {
+          google.script.run
+            .withSuccessHandler(function(ranges){
+              const arr = Array.isArray(ranges) ? ranges : [];
+              cs.histRanges = arr;
+              // Assign distinct, repeatable colors per range index
+              cs.histColors = arr.map((_, i) => {
+                const hue = (i * 137.508) % 360; // golden angle
+                return `hsl(${hue}, 72%, 52%)`;
+              });
+              render();
+            })
+            .withFailureHandler(function(err){
+              console.log('Failed loading DA history for', beneficiary, err);
+              render();
+            })
+            .getSubmissionRangesForBeneficiary(beneficiary, 'da');
+        }
+      } catch(_){}
+    }
+
+    render();
+  };
+  
+  function checkFieldHasExistingDates(host) {
+    if (!host) return false;
+    
+    // Check if any pill in the container has actual dates (not DD - MM)
+    const container = host.closest('.split-calendar-container') || host;
+    const allPills = container.querySelectorAll ? container.querySelectorAll('.splitflap--holo') : [host];
+    
+    // Check all pills in the container
+    for (const pill of allPills) {
+      const daySpans = pill.querySelectorAll('.day');
+      const monthSpans = pill.querySelectorAll('.month');
+      
+      const hasValidDay = Array.from(daySpans).some(span => span.textContent !== 'DD' && /^\d{2}$/.test(span.textContent));
+      const hasValidMonth = Array.from(monthSpans).some(span => span.textContent !== 'MM' && span.textContent.length === 2);
+      
+      if (hasValidDay && hasValidMonth) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+  window.closeCalendar = () => {
+    cs.open=false; cs.host=null;
+    document.getElementById('calendarOverlay').style.display='none';
+    document.getElementById('genZCalendar').classList.remove('open');
+  };
+
+  window.resetSelection = () => {
+    cs.from=''; cs.to=''; cs.min=''; cs.max='';
+    updateButtonStates();
+    document.getElementById('daysCounter').textContent = '0 days selected';
+    render();
+  };
+
+  window.clearCalendarDates = () => {
+    // This function now clears the expense field dates (not just calendar selection)
+    if(!cs.host || !cs.field) return;
+    
+    const field = cs.field;
+    const hostIsPill = cs.host.classList.contains('splitflap');
+    const isSummary = cs.host.classList.contains('splitflap--summary') || cs.host.matches?.('.cards .card[data-cal]');
+    
+    // Global calendar mode: show confirmation dialog and clear ALL calendar pills in visible rows
+    if(field === 'global') {
+      const confirmed = confirm('Attention!! This will change the date ranges of all the visible rows for all fields. Are you sure you want to continue?');
+      if (!confirmed) {
+        return; // User cancelled, do nothing
+      }
+      const allCalendarContainers = document.querySelectorAll('.tbody .split-calendar-container');
+      allCalendarContainers.forEach(container => {
+        // Only clear if the row is visible (not filtered out)
+        if(isRowVisible(container)) {
+          const pills = container.querySelectorAll('.splitflap--holo');
+          pills.forEach(pill => clearPillDates(pill));
+        }
+      });
+    } else {
+      // Regular field-specific clearing
+      // Clear the current host pill and its sibling pill in the same container
+      if(hostIsPill) {
+        const container = cs.host.closest('.split-calendar-container');
+        if(container) {
+          // Clear both pills in the container (from and to dates)
+          const allPills = container.querySelectorAll('.splitflap--holo');
+          allPills.forEach(pill => clearPillDates(pill));
+        } else {
+          // Fallback: clear just the clicked pill
+          clearPillDates(cs.host);
+        }
+      }
+      
+      // If it's a summary card, clear all related row pills (both from and to for each row)
+      if(isSummary) {
+        const containers = document.querySelectorAll(`.tbody .split-calendar-container[data-cal="${field}"]`);
+        containers.forEach(container => {
+          const pills = container.querySelectorAll('.splitflap--holo');
+          pills.forEach(pill => clearPillDates(pill));
+        });
+      }
+    }
+    
+    // Clear calendar selection too
+    cs.from = '';
+    cs.to = '';
+    updateButtonStates();
+    document.getElementById('daysCounter').textContent = '0 days selected';
+    render();
+    
+    // Trigger validation update after clearing
+    if(window.validateAllExpenseFields) {
+      setTimeout(window.validateAllExpenseFields, 100);
+    }
+    
+    // Keep calendar open for new selection
+  };
+
+  function updateButtonStates() {
+    const hasSelection = cs.from && cs.to;
+    const hasExistingDates = checkFieldHasExistingDates(cs.host);
+    const applyBtn = document.getElementById('applyBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    
+    applyBtn.disabled = !hasSelection;
+    
+    // Clear button is enabled if there are existing dates in the field OR current calendar selection
+    const shouldEnableClear = hasExistingDates || hasSelection;
+    clearBtn.disabled = !shouldEnableClear;
+    
+    if (shouldEnableClear) {
+      clearBtn.classList.add('glow');
+    } else {
+      clearBtn.classList.remove('glow');
+    }
+  }
+
+  window.clearExpenseField = () => {
+    if(!cs.host || !cs.field) return;
+    
+    const field = cs.field;
+    const hostIsPill = cs.host.classList.contains('splitflap');
+    const isSummary = cs.host.classList.contains('splitflap--summary') || cs.host.matches?.('.cards .card[data-cal]');
+    
+    // Clear the current host pill
+    if(hostIsPill) {
+      clearPillDates(cs.host);
+    }
+    
+    // If it's a summary card, clear all related row pills
+    if(isSummary) {
+      const rows = document.querySelectorAll(`.tbody .splitflap.splitflap--row[data-cal="${field}"]`);
+      rows.forEach(pill => clearPillDates(pill));
+    }
+    
+    // Trigger validation update after clearing
+    if(window.validateAllExpenseFields) {
+      setTimeout(window.validateAllExpenseFields, 100);
+    }
+    
+    closeCalendar();
+  };
+  
+  function clearPillDates(pill) {
+    if(!pill) return;
+    
+    // Reset pill content to default DD - MM format
+    const daySpans = pill.querySelectorAll('.day');
+    const monthSpans = pill.querySelectorAll('.month');
+    
+    // Clear day elements
+    daySpans.forEach(span => {
+      span.textContent = 'DD';
+    });
+    
+    // Clear month elements
+    monthSpans.forEach(span => {
+      span.textContent = 'MM';
+    });
+    
+    // Also check for flip-char elements that might contain dates
+    const flipChars = pill.querySelectorAll('.flip-char');
+    flipChars.forEach(char => {
+      if(char.classList.contains('day') || !char.classList.contains('month')) {
+        char.textContent = 'DD';
+      } else if(char.classList.contains('month')) {
+        char.textContent = 'MM';
+      }
+    });
+    
+    // Reset entire pill content if no specific spans found
+    if(daySpans.length === 0 && monthSpans.length === 0) {
+      pill.innerHTML = '<div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>';
+    }
+    
+    // Remove any glow or active states
+    pill.classList.remove('glow3', 'active');
+  }
+
+  window.shiftMonth = (d) => {
+    if(cs.from){
+      const tryMonth = new Date(cs.viewY, cs.viewM + d, 1);
+      const min = parse(cs.min), max = parse(cs.max);
+      if(tryMonth < new Date(min.getFullYear(), min.getMonth(), 1) ||
+         tryMonth > new Date(max.getFullYear(), max.getMonth(), 1)) return;
+    }
+    cs.viewM += d; while(cs.viewM<0){cs.viewM+=12;cs.viewY--} while(cs.viewM>11){cs.viewM-=12;cs.viewY++}
+    render();
+  };
+
+  function updateInfo(){
+    const name = friendlyName(cs.field);
+    document.getElementById('calField').textContent = name;
+    document.getElementById('calRange').textContent = `From: ${fmtLong(cs.from)}    To: ${fmtLong(cs.to)}`;
+    const days = cs.from && cs.to ? Math.abs((parse(cs.to)-parse(cs.from))/(24*3600*1000))+1 : 0;
+    document.getElementById('daysCounter').textContent = `${days} day${days===1?'':'s'} selected`;
+  }
+
+  function inRange(x,a,b){ if(!a||!b) return false; const X=parse(x).getTime(), A=parse(a).getTime(), B=parse(b).getTime(); const lo=Math.min(A,B), hi=Math.max(A,B); return X>lo && X<hi; }
+
+  function render(){
+    document.getElementById('monthLabel').textContent = `${monthNames[cs.viewM]} ${cs.viewY}`;
+    updateInfo();
+    const grid=document.getElementById('calendarGrid'); grid.innerHTML='';
+    const first=new Date(cs.viewY,cs.viewM,1); const start = (first.getDay()+6)%7; // Mon-first
+    const daysInMonth=new Date(cs.viewY,cs.viewM+1,0).getDate();
+    const prevDays=new Date(cs.viewY,cs.viewM,0).getDate();
+
+    const today = new Date();
+    const isToday = d => d.getFullYear()===today.getFullYear() && d.getMonth()===today.getMonth() && d.getDate()===today.getDate();
+
+    const cells=[];
+    for(let i=0;i<start;i++){ const d=prevDays-start+i+1; cells.push({d,newDate:new Date(cs.viewY,cs.viewM-1,d),muted:true}); }
+    for(let d=1; d<=daysInMonth; d++){ cells.push({d,newDate:new Date(cs.viewY,cs.viewM,d),muted:false}); }
+    while(cells.length<42){ const d=cells.length-(start+daysInMonth)+1; cells.push({d,newDate:new Date(cs.viewY,cs.viewM+1,d),muted:true}); }
+
+    const a=cs.from, b=cs.to;
+    if(a && !cs.min){ cs.min = addMonths(a, -3); cs.max = addMonths(a, 3); }
+
+    const inHist = (ds) => {
+      if (!cs.histRanges || !cs.histRanges.length) return -1;
+      const t = parse(ds).getTime();
+      for (let i = 0; i < cs.histRanges.length; i++){
+        const r = cs.histRanges[i];
+        if (!(r && r.from && r.to)) continue;
+        const a = parse(r.from).getTime();
+        const b = parse(r.to).getTime();
+        const lo = Math.min(a,b), hi = Math.max(a,b);
+        if (t >= lo && t <= hi) return i; // inclusive
+      }
+      return -1;
+    };
+
+    cells.forEach(c => {
+      const ds = ymd(c.newDate);
+      const btn = document.createElement('button');
+      btn.className = 'day';
+      if(c.muted) btn.classList.add('muted');
+      if(isToday(c.newDate)) btn.classList.add('today');
+      if(a && (ds < cs.min || ds > cs.max)) btn.classList.add('disabled');
+      if(a && parse(a).toDateString()===c.newDate.toDateString()) btn.classList.add('start');
+      if(b && parse(b).toDateString()===c.newDate.toDateString()) btn.classList.add('end');
+      if(inRange(ds,a,b)) btn.classList.add('range');
+      // Historical ranges: color-coded ring per range index
+      const hidx = inHist(ds);
+      if (hidx >= 0 && !btn.classList.contains('disabled')) {
+        btn.classList.add('hist');
+        const color = cs.histColors[hidx] || '#60a5fa';
+        btn.style.setProperty('--hist-color', color);
+      }
+      btn.textContent = c.d;
+      if(!btn.classList.contains('disabled')) btn.onclick = () => pick(ds);
+      grid.appendChild(btn);
+    });
+
+    updateButtonStates();
+  }
+
+  function pick(ds){
+    if(!cs.from){ cs.from = ds; cs.min = addMonths(ds, -3); cs.max = addMonths(ds, 3); }
+    else{ if(ds < cs.min || ds > cs.max) return; cs.to = ds; }
+    render();
+  }
+
+  // ---- Pill animation using two‑letter months ----
+  function animatePill(host, from, to, opts = {}){
+    if(!host) return;
+
+    const fastMode = !!opts.fastMode;
+    const baseDelay = opts.baseDelay || 0;
+    const totalDuration = fastMode ? FAST_ANIM_DURATION : NORMAL_ANIM_DURATION;
+    const settleWindow = Math.max(800, totalDuration - FINALIZE_BUFFER);
+    const isSummaryHost = opts.isSummaryHost !== undefined
+      ? opts.isSummaryHost
+      : !!(host.classList?.contains('splitflap--summary') || host.matches?.('.cards .card[data-cal]'));
+
+    let summaryOriginalMarkup = '';
+    if(isSummaryHost){
+      summaryOriginalMarkup = opts.originalMarkup || host.innerHTML;
+    }
+
+    const randomDigit = () => String(Math.floor(Math.random() * 10));
+    const randomMonth = () => monthAbbr[Math.floor(Math.random() * monthAbbr.length)];
+
+    const runSequence = (el, { startDelay = 0, interval = 110, finalValue = '', generator = null, minCycles = 18, maxCycles = 160 } = {}) => {
+      if(!el) return;
+      const effectiveStart = baseDelay + Math.max(0, startDelay);
+      const availableWindow = Math.max(interval, settleWindow - Math.max(0, startDelay));
+      const cycles = Math.max(minCycles, Math.min(maxCycles, Math.ceil(availableWindow / interval)));
+      let stepIndex = 0;
+      let previousValue = '';
+
+      const tick = () => {
+        if(stepIndex < cycles){
+          el.classList.add('flipping');
+          let nextVal = generator ? generator(stepIndex, cycles, finalValue, previousValue) : finalValue;
+          if(nextVal === finalValue && stepIndex < cycles - 1){
+            nextVal = generator ? generator(stepIndex + 1, cycles, finalValue, previousValue) : finalValue;
+          }
+          if(nextVal === previousValue){
+            nextVal = generator ? generator(stepIndex + 2, cycles, finalValue, previousValue) : nextVal;
+          }
+          el.textContent = nextVal;
+          stepIndex++;
+          previousValue = nextVal;
+          setTimeout(tick, interval);
+        } else {
+          el.textContent = finalValue;
+          el.classList.remove('flipping');
+        }
+      };
+
+      setTimeout(tick, effectiveStart);
+    };
+
+    const parseTarget = (s) => {
+      const d = parse(s);
+      const day = String(d.getDate()).padStart(2,'0');
+      return {d1:day[0], d2:day[1], m:monthAbbr[d.getMonth()]};
+    };
+
+    const renderFinal = (date) => {
+      const parts = fmtShort(date).split(' - ');
+      return `<div class="line"><span class="day">${parts[0]}</span><span class="separator"> - </span><span class="month">${parts[1]}</span></div>`;
+    };
+
+    const container = host.closest ? host.closest('.split-calendar-container') : null;
+
+    const animateTablePill = (pill, date, delay = 0) => {
+      if(!pill) return;
+      const target = parseTarget(date);
+      pill.innerHTML = `<div class="line"><span class="flip-char day first">1</span><span class="flip-char day second">1</span><span class="separator"> - </span><span class="flip-char month">JA</span></div>`;
+
+      const d1El = pill.querySelector('.flip-char.day.first');
+      const d2El = pill.querySelector('.flip-char.day.second');
+      const mEl = pill.querySelector('.flip-char.month');
+
+      const finishPill = () => {
+        pill.innerHTML = renderFinal(date);
+        pill.classList.add('glow3');
+        pill.addEventListener('animationend', () => pill.classList.remove('glow3'), {once:true});
+      };
+
+      const delayOffset = Math.max(0, delay - baseDelay);
+      const digitInterval = fastMode ? 60 : 80;
+      const monthInterval = fastMode ? 90 : 120;
+      const secondDigitOffset = fastMode ? 100 : 140;
+      const monthOffset = fastMode ? 210 : 280;
+
+      const tensPool = ['1','2','3'];
+      const onesPool = ['0','1','2','3','4','5','6','7','8','9'];
+      const makeGenerator = (pool) => (_i, _cycles, finalVal, prev) => {
+        let next = pool[Math.floor(Math.random()*pool.length)] || finalVal;
+        let guard = 0;
+        while(pool.length > 1 && (next === finalVal || next === prev) && guard < 10){
+          next = pool[Math.floor(Math.random()*pool.length)] || finalVal;
+          guard++;
+        }
+        return next;
+      };
+
+      const digitGeneratorTens = makeGenerator(tensPool);
+      const digitGeneratorOnes = makeGenerator(onesPool);
+      const monthGenerator = makeGenerator(monthAbbr);
+
+      runSequence(d1El, {
+        startDelay: delayOffset,
+        interval: digitInterval,
+        finalValue: target.d1,
+        generator: digitGeneratorTens,
+        minCycles: fastMode ? 26 : 30,
+      });
+
+      runSequence(d2El, {
+        startDelay: delayOffset + secondDigitOffset,
+        interval: digitInterval,
+        finalValue: target.d2,
+        generator: digitGeneratorOnes,
+        minCycles: fastMode ? 26 : 30,
+      });
+
+      runSequence(mEl, {
+        startDelay: delayOffset + monthOffset,
+        interval: monthInterval,
+        finalValue: target.m,
+        generator: monthGenerator,
+        minCycles: fastMode ? 20 : 24,
+      });
+
+      setTimeout(finishPill, baseDelay + totalDuration);
+    };
+
+    if (container) {
+      const pair = container.querySelectorAll('.splitflap--holo');
+      if(pair.length >= 2){
+        animateTablePill(pair[0], from, baseDelay);
+        const secondDelay = baseDelay;
+        animateTablePill(pair[1], to, secondDelay);
+        return;
+      }
+    }
+
+    host.innerHTML = `<div class="flip-row"><span class="flip-char from day first">1</span><span class="flip-char from day second">1</span><span class="sep">-</span><span class="flip-char from month">JA</span></div><div class="flip-row second"><span class="flip-char to day first">1</span><span class="flip-char to day second">1</span><span class="sep">-</span><span class="flip-char to month">JA</span></div>`;
+    const fTarget = parseTarget(from);
+    const tTarget = parseTarget(to);
+
+    const fromD1 = host.querySelector('.flip-char.from.day.first');
+    const fromD2 = host.querySelector('.flip-char.from.day.second');
+    const fromM = host.querySelector('.flip-char.from.month');
+    const toD1 = host.querySelector('.flip-char.to.day.first');
+    const toD2 = host.querySelector('.flip-char.to.day.second');
+    const toM = host.querySelector('.flip-char.to.month');
+
+    if(!(fromD1 && fromD2 && fromM && toD1 && toD2 && toM)){
+      host.innerHTML = `<div class="line">${fmtShort(from)}</div><div class="line">${fmtShort(to)}</div>`;
+      return;
+    }
+
+    const digitInterval = fastMode ? 60 : 80;
+    const monthInterval = fastMode ? 90 : 120;
+    const secondDigitOffset = fastMode ? 100 : 140;
+    const monthOffset = fastMode ? 210 : 280;
+    const toBaseOffset = Math.max(420, Math.round(totalDuration * 0.45));
+
+    const tensPool = ['1','2','3'];
+    const onesPool = ['0','1','2','3','4','5','6','7','8','9'];
+    const makeGenerator = (pool) => (_i, _cycles, finalVal, prev) => {
+      let next = pool[Math.floor(Math.random()*pool.length)] || finalVal;
+      let guard = 0;
+      while(pool.length > 1 && (next === finalVal || next === prev) && guard < 10){
+        next = pool[Math.floor(Math.random()*pool.length)] || finalVal;
+        guard++;
+      }
+      return next;
+    };
+
+    const digitGeneratorTens = makeGenerator(tensPool);
+    const digitGeneratorOnes = makeGenerator(onesPool);
+    const monthGenerator = makeGenerator(monthAbbr);
+
+    runSequence(fromD1, {
+      startDelay: 0,
+      interval: digitInterval,
+      finalValue: fTarget.d1,
+      generator: digitGeneratorTens,
+      minCycles: fastMode ? 28 : 34,
+    });
+
+    runSequence(fromD2, {
+      startDelay: secondDigitOffset,
+      interval: digitInterval,
+      finalValue: fTarget.d2,
+      generator: digitGeneratorOnes,
+      minCycles: fastMode ? 28 : 34,
+    });
+
+    runSequence(fromM, {
+      startDelay: monthOffset,
+      interval: monthInterval,
+      finalValue: fTarget.m,
+      generator: monthGenerator,
+      minCycles: fastMode ? 22 : 26,
+    });
+
+    runSequence(toD1, {
+      startDelay: toBaseOffset,
+      interval: digitInterval,
+      finalValue: tTarget.d1,
+      generator: digitGeneratorTens,
+      minCycles: fastMode ? 28 : 34,
+    });
+
+    runSequence(toD2, {
+      startDelay: toBaseOffset + secondDigitOffset,
+      interval: digitInterval,
+      finalValue: tTarget.d2,
+      generator: digitGeneratorOnes,
+      minCycles: fastMode ? 28 : 34,
+    });
+
+    runSequence(toM, {
+      startDelay: toBaseOffset + monthOffset,
+      interval: monthInterval,
+      finalValue: tTarget.m,
+      generator: monthGenerator,
+      minCycles: fastMode ? 22 : 26,
+    });
+
+    setTimeout(() => {
+      if(isSummaryHost){
+        if(summaryOriginalMarkup){ host.innerHTML = summaryOriginalMarkup; }
+      } else {
+        host.innerHTML = `<div class="line">${fmtShort(from)}</div><div class="line">${fmtShort(to)}</div>`;
+      }
+      host.classList.add('glow3');
+      host.addEventListener('animationend', () => host.classList.remove('glow3'), {once:true});
+    }, baseDelay + totalDuration);
+  }
+
+  // Helper function to check if a row is currently visible (not filtered out)
+  function isRowVisible(element) {
+    // Find the parent row element
+    const row = element.closest('.row-data, tr');
+    if (!row) return true; // If no row found, assume visible
+    
+    // Check if the row is hidden by team filtering or category filtering
+    const computedStyle = window.getComputedStyle(row);
+    return computedStyle.display !== 'none';
+  }
+
+  // Apply: update row pills for selected field. If host is a pill, animate it; if host is a summary card, only apply to visible/filtered rows.
+  document.getElementById('applyBtn').addEventListener('click', () => {
+    if(!(cs.host && cs.from && cs.to)) return;
+    const field = cs.field || cs.host?.dataset?.cal || 'fuel';
+    const isSummary = cs.host.classList.contains('splitflap--summary') || cs.host.matches?.('.cards .card[data-cal]');
+    
+    // Ensure proper date ordering: lower date should be 'from', higher date should be 'to'
+    let fromDate = cs.from;
+    let toDate = cs.to;
+    if (parse(cs.from) > parse(cs.to)) {
+      fromDate = cs.to;
+      toDate = cs.from;
+    }
+    
+    // Global calendar mode: show confirmation dialog
+    if(field === 'global') {
+      const confirmed = confirm('Attention!! This will change the date ranges of all the visible rows for all fields. Are you sure you want to continue?');
+      if (!confirmed) {
+        return; // User cancelled, do nothing
+      }
+    }
+    
+    const animated = new Set();
+    let lastFastModeUsed = false;
+    const queueAnimation = (pill, options = {}) => {
+      if(!pill || animated.has(pill)) return;
+      const container = pill.closest ? pill.closest('.split-calendar-container') : null;
+      if(container) {
+        container.querySelectorAll('.splitflap--holo').forEach(node => animated.add(node));
+      }
+      animated.add(pill);
+      animatePill(pill, fromDate, toDate, options);
+    };
+
+    // Global calendar mode: apply to ALL calendar pills in visible rows
+    if(field === 'global') {
+      const allCalendarContainers = document.querySelectorAll('.tbody .split-calendar-container');
+      let appliedCount = 0;
+      let totalCount = 0;
+      const targets = [];
+
+      allCalendarContainers.forEach(container => {
+        totalCount++;
+        if(isRowVisible(container)) {
+          const firstPill = container.querySelector('.splitflap--holo');
+          if(firstPill) {
+            targets.push(firstPill);
+          }
+          appliedCount++;
+        }
+      });
+
+      const totalPillsTargeted = targets.length * 2;
+      const fastMode = totalPillsTargeted > MASS_ANIMATION_THRESHOLD;
+      lastFastModeUsed = fastMode;
+
+      targets.forEach((pill) => {
+        queueAnimation(pill, {fastMode, baseDelay: 0});
+      });
+
+      console.log(`Global Calendar Apply: Applied dates to ${appliedCount} visible rows out of ${totalCount} total rows`);
+    } else if(isSummary){
+      const allContainers = Array.from(document.querySelectorAll(`.tbody .split-calendar-container[data-cal="${field}"]`));
+      const visibleContainers = allContainers.filter(container => isRowVisible(container));
+      const totalPillsTargeted = visibleContainers.length * 2;
+      const fastMode = totalPillsTargeted > MASS_ANIMATION_THRESHOLD;
+      lastFastModeUsed = fastMode;
+
+      visibleContainers.forEach((container) => {
+        const firstPill = container.querySelector('.splitflap--holo');
+        if(firstPill) {
+          queueAnimation(firstPill, {fastMode, baseDelay: 0});
+        }
+      });
+
+      console.log(`Calendar Apply: Found ${allContainers.length} total rows, ${visibleContainers.length} visible rows for field ${field}`);
+
+      if (visibleContainers.length < allContainers.length) {
+        console.log(`Calendar dates applied to ${visibleContainers.length} visible rows only (${allContainers.length - visibleContainers.length} filtered rows skipped)`);
+      }
+    }
+
+    if(cs.host && !animated.has(cs.host)) {
+      const summaryOption = cs.host.classList?.contains('splitflap--summary') || cs.host.matches?.('.cards .card[data-cal]');
+      const opts = summaryOption ? {isSummaryHost:true, originalMarkup: cs.host.innerHTML} : {};
+      if(lastFastModeUsed) {
+        opts.fastMode = true;
+      }
+      queueAnimation(cs.host, opts);
+    }
+
+    closeCalendar();
+  });
+
+  // Global delegation for any pill with [data-cal]
+  document.addEventListener('click', (e) => {
+    const pill = e.target.closest('.splitflap[data-cal]');
+    if(pill) { openCalendar(pill, pill.dataset.cal); }
+  });
+})();
+</script>

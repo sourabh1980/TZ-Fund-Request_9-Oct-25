@@ -1,0 +1,2465 @@
+<!-- _Table.html — row pills switched to Hologlow skin (with Remarks column) -->
+
+<!-- Team legend (sticky, outside the scrollable table) -->
+<div class="team-legend" id="teamLegend" role="group" aria-label="Teams"></div>
+<section class="table-wrap">
+  <div class="thead">
+    <div class="th red">Name of Beneficiary</div>
+    <div class="th red">Account Holder Name</div>
+    <div class="th red">Row Total</div>
+    <div class="th red">Designation</div>
+
+    <div class="th fuel">Fuel D & Amt</div>
+
+  <div class="th da" onclick="openBulkEntryModal('da')">DA D & Amt</div>
+
+    <div class="th car">Vehicle Rent D & Amt</div>
+
+    <div class="th air">Airtime D & Amt</div>
+
+    <div class="th transport">Transport D & Amt</div>
+
+    <div class="th misc">Misc D & Amt</div>
+
+    <div class="th red">Mob No</div>
+    <div class="th red">Display Name</div>
+    <div class="th red">W/H Charge</div>
+    <div class="th red">Remarks</div>
+  </div>
+
+  <!-- Body placeholder; GAS can render rows here -->
+  <div class="tbody" id="tbody">
+    <div class="row-data" data-team="Team Alpha" data-project="Project Atlas">
+      <div class="cells">
+        <div class="cell"><input class="txt" placeholder="Beneficiary" readonly style="cursor: default; background-color: #f8f9fa;" /></div>
+        <div class="cell account-holder-cell">
+          <input class="txt account-holder-input" placeholder="Account Holder" />
+          <input class="txt car-number-input" placeholder="Vehicle Number" readonly style="cursor: pointer; background-color: #f8f9fa;" />
+        </div>
+        <div class="cell"><input class="amt" value="0.00" readonly /></div>
+        <div class="cell"><input class="txt" placeholder="Designation" /></div>
+
+        <!-- Split calendar pill design with combined date and amount -->
+        <div class="cell">
+          <div class="split-calendar-container" data-cal="fuel">
+            <div class="calendar-pills-row">
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="fuel" tabindex="0" role="button" aria-label="Fuel from date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="fuel" tabindex="0" role="button" aria-label="Fuel to date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+            </div>
+            <div class="amount-input-row">
+              <input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="fuel" />
+            </div>
+          </div>
+        </div>
+
+        <div class="cell">
+          <div class="split-calendar-container" data-cal="da">
+            <div class="calendar-pills-row">
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="da" tabindex="0" role="button" aria-label="DA from date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="da" tabindex="0" role="button" aria-label="DA to date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+            </div>
+            <div class="amount-input-row">
+              <input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="da" />
+            </div>
+          </div>
+        </div>
+
+        <div class="cell">
+          <div class="split-calendar-container" data-cal="car">
+            <div class="calendar-pills-row">
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="car" tabindex="0" role="button" aria-label="Vehicle rent from date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="car" tabindex="0" role="button" aria-label="Vehicle rent to date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+            </div>
+            <div class="amount-input-row">
+              <input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="car" />
+            </div>
+          </div>
+        </div>
+
+        <div class="cell">
+          <div class="split-calendar-container" data-cal="air">
+            <div class="calendar-pills-row">
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="air" tabindex="0" role="button" aria-label="Airtime from date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="air" tabindex="0" role="button" aria-label="Airtime to date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+            </div>
+            <div class="amount-input-row">
+              <input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="air" />
+            </div>
+          </div>
+        </div>
+
+        <div class="cell">
+          <div class="split-calendar-container" data-cal="transport">
+            <div class="calendar-pills-row">
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="transport" tabindex="0" role="button" aria-label="Transport from date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="transport" tabindex="0" role="button" aria-label="Transport to date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+            </div>
+            <div class="amount-input-row">
+              <input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="transport" />
+            </div>
+          </div>
+        </div>
+
+        <div class="cell">
+          <div class="split-calendar-container" data-cal="misc">
+            <div class="calendar-pills-row">
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="misc" tabindex="0" role="button" aria-label="Misc from date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+              <div class="splitflap splitflap--row splitflap--holo" data-cal="misc" tabindex="0" role="button" aria-label="Misc to date">
+                <div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div>
+              </div>
+            </div>
+            <div class="amount-input-row">
+              <input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="misc" />
+            </div>
+          </div>
+        </div>
+
+
+        <div class="cell"><input class="txt" placeholder="0XXXXXXXXX" /></div>
+        <div class="cell"><input class="txt" placeholder="Display Name" /></div>
+        <div class="cell"><input class="amt" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="wh" /></div>
+        <div class="cell"><input class="txt" placeholder="Remarks" /></div>
+      </div>
+    </div>
+    
+    <!-- Additional test rows to demonstrate team colors -->
+    <div class="row-data" data-team="Team Beta" data-project="Project Beacon">
+      <div class="cells">
+        <div class="cell"><input class="txt" placeholder="Beneficiary" readonly style="cursor: default; background-color: #f8f9fa;" /></div>
+        <div class="cell account-holder-cell">
+          <input class="txt account-holder-input" placeholder="Account Holder" />
+          <input class="txt car-number-input" placeholder="Vehicle Number" readonly style="cursor: pointer; background-color: #f8f9fa;" />
+        </div>
+        <div class="cell"><input class="amt" value="0.00" readonly /></div>
+        <div class="cell"><input class="txt" placeholder="Designation" /></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="fuel"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="fuel" tabindex="0" role="button" aria-label="Fuel from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="fuel" tabindex="0" role="button" aria-label="Fuel to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="fuel" /></div></div></div>
+  <div class="cell"><div class="split-calendar-container" data-cal="da"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="da" tabindex="0" role="button" aria-label="DA from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="da" tabindex="0" role="button" aria-label="DA to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="da" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="car"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="car" tabindex="0" role="button" aria-label="Vehicle rent from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="car" tabindex="0" role="button" aria-label="Vehicle rent to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="car" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="air"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="air" tabindex="0" role="button" aria-label="Airtime from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="air" tabindex="0" role="button" aria-label="Airtime to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="air" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="transport"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="transport" tabindex="0" role="button" aria-label="Transport from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="transport" tabindex="0" role="button" aria-label="Transport to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="transport" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="misc"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="misc" tabindex="0" role="button" aria-label="Misc from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="misc" tabindex="0" role="button" aria-label="Misc to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="misc" /></div></div></div>
+        <div class="cell"><input class="txt" placeholder="0XXXXXXXXX" /></div>
+        <div class="cell"><input class="txt" placeholder="Display Name" /></div>
+        <div class="cell"><input class="amt" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="wh" /></div>
+        <div class="cell"><input class="txt" placeholder="Remarks" /></div>
+      </div>
+    </div>
+    
+    <div class="row-data" data-team="Team Gamma" data-project="Project Aurora">
+      <div class="cells">
+        <div class="cell"><input class="txt" placeholder="Beneficiary" readonly style="cursor: default; background-color: #f8f9fa;" /></div>
+        <div class="cell account-holder-cell">
+          <input class="txt account-holder-input" placeholder="Account Holder" />
+          <input class="txt car-number-input" placeholder="Vehicle Number" readonly style="cursor: pointer; background-color: #f8f9fa;" />
+        </div>
+        <div class="cell"><input class="amt" value="0.00" readonly /></div>
+        <div class="cell"><input class="txt" placeholder="Designation" /></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="fuel"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="fuel" tabindex="0" role="button" aria-label="Fuel from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="fuel" tabindex="0" role="button" aria-label="Fuel to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="fuel" /></div></div></div>
+  <div class="cell"><div class="split-calendar-container" data-cal="erda"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="erda" tabindex="0" role="button" aria-label="DA from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="erda" tabindex="0" role="button" aria-label="DA to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="erda" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="car"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="car" tabindex="0" role="button" aria-label="Vehicle rent from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="car" tabindex="0" role="button" aria-label="Vehicle rent to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="car" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="air"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="air" tabindex="0" role="button" aria-label="Airtime from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="air" tabindex="0" role="button" aria-label="Airtime to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="air" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="transport"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="transport" tabindex="0" role="button" aria-label="Transport from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="transport" tabindex="0" role="button" aria-label="Transport to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="transport" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="misc"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="misc" tabindex="0" role="button" aria-label="Misc from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="misc" tabindex="0" role="button" aria-label="Misc to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="misc" /></div></div></div>
+        <div class="cell"><input class="txt" placeholder="0XXXXXXXXX" /></div>
+        <div class="cell"><input class="txt" placeholder="Display Name" /></div>
+        <div class="cell"><input class="amt" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="wh" /></div>
+        <div class="cell"><input class="txt" placeholder="Remarks" /></div>
+      </div>
+    </div>
+    
+    <!-- Test row with beneficiary name but empty car number -->
+    <div class="row-data" data-team="Team Beta" data-project="Project Beacon">
+      <div class="cells">
+        <div class="cell"><input class="txt" placeholder="Beneficiary" readonly style="cursor: default; background-color: #f8f9fa;" /></div>
+        <div class="cell account-holder-cell">
+          <input class="txt account-holder-input" placeholder="Account Holder" />
+          <input class="txt car-number-input" placeholder="Vehicle Number" readonly style="cursor: pointer; background-color: #f8f9fa;" />
+        </div>
+        <div class="cell"><input class="amt" value="0.00" readonly /></div>
+        <div class="cell"><input class="txt" placeholder="Designation" /></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="fuel"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="fuel" tabindex="0" role="button" aria-label="Fuel from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="fuel" tabindex="0" role="button" aria-label="Fuel to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="fuel" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="erda"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="erda" tabindex="0" role="button" aria-label="ER DA from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="erda" tabindex="0" role="button" aria-label="ER DA to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="erda" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="car"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="car" tabindex="0" role="button" aria-label="Vehicle rent from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="car" tabindex="0" role="button" aria-label="Vehicle rent to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="car" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="air"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="air" tabindex="0" role="button" aria-label="Airtime from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="air" tabindex="0" role="button" aria-label="Airtime to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="air" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="transport"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="transport" tabindex="0" role="button" aria-label="Transport from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="transport" tabindex="0" role="button" aria-label="Transport to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="transport" /></div></div></div>
+        <div class="cell"><div class="split-calendar-container" data-cal="misc"><div class="calendar-pills-row"><div class="splitflap splitflap--row splitflap--holo" data-cal="misc" tabindex="0" role="button" aria-label="Misc from date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div><div class="splitflap splitflap--row splitflap--holo" data-cal="misc" tabindex="0" role="button" aria-label="Misc to date"><div class="line"><span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span></div></div></div><div class="amount-input-row"><input class="amt amount-input" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="misc" /></div></div></div>
+        <div class="cell"><input class="txt" placeholder="0XXXXXXXXX" /></div>
+        <div class="cell"><input class="txt" placeholder="Display Name" /></div>
+        <div class="cell"><input class="amt" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="wh" /></div>
+        <div class="cell"><input class="txt" placeholder="Remarks" /></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Right-aligned actions: colorful arrows + small buttons -->
+<div class="table-actions" aria-label="Table controls">
+  <div class="scroll-nav">
+    <button id="scrollLeft" class="scroll-btn" type="button" title="Scroll left">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="gradL" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ff6ad5"/>
+            <stop offset="100%" stop-color="#22d3ee"/>
+          </linearGradient>
+        </defs>
+        <path d="M15 6l-6 6 6 6" fill="none" stroke="url(#gradL)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button id="scrollRight" class="scroll-btn" type="button" title="Scroll right">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="gradR" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#22d3ee"/>
+            <stop offset="100%" stop-color="#8b5cf6"/>
+          </linearGradient>
+        </defs>
+        <path d="M9 6l6 6-6 6" fill="none" stroke="url(#gradR)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+  </div>
+  <div class="act-buttons">
+    <button id="btnAddRow" class="pill-btn ghost" type="button">Add Rows</button>
+    <button id="btnSubmit" class="pill-btn primary" type="button">Submit</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const tableWrap = document.querySelector('.table-wrap');
+  const leftBtn = document.getElementById('scrollLeft');
+  const rightBtn = document.getElementById('scrollRight');
+  if(!tableWrap || !leftBtn || !rightBtn) return;
+
+  function amount(){ return Math.round(tableWrap.clientWidth * 0.8); }
+
+  function updateDisabled(){
+    const maxScroll = tableWrap.scrollWidth - tableWrap.clientWidth - 1;
+    leftBtn.disabled  = tableWrap.scrollLeft <= 0;
+    rightBtn.disabled = tableWrap.scrollLeft >= maxScroll;
+  }
+
+  leftBtn.addEventListener('click', () => tableWrap.scrollBy({ left: -amount(), behavior: 'smooth' }));
+  rightBtn.addEventListener('click', () => tableWrap.scrollBy({ left: amount(), behavior: 'smooth' }));
+
+  tableWrap.addEventListener('scroll', updateDisabled, { passive: true });
+  window.addEventListener('resize', updateDisabled);
+  updateDisabled();
+
+  // expose hooks for GAS to wire later
+  window.FRTZ = window.FRTZ || {};
+  window.FRTZ.addRowBtn = document.getElementById('btnAddRow');
+  window.FRTZ.submitBtn = document.getElementById('btnSubmit');
+})();
+</script>
+
+
+
+
+
+<!-- Mock Google Apps Script removed for GAS compliance -->
+
+
+
+<!-- Bulk Entry Modal -->
+<div id="bulkEntryModal" class="bulk-entry-modal" style="display: none;">
+  <div class="bulk-entry-scrim" role="presentation"></div>
+  <section class="bulk-entry-card" role="dialog" aria-labelledby="bulkEntryTitle" aria-modal="true">
+    <header class="bulk-entry-hd">
+      <span id="bulkEntryTitle">Bulk Entry</span>
+      <button class="bulk-entry-x" aria-label="Close" onclick="closeBulkEntryModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </header>
+    <div class="bulk-entry-bd">
+      <div class="bulk-entry-label">Enter amount for all visible beneficiaries:</div>
+      <div class="bulk-entry-field">
+        <div class="bulk-entry-input-wrap">
+              <input id="bulkAmount" type="text" placeholder="0.00" inputmode="decimal" autocomplete="off" />
+            </div>
+      </div>
+      <div class="bulk-entry-actions">
+        <button class="bulk-entry-cancel" onclick="closeBulkEntryModal()">Cancel</button>
+        <button class="bulk-entry-confirm" onclick="confirmBulkEntry()">Apply to All</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+// Bulk Entry Modal Functionality
+let currentBulkField = null;
+let currentFieldColor = null;
+
+// Field color mapping for gradients
+const fieldColors = {
+  da:  { color1: '#06b6d4', color2: '#3b82f6', color3: '#8b5cf6' },
+  fuel: { color1: '#ff6ad5', color2: '#8b5cf6', color3: '#22d3ee' },
+  car: { color1: '#22c55e', color2: '#06b6d4', color3: '#8b5cf6' },
+  air: { color1: '#f59e0b', color2: '#ef4444', color3: '#ff6ad5' },
+  transport: { color1: '#14b8a6', color2: '#06b6d4', color3: '#8b5cf6' },
+  misc: { color1: '#8b5cf6', color2: '#6366f1', color3: '#22d3ee' }
+};
+
+// Field display names
+const fieldNames = {
+  fuel: 'Fuel',
+  da: 'DA',
+  car: 'Vehicle Rent',
+  air: 'Airtime',
+  transport: 'Transport',
+  misc: 'Misc'
+};
+
+// Number formatting functions
+function formatNumberWithCommas(value) {
+  // Remove any existing commas and non-numeric characters except decimal point
+  const cleanValue = value.replace(/[^\d.]/g, '');
+  
+  // Split by decimal point
+  const parts = cleanValue.split('.');
+  
+  // Add commas to the integer part
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  
+  // Rejoin with decimal point (limit to 2 decimal places)
+  return parts.length > 1 ? parts[0] + '.' + parts[1].substring(0, 2) : parts[0];
+}
+
+function handleBulkAmountInput(event) {
+  const input = event.target;
+  const cursorPosition = input.selectionStart;
+  const oldValue = input.value;
+  const newValue = formatNumberWithCommas(oldValue);
+  
+  if (newValue !== oldValue) {
+    input.value = newValue;
+    
+    // Adjust cursor position after formatting
+    const diff = newValue.length - oldValue.length;
+    const newCursorPosition = cursorPosition + diff;
+    input.setSelectionRange(newCursorPosition, newCursorPosition);
+  }
+}
+
+// Add click listeners to expense headers
+document.addEventListener('DOMContentLoaded', function() {
+  const expenseHeaders = document.querySelectorAll('.thead .th.fuel, .thead .th.da, .thead .th.car, .thead .th.air, .thead .th.transport, .thead .th.misc');
+  
+  expenseHeaders.forEach(header => {
+    header.addEventListener('click', function() {
+      const classList = Array.from(this.classList);
+  const fieldClass = classList.find(cls => ['fuel', 'da', 'car', 'air', 'transport', 'misc'].includes(cls));
+      
+      if (fieldClass) {
+        openBulkEntryModal(fieldClass);
+      }
+    });
+  });
+  
+  // Add input formatting to bulk amount field
+  const bulkAmountInput = document.getElementById('bulkAmount');
+  if (bulkAmountInput) {
+    bulkAmountInput.addEventListener('input', handleBulkAmountInput);
+  }
+});
+
+function openBulkEntryModal(field) {
+  currentBulkField = field;
+  currentFieldColor = fieldColors[field];
+  
+  const modal = document.getElementById('bulkEntryModal');
+  const title = document.getElementById('bulkEntryTitle');
+  const input = document.getElementById('bulkAmount');
+  
+  // Set field-specific colors as CSS variables
+  modal.style.setProperty('--field-color-1', currentFieldColor.color1);
+  modal.style.setProperty('--field-color-2', currentFieldColor.color2);
+  modal.style.setProperty('--field-color-3', currentFieldColor.color3);
+  modal.style.setProperty('--ring-a', `${currentFieldColor.color3}E6`);
+  modal.style.setProperty('--ring-b', `${currentFieldColor.color2}D9`);
+  modal.style.setProperty('--ring-c', `${currentFieldColor.color1}E6`);
+  
+  // Update title
+  title.textContent = `Bulk Entry – ${fieldNames[field]}`;
+  
+  // Show modal and focus input
+  modal.style.display = 'grid';
+  input.value = '';
+  
+  // Focus management with slight delay for animation
+  setTimeout(() => {
+    input.focus({ preventScroll: true });
+  }, 100);
+}
+
+function closeBulkEntryModal() {
+  const modal = document.getElementById('bulkEntryModal');
+  modal.style.display = 'none';
+  currentBulkField = null;
+  currentFieldColor = null;
+  
+  // Clear CSS variables
+  modal.style.removeProperty('--field-color-1');
+  modal.style.removeProperty('--field-color-2');
+  modal.style.removeProperty('--field-color-3');
+  modal.style.removeProperty('--ring-a');
+  modal.style.removeProperty('--ring-b');
+  modal.style.removeProperty('--ring-c');
+}
+
+function confirmBulkEntry() {
+  const input = document.getElementById('bulkAmount');
+  const cleanValue = input.value.replace(/,/g, '');
+  const amount = parseFloat(cleanValue);
+  
+  if (!amount || amount <= 0) {
+    alert('Please enter a valid amount greater than 0');
+    return;
+  }
+  
+  if (!currentBulkField) {
+    alert('No field selected');
+    return;
+  }
+  
+  // Apply amount to all visible beneficiaries
+  applyBulkAmount(currentBulkField, amount);
+  
+  // Close modal
+  closeBulkEntryModal();
+}
+
+function applyBulkAmount(field, amount) {
+  // Get all visible rows (not hidden by team filtering)
+  const allRows = document.querySelectorAll('.tbody .row-data');
+  const visibleRows = Array.from(allRows).filter(row => {
+    return !row.style.display || row.style.display !== 'none';
+  });
+  
+  let appliedCount = 0;
+  
+  visibleRows.forEach(row => {
+    // Find the amount input for the specific field
+    const amountInput = row.querySelector(`input.amount-input[data-field="${field}"]`);
+    
+    if (amountInput) {
+      // Format the amount with commas before setting
+      const formattedAmount = formatNumberWithCommas(amount.toFixed(2));
+      amountInput.value = formattedAmount;
+      
+      // Trigger input event to update calculations
+      const event = new Event('input', { bubbles: true });
+      amountInput.dispatchEvent(event);
+      
+      appliedCount++;
+    }
+  });
+  
+  // Show confirmation message
+  if (appliedCount > 0) {
+    const fieldName = fieldNames[field];
+    alert(`Applied ${amount.toFixed(2)} to ${appliedCount} visible beneficiaries in ${fieldName} field`);
+    
+    // Trigger recalculation if available
+    if (typeof window.FRTZ !== 'undefined' && typeof window.FRTZ.recalculateAll === 'function') {
+      window.FRTZ.recalculateAll();
+    }
+  } else {
+    alert('No visible beneficiaries found to apply the amount to');
+  }
+}
+
+// Close modal when clicking overlay
+document.addEventListener('click', function(event) {
+  const modal = document.getElementById('bulkEntryModal');
+  if (event.target === modal.querySelector('.bulk-entry-scrim')) {
+    closeBulkEntryModal();
+  }
+});
+
+// Keyboard event handling
+document.addEventListener('keydown', function(event) {
+  const modal = document.getElementById('bulkEntryModal');
+  if (modal.style.display === 'grid') {
+    if (event.key === 'Escape') {
+      closeBulkEntryModal();
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      confirmBulkEntry();
+    }
+  }
+});
+
+// Handle Enter key in amount input
+document.addEventListener('keydown', function(event) {
+  if (event.key === 'Enter' && event.target.id === 'bulkAmount') {
+    confirmBulkEntry();
+  }
+});
+</script>
+
+<style>
+/* Bulk Entry Modal Styles - Enhanced Design */
+.bulk-entry-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10000;
+  display: grid;
+  place-items: center;
+}
+
+/* Scrim with fade-in animation */
+.bulk-entry-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.55);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  animation: fadeIn 0.18s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+/* Card with rise animation */
+.bulk-entry-card {
+  width: min(320px, 46vw);
+  border-radius: 16px;
+  background: white;
+  border: 1px solid rgba(0,0,0,0.16);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.05) inset, 0 10px 30px rgba(0,0,0,0.35);
+  transform: translateY(14px) scale(0.98);
+  opacity: 0;
+  animation: rise 0.2s ease-out 0.06s forwards;
+}
+
+@keyframes rise {
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Header with animated gradient */
+.bulk-entry-hd {
+  position: relative;
+  padding: 14px 18px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  color: #fff;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.bulk-entry-hd::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-top-left-radius: inherit;
+  border-top-right-radius: inherit;
+  background: linear-gradient(90deg, var(--field-color-1, #16d9c3), var(--field-color-2, #5b5bd6), var(--field-color-3, #00e5ff));
+  background-size: 220% 100%;
+  animation: sheen 4s linear infinite;
+}
+
+.bulk-entry-hd > span {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes sheen {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* Close button */
+.bulk-entry-x {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+  transition: filter 0.18s ease, box-shadow 0.18s ease;
+}
+
+.bulk-entry-x:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.55);
+}
+
+.bulk-entry-x svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Body */
+.bulk-entry-bd {
+  padding: 18px 18px 22px;
+}
+
+.bulk-entry-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: #333;
+}
+
+.bulk-entry-field {
+  margin-top: 14px;
+}
+
+/* Input with enhanced focus effects */
+.bulk-entry-input-wrap {
+  position: relative;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.06);
+  border: 2px solid rgba(0, 0, 0, 0.18);
+  box-shadow: none;
+  transition: border-color 0.2s ease;
+}
+
+.bulk-entry-input-wrap input[type="text"] {
+  appearance: textfield;
+  -webkit-appearance: textfield;
+  color: #333;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  width: 100%;
+  padding: 18px 18px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  box-sizing: border-box;
+}
+
+.bulk-entry-input-wrap input[type="text"]::placeholder {
+  color: rgba(0, 0, 0, 0.5);
+}
+
+/* Focus state without animation */
+.bulk-entry-input-wrap:focus-within {
+  border-color: var(--field-color-1, #16d9c3);
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 3px var(--ring-a, rgba(0,229,255,0.9)), 0 0 24px 6px var(--ring-b, rgba(91,91,214,0.85)), 0 0 60px 20px var(--ring-c, rgba(22,217,195,0.9));
+  }
+  50% {
+    box-shadow: 0 0 0 4px var(--ring-c, rgba(22,217,195,0.9)), 0 0 34px 10px var(--ring-a, rgba(0,229,255,0.9)), 0 0 80px 28px var(--ring-b, rgba(91,91,214,0.85));
+  }
+  100% {
+    box-shadow: 0 0 0 3px var(--ring-a, rgba(0,229,255,0.9)), 0 0 24px 6px var(--ring-b, rgba(91,91,214,0.85)), 0 0 60px 20px var(--ring-c, rgba(22,217,195,0.9));
+  }
+}
+
+/* Action buttons */
+.bulk-entry-actions {
+  margin-top: 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.bulk-entry-cancel,
+.bulk-entry-confirm {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.bulk-entry-cancel {
+  background: rgba(0, 0, 0, 0.1);
+  color: #333;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.bulk-entry-cancel:hover {
+  background: rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.bulk-entry-confirm {
+  background: linear-gradient(135deg, var(--field-color-1, #16d9c3), var(--field-color-2, #5b5bd6));
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.bulk-entry-confirm:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .bulk-entry-hd::before {
+    animation: none;
+  }
+  .bulk-entry-card {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .bulk-entry-scrim {
+    animation: none;
+    opacity: 1;
+  }
+  .bulk-entry-input-wrap {
+    animation: none;
+  }
+}
+
+/* Make expense headers clickable */
+.thead .th.fuel,
+.thead .th.da,
+.thead .th.erda,
+.thead .th.car,
+.thead .th.air,
+.thead .th.transport,
+.thead .th.misc {
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.thead .th.fuel:hover,
+.thead .th.da:hover,
+.thead .th.car:hover,
+.thead .th.air:hover,
+.thead .th.transport:hover,
+.thead .th.misc:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+}
+
+/* Vehicle number input styling */
+.car-number-input {
+  transition: all 0.2s ease;
+}
+
+.car-number-input:hover {
+  background-color: #e9ecef !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.car-number-input:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+</style>
+
+<!-- === Option 1 overrides (safe, local to table) === -->
+<style>
+  /* 0) ULTRA‑compact table columns (force override + recompose --table-cols) */
+  .table-wrap{
+    /* widths tuned for combined date & amount columns */
+    --c1:108px;  /* Name of Beneficiary */
+    --c2:118px;  /* Account Holder Name */
+    --c3:110px;  /* Row Total (narrower; ~9 digits) */
+    --c4:55px;   /* Designation (further reduced) */
+
+    --c5:135px;  /* Fuel D & Amt (expanded for pills) */
+    --c6:135px;  /* ER DA D & Amt (expanded for pills) */
+    --c7:135px;  /* Vehicle Rent D & Amt (expanded for pills) */
+    --c8:135px;  /* Airtime D & Amt (expanded for pills) */
+    --c9:135px;  /* Transport D & Amt (expanded for pills) */
+    --c10:135px; /* Misc D & Amt (expanded for pills) */
+
+    --c11:88px;   /* Mob No */
+    --c12:132px;  /* Display Name */
+    --c13:100px;  /* W/H Charges (shifted right) */
+    --c14:90px;   /* (spare) */
+    --c15:132px;  /* (spare) */
+    --c16:148px;  /* Remarks */
+
+    /* RECOMPOSE to ensure children pick up local values */
+    --table-cols: var(--c1) var(--c2) var(--c3) var(--c4) var(--c5) var(--c6) var(--c7) var(--c8) var(--c9) var(--c10) var(--c11) var(--c12) var(--c13) var(--c14) var(--c15) var(--c16);
+  }
+
+  /* 1) Transport headers gradient (match Transport card) */
+  .thead .th.transport{
+    background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%) !important;
+    color:#fff;
+  }
+  .thead .th[data-col="transport"],
+  .thead .th[title~="Transport"]{ 
+    background: linear-gradient(135deg, #14b8a6 0%, #06b6d4 100%) !important; 
+    color:#fff;
+  }
+
+  /* 2) Even tighter header row */
+  .table-wrap .thead .th{
+    font-size: 10px !important;
+    padding: 5px 6px !important;
+  }
+
+  /* 3) Body rows: compact (unchanged from your working) */
+  .tbody .cell .txt,
+  .tbody .cell .amt,
+  .tbody .cell .sel{
+    font-size: 11px !important;
+    height: 22px !important;
+    padding: 0 6px !important;
+    line-height: 22px !important;
+  }
+  .tbody .cell .amt{ text-align: right; font-variant-numeric: tabular-nums; }
+  /* Larger digits for editable amount inputs; keep Row Total slightly smaller */
+  .tbody .cell input.amt:not([readonly]){ font-size:13px !important; }
+  .tbody .cell input.amt[readonly]{ font-size:12px !important; font-weight:900; }
+  
+  /* Vertical alignment for Name of Beneficiary, Account Holder, Row Total, and Designation cells */
+  .tbody .cell:nth-child(1),  /* Name of Beneficiary */
+  .tbody .cell:nth-child(2),  /* Account Holder */
+  .tbody .cell:nth-child(3),  /* Row Total */
+  .tbody .cell:nth-child(4) { /* Designation */
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding: 8px 6px !important;
+  }
+  
+  /* Align all input fields to the same baseline as calendar pills */
+  .tbody .cell:nth-child(1) .txt,  /* Name of Beneficiary input */
+  .tbody .cell:nth-child(3) .amt,  /* Row Total input */
+  .tbody .cell:nth-child(4) .txt { /* Designation input */
+    margin-top: 8px !important;
+  }
+
+  /* Row split‑flap pills: still legible but dense */
+  .tbody .splitflap{ padding-block: 1.5px !important; }
+  .tbody .splitflap .line{ font-size: 13px !important; }
+
+  /* Account holder cell layout - align with calendar pills */
+  .account-holder-cell {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    justify-content: flex-start !important;
+    gap: 4px !important;
+    padding: 8px 6px !important;
+  }
+  
+  /* Align account holder inputs with calendar pills baseline */
+  .account-holder-input {
+    margin-top: 8px !important;
+  }
+  
+  .account-holder-input,
+   .car-number-input {
+    width: 100% !important;
+    height: 20px !important;
+    font-size: 10px !important;
+    padding: 0 4px !important;
+    margin: 0 !important;
+  }
+  
+  /* Orange border for differing names */
+  .name-mismatch .txt {
+    border: 2px solid #f97316 !important;
+    box-shadow: 0 0 0 1px rgba(249, 115, 22, 0.2) !important;
+  }
+  
+  /* Deactivated row styling */
+  .row-deactivated {
+    background-color: #f8f9fa !important;
+    opacity: 0.7;
+  }
+  
+  .row-deactivated .splitflap {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+  }
+  
+  .row-deactivated input:not([readonly]) {
+    background-color: #e9ecef !important;
+    color: #6c757d !important;
+  }
+  
+  /* Row total pill cursor pointer */
+  input.amt[readonly] {
+    cursor: pointer !important;
+  }
+  
+  /* Make all beneficiary inputs readonly and non-editable */
+  .tbody .cell:first-child input.txt {
+    cursor: default !important;
+    background-color: #f8f9fa !important;
+    pointer-events: none;
+    user-select: none;
+  }
+  
+  /* Ensure beneficiary inputs cannot be focused or edited */
+  .tbody .cell:first-child input.txt:focus {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  
+  /* Confirmation modal styling */
+  .confirmation-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+  }
+  
+  .confirmation-modal {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    max-width: 400px;
+    width: 90%;
+    animation: modalSlideIn 0.2s ease-out;
+  }
+  
+  @keyframes modalSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  .modal-content {
+    padding: 24px;
+  }
+  
+  .modal-message {
+    font-size: 16px;
+    color: #333;
+    margin: 0 0 20px 0;
+    line-height: 1.5;
+    text-align: center;
+  }
+  
+  .modal-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+  }
+  
+  .modal-btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 80px;
+  }
+  
+  .modal-btn-no {
+    background-color: #6c757d;
+    color: white;
+  }
+  
+  .modal-btn-no:hover {
+    background-color: #5a6268;
+  }
+  
+  .modal-btn-yes {
+    background-color: #dc3545;
+    color: white;
+  }
+  
+  .modal-btn-yes:hover {
+    background-color: #c82333;
+  }
+</style>
+<!-- === Team row tinting + legend (UI/UX pastel) — refined to detect team correctly === -->
+<style>
+  /* Legend bar */
+  .team-legend{
+    display:flex; flex-wrap:wrap; gap:6px; align-items:center;
+    margin:8px 0 6px;
+  }
+  .team-legend .label{ font-weight:900; font-size:11px; opacity:.7; margin-right:4px }
+  .team-chip{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:4px 8px; border-radius:999px; font-weight:800; font-size:11px;
+    background: var(--chip-bg,#eef2ff); color:#0b1220; border:1px solid var(--chip-ring,rgba(0,0,0,.06));
+    box-shadow:0 2px 6px rgba(0,0,0,.05);
+  }
+  .team-chip .dot{ width:10px; height:10px; border-radius:50%; background: var(--chip-dot,#888); box-shadow:0 0 0 2px rgba(255,255,255,.9) inset }
+  .team-chip .x{ margin-left:2px; opacity:.45 }
+
+  /* Row tint (entire data row, not headers/cards) */
+  .tbody .row-data{ position:relative }
+  .tbody .row-data[data-team] .cell{
+    background: var(--row-tint, #fff) !important;
+  }
+  /* left accent stripe */
+  .tbody .row-data[data-team]::before{
+    content:""; position:absolute; left:0; top:0; bottom:0; width:3px;
+    background: var(--row-ring, transparent); border-radius:3px; pointer-events:none;
+  }
+</style>
+
+
+<script>
+// === Team tinting & legend — per-team colors + compact view preserved ===
+(function(){
+  // Prevent recursive/looping re-tints from the MutationObserver
+  var __tinting = false;
+
+  // Robustly get team from a row: supports multiple attributes/locations
+  function projectFromRow(row){
+    var ds = row.dataset || {};
+    var p = (ds.project || ds.projectName || '').trim();
+    if(p) return p;
+    var el = row.closest('[data-project]') || row.querySelector('[data-project]');
+    if(el){ var v=(el.getAttribute('data-project')||el.dataset.project||'').trim(); if(v) return v; }
+    return '';
+  }
+
+  function teamFromRow(row){
+    var ds = row.dataset || {};
+    var t = (ds.teamName || ds.team || ds.teamid || '').trim();
+    if(t) return t;
+    var el = row.querySelector('[data-team]');
+    if(el){
+      var v = (el.getAttribute('data-team') || el.dataset.team || '').trim();
+      if(v) return v;
+    }
+    var tag = row.querySelector('.team-tag');
+    if(tag && tag.textContent.trim()) return tag.textContent.trim();
+    var input = row.querySelector('input[name="team"], input[data-field="team"]');
+    if(input && input.value.trim()) return input.value.trim();
+    return ''; // no team info found
+  }
+
+  // FNV-like hash -> index
+  function hash32(str){
+    var h=2166136261>>>0;
+    for(var i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return (h>>>0);
+  }
+  function hexToRgb(hex){
+    var h = hex.replace('#','');
+    if(h.length===3){ h = h.split('').map(function(c){return c+c}).join(''); }
+    var num = parseInt(h,16);
+    return {r:(num>>16)&255, g:(num>>8)&255, b:num&255};
+  }
+  function rgba(hex, a){
+    var c=hexToRgb(hex); return 'rgba('+c.r+','+c.g+','+c.b+','+a+')';
+  }
+
+  // Indian flag colors for team distinction
+  var PALETTE = ['#FF9933','#FFFFFF','#138808','#FFFFFF'];
+
+  function colorFor(team, teamIndex){
+    // Use sequential assignment instead of hash to ensure proper Saffron-White-Green-White pattern
+    var idx = teamIndex % PALETTE.length;
+    return PALETTE[idx];
+  }
+
+  function applyTeamTints(){
+    if (__tinting) return;
+    __tinting = true;
+    try {
+      var rows = document.querySelectorAll('.tbody .row-data');
+      var legend = document.getElementById('teamLegend');
+      if(!legend) return;
+      var map = new Map();
+      var teamList = [];
+      
+      // First pass: collect unique teams in order
+      rows.forEach(function(row){
+        var team = teamFromRow(row);
+        if(team && teamList.indexOf(team) === -1) {
+          teamList.push(team);
+        }
+      });
+
+      rows.forEach(function(row){
+        var team = teamFromRow(row);
+        if(!team){ 
+          row.style.removeProperty('--row-tint');
+          row.style.removeProperty('--row-ring');
+          return; 
+        }
+        
+        var teamIndex = teamList.indexOf(team);
+        var accent = colorFor(team, teamIndex);
+        
+        // Teams cycle through saffron, white, green colors
+        if(accent === '#FFFFFF') {
+          // White teams get white background
+          row.style.setProperty('--row-tint', 'rgba(255, 255, 255, 0.35)');
+          row.style.setProperty('--row-ring', 'rgba(200, 200, 200, 0.15)');
+        } else {
+          // Colored teams get team color background
+          row.style.setProperty('--row-tint', rgba(accent, 0.15));
+           row.style.setProperty('--row-ring', rgba(accent, 0.50));
+        }
+        if(!map.has(team)) map.set(team, accent);
+      });
+
+      // Build legend chips (clear + rebuild)
+      while(legend.firstChild) legend.removeChild(legend.firstChild);
+      if(map.size){
+        var label = document.createElement('span'); label.className='label'; label.textContent = 'Teams:';
+        legend.appendChild(label);
+      }
+      Array.from(map.keys()).sort(function(a,b){return a.localeCompare(b);}).forEach(function(team){
+        var accent = map.get(team);
+        var chip = document.createElement('span'); chip.className='team-chip';
+        chip.style.setProperty('--chip-dot', accent);
+        chip.style.setProperty('--chip-ring', rgba(accent, .28));
+        chip.style.setProperty('--chip-bg', rgba(accent, .16));
+        var dot = document.createElement('span'); dot.className='dot';
+        var name = document.createElement('span'); name.textContent = team;
+        chip.appendChild(dot); chip.appendChild(name);
+        legend.appendChild(chip);
+      });
+    } finally { 
+      __tinting = false; 
+    }
+  }
+
+  // Expose + observe for dynamic rows
+  window.FRTZ = window.FRTZ || {};
+  window.FRTZ.applyTeamTints = applyTeamTints;
+
+  var tbody = document.getElementById('tbody');
+  if(tbody){
+    var tintScheduled = false;
+    var mo = new MutationObserver(function(){
+      if (tintScheduled) return;
+      tintScheduled = true;
+      requestAnimationFrame(function(){
+        tintScheduled = false;
+        applyTeamTints();
+      });
+    });
+    mo.observe(tbody, { childList:true, subtree:true, attributes:true, attributeFilter:['data-team', 'data-teamname', 'data-teamid'] });
+  }
+  // initial
+  if(document.readyState === 'loading'){ document.addEventListener('DOMContentLoaded', applyTeamTints); }
+  else{ applyTeamTints(); }
+})();
+</script>
+
+<!-- Mobile Number Change Flow Modals -->
+<style>
+  /* Keep below global confirmation modal (z-index ~10000) so it can appear on top */
+  .overlay-slim { position:fixed; inset:0; background:rgba(0,0,0,.5); display:none; align-items:center; justify-content:center; z-index:9990; }
+  .overlay-slim.show { display:flex; }
+  .card-slim { background:#fff; border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.25); width:min(420px, 92vw); padding:18px; }
+  .card-slim h3 { margin:6px 0 12px; font-size:18px; }
+  .type-actions { display:flex; gap:10px; justify-content:center; }
+  .type-btn { border:none; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; }
+  .type-btn.perm { background:#d1fae5; color:#065f46; }
+  .type-btn.temp { background:#ffedd5; color:#7c2d12; }
+  .type-btn.cancel { background:#e5e7eb; color:#374151; }
+
+  /* Keep below confirmation modal so confirmation appears above */
+  .ops-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.5); z-index:9995; }
+  .ops-overlay.show { display:flex; }
+  .ops-modal { background:#fff; width:min(560px, 96vw); border-radius:14px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,.35); }
+  .ops-hd { padding:14px 18px; color:#0b1220; font-weight:800; }
+  .ops-hd.permanent { background:#ecfdf5; border-bottom:1px solid #a7f3d0; }
+  .ops-hd.temporary { background:#fff7ed; border-bottom:1px solid #fed7aa; }
+  .ops-bd { padding:16px 18px; display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .ops-bd .full { grid-column:1 / -1; }
+  .ops-field { display:flex; flex-direction:column; gap:6px; }
+  .ops-field label { font-size:12px; font-weight:700; color:#374151; }
+  .ops-field input, .ops-field select { padding:8px 10px; border:1px solid #d1d5db; border-radius:8px; font-size:14px; }
+  .ops-actions { display:flex; justify-content:flex-end; gap:10px; padding:10px 14px 16px; border-top:1px solid #e5e7eb; }
+  .ops-btn { border:none; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; }
+  .ops-btn.cancel { background:#e5e7eb; color:#111827; }
+  .ops-btn.submit.permanent { background:#10b981; color:#fff; }
+  .ops-btn.submit.temporary { background:#f59e0b; color:#fff; }
+  .ops-note { font-size:12px; color:#6b7280; }
+</style>
+
+<div id="mobTypeModal" class="overlay-slim" aria-modal="true" role="dialog">
+  <div class="card-slim">
+    <h3>You want to change Mobile Money Number to:</h3>
+    <div class="type-actions">
+      <button class="type-btn perm" data-type="Permanent">Permanent</button>
+      <button class="type-btn temp" data-type="Temporary">Temporary</button>
+      <button class="type-btn cancel" data-type="Cancel">Cancel</button>
+    </div>
+  </div>
+  
+  
+</div>
+
+<div id="opsEntryModal" class="ops-overlay" aria-modal="true" role="dialog">
+  <div class="ops-modal">
+    <div id="opsEntryHeader" class="ops-hd">Change Mobile Money Number</div>
+    <div class="ops-bd">
+      <div class="ops-field full">
+        <label>Account Holder Name</label>
+        <input id="opsAccHolder" type="text" readonly>
+      </div>
+      <div class="ops-field">
+        <label>Mob Num</label>
+        <input id="opsMobNum" type="text" placeholder="0XXXXXXXXX" inputmode="numeric" maxlength="9">
+        <div class="ops-note">Must start with 0 and be 9 digits.</div>
+      </div>
+      <div class="ops-field">
+        <label>Display Name</label>
+        <input id="opsDisplayName" type="text" placeholder="Enter display name">
+      </div>
+      <div class="ops-field full">
+        <label>Operator</label>
+        <select id="opsOperator"></select>
+      </div>
+      <div class="ops-field full">
+        <label>Change requester</label>
+        <input id="opsRequester" type="text" readonly>
+        <div class="ops-note">Date and Tanzania time captured on submit.</div>
+      </div>
+    </div>
+    <div class="ops-actions">
+      <button class="ops-btn cancel" id="opsCancelBtn">Cancel</button>
+      <button class="ops-btn submit" id="opsSubmitBtn">Submit</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const isMobInput = (el)=>{
+    if(!el || el.tagName !== 'INPUT') return false;
+    if (el.dataset && el.dataset.field && el.dataset.field.toLowerCase() === 'mob') return true;
+    const ph = (el.getAttribute('placeholder')||'').toLowerCase();
+    return ph.includes('0xxxx') || ph.includes('0xxxxxxxxx') || ph.includes('mob');
+  };
+
+  const mobPattern = /^0\d{8}$/; // 9 digits total, starting with 0
+
+  // Track previous values
+  document.addEventListener('focusin', (e)=>{
+    const inp = e.target;
+    if(isMobInput(inp)){
+      inp.dataset.prevMobVal = inp.value || '';
+    }
+  });
+
+  document.addEventListener('blur', (e)=>{
+    const inp = e.target;
+    if(!isMobInput(inp)) return;
+    const prev = inp.dataset.prevMobVal || '';
+    const now = (inp.value||'').trim();
+    if(now === prev) return;
+    const row = inp.closest('.row-data');
+    const accHolder = row ? (row.querySelector('.account-holder-input')?.value || '') : '';
+
+    // Step 1: Are you sure?
+    showConfirmationModal({
+      title: 'Change Mobile Money Number?',
+      message: 'Are you sure you want to change the Mobile Money Number?',
+      yesText: 'Yes, Continue'
+    }).then(confirmed=>{
+      if(!confirmed){ inp.value = prev; return; }
+      // Step 2: Type selection (Permanent / Temporary / Cancel)
+      pickChangeType().then(type=>{
+        if(!type){ inp.value = prev; return; }
+        // Step 3: Open entry modal
+        openOpsEntry({ type, accHolder, mobNow: now, row, input: inp }).then(submitted=>{
+          if(!submitted){ /* keep new value in field unless user cancelled earlier */ }
+        });
+      });
+    });
+  }, true);
+
+  function pickChangeType(){
+    return new Promise((resolve)=>{
+      const overlay = document.getElementById('mobTypeModal');
+      function onClick(e){
+        const btn = e.target.closest('button.type-btn');
+        if(!btn) return;
+        const t = btn.dataset.type;
+        overlay.classList.remove('show');
+        overlay.removeEventListener('click', onClick);
+        if(t === 'Cancel') resolve(null); else resolve(t);
+      }
+      overlay.addEventListener('click', onClick);
+      overlay.classList.add('show');
+    });
+  }
+
+  function loadOperators(){
+    return new Promise((resolve)=>{
+      try{
+        if(!(window.google && google.script && google.script.run)) return resolve([]);
+        google.script.run
+          .withSuccessHandler(function(list){ resolve(Array.isArray(list)?list:[]); })
+          .withFailureHandler(function(err){ console.error('getOpsOperators failed', err); resolve([]); })
+          .getOpsOperators();
+      }catch(_e){ resolve([]); }
+    });
+  }
+
+  function loadUser(){
+    return new Promise((resolve)=>{
+      try{
+        if(!(window.google && google.script && google.script.run)) return resolve({});
+        google.script.run
+          .withSuccessHandler(function(info){ resolve(info||{}); })
+          .withFailureHandler(function(err){ console.error('getCurrentUser failed', err); resolve({}); })
+          .getCurrentUser();
+      }catch(_e){ resolve({}); }
+    });
+  }
+
+  function openOpsEntry(ctx){
+    return new Promise(async (resolve)=>{
+      const overlay = document.getElementById('opsEntryModal');
+      const hd = document.getElementById('opsEntryHeader');
+      const acc = document.getElementById('opsAccHolder');
+      const mob = document.getElementById('opsMobNum');
+      const disp = document.getElementById('opsDisplayName');
+      const opr = document.getElementById('opsOperator');
+      const req = document.getElementById('opsRequester');
+      const btnCancel = document.getElementById('opsCancelBtn');
+      const btnSubmit = document.getElementById('opsSubmitBtn');
+
+      // Theme + header
+      hd.classList.toggle('permanent', ctx.type === 'Permanent');
+      hd.classList.toggle('temporary', ctx.type === 'Temporary');
+      hd.textContent = ctx.type === 'Permanent' ? 'Permanent Mobile Number Change' : 'Temporary Mobile Number Change';
+      btnSubmit.classList.toggle('permanent', ctx.type === 'Permanent');
+      btnSubmit.classList.toggle('temporary', ctx.type === 'Temporary');
+
+      // Prefill
+      acc.value = ctx.accHolder || '';
+      mob.value = ctx.mobNow || '';
+      disp.value = '';
+      req.value = '';
+
+      // Load operators and user
+      opr.innerHTML = '';
+      const ops = await loadOperators();
+      const frag = document.createDocumentFragment();
+      const def = document.createElement('option');
+      def.value = ''; def.textContent = 'Select operator';
+      frag.appendChild(def);
+      ops.forEach(o=>{ const opt = document.createElement('option'); opt.value = o; opt.textContent = o; frag.appendChild(opt); });
+      opr.appendChild(frag);
+      const user = await loadUser();
+      req.value = user && (user.username || user.email) ? (user.username || user.email) : '';
+
+      function close(){ overlay.classList.remove('show'); btnCancel.removeEventListener('click', onCancel); btnSubmit.removeEventListener('click', onSubmit); document.removeEventListener('keydown', onKey); }
+      function onCancel(){ close(); resolve(false); }
+      function onKey(e){ if(e.key==='Escape'){ onCancel(); } }
+      let submitting = false;
+      async function onSubmit(){
+        if(submitting) return;
+        const vMob = mob.value.trim();
+        if(!mobPattern.test(vMob)){ alert('Invalid Mobile Number. It must start with 0 and be exactly 9 digits.'); return; }
+        if(!disp.value.trim()){ alert('Please enter a Display Name.'); return; }
+        if(!opr.value){ alert('Please select an Operator.'); return; }
+
+        // Final confirmation
+        const msg = ctx.type === 'Permanent' ? 'Submit to Ops_P?' : 'Submit to Ops_T?';
+        showConfirmationModal({ title:'Confirm submission', message: msg, yesText: 'Submit' }).then(function(yes){
+          if(!yes) return;
+          try{
+            if(!(window.google && google.script && google.script.run)){
+              alert('Not running inside Google Apps Script web app. Cannot submit.');
+              return;
+            }
+            submitting = true;
+            const prevText = btnSubmit.textContent;
+            btnSubmit.disabled = true; btnSubmit.textContent = 'Submitting...';
+            google.script.run
+              .withSuccessHandler(function(res){
+                btnSubmit.disabled = false; btnSubmit.textContent = prevText; submitting = false;
+                if(res && res.ok){ close(); resolve(true); }
+                else { alert('Save failed: ' + (res && res.error ? res.error : 'unknown error')); }
+              })
+              .withFailureHandler(function(err){
+                btnSubmit.disabled = false; btnSubmit.textContent = prevText; submitting = false;
+                alert('Save failed: ' + (err && err.message ? err.message : err));
+              })
+              .saveOpsChange({ type: ctx.type, accountHolder: acc.value, mobNo: vMob, displayName: disp.value.trim(), operator: opr.value });
+          }catch(err){ alert('Save failed. Please try again.'); submitting = false; }
+        });
+      }
+
+      btnCancel.addEventListener('click', onCancel);
+      btnSubmit.addEventListener('click', onSubmit);
+      document.addEventListener('keydown', onKey);
+      overlay.classList.add('show');
+      setTimeout(()=>{ try{ mob.focus(); }catch(_e){} }, 60);
+    });
+  }
+})();
+</script>
+
+<script>
+/* === Name Mismatch Detection === */
+(function(){
+  'use strict';
+  
+  function checkNameMismatch() {
+    var rows = document.querySelectorAll('.tbody .row-data');
+    
+    rows.forEach(function(row) {
+      var beneficiaryInput = row.querySelector('.cell:first-child .txt');
+      var accountHolderInput = row.querySelector('.account-holder-input');
+      
+      if (beneficiaryInput && accountHolderInput) {
+        var beneficiaryName = beneficiaryInput.value.trim().toLowerCase();
+        var accountHolderName = accountHolderInput.value.trim().toLowerCase();
+        
+        // Check if names are different and both are not empty
+        if (beneficiaryName && accountHolderName && beneficiaryName !== accountHolderName) {
+          // Add orange border class to both cells
+          beneficiaryInput.closest('.cell').classList.add('name-mismatch');
+          accountHolderInput.closest('.cell').classList.add('name-mismatch');
+        } else {
+          // Remove orange border class
+          beneficiaryInput.closest('.cell').classList.remove('name-mismatch');
+          accountHolderInput.closest('.cell').classList.remove('name-mismatch');
+        }
+      }
+    });
+  }
+  
+  // Expose globally for external access
+  window.checkNameMismatch = checkNameMismatch;
+  
+  // Add event listeners to all beneficiary and account holder inputs
+  function initNameMismatchDetection() {
+    var tbody = document.getElementById('tbody');
+    if (tbody) {
+      // Use event delegation for dynamically added content
+      tbody.addEventListener('input', function(e) {
+        if (e.target.matches('.txt') && 
+            (e.target.closest('.cell:first-child') || e.target.classList.contains('account-holder-input'))) {
+          setTimeout(checkNameMismatch, 50); // Small delay to ensure value is set
+        }
+      });
+      
+      // Also listen for change events
+      tbody.addEventListener('change', function(e) {
+        if (e.target.matches('.txt') && 
+            (e.target.closest('.cell:first-child') || e.target.classList.contains('account-holder-input'))) {
+          setTimeout(checkNameMismatch, 50);
+        }
+      });
+      
+      // Initial check
+      checkNameMismatch();
+    }
+  }
+  
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initNameMismatchDetection);
+  } else {
+    initNameMismatchDetection();
+  }
+  
+  // Listen for custom events that indicate data has been loaded
+  document.addEventListener('pp:apply', function() {
+    setTimeout(checkNameMismatch, 200);
+  });
+})();
+</script>
+
+<script>
+/* === Calendar Pills - Keyboard Support Only === */
+(function(){
+  'use strict';
+  
+  // Add keyboard support to calendar pills (click handling is done by _SideCalendar.html global delegation)
+  function initCalendarPills(){
+    const pills = document.querySelectorAll('.splitflap--holo[data-cal]');
+    pills.forEach(pill => {
+      // Add keyboard support
+      pill.addEventListener('keydown', function(e){
+        if(e.key === 'Enter' || e.key === ' '){
+          e.preventDefault();
+          this.click();
+        }
+      });
+    });
+  }
+  
+  // Initialize on DOM ready
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initCalendarPills);
+  } else {
+    initCalendarPills();
+  }
+  
+  // Re-initialize when new rows are added
+  const tbody = document.getElementById('tbody');
+  if(tbody){
+    const observer = new MutationObserver(function(){
+      initCalendarPills();
+    });
+    observer.observe(tbody, { childList: true, subtree: true });
+  }
+})();
+</script>
+<script>
+/* === Row totals + summary aggregation (per-row only; no cross-row mirroring) === */
+(function(){
+  'use strict';
+  const tbody = document.getElementById('tbody');
+  if(!tbody) return;
+
+  function parseAmt(v){
+    if(v==null || v==='') return 0;
+    if (typeof v === 'number') return v;
+    var s = String(v).replace(/\u00A0/g,' ').trim();
+    var m = s.match(/-?\d[\d,\.\s]*/);
+    if(!m) return 0;
+    var numStr = m[0].replace(/[ ,\s]+/g,'');
+    var n = parseFloat(numStr);
+    return isNaN(n) ? 0 : n;
+  }
+
+  // Shared formatter: 1,234.56 style with 2 decimals
+  const __NF = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  function formatAmt(v){ return __NF.format(parseAmt(v)); }
+  // Expose for other scripts if needed
+  window.FRTZ = window.FRTZ || {};
+  if (!window.FRTZ.formatAmt) window.FRTZ.formatAmt = formatAmt;
+
+  // Pair each row's split calendar container to its amount input
+  function bindRow(row){
+    const containers = row.querySelectorAll('.split-calendar-container[data-cal]');
+    containers.forEach(container=>{
+      const key = container.dataset.cal;
+      const inp = container.querySelector('input.amount-input');
+      if(inp){ 
+        inp.dataset.field = key;
+        inp.classList.add('amt'); // Add amt class for compatibility
+      }
+    });
+  }
+  function bindAll(){ document.querySelectorAll('.tbody .row-data').forEach(bindRow); }
+
+  function rowTotal(row){
+    const amts = row.querySelectorAll('input.amt:not([readonly]), input.amount-input:not([readonly])');
+    let s = 0;
+    amts.forEach(inp => { s += parseAmt(inp.value); });
+    const totalInp = row.querySelector('input.amt[readonly]');
+    if (totalInp){ totalInp.value = formatAmt(s); }
+    return s;
+  }
+
+  function recalcAll(){
+    const rows = Array.from(document.querySelectorAll('.tbody .row-data'));
+    const sums = { fuel:0, da:0, erda:0, car:0, air:0, transport:0, misc:0, total:0 };
+
+    rows.forEach(row=>{
+      const subtotal = rowTotal(row);
+      sums.total += subtotal;
+      row.querySelectorAll('input.amt[data-field]').forEach(inp=>{
+        const k = inp.dataset.field;
+        if(k && (k in sums)){
+          sums[k] += parseAmt(inp.value);
+        }
+      });
+    });
+
+    Object.keys(sums).forEach(k => sums[k] = Number(sums[k].toFixed(2)));
+
+    window.FRTZ = window.FRTZ || {};
+    window.FRTZ.sums = sums;
+    document.dispatchEvent(new CustomEvent('frtz:totals-changed', { detail: sums }));
+
+    updateSummaryUI(sums);
+  }
+
+  function updateSummaryUI(sums){
+    const map = {
+      fuel: ['[data-field-amt="fuel"]','[data-sum="fuel"]','[data-total="fuel"]','#sum-fuel','#fuel-sum','#fuelTotal','#total-fuel','.sum-fuel','.total-fuel','.summary-card.fuel .value','.card.fuel .value','.fuel .sum','.fuel .value'],
+      da:   ['[data-field-amt="da"]','[data-sum="da"]','[data-total="da"]','#sum-da','#da-sum','#daTotal','#total-da','.sum-da','.total-da','.summary-card.da .value','.da .value'],
+      erda: ['[data-field-amt="erda"]','[data-sum="erda"]','[data-total="erda"]','#sum-erda','#erda-sum','#erdaTotal','#total-erda','.sum-erda','.total-erda','.summary-card.erda .value','.erda .value'],
+      car:  ['[data-field-amt="car"]','[data-sum="car"]','[data-total="car"]','#sum-car','#car-sum','#carTotal','#total-car','.sum-car','.total-car','.summary-card.car .value','.car .value','.car-rent .value'],
+      air:  ['[data-field-amt="air"]','[data-sum="air"]','[data-total="air"]','#sum-air','#air-sum','#airTotal','#total-air','.sum-air','.total-air','.summary-card.air .value','.airtime .value','.air .value'],
+      transport: ['[data-field-amt="transport"]','[data-sum="transport"]','[data-total="transport"]','#sum-transport','#transport-sum','#transportTotal','#total-transport','.sum-transport','.total-transport','.summary-card.transport .value','.transport .value'],
+      misc: ['[data-field-amt="misc"]','[data-sum="misc"]','[data-total="misc"]','#sum-misc','#misc-sum','#miscTotal','#total-misc','.sum-misc','.total-misc','.summary-card.misc .value','.misc .value'],
+      total: ['[data-field-amt="total"]','[data-sum="total"]','[data-total="total"]','#sum-total','#total-sum','#grandTotal','#total-req','.sum-total','.total-req','.summary-card.total .value','.total-req .value']
+    };
+    Object.entries(sums).forEach(([k,v])=>{
+      const selectors = map[k] || [];
+      let matched = false;
+      selectors.forEach(sel=>{
+        document.querySelectorAll(sel).forEach(el=>{
+          el.textContent = formatAmt(v);
+          matched = true;
+        });
+      });
+      if(!matched){
+        const cards = document.querySelectorAll('.summary-card, .card, [data-card]');
+  const nameMap = {fuel:'FUEL', da:'DA', erda:'DA', car:'VEHICLE RENT', air:'AIRTIME', transport:'TRANSPORT', misc:'MISC', total:'TOTAL'};
+        cards.forEach(card=>{
+          const txt = (card.textContent || '').toUpperCase();
+          if(txt.includes(nameMap[k])){
+            const num = card.querySelector('.value, .val, [data-value], .amount');
+            if(num){ num.textContent = formatAmt(v); }
+          }
+        });
+      }
+    });
+    // Refit amounts on cards if autoshrink helper is present
+    try{ if(window.fitSummaryAmounts) window.fitSummaryAmounts(); }catch(_){ }
+  }
+
+  // delegate input/blur to a single handler per tbody
+  tbody.addEventListener('input', (e)=>{
+    const inp = e.target.closest('input.amt, input.amount-input');
+    if(!inp) return;
+    const row = inp.closest('.row-data');
+    if(row){
+      bindRow(row);
+      rowTotal(row);
+    }
+    recalcAll();
+  });
+
+  tbody.addEventListener('blur', (e)=>{
+    const inp = e.target.closest('input.amt, input.amount-input');
+    if(!inp || inp.hasAttribute('readonly')) return;
+    const val = parseAmt(inp.value);
+    inp.value = val ? formatAmt(val) : '';
+    const row = inp.closest('.row-data');
+    if(row) rowTotal(row);
+    recalcAll();
+  }, true);
+
+  // initial
+  bindAll();
+  recalcAll();
+
+  // new rows support
+  const mo = new MutationObserver((mutList)=>{
+    let changed=false;
+    mutList.forEach(m=>{
+      m.addedNodes && m.addedNodes.forEach(n=>{
+        if(n.nodeType===1 && n.classList.contains('row-data')){
+          bindRow(n);
+          changed=true;
+        }
+      });
+    });
+    if(changed) recalcAll();
+  });
+  mo.observe(tbody, { childList:true, subtree:true });
+
+  // Row total pill click functionality using the new confirmation modal
+  
+  function deactivateRow(row) {
+    row.classList.add('row-deactivated');
+    
+    // Reset all calendar pills - handle both span structure and direct text content
+    var pills = row.querySelectorAll('.splitflap');
+    pills.forEach(function(pill) {
+      var daySpan = pill.querySelector('.day');
+      var monthSpan = pill.querySelector('.month');
+      var lineDiv = pill.querySelector('.line');
+      
+      if (daySpan && monthSpan) {
+        // Standard structure with day and month spans
+        daySpan.textContent = 'DD';
+        monthSpan.textContent = 'MM';
+      } else if (lineDiv) {
+        // Fallback: reset entire line content to standard format
+        lineDiv.innerHTML = '<span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span>';
+      } else {
+        // Last resort: reset any text content in the pill
+        var textNodes = pill.querySelectorAll('*');
+        textNodes.forEach(function(node) {
+          if (node.textContent && (node.textContent.includes('Select') || node.textContent.includes('dates'))) {
+            node.innerHTML = '<span class="day">DD</span><span class="separator"> - </span><span class="month">MM</span>';
+          }
+        });
+      }
+    });
+    
+    // Reset all amount inputs (except readonly row total)
+    var amountInputs = row.querySelectorAll('input.amount-input');
+    amountInputs.forEach(function(input) {
+      input.value = '';
+    });
+    
+    // Disable all interactive elements
+    var interactiveElements = row.querySelectorAll('input:not([readonly]), .splitflap');
+    interactiveElements.forEach(function(element) {
+      element.disabled = true;
+      if (element.classList.contains('splitflap')) {
+        element.style.pointerEvents = 'none';
+        element.style.opacity = '0.5';
+      }
+    });
+    
+    // Recalculate totals
+    rowTotal(row);
+    recalcAll();
+  }
+  
+  function reactivateRow(row) {
+    row.classList.remove('row-deactivated');
+    
+    // Enable all interactive elements
+    var interactiveElements = row.querySelectorAll('input:not([readonly]), .splitflap');
+    interactiveElements.forEach(function(element) {
+      element.disabled = false;
+      if (element.classList.contains('splitflap')) {
+        element.style.pointerEvents = '';
+        element.style.opacity = '';
+      }
+    });
+    
+    // Recalculate totals
+    rowTotal(row);
+    recalcAll();
+  }
+  
+  // Add click handler for row total pills
+  tbody.addEventListener('click', function(e) {
+    var totalInput = e.target.closest('input.amt[readonly]');
+    if (!totalInput) return;
+    
+    var row = totalInput.closest('.row-data');
+    if (!row) return;
+    
+    var isDeactivated = row.classList.contains('row-deactivated');
+    
+    if (isDeactivated) {
+      // Reactivation confirmation
+      showConfirmationModal({
+        title: 'Reactivate beneficiary?',
+        message: "Re-enabling means you'll fund their expenses. Continue?",
+        yesText: 'Yes, Reactivate'
+      }).then(function(confirmed) {
+        if (confirmed) {
+          reactivateRow(row);
+        }
+      });
+    } else {
+      // Deactivation confirmation
+      showConfirmationModal({
+        title: 'Deactivate beneficiary?',
+        message: 'This will reset all values in this row. Continue?',
+        yesText: 'Yes, Deactivate'
+      }).then(function(confirmed) {
+        if (confirmed) {
+          deactivateRow(row);
+        }
+      });
+    }
+  });
+
+  // Car number input click handler will be attached after modal is loaded
+
+})();
+
+// Include Car Release Modal HTML and JavaScript
+// Car Modal HTML
+// Note: Car modal HTML is now loaded from _CarReleaseSystem.html to avoid duplication
+
+// Car assignment modal removed
+
+// Note: Car modal CSS is now loaded from _CarReleaseSystem.html to avoid duplication
+
+// CSS is now loaded from external files to avoid duplication and syntax conflicts
+
+// Car Release System JavaScript - Using global instance from _CarReleaseSystem.html
+// The CarReleaseSystem class and instance are defined in _CarReleaseSystem.html
+
+// Global car data storage
+let availableCars = [];
+
+// loadAvailableCars: no longer used (car assignment removed)
+
+// Populate car filter dropdowns
+function populateCarFilters() {
+  const makeFilter = document.getElementById('car-make-filter');
+  const modelFilter = document.getElementById('car-model-filter');
+  const carNumberFilter = document.getElementById('car-number-filter');
+  
+  if (!makeFilter || !modelFilter || !carNumberFilter) return;
+  
+  // Clear existing options (except first default option)
+  makeFilter.innerHTML = '<option value="">Select Make</option>';
+  modelFilter.innerHTML = '<option value="">Select Model</option>';
+  carNumberFilter.innerHTML = '<option value="">Select Vehicle Number</option>';
+  
+  // Get unique makes
+  const makes = [...new Set(availableCars.map(car => car.make))].sort();
+  makes.forEach(make => {
+    const option = document.createElement('option');
+    option.value = make;
+    option.textContent = make;
+    makeFilter.appendChild(option);
+  });
+}
+
+// Filter models based on selected make
+function filterModelsByMake() {
+  const makeFilter = document.getElementById('car-make-filter');
+  const modelFilter = document.getElementById('car-model-filter');
+  const carNumberFilter = document.getElementById('car-number-filter');
+  
+  if (!makeFilter || !modelFilter || !carNumberFilter) return;
+  
+  const selectedMake = makeFilter.value;
+  
+  // Clear model and car number filters
+  modelFilter.innerHTML = '<option value="">Select Model</option>';
+  carNumberFilter.innerHTML = '<option value="">Select Vehicle Number</option>';
+  
+  if (selectedMake) {
+    // Get models for selected make
+    const models = [...new Set(availableCars
+      .filter(car => car.make === selectedMake)
+      .map(car => car.model))].sort();
+    
+    models.forEach(model => {
+      const option = document.createElement('option');
+      option.value = model;
+      option.textContent = model;
+      modelFilter.appendChild(option);
+    });
+  }
+  
+  // Hide car details section
+  const carDetailsSection = document.getElementById('carDetailsSection');
+  if (carDetailsSection) carDetailsSection.style.display = 'none';
+}
+
+// Filter car numbers based on selected make and model
+function filterCarNumbers() {
+  const makeFilter = document.getElementById('car-make-filter');
+  const modelFilter = document.getElementById('car-model-filter');
+  const carNumberFilter = document.getElementById('car-number-filter');
+  
+  if (!makeFilter || !modelFilter || !carNumberFilter) return;
+  
+  const selectedMake = makeFilter.value;
+  const selectedModel = modelFilter.value;
+  
+  // Clear car number filter
+  carNumberFilter.innerHTML = '<option value="">Select Vehicle Number</option>';
+  
+  if (selectedMake && selectedModel) {
+    // Get car numbers for selected make and model
+    const carNumbers = availableCars
+      .filter(car => car.make === selectedMake && car.model === selectedModel)
+      .map(car => car.carNumber)
+      .sort();
+    
+    carNumbers.forEach(carNumber => {
+      const option = document.createElement('option');
+      option.value = carNumber;
+      option.textContent = carNumber;
+      carNumberFilter.appendChild(option);
+    });
+  }
+  
+  // Hide car details section
+  const carDetailsSection = document.getElementById('carDetailsSection');
+  if (carDetailsSection) carDetailsSection.style.display = 'none';
+}
+
+// Display car details when car is selected
+function displayCarDetails() {
+  const carNumberFilter = document.getElementById('car-number-filter');
+  const carDetailsSection = document.getElementById('carDetailsSection');
+  
+  if (!carNumberFilter || !carDetailsSection) return;
+  
+  const selectedCarNumber = carNumberFilter.value;
+  
+  if (selectedCarNumber) {
+    const selectedCar = availableCars.find(car => car.carNumber === selectedCarNumber);
+    
+    if (selectedCar) {
+      // Populate usage type dropdown dynamically from CarT_P data
+      const usageTypeSelect = document.getElementById('car-usage-type');
+      if (usageTypeSelect && window.availableCarsData) {
+        const uniqueUsageTypes = [...new Set(window.availableCarsData.map(car => car.usageType).filter(type => type && type.trim()))];
+        usageTypeSelect.innerHTML = uniqueUsageTypes.map(type => 
+          `<option value="${type}" ${selectedCar.usageType === type ? 'selected' : ''}>${type}</option>`
+        ).join('');
+      }
+      
+      // Populate contract type dropdown dynamically from CarT_P data
+      const contractTypeSelect = document.getElementById('car-contract-type');
+      if (contractTypeSelect && window.availableCarsData) {
+        const uniqueContractTypes = [...new Set(window.availableCarsData.map(car => car.contractType).filter(type => type && type.trim()))];
+        contractTypeSelect.innerHTML = uniqueContractTypes.map(type => 
+          `<option value="${type}" ${selectedCar.contractType === type ? 'selected' : ''}>${type}</option>`
+        ).join('');
+      }
+      
+      // Set owner information (non-editable)
+      const ownerInfo = document.getElementById('car-owner-info');
+      if (ownerInfo) {
+        ownerInfo.value = selectedCar.owner || 'N/A';
+      }
+      
+      // Display last 3 remarks
+      const remarksList = document.getElementById('car-remarks-list');
+      if (remarksList && selectedCar.remarks) {
+        remarksList.innerHTML = '';
+        selectedCar.remarks.slice(0, 3).forEach((remark, index) => {
+          const remarkItem = document.createElement('div');
+          remarkItem.className = 'remark-item';
+          remarkItem.innerHTML = `
+            <span class="remark-text">${remark}</span>
+            <span class="remark-date">${selectedCar.dates ? selectedCar.dates[index] : 'N/A'}</span>
+          `;
+          remarksList.appendChild(remarkItem);
+        });
+      }
+      
+      // Display last 3 ratings
+      const ratingsList = document.getElementById('car-ratings-list');
+      if (ratingsList && selectedCar.ratings) {
+        ratingsList.innerHTML = '';
+        selectedCar.ratings.slice(0, 3).forEach((rating, index) => {
+          const ratingItem = document.createElement('div');
+          ratingItem.className = 'rating-item';
+          
+          const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+          ratingItem.innerHTML = `
+            <span class="rating-stars">${stars}</span>
+            <span class="rating-date">${selectedCar.dates ? selectedCar.dates[index] : 'N/A'}</span>
+          `;
+          ratingsList.appendChild(ratingItem);
+        });
+      }
+      
+      // Show car details section
+      carDetailsSection.style.display = 'block';
+    }
+  } else {
+    // Hide car details section if no car selected
+    carDetailsSection.style.display = 'none';
+  }
+}
+
+// Note: Global functions openCarModal and closeCarModal are now defined in _CarReleaseSystem.html
+
+// Add event listeners for car filtering
+document.addEventListener('DOMContentLoaded', function() {
+  const makeFilter = document.getElementById('car-make-filter');
+  const modelFilter = document.getElementById('car-model-filter');
+  const carNumberFilter = document.getElementById('car-number-filter');
+  
+  if (makeFilter) {
+    makeFilter.addEventListener('change', filterModelsByMake);
+  }
+  
+  if (modelFilter) {
+    modelFilter.addEventListener('change', filterCarNumbers);
+  }
+  
+  if (carNumberFilter) {
+    carNumberFilter.addEventListener('change', displayCarDetails);
+  }
+});
+
+// Car assignment modal removed
+
+// Helper function to get project from beneficiary (placeholder)
+function getProjectFromBeneficiary(beneficiaryName) {
+  // This is a placeholder - you can enhance this to fetch actual project data
+  // from Google Apps Script or local data
+  return 'Tanzania Fund Request Project';
+}
+
+// (Removed legacy Car Assignment Modal listeners)
+
+</script>
+
+<!-- Car assignment modal removed -->
+
+<script>
+// Only keeping the car number click handlers here
+
+(function() {
+  'use strict';
+  const normalizeCarRecord = (car) => {
+    if (!car) return null;
+    const get = (...keys) => {
+      for (const key of keys) {
+        if (key in car && car[key] != null) {
+          const val = String(car[key]).trim();
+          if (val) return val;
+        }
+      }
+      return '';
+    };
+    const carNumber = get('carNumber','car_number','car','vehicleNumber','vehicle_number');
+    const make = get('make','Make','brand','Brand');
+    const model = get('model','Model');
+    const usageType = get('usageType','usage_type','Usage Type','usage','Usage');
+    const contractType = get('contractType','contract_type','Contract Type','contract','Contract','agreementType','Agreement Type');
+    const owner = get('owner','Owner','ownerName','Owner Name');
+    const status = get('status','Status','inUseRelease','In Use/Release');
+    const remarksRaw = get('remarks','Remarks','feedback','Feedback');
+    const stars = get('stars','rating','Rating');
+    const category = get('category','Category','vehicleCategory','Vehicle Category','Cat');
+    const responsibleBeneficiary = get('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','responsible');
+    let lastUsers = car.lastUsers;
+    if (!Array.isArray(lastUsers)) {
+      const lu = get('lastUsers','Last Users','users','Users','Last Used By');
+      lastUsers = lu ? lu.split(',').map(u=>u.trim()).filter(Boolean) : [];
+    }
+    return {
+      ...car,
+      carNumber: carNumber || car.carNumber || '',
+      make,
+      model,
+      usageType,
+      contractType,
+      owner,
+      status,
+      category,
+      responsibleBeneficiary,
+      'R.Beneficiary': car['R.Beneficiary'] || responsibleBeneficiary || '',
+      remarks: remarksRaw || car.remarks || '',
+      stars: stars || car.stars || 0,
+      lastUsers: lastUsers.length ? lastUsers : (Array.isArray(car.lastUsers) ? car.lastUsers : [])
+    };
+  };
+  // Car number click handlers - essential functionality only
+  
+  // Essential car number click handlers only
+  
+  // Attach click handlers immediately
+  attachCarNumberClickHandlers();
+
+
+
+  
+  // Function to attach car number click handlers
+  function resolveRowTeam(row) {
+    if (!row) return '';
+    const ds = row.dataset || {};
+    let team = (ds.teamName || ds.team || ds.teamid || row.getAttribute('data-team') || '').trim();
+    if (!team && typeof window.getActualTeamNameFromRow === 'function') {
+      try { team = (window.getActualTeamNameFromRow(row) || '').trim(); } catch(_){ /* ignore */ }
+    }
+    if (!team) {
+      const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+      const ben = benInput ? benInput.value.trim() : '';
+      if (ben && window.bDet && window.bDet[ben]) {
+        team = (window.bDet[ben].teamName || window.bDet[ben].team || '').trim();
+      }
+    }
+    if (team && team.toLowerCase() === 'unknown team') return '';
+    return team;
+  }
+
+  function resolveRowProject(row) {
+    if (!row) return '';
+    const ds = row.dataset || {};
+    let project = (row.getAttribute('data-project') || ds.project || '').trim();
+    if (!project) {
+      const headerEl = document.getElementById('selectedProjectName');
+      if (headerEl && headerEl.textContent.trim()) {
+        project = headerEl.textContent.trim().split(' [')[0];
+      }
+    }
+    if (!project) {
+      const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+      const ben = benInput ? benInput.value.trim() : '';
+      if (ben && window.bDet && window.bDet[ben]) {
+        project = (window.bDet[ben].project || '').trim();
+      }
+    }
+    if (project && project.toLowerCase() === 'unknown project') return '';
+    return project;
+  }
+
+  function attachCarNumberClickHandlers() {
+      // Ensure click handlers are attached after modal is loaded
+      setTimeout(() => {
+        // Attach car number input click handler for fragmented approach
+        document.addEventListener('click', function(event) {
+          if (event.target.classList.contains('car-number-input')) {
+            console.log('Car number input clicked:', event.target);
+            const carNumberValue = event.target.value.trim();
+            console.log('Car number value:', carNumberValue);
+            
+            if (carNumberValue) {
+              console.log('Car number filled, opening release modal for:', carNumberValue);
+
+              const row = event.target.closest('.row-data');
+              const resolvedTeam = resolveRowTeam(row);
+              const resolvedProject = resolveRowProject(row);
+              let baseCarData = {
+                carNumber: carNumberValue,
+                project: resolvedProject || 'Unknown Project',
+                projectName: resolvedProject || '',
+                team: resolvedTeam || 'Unknown Team',
+                teamName: resolvedTeam || '',
+                category: row ? (row.getAttribute('data-category') || '') : '',
+                make: 'Unknown Make',
+                model: 'Unknown Model',
+                usageType: 'Unknown Usage',
+                contractType: 'Unknown Contract',
+                owner: 'Unknown Owner',
+                status: 'IN USE',
+                lastUsers: ['Current User'],
+                remarks: '',
+                stars: 0,
+                submitter: 'Current User',
+                responsibleBeneficiary: (event.target?.dataset?.responsibleBeneficiary || '').trim()
+              };
+
+              const openModalWith = (carData) => {
+                if (typeof window.openCarModal === 'function') {
+                  window.openCarModal(carData, { carInput: event.target });
+                } else {
+                  console.error('Car modal function not available');
+                }
+              };
+
+              const mergeAndOpen = (extraData) => {
+                const normalized = extraData ? normalizeCarRecord(extraData) : null;
+                const merged = { ...baseCarData, ...(normalized || {}) };
+                // Ensure the current row's project/team context always wins
+                merged.project = baseCarData.project || merged.project || merged.Project || '';
+                merged.projectName = baseCarData.projectName || merged.projectName || merged.Project || merged.project || '';
+                merged.team = baseCarData.team || merged.team || merged.Team || '';
+                merged.teamName = baseCarData.teamName || merged.teamName || merged.Team || merged.team || '';
+                merged.category = baseCarData.category || merged.category || merged.Category || '';
+                if (baseCarData.projectName && !merged.projectName) merged.projectName = baseCarData.projectName;
+                if (baseCarData.teamName && !merged.teamName) merged.teamName = baseCarData.teamName;
+                merged.responsibleBeneficiary = baseCarData.responsibleBeneficiary || merged.responsibleBeneficiary || merged['R.Beneficiary'] || '';
+                if (merged.responsibleBeneficiary && !merged['R.Beneficiary']) {
+                  merged['R.Beneficiary'] = merged.responsibleBeneficiary;
+                }
+                // Normalise lastUsers into array if backend returns string
+                if (merged.lastUsers && !Array.isArray(merged.lastUsers)) {
+                  const users = String(merged.lastUsers || '').split(',').map(u => u.trim()).filter(Boolean);
+                  merged.lastUsers = users.length ? users : baseCarData.lastUsers;
+                }
+                openModalWith(merged);
+              };
+
+              const matchFromCached = () => {
+                if (!window.availableCarsData || !window.availableCarsData.length) return null;
+                const target = carNumberValue.trim().toUpperCase();
+                return window.availableCarsData.find(car => String(car.carNumber || '').trim().toUpperCase() === target) || null;
+              };
+
+              const cached = matchFromCached();
+              if (cached) {
+                mergeAndOpen(cached);
+                return;
+              }
+
+              if (window.google && google.script && google.script.run) {
+                google.script.run
+                  .withSuccessHandler(function(list){
+                    if (Array.isArray(list) && list.length) {
+                      const normalizedList = list.map(normalizeCarRecord);
+                      try { window.availableCarsData = normalizedList; } catch(_){ window.availableCarsData = normalizedList; }
+                      const freshMatch = matchFromCached();
+                      mergeAndOpen(freshMatch || null);
+                    } else {
+                      mergeAndOpen(null);
+                    }
+                  })
+                  .withFailureHandler(function(err){
+                    console.error('Failed to fetch vehicle metadata', err);
+                    mergeAndOpen(null);
+                  })
+                  .getAllUniqueCars();
+              } else {
+                mergeAndOpen(null);
+              }
+            }
+            else {
+              // Empty Vehicle Number: open vehicle picker dropdown modal
+              if (typeof window.openVehiclePicker === 'function') {
+                window.openVehiclePicker(event.target);
+              } else {
+                alert('Vehicle picker is not available. Please refresh the page.');
+              }
+            }
+          }
+        });
+        
+        // Debug elements removed - modal should work normally now
+      }, 100);
+    }
+})();
+</script>
+
+<script>
+// --- Vehicle Number Assignment Logic ---
+(function(){
+  'use strict';
+  
+  // Global storage for vehicle assignments (only for manual popup selections)
+  window.vehicleAssignments = {};
+  
+  // Function to store vehicle assignment (only used by vehicle popup)
+  function storeVehicleAssignment(vehicleNumber, responsibleBeneficiary) {
+    window.vehicleAssignments[vehicleNumber] = responsibleBeneficiary;
+  }
+  
+  // Function to get responsible beneficiary for a vehicle (only used by vehicle popup)
+  function getResponsibleBeneficiary(vehicleNumber) {
+    return window.vehicleAssignments[vehicleNumber] || null;
+  }
+  
+  // [REMOVED] All automatic vehicle assignment functions - only manual popup selection allowed
+  // [REMOVED] Automatic clearing and monitoring - only manual popup selection allowed
+
+})();
+</script>
+
+<script>
+// Immediate function to clear TZ-1234-AB assignments from backend
+(function() {
+  'use strict';
+  
+  console.log('[CLEAR_BACKEND] Starting to clear TZ-1234-AB from CarT_P sheet');
+  
+  // Function to clear TZ-1234-AB assignments from backend
+  function clearBackendAssignments() {
+    if (window.google && google.script && google.script.run) {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          console.log('[CLEAR_BACKEND] Success:', result);
+          if (result.ok) {
+            console.log('[CLEAR_BACKEND] ✅ Successfully cleared TZ-1234-AB assignments');
+            
+            // Clear any remaining frontend values
+            const vehicleInputs = document.querySelectorAll('input.car-number-input');
+            vehicleInputs.forEach(input => {
+              if (input.value === 'TZ-1234-AB') {
+                console.log('[CLEAR_BACKEND] Clearing frontend TZ-1234-AB');
+                input.value = '';
+                // Clear all related data attributes
+                delete input.dataset.responsibleBeneficiary;
+                delete input.dataset.lastSavedValue;
+                delete input.dataset.savedToCartP;
+                delete input.dataset.validated;
+                delete input.dataset.loadedFromInUse;
+              }
+            });
+          } else {
+            console.log('[CLEAR_BACKEND] Backend clear failed:', result.error);
+          }
+        })
+        .withFailureHandler(function(error) {
+          console.error('[CLEAR_BACKEND] Failed to clear assignments:', error);
+        })
+        .clearTZ1234ABAssignments();
+    } else {
+      console.log('[CLEAR_BACKEND] Google Apps Script not available');
+    }
+  }
+  
+  // Run the clearing function immediately
+  clearBackendAssignments();
+  
+  // Also run after a short delay to catch any delayed loading
+  setTimeout(clearBackendAssignments, 1000);
+  
+  // Run when DOM is fully loaded
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', clearBackendAssignments);
+  } else {
+    clearBackendAssignments();
+  }
+})();
+</script>
+
+<script>
+// [REMOVED] All automatic vehicle assignment logic - only vehicle popup selection allowed
+})();
+</script>
+
+<script>
+// [REMOVED] All automatic vehicle assignment logic - only vehicle popup selection allowed
+})();
+</script>
+
+<script>
+// [REMOVED] All automatic vehicle assignment logic - only vehicle popup selection allowed
+})();
+</script>
+
+<script>
+// [REMOVED] All automatic vehicle assignment logic - only vehicle popup selection allowed
+})();
+</script>
+
+<script>
+// [REMOVED] All automatic vehicle assignment logic - only vehicle popup selection allowed
+})();
+</script>
+
+<script>
+// [REMOVED] All automatic vehicle assignment logic - only vehicle popup selection allowed
+})();
+</script>
+
+<script>
+// --- Make Beneficiary Fields Non-Editable ---
+(function(){
+  'use strict';
+  
+  // Function to make beneficiary inputs readonly
+  function makeBeneficiaryInputsReadonly() {
+    const rows = document.querySelectorAll('.tbody .row-data');
+    rows.forEach(row => {
+      const benInput = row.querySelector('.cell:first-child input.txt');
+      if (benInput) {
+        benInput.setAttribute('readonly', 'true');
+        benInput.style.cursor = 'default';
+        benInput.style.backgroundColor = '#f8f9fa';
+        benInput.style.pointerEvents = 'none';
+        benInput.style.userSelect = 'none';
+        
+        // Prevent any editing attempts
+        benInput.addEventListener('keydown', function(e) {
+          e.preventDefault();
+          return false;
+        });
+        
+        benInput.addEventListener('input', function(e) {
+          e.preventDefault();
+          return false;
+        });
+        
+        benInput.addEventListener('paste', function(e) {
+          e.preventDefault();
+          return false;
+        });
+      }
+    });
+  }
+  
+  // Apply to existing rows
+  makeBeneficiaryInputsReadonly();
+  
+  // Observer for dynamically added rows
+  const tbody = document.getElementById('tbody');
+  if (tbody) {
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList') {
+          mutation.addedNodes.forEach(function(node) {
+            if (node.nodeType === 1 && node.classList.contains('row-data')) {
+              const benInput = node.querySelector('.cell:first-child input.txt');
+              if (benInput) {
+                benInput.setAttribute('readonly', 'true');
+                benInput.style.cursor = 'default';
+                benInput.style.backgroundColor = '#f8f9fa';
+                benInput.style.pointerEvents = 'none';
+                benInput.style.userSelect = 'none';
+                
+                // Prevent any editing attempts
+                benInput.addEventListener('keydown', function(e) {
+                  e.preventDefault();
+                  return false;
+                });
+                
+                benInput.addEventListener('input', function(e) {
+                  e.preventDefault();
+                  return false;
+                });
+                
+                benInput.addEventListener('paste', function(e) {
+                  e.preventDefault();
+                  return false;
+                });
+              }
+            }
+          });
+        }
+      });
+    });
+    
+    observer.observe(tbody, { childList: true, subtree: true });
+  }
+  
+  // Also apply when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', makeBeneficiaryInputsReadonly);
+  }
+})();
+</script>
+
+<script>
+// --- Manual Vehicle Entry with CarT_P Integration ---
+(function(){
+  'use strict';
+  
+  console.log('[MANUAL_VEHICLE] Initializing manual vehicle entry system');
+  
+  // [REMOVED] enableManualVehicleEntry function - no manual vehicle entry system
+  
+  // [REMOVED] saveManualVehicleAssignment function - no manual vehicle entry system
+  
+  // [REMOVED] attachManualEntryHandlers function - no manual vehicle entry system
+  
+  // [REMOVED] handleManualVehicleEntry function - no manual vehicle entry system
+  
+  // [REMOVED] initializeManualVehicleEntry function - no manual vehicle entry system
+  
+  // [REMOVED] DOMContentLoaded handler for manual vehicle entry - no manual vehicle entry system
+  
+  // [REMOVED] Global function exports for manual vehicle entry - no manual vehicle entry system
+})();
+</script>

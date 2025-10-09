@@ -1,0 +1,644 @@
+<!-- _ProjectPicker.html : Right-side sheet (GAS-ready, compact width, UI tweaks v2) -->
+<!-- Tune width by setting: :root{ --pp-width: 520px; } in your _Head before this file. -->
+<style>
+  :root{
+    --pp-accent:#7C55FF;
+    --pp-accent-2:#A78BFA;
+    --pp-accent-soft:#F3EEFF;
+    --pp-bg:#ffffff;
+    --pp-text:#1c1e26;
+    --pp-muted:#6E7482;
+    --pp-border:#E6E7F2;
+    --pp-chip:#F7F9FF;
+    --pp-chip-border:#DDE7FF;
+    --pp-ok:#12B478;
+    --pp-danger:#DB3E45;
+    --pp-shadow: 0 10px 30px rgba(18, 22, 35, 0.08);
+    /* Default width; override via --pp-width */
+    --pp-width: 540px;
+  }
+  /* Overlay + Sheet */
+  #ppOverlay{ position:fixed; inset:0; background:rgba(8,10,18,.32); opacity:0; pointer-events:none; transition:opacity .18s ease; z-index:9998; }
+  #ppOverlay.open{ opacity:1; pointer-events:auto; }
+  #ppPanel{ position:fixed; top:0; right:0; height:100vh; width:min(var(--pp-width, 540px), 95vw); background:var(--pp-bg); box-shadow:-24px 0 60px rgba(0,0,0,.16); transform:translateX(100%); transition:transform .24s ease; z-index:9999; display:flex; flex-direction:column; border-left:1px solid var(--pp-border);}  
+  #ppPanel.open{ transform:translateX(0); }
+
+  .pp-head{ height:72px; display:flex; align-items:center; gap:12px; padding:0 18px 0 20px;
+    background:linear-gradient(180deg, rgba(124,85,255,.10) 0%, #FFFFFF 100%);
+    border-bottom:1px solid var(--pp-border); position:relative; }
+  .pp-title{ font-size:clamp(16px, 3.5vw, 20px); font-weight:800; letter-spacing:.2px; white-space:nowrap; overflow:visible; text-overflow:clip; transition:font-size 0.2s ease; max-width:400px; }
+  .pp-close{ margin-left:auto; border:0; background:transparent; font-size:22px; cursor:pointer; color:var(--pp-muted); border-radius:12px; width:40px; height:40px; display:grid; place-items:center; }
+  .pp-close:hover{ background:#f1f2f9; }
+
+  .pp-body{ padding:16px 18px 14px 18px; overflow:auto; display:flex; flex-direction:column; gap:16px; }
+  .pp-row-between{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .pp-label{ font-size:14px; font-weight:700; margin-bottom:6px; }
+  .pp-label-sm{ font-size:12px; font-weight:700; color:var(--pp-muted); }
+  .pp-hint{ font-size:12px; color:var(--pp-muted); }
+
+  .pp-card{ background:#fff; border:1px solid var(--pp-border); border-radius:16px; padding:12px; box-shadow: var(--pp-shadow); }
+  .pp-card.flat{box-shadow:none;}
+
+  .pp-search{ height:44px; width:100%; border-radius:12px; border:1px solid var(--pp-border); padding:0 14px; font-size:15px; outline:none; background:var(--pp-accent-soft); }
+  .pp-section-gap{ display:flex; flex-direction:column; gap:10px; }
+
+  /* Project list */
+  .pp-proj-list{ max-height:200px; overflow:auto; border:1px solid var(--pp-border); border-radius:12px; }
+  .pp-proj-row{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; padding:10px 12px; cursor:pointer; background:#fff; }
+  .pp-proj-row:nth-child(even){ background:#FAFAFF; }
+  .pp-proj-row .dot{ width:8px; height:8px; border-radius:50%; background:var(--pp-accent); opacity:.6; }
+  .pp-proj-row .meta{ font-size:12px; color:var(--pp-muted);} 
+  .pp-proj-row[aria-selected="true"]{ background:#EEF0FF; outline:1px solid #D6D9FF; }
+  .pp-proj-row[aria-selected="true"] .tick{ opacity:1; transform:scale(1); }
+  .tick{ opacity:0; transform:scale(.8); transition: all .15s ease; font-size:16px; color:var(--pp-accent); }
+
+  /* Toolbar */
+  .pp-toolbar{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .pp-mini-btn{ height:32px; padding:0 12px; border-radius:10px; border:1px solid var(--pp-border); background:#fff; cursor:pointer; font-weight:700; font-size:12px; }
+  .pp-mini-btn.primary{ background:linear-gradient(135deg, var(--pp-accent), var(--pp-accent-2)); color:#fff; border-color:transparent; }
+  .pp-mini-btn.ghost{ background:#f6f7fb; }
+  .pp-link{ background:none; border:0; color:var(--pp-muted); text-decoration:underline; cursor:pointer; font-size:12px; }
+  .pp-sep{ width:1px; height:18px; background:var(--pp-border); }
+
+  .pp-toggle{ display:inline-flex; border:1px solid var(--pp-border); border-radius:10px; overflow:hidden; }
+  .pp-toggle button{ border:0; background:#fff; padding:6px 10px; font-size:12px; cursor:pointer; }
+  .pp-toggle button[aria-pressed="true"]{ background:linear-gradient(135deg, var(--pp-accent), var(--pp-accent-2)); color:#fff; }
+
+  /* A–Z index (wrap; "All" shown first) */
+  .pp-az{ display:flex; flex-wrap:wrap; gap:6px 6px; padding:6px 0 2px; }
+  .pp-az .az{ min-width:20px; height:22px; border-radius:7px; border:1px solid var(--pp-border); display:flex; align-items:center; justify-content:center; font-size:12px; cursor:pointer; user-select:none; padding:0 6px; }
+  .pp-az .az[aria-selected="true"]{ background:linear-gradient(135deg, var(--pp-accent), var(--pp-accent-2)); color:#fff; border-color:transparent; }
+
+  /* Selected group */
+  .pp-selected{ display:none; }
+  .pp-selected.active{ display:block; }
+  .pp-chips{ display:flex; gap:8px; flex-wrap:wrap; }
+  .pp-chip{ display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius:14px; background:var(--pp-chip); border:1px solid var(--pp-chip-border); cursor:pointer; user-select:none; transition:transform .06s ease; font-size:13px; color:#263245; }
+  .pp-chip:active{ transform:scale(.98); }
+  .pp-chip[data-active="1"]{ background:#E9FFF6; border-color:#BDEFD9; }
+  .pp-chip .count{ color:var(--pp-muted); font-size:12px; }
+  .pp-chip .check{ font-size:14px; color:var(--pp-ok); }
+
+  /* Density control (list + chips) */
+  .pp-team-list{ border:1px solid var(--pp-border); border-radius:12px; max-height:340px; overflow:auto; }
+  .pp-group{ position:sticky; top:0; background:linear-gradient(180deg,#fafaff,#fff); border-bottom:1px solid var(--pp-border); padding:6px 10px; display:flex; align-items:center; gap:10px; }
+  .pp-group .gtitle{ font-weight:800; font-size:12px; letter-spacing:.5px; color:#4a4f5c; }
+  .pp-group .ghint{ font-size:12px; color:var(--pp-muted); margin-left:auto; }
+  .pp-team-row{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:10px; padding:10px 12px; border-bottom:1px solid #f2f3fb; cursor:pointer; background:#fff; }
+  .pp-team-row.compact{ padding:6px 10px; font-size:13px; }
+  .pp-team-row:hover{ background:#f9f9ff; }
+  .pp-team-row .name{ font-weight:600; }
+  .pp-team-row .meta{ font-size:12px; color:#62718a; }
+  .pp-team-row .chk{ width:16px; height:16px; }
+
+  .pp-chipgrid{ display:flex; gap:8px; flex-wrap:wrap; padding:10px; }
+  .pp-chipgrid[data-density="compact"] .pp-chip{ padding:4px 8px; font-size:12px; border-radius:12px; }
+  .pp-chipgrid[data-density="comfort"] .pp-chip{ padding:8px 12px; font-size:14px; border-radius:16px; }
+
+  /* Footer */
+  .pp-footer{ margin-top:auto; padding:12px 18px; display:flex; align-items:center; gap:8px; border-top:1px solid var(--pp-border); background:#fff; }
+  .pp-btn{ height:44px; padding:0 18px; border-radius:12px; font-weight:700; font-size:14px; letter-spacing:.2px; cursor:pointer; border:1px solid var(--pp-border); background:#F6F7FB; color:#4a4f5c; }
+  .pp-btn.primary{ background:linear-gradient(135deg, var(--pp-accent), var(--pp-accent-2)); color:#fff; border-color:transparent; margin-left:auto; }
+  .pp-btn[disabled]{ opacity:.6; cursor:not-allowed; }
+  .kbd{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:12px; border:1px solid var(--pp-border); border-bottom-width:2px; border-radius:6px; padding:2px 6px; background:#fff;}
+</style>
+
+<!-- Overlay + Panel -->
+<div id="ppOverlay" hidden></div>
+<aside id="ppPanel" aria-hidden="true" aria-modal="true" role="dialog" aria-label="Project and Teams">
+  <div class="pp-head">
+    <div class="pp-title" id="ppTitle">Project & Teams</div>
+    <button class="pp-close" title="Close (Esc)" aria-label="Close">&times;</button>
+  </div>
+
+  <div class="pp-body">
+    <!-- Project Section -->
+    <div class="pp-section-gap">
+      <div class="pp-row-between">
+        <div class="pp-label">Project</div>
+        <div class="pp-hint">Single select</div>
+      </div>
+      <input id="ppProjSearch" class="pp-search" type="search" placeholder="Search projects…" />
+      <div class="pp-card flat">
+        <div class="pp-proj-list" id="ppProjList"></div>
+        <div class="pp-hint" style="padding:8px 10px;">Type to filter · Press <span class="kbd">Enter</span> to choose first result</div>
+      </div>
+    </div>
+
+    <!-- Teams Section -->
+    <div class="pp-section-gap">
+      <div class="pp-row-between">
+        <div class="pp-label">Teams</div>
+        <div class="pp-toolbar">
+          <div class="pp-toggle" role="group" aria-label="View mode">
+            <button id="ppViewList" aria-pressed="true">List</button>
+            <button id="ppViewChips" aria-pressed="false">Chips</button>
+          </div>
+          <div class="pp-toggle" role="group" aria-label="Density">
+            <button id="ppDensityComfort" aria-pressed="false">Comfort</button>
+            <button id="ppDensityCompact" aria-pressed="true">Compact</button>
+          </div>
+          <div class="pp-sep"></div>
+          <!-- Removed Select All (Filtered) -->
+          <button id="ppBtnSelectAllProj" class="pp-mini-btn primary">Select All in Project</button>
+        </div>
+      </div>
+
+      <input id="ppTeamSearch" class="pp-search" type="search" placeholder="Filter teams in selected project…" />
+      <div class="pp-az" id="ppAZ"></div>
+
+      <!-- Selected group -->
+      <div id="ppSelectedWrap" class="pp-selected">
+        <div class="pp-card" style="margin-top:4px;">
+          <div class="pp-row-between" style="margin-bottom:6px;">
+            <div class="pp-label-sm">Selected (<span id="ppSelCount">0</span>)</div>
+            <button id="ppBtnClearSelected" class="pp-link">Clear all</button>
+          </div>
+          <div id="ppSelectedChips" class="pp-chips"></div>
+        </div>
+      </div>
+
+      <!-- List view container -->
+      <div id="ppTeamsListCard" class="pp-card">
+        <div id="ppTeamList" class="pp-team-list" aria-label="Teams list"></div>
+        <div id="ppTeamsEmpty" class="pp-hint" style="padding:6px 2px; display:none;">No matching teams.</div>
+      </div>
+
+      <!-- Chips view container -->
+      <div id="ppTeamsChipCard" class="pp-card" style="display:none;">
+        <div id="ppTeamGrid" class="pp-chipgrid" data-density="compact"></div>
+      </div>
+
+      <div class="pp-hint">Tip: Use the A–Z scope and the toolbar. “Select All in Project” selects every team under the chosen project.</div>
+    </div>
+  </div>
+
+  <div class="pp-footer">
+    <button id="ppClear" class="pp-btn" data-pp-focus>Clear</button>
+    <div class="pp-hint" id="ppSelHint" style="margin-left:8px;">No selection</div>
+    <button id="ppApply" class="pp-btn primary" disabled>Apply</button>
+  </div>
+</aside>
+
+<script>
+(function(){
+  // Expose selected teams for external access
+  window.ppGetSelectedTeams = function() {
+    return state.selectedTeams.slice() || [];
+  };
+  
+  // Expose function to get current project ID
+  window.ppGetCurrentProject = function() {
+    return state.projectId || '';
+  };
+  'use strict';
+
+  // ---------- State ----------
+  const state = {
+    projectId: '',
+    teamIds: [],
+    projFilter: '',
+    teamFilter: '',
+    letter: '',
+    view: 'list',       // 'list' | 'chips'
+    density: 'compact', // 'compact' | 'comfort'
+    selectedTeams: [],  // Store team objects with id and name
+  };
+
+  // ---------- Elements ----------
+  const overlay = document.getElementById('ppOverlay');
+  const panel = document.getElementById('ppPanel');
+  const btnClose = panel.querySelector('.pp-close');
+
+  const projList = document.getElementById('ppProjList');
+  const projSearch = document.getElementById('ppProjSearch');
+
+  const teamSearch = document.getElementById('ppTeamSearch');
+  const azIndex = document.getElementById('ppAZ');
+  const teamList = document.getElementById('ppTeamList');
+  const teamsEmpty = document.getElementById('ppTeamsEmpty');
+  const teamGrid = document.getElementById('ppTeamGrid');
+
+  const selectedWrap = document.getElementById('ppSelectedWrap');
+  const selectedChips = document.getElementById('ppSelectedChips');
+  const selCount = document.getElementById('ppSelCount');
+  const selHint = document.getElementById('ppSelHint');
+
+  const btnSelectAllProj = document.getElementById('ppBtnSelectAllProj');
+  const btnClearSelected = document.getElementById('ppBtnClearSelected');
+
+  const btnClear = document.getElementById('ppClear');
+  const btnApply = document.getElementById('ppApply');
+
+  const viewListBtn = document.getElementById('ppViewList');
+  const viewChipsBtn = document.getElementById('ppViewChips');
+  const densityComfort = document.getElementById('ppDensityComfort');
+  const densityCompact = document.getElementById('ppDensityCompact');
+  const teamsListCard = document.getElementById('ppTeamsListCard');
+  const teamsChipCard = document.getElementById('ppTeamsChipCard');
+
+  // ---------- Utils ----------
+  const $on = (el, ev, fn) => el && el.addEventListener(ev, fn);
+  const debounce = (fn,ms=120)=>{ let t; return (...a)=>{clearTimeout(t); t=setTimeout(()=>fn(...a),ms);} };
+  const lc = s => (s||'').toString().trim().toLowerCase();
+
+  // ---------- Data sources (PTI first, API fallback) ----------
+  function readPTI(){
+    try{
+      const tag = document.getElementById('PTI');
+      if (!tag) return null;
+      return JSON.parse(tag.textContent || '{}');
+    }catch(e){ return null; }
+  }
+  const PTI = readPTI();
+
+  function loadProjects(cb){
+    // Prioritize PTI cached data for instant loading
+    if (PTI && Array.isArray(PTI.projects)) return cb(PTI.projects);
+    if (PTI && PTI.teamsByProject){
+      const derived = Object.keys(PTI.teamsByProject).sort().map(p=>({id:p, name:p}));
+      if (derived.length) return cb(derived);
+    }
+    
+    // Use timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      console.warn('Project loading timeout');
+      cb([]);
+    }, 1500); // 1.5-second timeout for projects
+    
+    google.script.run
+      .withSuccessHandler(function(projects) {
+        clearTimeout(timeoutId);
+        cb(projects || []);
+      })
+      .withFailureHandler(function(err){
+        clearTimeout(timeoutId);
+        console.warn('Failed to load projects:', err);
+        cb([]);
+      })
+      .getProjects();
+  }
+  function loadTeams(projectId, cb){
+    // Always prioritize PTI cached data for instant loading
+    if (PTI && PTI.teamsByProject && PTI.teamsByProject[projectId]) {
+      return cb(PTI.teamsByProject[projectId]);
+    }
+    
+    // Use a single call with timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      console.warn('Team loading timeout for project:', projectId);
+      cb([]);
+    }, 2000); // 2-second timeout
+    
+    google.script.run
+      .withSuccessHandler(function(teams) {
+        clearTimeout(timeoutId);
+        cb(teams || []);
+      })
+      .withFailureHandler(function(err){
+        clearTimeout(timeoutId);
+        console.warn('Failed to load teams for project:', projectId, err);
+        cb([]);
+      })
+      .getTeams(projectId);
+  }
+
+  const teamsCache = {}; // projectId -> [{id,name,count}]
+  function ensureTeams(projectId, cb){
+    if (!projectId) return cb([]);
+    if (teamsCache[projectId]) return cb(teamsCache[projectId]);
+    loadTeams(projectId, function(list){ teamsCache[projectId] = list || []; cb(teamsCache[projectId]); });
+  }
+  function teamsOf(projectId){ return teamsCache[projectId] || []; }
+
+  // ---------- Selection helpers ----------
+  function visibleTeamsRaw(){
+    let list = teamsOf(state.projectId).slice();
+    const sel = new Set(state.teamIds);
+    list = list.filter(t=> !sel.has(t.id)); // hide already selected
+    if (state.letter){ list = list.filter(t=> (t.name||'').toUpperCase().startsWith(state.letter)); }
+    if (state.teamFilter){ const q=lc(state.teamFilter); list = list.filter(t=> lc(t.name).includes(q)); }
+    list.sort((a,b)=> a.name.localeCompare(b.name));
+    return list;
+  }
+  function visibleTeamsGrouped(){
+    const list = visibleTeamsRaw();
+    const groups = new Map();
+    for(const t of list){
+      const k = (t.name||'').charAt(0).toUpperCase();
+      if(!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(t);
+    }
+    for(const v of groups.values()) v.sort((a,b)=> a.name.localeCompare(b.name));
+    return [...groups.entries()].sort((a,b)=> a[0].localeCompare(b[0]));
+  }
+  function selectedTeams(){
+    const map = new Map(teamsOf(state.projectId).map(t=>[t.id,t]));
+    return state.teamIds.map(id=> map.get(id)).filter(Boolean);
+  }
+
+  function setProject(id){
+    if (state.projectId===id) return;
+    state.projectId = id;
+    state.teamIds = [];
+    state.teamFilter='';
+    state.letter='';
+    teamSearch.value='';
+    // Repaint project list so the clicked row highlights correctly
+    renderProjects(projects);
+    ensureTeams(state.projectId, function(){ renderAll(); updateModalTitle(); });
+  }
+  function toggleTeam(id){
+    const i = state.teamIds.indexOf(id);
+    if (i>=0) state.teamIds.splice(i,1); else state.teamIds.push(id);
+    renderTeams();
+    updateFooter();
+  }
+  function selectAllInProject(){
+    const ids = teamsOf(state.projectId).map(t=>t.id);
+    const allSelected = ids.every(id=> state.teamIds.includes(id));
+    if (allSelected){ state.teamIds = []; }
+    else { state.teamIds = ids.slice(); }
+    renderTeams(); updateFooter();
+  }
+  function clearSelected(){ state.teamIds = []; renderTeams(); updateFooter(); }
+
+  // ---------- Render functions ----------
+  function updateModalTitle() {
+    const titleEl = document.getElementById('ppTitle');
+    if (!titleEl) return;
+    
+    const currentProject = projects.find(p => p.id === state.projectId);
+    if (currentProject) {
+      const teamList = teamsCache[state.projectId] || [];
+      const teamCount = teamList.length;
+      const totalBeneficiaries = getTotalBeneficiaries(state.projectId);
+      titleEl.textContent = `${currentProject.name} (${teamCount} teams, ${totalBeneficiaries} beneficiaries)`;
+    } else {
+      titleEl.textContent = 'Project & Teams';
+    }
+  }
+  
+  function getTotalBeneficiaries(projectId) {
+    const teamList = teamsCache[projectId] || [];
+    return teamList.reduce((total, team) => total + (team.count || 0), 0);
+  }
+
+  // ---------- Render ----------
+  function renderAZ(){
+    const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+    azIndex.innerHTML = [''].concat(letters).map(l=>{
+      const label = l==='' ? 'All' : l;
+      return `<div class="az" data-letter="${l}" aria-selected="${state.letter===l}">${label}</div>`;
+    }).join('');
+  }
+  function renderProjects(list){
+    const q = lc(state.projFilter);
+    const src = (q? list.filter(p=> lc(p.name).includes(q)) : list);
+    projList.innerHTML = src.map(p=>{
+      const sel = (state.projectId===p.id);
+      const teamList = teamsCache[p.id] || [];
+      const tcount = teamList.length;
+      return `<div class="pp-proj-row" data-id="${p.id}" aria-selected="${sel}">
+        <div class="dot"></div>
+        <div>
+          <div class="name" style="font-weight:700">${p.name}</div>
+          <div class="meta">${tcount? tcount+' teams' : ''}</div>
+        </div>
+        <div class="tick">✓</div>
+      </div>`;
+    }).join("");
+    if (!projList.innerHTML) projList.innerHTML = `<div style="padding:12px;color:var(--pp-muted)">No matching projects</div>`;
+  }
+  function chipHTML(t, selected){
+    const act = selected? '1':'0';
+    return `<div class="pp-chip" data-id="${t.id}" data-active="${act}">
+      ${selected? '<span class="check">✓</span>':''}
+      <span class="name">${t.name}</span>
+      <span class="count">(${t.count||0})</span>
+    </div>`;
+  }
+  function renderTeams(){
+    // Selected
+    const sel = selectedTeams();
+    selCount.textContent = sel.length;
+    selectedWrap.classList.toggle('active', sel.length>0);
+    selectedChips.innerHTML = sel.map(t=> chipHTML(t, true)).join('');
+
+    // View switch
+    teamsListCard.style.display = state.view==='list' ? 'block':'none';
+    teamsChipCard.style.display = state.view==='chips' ? 'block':'none';
+
+    if (state.view==='chips'){
+      const vis = visibleTeamsRaw();
+      teamGrid.setAttribute('data-density', state.density);
+      teamGrid.innerHTML = vis.map(t=> chipHTML(t, false)).join('');
+      teamsEmpty.style.display = vis.length? 'none' : 'block';
+      return;
+    }
+
+    // list view grouped
+    const groups = visibleTeamsGrouped();
+    let html='';
+    for(const [letter, items] of groups){
+      html += `<div class="pp-group" data-letter="${letter}">
+        <span class="gtitle">${letter || 'All'}</span>
+        <div class="ghint">${items.length} item(s)</div>
+      </div>`;
+      for(const t of items){
+        html += `<div class="pp-team-row ${state.density==='compact'?'compact':''}" data-id="${t.id}"> 
+          <input class="chk" type="checkbox" ${state.teamIds.includes(t.id)?'checked':''} />
+          <div>
+            <div class="name">${t.name}</div>
+            <div class="meta">${t.count||0} members</div>
+          </div>
+          <div></div>
+        </div>`;
+      }
+    }
+    teamList.innerHTML = html || '';
+    teamsEmpty.style.display = groups.length? 'none' : 'block';
+  }
+  function updateFooter(){
+    const projName = (projects.find(p=>p.id===state.projectId)?.name) || state.projectId || '—';
+    
+    // Calculate selected beneficiaries
+    const selectedBeneficiaries = state.teamIds.reduce((total, teamId) => {
+      const teamList = teamsCache[state.projectId] || [];
+      const team = teamList.find(t => t.id === teamId);
+      return total + (team ? (team.count || 0) : 0);
+    }, 0);
+    
+    if (state.teamIds.length > 0) {
+      selHint.innerHTML = `<b>Project:</b> ${projName} · <b>Teams:</b> ${state.teamIds.length} · <b>Beneficiaries:</b> ${selectedBeneficiaries}`;
+    } else {
+      const totalBeneficiaries = getTotalBeneficiaries(state.projectId);
+      const teamCount = (teamsCache[state.projectId] || []).length;
+      selHint.innerHTML = `<b>Project:</b> ${projName} · <b>Teams:</b> ${teamCount} · <b>Beneficiaries:</b> ${totalBeneficiaries}`;
+    }
+    
+    btnApply.disabled = !(state.projectId && state.teamIds.length>0);
+  }
+  function renderAll(){ renderAZ(); renderTeams(); updateFooter(); syncToggles(); }
+
+  function syncToggles(){
+    viewListBtn.setAttribute('aria-pressed', String(state.view==='list'));
+    viewChipsBtn.setAttribute('aria-pressed', String(state.view==='chips'));
+    densityCompact.setAttribute('aria-pressed', String(state.density==='compact'));
+    densityComfort.setAttribute('aria-pressed', String(state.density==='comfort'));
+  }
+
+  // ---------- Events ----------
+  function focusables(){
+    return panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  }
+  function trapFocus(e){
+    if (e.key !== 'Tab') return;
+    const nodes = Array.from(focusables());
+    if (!nodes.length) return;
+    const first = nodes[0], last = nodes[nodes.length-1];
+    if (e.shiftKey && document.activeElement === first){ last.focus(); e.preventDefault(); }
+    else if (!e.shiftKey && document.activeElement === last){ first.focus(); e.preventDefault(); }
+  }
+
+  $on(btnClose,'click', closePanel);
+  $on(overlay,'click', closePanel);
+  $on(document,'keydown', e=>{ if(e.key==='Escape' && panel.classList.contains('open')) closePanel(); });
+  $on(panel,'keydown', trapFocus);
+
+  $on(projList,'click', e=>{ const row = e.target.closest('.pp-proj-row'); if(!row) return; setProject(row.getAttribute('data-id')); });
+
+  $on(projSearch,'input', debounce(e=>{ state.projFilter = e.target.value||''; renderProjects(projects); }));
+  $on(teamSearch,'input', debounce(e=>{ state.teamFilter = e.target.value||''; renderTeams(); }));
+
+  // A–Z index
+  $on(azIndex,'click', e=>{ const el=e.target.closest('.az'); if(!el) return; state.letter = el.getAttribute('data-letter')||''; renderAZ(); renderTeams(); });
+
+  // list row checkbox + row click
+  $on(teamList,'click', e=>{
+    const row = e.target.closest('.pp-team-row');
+    if(!row) return;
+    if(e.target.classList.contains('chk')){ toggleTeam(row.getAttribute('data-id')); return; }
+    if(!e.target.closest('button')) toggleTeam(row.getAttribute('data-id'));
+  });
+
+  // chip grids
+  $on(teamGrid,'click', e=>{ const chip = e.target.closest('.pp-chip'); if(!chip) return; toggleTeam(chip.getAttribute('data-id')); });
+  $on(selectedChips,'click', e=>{ const chip = e.target.closest('.pp-chip'); if(!chip) return; toggleTeam(chip.getAttribute('data-id')); });
+
+  // toolbar
+  $on(btnSelectAllProj,'click', selectAllInProject);
+  $on(btnClearSelected,'click', clearSelected);
+  $on(btnClear,'click', ()=>{ state.teamIds=[]; state.teamFilter=''; state.letter=''; teamSearch.value=''; renderAZ(); renderTeams(); updateFooter(); document.dispatchEvent(new CustomEvent('pp:clear')); });
+
+  // view toggles
+  $on(viewListBtn,'click', ()=>{ state.view='list'; syncToggles(); renderTeams(); });
+  $on(viewChipsBtn,'click', ()=>{ state.view='chips'; syncToggles(); renderTeams(); });
+  $on(densityCompact,'click', ()=>{ state.density='compact'; syncToggles(); renderTeams(); });
+  $on(densityComfort,'click', ()=>{ state.density='comfort'; syncToggles(); renderTeams(); });
+
+  // Apply
+  $on(btnApply,'click', function(){
+    btnApply.disabled = true;
+    
+    // Update selectedTeams array with team objects
+    state.selectedTeams = [];
+    
+    // Get team data for selected team IDs
+    if (state.teamIds && state.teamIds.length > 0) {
+      state.teamIds.forEach(teamId => {
+        // Find team in teamsCache
+        const teamList = teamsCache[state.projectId] || [];
+        const teamData = teamList.find(t => t.id === teamId);
+        
+        if (teamData) {
+          state.selectedTeams.push({
+            id: teamId,
+            name: teamData.name,
+            projectId: state.projectId
+          });
+        } else {
+          // Fallback if team not found in cache
+          state.selectedTeams.push({
+            id: teamId,
+            name: `Team ${teamId}`,
+            projectId: state.projectId
+          });
+        }
+      });
+    }
+    
+    const currentProject = projects.find(p => p.id === state.projectId);
+    const projectName = currentProject ? currentProject.name : state.projectId;
+    
+    document.dispatchEvent(new CustomEvent('pp:applied', { 
+      detail: { 
+        projectId: projectName, 
+        teamIds: state.teamIds.slice(),
+        selectedTeams: state.selectedTeams.slice()
+      } 
+    }));
+    
+    // Notify any listeners that teams have been updated
+    if (typeof window.onTeamsUpdated === 'function') {
+      window.onTeamsUpdated(state.selectedTeams);
+    }
+    
+    closePanel();
+    setTimeout(()=>{ btnApply.disabled=false; }, 400);
+  });
+
+  // ---------- Open/Close + boot ----------
+  function openPanel(){ 
+    overlay.hidden=false; 
+    overlay.classList.add('open'); 
+    panel.classList.add('open'); 
+    panel.setAttribute('aria-hidden','false'); 
+    updateModalTitle(); 
+    setTimeout(()=>{ const f = panel.querySelector('[data-pp-focus]') || projSearch; f && f.focus(); }, 30); 
+  }
+  function closePanel(){ overlay.classList.remove('open'); panel.classList.remove('open'); panel.setAttribute('aria-hidden','true'); setTimeout(()=>overlay.hidden=true,200); }
+  window.openProjectTeamsPanel = openPanel;
+  const trigger = document.getElementById('projTeamTrigger'); if (trigger) trigger.addEventListener('click', openPanel);
+
+  // Load projects, select the first, load only first project's teams for faster startup
+  let projects = [];
+  loadProjects(function(list){
+    projects = list || [];
+    if (!state.projectId && projects.length) {
+      state.projectId = projects[0].id;
+      
+      // Dispatch event to update header with default project
+      const currentProject = projects.find(p => p.id === state.projectId);
+      const projectName = currentProject ? currentProject.name : state.projectId;
+      
+      document.dispatchEvent(new CustomEvent('pp:applied', { 
+        detail: { 
+          projectId: projectName, 
+          teamIds: [],
+          selectedTeams: []
+        } 
+      }));
+    }
+    
+    // Render projects immediately without waiting for team data
+    renderProjects(projects);
+    updateModalTitle();
+    
+    // Only load teams for the first project to reduce initial load time
+    if (projects.length > 0 && state.projectId) {
+      ensureTeams(state.projectId, function() {
+        renderAll();
+      });
+    }
+  });
+
+  // Prefetch teams when hovering a project
+  projList.addEventListener('mouseenter', function(ev){
+    const row = ev.target.closest('.pp-proj-row'); if (!row) return;
+    const pid = row.getAttribute('data-id'); if (!pid || teamsCache[pid]) return;
+    ensureTeams(pid, function(){});
+  }, true);
+
+})();
+</script>

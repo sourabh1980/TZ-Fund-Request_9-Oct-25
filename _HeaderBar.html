@@ -1,0 +1,1144 @@
+<!-- _HeaderBar.html — Topbar + project trigger (panel provided by _ProjectPicker.html) -->
+<style>
+  header.topbar {position:sticky; top:0; z-index:50; background:linear-gradient(180deg,#2b1b69,#1a0e47); border-bottom:1px solid rgba(0,0,0,.08)}
+  header.topbar .topbar-inner{display:flex; align-items:center; justify-content:space-between; gap:8px; height:40px; padding:4px 8px}
+  .chips{display:flex; align-items:center; gap:6px; color:#e7edff; font-weight:800; font-size:11px}
+  .chip{display:inline-flex; align-items:center; gap:8px; height:28px; padding:0 12px; border-radius:999px; background:#1b1632; border:1px solid #2e2750; box-shadow:0 8px 16px rgba(0,0,0,.18)}
+  .chip .dot{width:6px;height:6px;border-radius:50%;background:#ffca28;box-shadow:0 0 8px rgba(255,203,40,.85)}
+  #clockText{min-width:180px; font-variant-numeric:tabular-nums}
+  .title-wrap{display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1; min-width:0}
+  .site-title{margin:0; font-size:22px; line-height:1; font-weight:900; background:linear-gradient(90deg,#ef5da8,#22d3ee); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing:.4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .title-underline{width:260px; height:3px; border-radius:999px; background:linear-gradient(90deg,#ff6ad5,#22d3ee); filter:drop-shadow(0 2px 4px rgba(144,226,255,.28)); margin-top:4px}
+  .right-actions{display:flex; align-items:center; gap:6px}
+  #tableSearch{height:28px; min-width:260px; padding:0 12px; border-radius:12px; border:1px solid #332b5c; background:#1b1a3b; color:#eef3ff; font-weight:700; font-size:12px; outline:none}
+  #btnExport,#btnLogout{border:0; padding:6px 12px; border-radius:12px; font-weight:900; font-size:12px; color:#0b1220; cursor:pointer; box-shadow:0 8px 16px rgba(0,0,0,.18)}
+  #btnExport{background:linear-gradient(135deg,#10b981,#06b6d4)}
+  #btnLogout{background:linear-gradient(135deg,#fb7185,#f43f5e)}
+  /* Teams Icon Button Styles */
+  :root {
+    --grad-start: #ff4ecd;
+    --grad-mid:   #7a5cf9;
+    --grad-end:   #00e5ff;
+    --glass-bg: rgba(255,255,255,0.06);
+    --glass-ring: rgba(255,255,255,0.18);
+    --halo-a: rgba(255, 78, 205, 0.55);
+    --halo-b: rgba(0, 229, 255, 0.85);
+    --icon-box: 40px;
+    --radius: 12px;
+    --glyph-w: 2.8px;
+    --focus: 2px;
+    
+    /* Red violation state colors */
+    --red-grad-start: #ff4444;
+    --red-grad-mid: #ff6b6b;
+    --red-grad-end: #ff8e8e;
+    --red-halo-a: rgba(255, 68, 68, 0.7);
+    --red-halo-b: rgba(255, 107, 107, 0.9);
+    
+    /* Green success state colors */
+    --green-grad-start: #00ff88;
+    --green-grad-mid: #00e676;
+    --green-grad-end: #4caf50;
+    --green-halo-a: rgba(0, 255, 136, 0.6);
+    --green-halo-b: rgba(0, 230, 118, 0.8);
+  }
+
+  .team-btn {
+    position: relative;
+    width: var(--icon-box);
+    height: var(--icon-box);
+    border-radius: var(--radius);
+    border: 1px solid var(--glass-ring);
+    background: linear-gradient(145deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+    display: inline-grid;
+    place-items: center;
+    cursor: pointer;
+    padding: 0;
+    outline: none;
+    transition: transform .25s ease, box-shadow .25s ease, filter .25s ease, background .25s ease, border-color .25s ease;
+    box-shadow:
+      0 0 0 rgba(0,0,0,0),
+      0 0 16px var(--halo-a),
+      0 0 22px var(--halo-a),
+      0 0 28px var(--halo-b);
+    animation: pulseGlow 2.8s ease-in-out infinite;
+  }
+
+  .team-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    animation: none;
+    box-shadow: none;
+  }
+
+  .team-btn:hover:not(:disabled),
+  .team-btn:focus-visible:not(:disabled) {
+    transform: scale(1.04);
+    border-color: rgba(255,255,255,0.28);
+    animation-play-state: paused;
+    box-shadow:
+      0 0 0 rgba(0,0,0,0),
+      0 0 22px var(--halo-b),
+      0 0 36px var(--halo-b),
+      0 0 44px var(--halo-b);
+  }
+
+  .team-btn:active:not(:disabled) {
+    transform: scale(.98);
+    box-shadow:
+      0 0 0 rgba(0,0,0,0),
+      0 0 10px var(--halo-a),
+      0 0 16px var(--halo-a),
+      0 0 20px var(--halo-b);
+  }
+
+  .team-btn:focus-visible::after {
+    content: "";
+    position: absolute;
+    inset: calc(-1 * var(--focus));
+    border-radius: calc(var(--radius) + var(--focus));
+    box-shadow: 0 0 0 var(--focus) rgba(0, 229, 255, 0.8);
+    pointer-events: none;
+  }
+
+  /* Violation state - red glow */
+  .team-btn.violation {
+    box-shadow:
+      0 0 0 rgba(0,0,0,0),
+      0 0 16px var(--red-halo-a),
+      0 0 22px var(--red-halo-a),
+      0 0 28px var(--red-halo-b);
+    animation: pulseGlowRed 2.0s ease-in-out infinite;
+  }
+
+  .team-btn.violation:hover:not(:disabled),
+  .team-btn.violation:focus-visible:not(:disabled) {
+    box-shadow:
+      0 0 0 rgba(0,0,0,0),
+      0 0 22px var(--red-halo-b),
+      0 0 36px var(--red-halo-b),
+      0 0 44px var(--red-halo-b);
+  }
+
+  /* Success state - green glow */
+  .team-btn.success {
+    box-shadow:
+      0 0 0 rgba(0,0,0,0),
+      0 0 16px var(--green-halo-a),
+      0 0 22px var(--green-halo-a),
+      0 0 28px var(--green-halo-b);
+    animation: pulseGlowGreen 3.0s ease-in-out infinite;
+  }
+
+  .team-btn.success:hover:not(:disabled),
+  .team-btn.success:focus-visible:not(:disabled) {
+    box-shadow:
+      0 0 0 rgba(0,0,0,0),
+      0 0 22px var(--green-halo-b),
+      0 0 36px var(--green-halo-b),
+      0 0 44px var(--green-halo-b);
+  }
+
+  @keyframes pulseGlow {
+    0%   { filter: brightness(1);   box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 16px var(--halo-a), 0 0 22px var(--halo-a), 0 0 28px var(--halo-b); }
+    35%  { filter: brightness(1.06); box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 22px var(--halo-b), 0 0 30px var(--halo-b), 0 0 40px var(--halo-b); }
+    70%  { filter: brightness(1);   box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 16px var(--halo-a), 0 0 22px var(--halo-a), 0 0 28px var(--halo-b); }
+    100% { filter: brightness(1);   box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 16px var(--halo-a), 0 0 22px var(--halo-a), 0 0 28px var(--halo-b); }
+  }
+
+  @keyframes pulseGlowRed {
+    0%   { filter: brightness(1);   box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 16px var(--red-halo-a), 0 0 22px var(--red-halo-a), 0 0 28px var(--red-halo-b); }
+    50%  { filter: brightness(1.1); box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 24px var(--red-halo-b), 0 0 32px var(--red-halo-b), 0 0 40px var(--red-halo-b); }
+    100% { filter: brightness(1);   box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 16px var(--red-halo-a), 0 0 22px var(--red-halo-a), 0 0 28px var(--red-halo-b); }
+  }
+
+  @keyframes pulseGlowGreen {
+    0%   { filter: brightness(1);   box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 16px var(--green-halo-a), 0 0 22px var(--green-halo-a), 0 0 28px var(--green-halo-b); }
+    40%  { filter: brightness(1.08); box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 20px var(--green-halo-b), 0 0 28px var(--green-halo-b), 0 0 36px var(--green-halo-b); }
+    100% { filter: brightness(1);   box-shadow: 0 0 0 rgba(0,0,0,0), 0 0 16px var(--green-halo-a), 0 0 22px var(--green-halo-a), 0 0 28px var(--green-halo-b); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .team-btn { animation: none; }
+  }
+
+  .icon-svg {
+    width: calc(var(--icon-box) - 6px);
+    height: calc(var(--icon-box) - 6px);
+    display: block;
+    shape-rendering: geometricPrecision;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  .stroke { stroke: url(#teamGrad); stroke-width: var(--glyph-w); stroke-linecap: round; stroke-linejoin: round; fill: none; vector-effect: non-scaling-stroke; }
+  .soft  { filter: drop-shadow(0 0 8px rgba(255,78,205,0.65)) drop-shadow(0 0 12px rgba(0,229,255,0.75)) drop-shadow(0 0 4px rgba(255,255,255,0.3)); }
+  
+  /* State-specific stroke and glow effects */
+  .team-btn.violation .stroke { stroke: url(#teamGradRed); }
+  .team-btn.violation .soft { filter: drop-shadow(0 0 6px rgba(255,68,68,0.7)) drop-shadow(0 0 10px rgba(255,107,107,0.8)); }
+  
+  .team-btn.success .stroke { stroke: url(#teamGradGreen); }
+  .team-btn.success .soft { filter: drop-shadow(0 0 6px rgba(0,255,136,0.6)) drop-shadow(0 0 10px rgba(0,230,118,0.7)); }
+
+  /* Telecom Projects Icon Styles */
+:root{
+  /* Enhanced brand gradient */
+  --grad-a:#ff3d71; /* vibrant pink */
+  --grad-b:#8b5cf6; /* rich violet */
+  --grad-c:#06ffa5; /* electric cyan */
+  --grad-d:#ffd700; /* gold accent */
+
+  /* Enhanced glow effects */
+  --halo-a: rgba(255, 61, 113, .65);
+  --halo-b: rgba(6, 255, 165, .85);
+  --halo-c: rgba(139, 92, 246, .75);
+
+  /* Sizing */
+  --headbar-h:56px;
+  --icon-box:44px;       /* larger for 4K quality */
+  --radius:14px;         /* more rounded */
+  --glyph:3.0px;         /* thicker strokes for clarity */
+  --focus:2px;
+}
+
+/* ===== Enhanced Icon Button ===== */
+.icon-btn{
+  position:relative;
+  width:var(--icon-box);
+  height:var(--icon-box);
+  border-radius:var(--radius);
+  border:1px solid rgba(255,255,255,.25);
+  background:linear-gradient(145deg, rgba(255,255,255,.12), rgba(255,255,255,.06));
+  backdrop-filter:blur(10px);
+  display:grid;
+  place-items:center;
+  cursor:pointer;
+  padding:0;
+  outline:none;
+  transition:all .3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 0 20px var(--halo-a),
+    0 0 30px var(--halo-b),
+    0 0 40px var(--halo-c),
+    inset 0 1px 0 rgba(255,255,255,.2);
+  margin-left:8px;
+  animation:gentlePulse 4s ease-in-out infinite;
+}
+
+.icon-btn:hover,.icon-btn:focus-visible{
+  transform:scale(1.06) translateY(-1px);
+  border-color:rgba(255,255,255,.4);
+  background:linear-gradient(145deg, rgba(255,255,255,.18), rgba(255,255,255,.1));
+  box-shadow:
+    0 0 30px var(--halo-b),
+    0 0 50px var(--halo-b),
+    0 0 70px var(--halo-c),
+    0 8px 25px rgba(0,0,0,.15),
+    inset 0 1px 0 rgba(255,255,255,.3);
+}
+
+.icon-btn:active{
+  transform:scale(.96);
+  box-shadow:
+    0 0 15px var(--halo-a),
+    0 0 25px var(--halo-b),
+    0 2px 10px rgba(0,0,0,.2);
+}
+
+.icon-btn:focus-visible::after{
+  content:"";
+  position:absolute;
+  inset:calc(-1 * var(--focus));
+  border-radius:calc(var(--radius) + var(--focus));
+  box-shadow:0 0 0 var(--focus) var(--halo-b);
+  pointer-events:none;
+}
+
+/* Enhanced animation states */
+.icon-btn.active{animation:activeGlow 1.5s ease-in-out infinite;border-color:rgba(0,229,255,.6);background:linear-gradient(145deg, rgba(0,229,255,.12), rgba(255,78,205,.08))}
+.icon-btn.selected{animation:selectedPulse 2s ease-in-out infinite;border-color:rgba(89,255,168,.8);background:linear-gradient(145deg, rgba(89,255,168,.15), rgba(0,229,255,.1))}
+
+@keyframes gentlePulse{
+  0%   { filter:brightness(1); }
+  50%  { filter:brightness(1.08); }
+  100% { filter:brightness(1); }
+}
+
+@keyframes activeGlow{
+  0%   { box-shadow:0 0 20px var(--halo-b), 0 0 30px var(--halo-b), 0 0 40px var(--halo-a); }
+  50%  { box-shadow:0 0 35px var(--halo-b), 0 0 50px var(--halo-b), 0 0 65px var(--halo-a); }
+  100% { box-shadow:0 0 20px var(--halo-b), 0 0 30px var(--halo-b), 0 0 40px var(--halo-a); }
+}
+
+@keyframes selectedPulse{
+  0%   { box-shadow:0 0 25px rgba(89,255,168,.7), 0 0 40px rgba(89,255,168,.5), 0 0 55px rgba(6,255,165,.4); }
+  50%  { box-shadow:0 0 40px rgba(89,255,168,.9), 0 0 60px rgba(89,255,168,.7), 0 0 80px rgba(6,255,165,.5); }
+  100% { box-shadow:0 0 25px rgba(89,255,168,.7), 0 0 40px rgba(89,255,168,.5), 0 0 55px rgba(6,255,165,.4); }
+}
+
+/* Project container and letter styling */
+.project-container{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.project-letter{
+  font-size:32px;
+  font-weight:900;
+  color:#22d3ee;
+  text-shadow:none;
+  line-height:1;
+  display:block;
+}
+
+.project-name{
+  color:#22d3ee;
+  font-size:clamp(10px, 2.5vw, 14px);
+  font-weight:600;
+  white-space:nowrap;
+  opacity:0;
+  transform:translateX(-10px);
+  transition:opacity 0.3s ease, transform 0.3s ease, font-size 0.2s ease;
+  max-width:0;
+  overflow:hidden;
+  text-overflow:clip;
+}
+
+.project-name.show{
+  opacity:1;
+  transform:translateX(0);
+  max-width:400px;
+  overflow:visible;
+}
+
+.soft{
+  filter:drop-shadow(0 0 8px rgba(255,78,205,.65)) drop-shadow(0 0 12px rgba(0,229,255,.75)) drop-shadow(0 0 4px rgba(255,255,255,.35));
+}
+
+/* ===== Micro-animations inside the icon ===== */
+/* 1) Sequential bar glow bottom -> top */
+.bar{fill:url(#grad1)}
+.bar-glow{filter:drop-shadow(0 0 6px rgba(0,229,255,.75))}
+.bar:nth-child(1){opacity:.7}
+.bar:nth-child(2){opacity:.7}
+.bar:nth-child(3){opacity:.7}
+.bar:nth-child(4){opacity:.7}
+
+/* 2) Arrow - static, no animation */
+.arrow{stroke:url(#grad1);stroke-width:var(--glyph);fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* 3) Tower wave - static */
+.wave{opacity:.7}
+
+/* Enhanced styling when active */
+.icon-btn.active .bar{opacity:.9}
+.icon-btn.active .arrow{opacity:.9}
+.icon-btn.active .wave{opacity:.9}
+
+.icon-btn.selected .bar{filter:drop-shadow(0 0 8px rgba(89,255,168,.8))}
+.icon-btn.selected .arrow{stroke:url(#selectedGrad)}
+.icon-btn.selected .wave{filter:drop-shadow(0 0 6px rgba(89,255,168,.6))}
+
+/* Enhanced notification badge */
+.badge{
+  position:absolute;
+  top:-6px;
+  right:-6px;
+  min-width:18px;
+  height:18px;
+  padding:0 5px;
+  border-radius:999px;
+  background:linear-gradient(135deg, var(--grad-d), #ff6b35);
+  color:#000;
+  font-weight:800;
+  font-size:10px;
+  line-height:18px;
+  display:none;
+  box-shadow:
+    0 4px 15px rgba(0,0,0,.4),
+    0 0 20px rgba(255,215,0,.6),
+    inset 0 1px 0 rgba(255,255,255,.3);
+  border:1px solid rgba(255,255,255,.2);
+  animation:badgePulse 2s ease-in-out infinite;
+}
+
+.badge.show{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+@keyframes badgePulse{
+  0%   { transform:scale(1); }
+  50%  { transform:scale(1.1); }
+  100% { transform:scale(1); }
+}
+</style>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="chips">
+      <div class="chip">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="clockText">20th Aug 2025 - 17:09:27</span>
+        <span aria-hidden="true">•</span><span id="wxTemp">4°C</span>
+        <span aria-hidden="true">•</span><span id="wxRain">🌧</span>
+        <span aria-hidden="true">•</span><span id="wxHum">--%</span>
+      </div>
+      <!-- Project Letter Button -->
+      <div class="project-container">
+        <button id="projectsBtn" class="icon-btn" aria-label="Projects" title="Projects" type="button">
+          <span class="project-letter soft">P</span>
+          <span id="projectsBadge" class="badge" aria-hidden="true">0</span>
+        </button>
+        <span id="selectedProjectName" class="project-name"></span>
+      </div>
+    </div>
+
+    <div class="title-wrap">
+      <h1 class="site-title">Fund Request Tanzania Form</h1>
+      <div class="title-underline" aria-hidden="true"></div>
+    </div>
+
+    <div class="right-actions">
+      <button id="teamSidebarBtn" class="team-btn" type="button" title="Select Team" onclick="openTeamSidebar()" disabled>
+        <svg class="icon-svg" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="teamGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="var(--grad-start)" />
+              <stop offset="50%" stop-color="var(--grad-mid)" />
+              <stop offset="100%" stop-color="var(--grad-end)" />
+            </linearGradient>
+            <linearGradient id="teamGradRed" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="var(--red-grad-start)" />
+              <stop offset="50%" stop-color="var(--red-grad-mid)" />
+              <stop offset="100%" stop-color="var(--red-grad-end)" />
+            </linearGradient>
+            <linearGradient id="teamGradGreen" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="var(--green-grad-start)" />
+              <stop offset="50%" stop-color="var(--green-grad-mid)" />
+              <stop offset="100%" stop-color="var(--green-grad-end)" />
+            </linearGradient>
+          </defs>
+          <g class="soft">
+            <path class="stroke" d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle class="stroke" cx="9" cy="7" r="4" />
+            <path class="stroke" d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path class="stroke" d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </g>
+        </svg>
+      </button>
+      <input id="tableSearch" type="search" placeholder="Search…" />
+      <button id="btnExport" type="button" title="Export">Export</button>
+      <button id="btnLogout" type="button" title="Logout">Logout</button>
+    </div>
+  </div>
+</header>
+
+<script>
+/* Project Button and Picker Integration */
+(function(){
+  var projectsBtn = document.getElementById('projectsBtn');
+  var selectedProjectName = document.getElementById('selectedProjectName');
+  
+  if (!projectsBtn) return;
+  
+  // Handle project button click to open picker
+  projectsBtn.addEventListener('click', function(){
+    if (window.openProjectTeamsPanel) {
+      window.openProjectTeamsPanel();
+    } else if (window.ppOpen) {
+      window.ppOpen();
+    } else {
+      console.log('Project picker not available');
+    }
+  });
+  
+  // Function to get team count and beneficiary count
+  function getTeamAndBeneficiaryInfo() {
+    let teamCount = 0;
+    let totalBeneficiaries = 0;
+    
+    try {
+      // Get selected teams from ProjectPicker if available
+      if (window.ppGetSelectedTeams) {
+        const selectedTeams = window.ppGetSelectedTeams() || [];
+        teamCount = selectedTeams.length;
+        
+        // Calculate total beneficiaries across all teams
+        selectedTeams.forEach(team => {
+          if (window.getBeneficiaryCountForTeam) {
+            const beneficiaryCount = window.getBeneficiaryCountForTeam(team.name);
+            totalBeneficiaries += beneficiaryCount;
+          }
+        });
+      }
+    } catch (error) {
+      console.log('Error getting team/beneficiary info:', error);
+    }
+    
+    return { teamCount, totalBeneficiaries };
+  }
+  
+  // Listen for project selection events from the picker
+  document.addEventListener('pp:applied', function(event) {
+    console.log('pp:applied event received:', event.detail);
+    
+    if (event.detail && event.detail.projectId) {
+      // Get the project name from the projectId
+      var projectName = event.detail.projectId;
+      if (projectName) {
+        const { teamCount, totalBeneficiaries } = getTeamAndBeneficiaryInfo();
+        const displayText = teamCount > 0 ? 
+          `${projectName} [${teamCount}], [${totalBeneficiaries}]` : 
+          projectName;
+        selectedProjectName.textContent = displayText;
+        selectedProjectName.classList.add('show');
+        console.log('Project name set to:', displayText);
+      }
+    }
+  });
+  
+  // Also listen for direct project updates
+  window.updateSelectedProject = function(projectName) {
+    if (projectName && selectedProjectName) {
+      const { teamCount, totalBeneficiaries } = getTeamAndBeneficiaryInfo();
+      const displayText = teamCount > 0 ? 
+        `${projectName} [${teamCount}], [${totalBeneficiaries}]` : 
+        projectName;
+      selectedProjectName.textContent = displayText;
+      selectedProjectName.classList.add('show');
+    } else if (selectedProjectName) {
+      selectedProjectName.textContent = '';
+      selectedProjectName.classList.remove('show');
+    }
+  };
+  
+  // Function to update project display with current team/beneficiary info
+  window.updateProjectDisplay = function() {
+    if (selectedProjectName && selectedProjectName.textContent) {
+      const currentText = selectedProjectName.textContent;
+      // Extract just the project name (remove existing counts if any)
+      const projectName = currentText.split(' [')[0];
+      window.updateSelectedProject(projectName);
+    }
+  };
+  
+  // Listen for team selection changes to update counts
+  document.addEventListener('teamsSelected', function() {
+    setTimeout(window.updateProjectDisplay, 100);
+  });
+  
+  // Also listen for team sidebar apply events
+  document.addEventListener('teamSidebarApplied', function() {
+    setTimeout(window.updateProjectDisplay, 100);
+  });
+})();
+
+/* Tanzania Date/Time and Dar es Salaam Weather */
+(function(){
+  'use strict';
+  
+  console.log('Tanzania header script starting...');
+  
+  // Elements
+  var clockText = document.getElementById('clockText');
+  var wxTemp = document.getElementById('wxTemp');
+  var wxRain = document.getElementById('wxRain');
+  var wxHum = document.getElementById('wxHum');
+  
+  console.log('Elements found:', {
+    clockText: !!clockText,
+    wxTemp: !!wxTemp,
+    wxRain: !!wxRain,
+    wxHum: !!wxHum
+  });
+  
+  if (!clockText || !wxTemp || !wxRain || !wxHum) {
+    console.error('Missing required elements for Tanzania header!');
+    return;
+  }
+  
+  // Weather API configuration
+  var WEATHER_API_KEY = 'your_api_key_here'; // Replace with actual API key
+  var DAR_ES_SALAAM_COORDS = { lat: -6.7924, lon: 39.2083 };
+  
+  // Update Tanzania date and time
+  function updateTanzaniaTime() {
+    try {
+      var now = new Date();
+      var tanzaniaTime = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Africa/Dar_es_Salaam',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).format(now);
+      
+      // Format: "20th Aug 2025 - 17:09:27"
+      var parts = tanzaniaTime.split(', ');
+      var datePart = parts[0];
+      var timePart = parts[1];
+      
+      // Add ordinal suffix to day
+      var dayMatch = datePart.match(/(\d+)/);
+      if (dayMatch) {
+        var day = parseInt(dayMatch[1]);
+        var ordinal = getOrdinalSuffix(day);
+        var formattedDate = datePart.replace(/\d+/, day + ordinal);
+        clockText.textContent = formattedDate + ' - ' + timePart;
+      } else {
+        clockText.textContent = datePart + ' - ' + timePart;
+      }
+    } catch (error) {
+      console.error('Error updating Tanzania time:', error);
+      clockText.textContent = 'Time unavailable';
+    }
+  }
+  
+  // Get ordinal suffix for day
+  function getOrdinalSuffix(day) {
+    if (day >= 11 && day <= 13) return 'th';
+    switch (day % 10) {
+      case 1: return 'st';
+      case 2: return 'nd';
+      case 3: return 'rd';
+      default: return 'th';
+    }
+  }
+  
+  // Fetch weather data for Dar es Salaam
+  function updateWeather() {
+    try {
+      // Using wttr.in - free weather service, no API key required
+      fetch('https://wttr.in/Dar_es_Salaam?format=j1', {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; FundRequestTanzania/1.0)'
+        }
+      })
+      .then(function(response) {
+        if (!response.ok) {
+          throw new Error('Weather API error: ' + response.status);
+        }
+        return response.json();
+      })
+      .then(function(data) {
+        var current = data.current_condition[0];
+        
+        // Update temperature
+        wxTemp.textContent = current.temp_C + '°C';
+        
+        // Update weather icon based on conditions
+        var weatherIcon = getWeatherIconFromDescription(current.weatherDesc[0].value);
+        wxRain.textContent = weatherIcon;
+        
+        // Update humidity
+        wxHum.textContent = current.humidity + '%';
+      })
+      .catch(function(error) {
+        console.error('Error fetching weather:', error);
+        // Fallback to simulated realistic weather for Dar es Salaam
+        updateSimulatedWeather();
+      });
+    } catch (error) {
+      console.error('Error in updateWeather:', error);
+      // Fallback to simulated realistic weather for Dar es Salaam
+      updateSimulatedWeather();
+    }
+  }
+  
+  // Simulated weather for Dar es Salaam (tropical climate)
+  function updateSimulatedWeather() {
+    var hour = new Date().getHours();
+    var isRainySeason = [3, 4, 5, 10, 11, 12].includes(new Date().getMonth());
+    
+    // Typical Dar es Salaam temperatures (26-32°C)
+     var baseTemp = isRainySeason ? 27 : 29;
+    var tempVariation = Math.sin((hour - 6) * Math.PI / 12) * 3;
+    var temp = Math.round(baseTemp + tempVariation + (Math.random() - 0.5) * 2);
+    
+    // Humidity (typically 70-85%)
+    var humidity = Math.round(75 + Math.random() * 10);
+    
+    // Weather conditions based on season and time
+     var weatherIcon;
+     if (isRainySeason && Math.random() > 0.6) {
+      weatherIcon = Math.random() > 0.5 ? '🌧' : '⛈';
+    } else if (hour >= 6 && hour <= 18) {
+      weatherIcon = Math.random() > 0.7 ? '☀️' : '⛅';
+    } else {
+      weatherIcon = '🌙';
+    }
+    
+    wxTemp.textContent = temp + '°C';
+    wxRain.textContent = weatherIcon;
+    wxHum.textContent = humidity + '%';
+  }
+  
+  // Get weather icon from description
+  function getWeatherIconFromDescription(description) {
+    var desc = description.toLowerCase();
+    if (desc.includes('sunny') || desc.includes('clear')) return '☀️';
+    if (desc.includes('partly cloudy')) return '⛅';
+    if (desc.includes('cloudy') || desc.includes('overcast')) return '☁️';
+    if (desc.includes('rain') || desc.includes('shower')) return '🌧';
+    if (desc.includes('thunder') || desc.includes('storm')) return '⛈';
+    if (desc.includes('mist') || desc.includes('fog')) return '🌫';
+    return '🌤';
+  }
+  
+  // Initialize
+  function init() {
+    console.log('Initializing Tanzania header functionality...');
+    // Update time immediately and then every second
+    updateTanzaniaTime();
+    setInterval(updateTanzaniaTime, 1000);
+    
+    // Update weather immediately and then every 10 minutes
+    updateWeather();
+    setInterval(updateWeather, 10 * 60 * 1000);
+    console.log('Tanzania header initialized successfully');
+  }
+  
+  // Start when DOM is ready
+  console.log('Document ready state:', document.readyState);
+  if (document.readyState === 'loading') {
+    console.log('Waiting for DOMContentLoaded...');
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    console.log('DOM already ready, initializing immediately...');
+    init();
+  }
+})();
+
+/* Teams Icon State Management */
+(function(){
+  'use strict';
+  
+  // Teams icon state management
+  function updateTeamsIconState() {
+    const teamBtn = document.getElementById('teamSidebarBtn');
+    if (!teamBtn) {
+      console.log('Teams icon button not found');
+      return;
+    }
+    
+    console.log('Updating Teams icon state...');
+    
+    // Check summary cards for violations (F E C A T M)
+    const summaryCards = document.querySelectorAll('.cards .card, .splitflap--holo, .traffic-light');
+    let hasViolations = false;
+    let hasTeamsSelected = false;
+    let hasData = false;
+    
+    // Check F E C A T M expense symbols for red violations
+    const expenseSymbols = document.querySelectorAll('.expense-symbol');
+    expenseSymbols.forEach(symbol => {
+      const symbolClasses = symbol.className || '';
+      
+      // Check for red violation state
+      if (symbolClasses.includes('red')) {
+        hasViolations = true;
+        console.log('Found violation in expense symbol:', symbol.textContent, symbol);
+      }
+      
+      // If we have any symbols (red, green, or grey), we have data
+      if (symbolClasses.includes('red') || symbolClasses.includes('green') || symbolClasses.includes('grey')) {
+        hasData = true;
+      }
+    });
+    
+    // Also check summary cards for additional data indicators
+    summaryCards.forEach(card => {
+      const cardText = card.textContent || '';
+      const cardClasses = card.className || '';
+      
+      // Check for red state indicators
+      if (cardClasses.includes('violation') || 
+          cardClasses.includes('error') || 
+          cardClasses.includes('red') ||
+          card.style.backgroundColor?.includes('red') ||
+          card.style.color?.includes('red')) {
+        hasViolations = true;
+        console.log('Found violation in summary card:', card);
+      }
+      
+      // Check if card has data (non-zero values)
+      const valueMatch = cardText.match(/([0-9]+\.?[0-9]*)/); 
+      if (valueMatch && parseFloat(valueMatch[1]) > 0) {
+        hasData = true;
+      }
+    });
+    
+    // Check if teams are selected by looking for team data
+    const tableRows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+    const teamNames = new Set();
+    
+    tableRows.forEach(row => {
+      let teamName = '';
+      if (typeof getActualTeamNameFromRow === 'function') {
+        teamName = getActualTeamNameFromRow(row);
+      } else {
+        teamName = row.dataset.team || row.getAttribute('data-team') || '';
+      }
+      
+      if (teamName && teamName.trim()) {
+        teamNames.add(teamName.trim());
+        hasTeamsSelected = true;
+      }
+    });
+    
+    // Also check validation functions if available
+    if (typeof getExpenseValidationStatus === 'function' && teamNames.size > 0) {
+      const categories = ['fuel', 'erda', 'carrent', 'airtime', 'transport', 'misc'];
+      
+      teamNames.forEach(teamName => {
+        categories.forEach(category => {
+          try {
+            const status = getExpenseValidationStatus(teamName, category);
+            if (status === 'violation') {
+              hasViolations = true;
+            }
+            if (status === 'violation' || status === 'compliant') {
+              hasData = true;
+            }
+          } catch (error) {
+            // Ignore validation errors, rely on visual indicators
+          }
+        });
+      });
+    }
+    
+    console.log(`Teams icon state - hasViolations: ${hasViolations}, hasTeamsSelected: ${hasTeamsSelected}, hasData: ${hasData}`);
+    
+    // Remove existing state classes
+    teamBtn.classList.remove('violation', 'success');
+    
+    // Apply appropriate state based on requirements:
+    // a) Page loads: default blue glow (no classes)
+    // b) Teams selected + no violations: green glow
+    // c) Any violations detected: red glow
+    if (hasViolations) {
+      teamBtn.classList.add('violation');
+      console.log('Applied violation state (red glow) - violations detected');
+    } else if (hasTeamsSelected && hasData) {
+      teamBtn.classList.add('success');
+      console.log('Applied success state (green glow) - teams selected, no violations');
+    } else {
+      console.log('Applied default state (blue glow) - page load or no data');
+    }
+  }
+  
+  // Monitor for data changes
+  function setupTeamsIconMonitoring() {
+    console.log('Setting up Teams icon monitoring...');
+    
+    // Initial check with delay to ensure other scripts are loaded
+    setTimeout(updateTeamsIconState, 2000);
+    
+    // Monitor input changes
+    document.addEventListener('input', function(e) {
+      if (e.target.classList.contains('amount-input') || 
+          e.target.classList.contains('beneficiary-input') ||
+          e.target.classList.contains('account-holder-input') ||
+          e.target.classList.contains('car-number-input')) {
+        console.log('Input change detected, updating Teams icon state');
+        // Delay to allow validation to complete
+        setTimeout(updateTeamsIconState, 200);
+      }
+    });
+    
+    // Monitor date selection changes
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('.splitflap') || 
+          e.target.closest('.calendar-pill') ||
+          e.target.id === 'applyBtn' ||
+          e.target.closest('#applyBtn')) {
+        console.log('Date selection change detected, updating Teams icon state');
+        setTimeout(updateTeamsIconState, 500);
+      }
+    });
+    
+    // Monitor for validation state changes
+    document.addEventListener('animationend', function(e) {
+      if (e.target.classList.contains('splitflap--holo')) {
+        console.log('Date animation completed, updating Teams icon state');
+        setTimeout(updateTeamsIconState, 200);
+      }
+    });
+    
+    // Monitor expense symbols (F E C A T M) for visual changes
+    const expenseSymbolObserver = new MutationObserver(function(mutations) {
+      let shouldUpdate = false;
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && 
+            (mutation.attributeName === 'class' || mutation.attributeName === 'style')) {
+          console.log('Expense symbol visual change detected');
+          shouldUpdate = true;
+        }
+        if (mutation.type === 'childList' || mutation.type === 'characterData') {
+          console.log('Expense symbol content change detected');
+          shouldUpdate = true;
+        }
+      });
+      
+      if (shouldUpdate) {
+        setTimeout(updateTeamsIconState, 300);
+      }
+    });
+    
+    // Observe team sidebar and expense symbols for changes
+    const teamSidebar = document.getElementById('teamSidebar');
+    if (teamSidebar) {
+      expenseSymbolObserver.observe(teamSidebar, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    }
+    
+    // Also observe existing expense symbols
+    const expenseSymbols = document.querySelectorAll('.expense-symbol');
+    expenseSymbols.forEach(symbol => {
+      expenseSymbolObserver.observe(symbol, {
+        attributes: true,
+        childList: true,
+        subtree: true,
+        characterData: true
+      });
+    });
+    
+    // More frequent periodic checks for real-time responsiveness
+    setInterval(updateTeamsIconState, 1000);
+    
+    // Also listen for team sidebar events that might change violation states
+    document.addEventListener('click', function(event) {
+      // If clicking on team sidebar buttons or test buttons, update icon state
+      if (event.target.closest('#teamSidebar') || 
+          event.target.textContent?.includes('Add Test Data') ||
+          event.target.textContent?.includes('Test Violations') ||
+          event.target.textContent?.includes('Refresh Symbols')) {
+        setTimeout(updateTeamsIconState, 500);
+      }
+    });
+    
+    // Listen for table changes that might affect validation
+    const tableObserver = new MutationObserver(function(mutations) {
+      let shouldUpdate = false;
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' || 
+            (mutation.type === 'attributes' && mutation.attributeName === 'data-team')) {
+          shouldUpdate = true;
+        }
+      });
+      
+      if (shouldUpdate) {
+        setTimeout(updateTeamsIconState, 200);
+      }
+    });
+    
+    // Observe table for data changes
+    const tableElement = document.querySelector('.tbody, #tbody');
+    if (tableElement) {
+      tableObserver.observe(tableElement, {
+        attributes: true,
+        childList: true,
+        subtree: true
+      });
+    }
+    
+    console.log('Teams icon monitoring setup complete');
+  }
+  
+
+  
+  // Add manual test function for debugging
+  window.testTeamsIconState = function() {
+    console.log('\n=== MANUAL TEAMS ICON TEST ===');
+    updateTeamsIconState();
+    console.log('Teams icon state updated manually');
+  };
+  
+  // Global function that can be called when expense symbols are updated
+  window.notifyTeamsIconUpdate = function() {
+    console.log('Teams icon update notification received');
+    setTimeout(updateTeamsIconState, 100);
+  };
+  
+  // Listen for custom events that indicate symbol updates
+  document.addEventListener('expenseSymbolsUpdated', function() {
+    console.log('Expense symbols updated event received');
+    setTimeout(updateTeamsIconState, 100);
+  });
+  
+  // Override console.log temporarily to catch symbol generation logs
+  const originalConsoleLog = console.log;
+  console.log = function(...args) {
+    const message = args.join(' ');
+    // Check if this is a symbol generation log
+    if (message.includes('symbols HTML') || 
+        message.includes('set to RED') || 
+        message.includes('set to GREEN') ||
+        message.includes('set to GREY')) {
+      // Trigger icon update after symbol changes
+      setTimeout(updateTeamsIconState, 50);
+    }
+    return originalConsoleLog.apply(console, args);
+  };
+  
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupTeamsIconMonitoring);
+  } else {
+    setupTeamsIconMonitoring();
+  }
+})();
+
+// Telecom Projects Icon functionality
+(() => {
+  const projectsBtn = document.getElementById('projectsBtn');
+  const projectsBadge = document.getElementById('projectsBadge');
+  
+  if (!projectsBtn || !projectsBadge) {
+    console.log('Telecom Projects Icon elements not found');
+    return;
+  }
+  
+  let isProjectSelected = false;
+  let isTeamSelected = false;
+  let selectedProjectsCount = 0;
+  let selectedTeamsCount = 0;
+
+  // Update icon state based on selections
+  function updateIconState() {
+    // Remove all state classes
+    projectsBtn.classList.remove('active', 'selected');
+    
+    if (isProjectSelected && isTeamSelected) {
+      // Both project and teams selected - fully active state
+      projectsBtn.classList.add('selected');
+    } else if (isProjectSelected || isTeamSelected) {
+      // Partial selection - active but not complete
+      projectsBtn.classList.add('active');
+    }
+    
+    // Update badge
+    const totalCount = selectedProjectsCount + selectedTeamsCount;
+    if (totalCount > 0) {
+      projectsBadge.textContent = totalCount;
+      projectsBadge.classList.add('show');
+    } else {
+      projectsBadge.classList.remove('show');
+    }
+  }
+
+  // Simulate project selection
+  function selectProjects(count = 1) {
+    isProjectSelected = true;
+    selectedProjectsCount = count;
+    updateIconState();
+    console.log(`Telecom Projects: Selected ${count} project(s)`);
+  }
+
+  // Simulate team selection
+  function selectTeams(count = 1) {
+    isTeamSelected = true;
+    selectedTeamsCount = count;
+    updateIconState();
+    console.log(`Telecom Projects: Selected ${count} team(s)`);
+  }
+
+  // Reset selections
+  function resetSelections() {
+    isProjectSelected = false;
+    isTeamSelected = false;
+    selectedProjectsCount = 0;
+    selectedTeamsCount = 0;
+    updateIconState();
+    console.log('Telecom Projects: Selections reset');
+  }
+
+  // Click handler to open project picker
+  projectsBtn.addEventListener('click', function() {
+    console.log('Telecom Projects Icon clicked - attempting to open project picker');
+    
+    // Try to open the project picker using the correct function name
+    if (window.openProjectTeamsPanel){
+      window.openProjectTeamsPanel();
+      console.log('Project picker opened via window.openProjectTeamsPanel');
+      return;
+    }
+    
+    // Fallback: try alternative function names
+    if (window.ppOpen){
+      window.ppOpen();
+      console.log('Project picker opened via window.ppOpen');
+      return;
+    }
+    
+    console.log('Project picker function not found');
+  });
+
+  // Global functions for external integration
+  window.telecomProjectsIcon = {
+    selectProjects,
+    selectTeams,
+    resetSelections,
+    updateIconState,
+    getState: () => ({
+      isProjectSelected,
+      isTeamSelected,
+      selectedProjectsCount,
+      selectedTeamsCount
+    })
+  };
+
+  // Integration with existing project picker and team sidebar
+  // Listen for project picker events
+  document.addEventListener('projectsSelected', function(event) {
+    const count = event.detail?.count || 1;
+    selectProjects(count);
+  });
+
+  // Listen for team sidebar events
+  document.addEventListener('teamsSelected', function(event) {
+    const count = event.detail?.count || 1;
+    selectTeams(count);
+  });
+
+  // Listen for reset events
+  document.addEventListener('selectionsReset', function() {
+    resetSelections();
+  });
+
+  // Monitor existing functions if available
+  if (typeof window.ppGetSelectedTeams === 'function') {
+    // Check project picker state periodically
+    setInterval(() => {
+      const teams = window.ppGetSelectedTeams();
+      if (teams && teams.length > 0) {
+        if (!isProjectSelected) {
+          selectProjects(1); // Assume 1 project when teams are selected
+        }
+        if (selectedTeamsCount !== teams.length) {
+          selectTeams(teams.length);
+        }
+      } else if (isProjectSelected || isTeamSelected) {
+        resetSelections();
+      }
+    }, 1000);
+  }
+
+  // Initialize
+  updateIconState();
+  
+  console.log('Telecom Projects Icon initialized in header bar');
+  console.log('Available methods:', Object.keys(window.telecomProjectsIcon));
+})();
+</script>

@@ -1,0 +1,149 @@
+<style>
+  /* Compact cards — half height, two-line layout (name + amount) */
+  .cards{ --card-h: 48px; --radius: 22px; }
+
+  .cards .card{
+    height: var(--card-h);
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    position: relative; overflow: hidden;
+    box-shadow: 0 10px 26px rgba(33, 21, 77, 0.35);
+    transition: transform 160ms ease, box-shadow 160ms ease, background 200ms ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cards .card::before{
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.15), inset 0 -12px 28px rgba(0,0,0,.30);
+  }
+  .cards .card:hover{ transform: translateY(-2px); box-shadow: 0 16px 34px rgba(33, 21, 77, 0.42); }
+
+  /* Two-row content */
+  .cards .content{
+    display:flex; flex-direction:column;
+    justify-content:center; align-items:center;
+    height:100%; text-align:center; gap:2px;
+  }
+  .cards .name{
+    font-weight:800; letter-spacing:.04em; text-transform:uppercase; text-shadow:0 1px 0 rgba(0,0,0,.25);
+    line-height:1; font-size:.80rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .cards .amount{
+    align-self:auto;
+    font-weight:900; font-size:1.30rem; line-height:1.05; font-variant-numeric:tabular-nums;
+    text-shadow:0 1px 0 rgba(0,0,0,.25);
+    white-space:nowrap; overflow:hidden; text-overflow:clip;
+    transition: font-size .12s ease;
+    width: 100%;
+    padding: 0 2px;
+    transform-origin: center;
+  }
+  .cards .amount.shrink1{ font-size:1.15rem; }
+  .cards .amount.shrink2{ font-size:1.02rem; }
+  .cards .amount.shrink3{ font-size:0.90rem; }
+  .cards .amount.shrink4{ font-size:0.80rem; }
+  .cards .amount.shrink5{ font-size:0.70rem; letter-spacing: -0.5px; }
+  .cards .amount.shrink6{ font-size:0.65rem; letter-spacing: -0.8px; }
+  .cards .amount.shrink7{ font-size:0.60rem; letter-spacing: -1px; }
+  .cards .amount.shrink8{ font-size:0.55rem; letter-spacing: -1.2px; transform: scaleX(0.95); }
+</style>
+
+<section class="cards">
+  <div class="card fuel" data-cal="fuel" role="button" tabindex="0" aria-label="Open Fuel calendar">
+    <div class="content">
+      <div class="name">FUEL</div>
+      <div class="amount" data-field-amt="fuel">0.00</div>
+    </div>
+  </div>
+
+  <div class="card da" data-cal="da" role="button" tabindex="0" aria-label="Open DA calendar">
+    <div class="content">
+  <div class="name">DA</div>
+  <div class="amount" data-field-amt="da">0.00</div>
+    </div>
+  </div>
+
+  <div class="card carrent" data-cal="car" role="button" tabindex="0" aria-label="Open Vehicle Rent calendar">
+    <div class="content">
+      <div class="name">VEHICLE RENT</div>
+      <div class="amount" data-field-amt="car">0.00</div>
+    </div>
+  </div>
+
+  <div class="card airtime" data-cal="air" role="button" tabindex="0" aria-label="Open Airtime calendar">
+    <div class="content">
+      <div class="name">AIRTIME</div>
+      <div class="amount" data-field-amt="air">0.00</div>
+    </div>
+  </div>
+
+  <div class="card transport" data-cal="transport" role="button" tabindex="0" aria-label="Open Transport calendar">
+    <div class="content">
+      <div class="name">TRANSPORT</div>
+      <div class="amount" data-field-amt="transport">0.00</div>
+    </div>
+  </div>
+
+  <div class="card misc" data-cal="misc" role="button" tabindex="0" aria-label="Open Misc calendar">
+    <div class="content">
+      <div class="name">MISC</div>
+      <div class="amount" data-field-amt="misc">0.00</div>
+    </div>
+  </div>
+
+  <div class="card total" data-cal="global" role="button" tabindex="0" aria-label="Open Global calendar">
+    <div class="content">
+      <div class="name">TOTAL REQ</div>
+      <div class="amount" data-field-amt="total">0.00</div>
+    </div>
+  </div>
+</section>
+
+<script>
+(function(){
+  // Make each card open the left-drawer calendar using your existing openCalendar(host, field)
+  function setupCardListeners() {
+    document.querySelectorAll('.cards .card[data-cal]').forEach(card=>{
+      card.addEventListener('click', ()=>{ if(window.openCalendar) openCalendar(card, card.dataset.cal); });
+      card.addEventListener('keydown', (e)=>{ if((e.key==='Enter'||e.key===' ') && window.openCalendar){ e.preventDefault(); openCalendar(card, card.dataset.cal);} });
+    });
+  }
+  
+  // Set up listeners after DOM is fully loaded to ensure openCalendar function is available
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupCardListeners);
+  } else {
+    setupCardListeners();
+  }
+
+  // Enhanced autoshrink so large amounts always remain visible on the card
+  function fit(el){
+    if(!el) return;
+    el.classList.remove('shrink1','shrink2','shrink3','shrink4','shrink5','shrink6','shrink7','shrink8');
+    if(el.scrollWidth > el.clientWidth) el.classList.add('shrink1');
+    if(el.scrollWidth > el.clientWidth) el.classList.add('shrink2');
+    if(el.scrollWidth > el.clientWidth) el.classList.add('shrink3');
+    if(el.scrollWidth > el.clientWidth) el.classList.add('shrink4');
+    if(el.scrollWidth > el.clientWidth) el.classList.add('shrink5');
+    if(el.scrollWidth > el.clientWidth) el.classList.add('shrink6');
+    if(el.scrollWidth > el.clientWidth) el.classList.add('shrink7');
+    if(el.scrollWidth > el.clientWidth) el.classList.add('shrink8');
+  }
+  function fitAll(){ 
+    document.querySelectorAll('.cards .amount').forEach(fit);
+    // Run fit twice to ensure proper sizing after DOM updates
+    setTimeout(() => document.querySelectorAll('.cards .amount').forEach(fit), 10);
+  }
+  const cardsRoot = document.querySelector('.cards');
+  if(cardsRoot){
+    const mo = new MutationObserver(fitAll);
+    mo.observe(cardsRoot, {subtree:true, characterData:true, childList:true});
+    window.addEventListener('load', fitAll);
+    window.addEventListener('resize', fitAll);
+    // expose for other scripts after totals recalc
+    window.fitSummaryAmounts = fitAll;
+  }
+})();
+</script>

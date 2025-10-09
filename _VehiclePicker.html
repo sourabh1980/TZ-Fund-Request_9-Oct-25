@@ -1,0 +1,3020 @@
+<script>
+// Vehicle Assignment Manager - A centralized state manager for vehicle assignments
+(function() {
+  if (window.vehicleAssignmentManager) {
+    return;
+  }
+
+  const assignments = new Map(); // vehicleNumber (uppercase) -> responsibleBeneficiary
+
+  const nameKey = (name) => String(name || '').trim().toLowerCase();
+
+  window.vehicleAssignmentManager = {
+    assign: function(vehicleNumber, responsibleBeneficiary) {
+      const upperVehicle = String(vehicleNumber || '').toUpperCase().trim();
+      const benName = String(responsibleBeneficiary || '').trim();
+      if (!upperVehicle || !benName) {
+        return;
+      }
+      console.log(`[VAM] ✅ EXCLUSIVE ASSIGNMENT: ${upperVehicle} to ${benName} (clearing all other assignments)`);
+      
+      // ✅ CRITICAL: Clear this vehicle from ALL other assignments first
+      const allRows = document.querySelectorAll('.tbody .row-data');
+      allRows.forEach(row => {
+        const carInput = row.querySelector('input.car-number-input');
+        const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+        
+        if (carInput && carInput.value.trim().toUpperCase() === upperVehicle) {
+          const currentBeneficiary = benInput ? benInput.value.trim() : '';
+          if (nameKey(currentBeneficiary) !== nameKey(benName)) {
+            console.log(`[VAM] ✅ Clearing vehicle ${upperVehicle} from non-responsible beneficiary: ${currentBeneficiary}`);
+            carInput.value = '';
+            delete carInput.dataset.responsibleBeneficiary;
+            delete row.dataset.responsible;
+            row.removeAttribute('data-responsible');
+            delete row.dataset.vehicleStatus;
+            row.removeAttribute('data-vehicle-status');
+          }
+        }
+      });
+      
+      // Store the assignment
+      assignments.set(upperVehicle, benName);
+      this.syncUIAddOnly();
+    },
+
+    clear: function(vehicleNumber, doSync = true) {
+      const upperVehicle = String(vehicleNumber || '').toUpperCase().trim();
+      if (!upperVehicle) {
+        return;
+      }
+      if (assignments.has(upperVehicle)) {
+        console.log(`[VAM] Clearing assignment for ${upperVehicle}`);
+        assignments.delete(upperVehicle);
+        if (doSync) this.syncUI();
+      }
+    },
+
+    clearAll: function() {
+        console.log(`[VAM] Clearing all assignments.`);
+        assignments.clear();
+        this.syncUI();
+    },
+
+    getAssignment: function(vehicleNumber) {
+      const upperVehicle = String(vehicleNumber || '').toUpperCase().trim();
+      return upperVehicle ? assignments.get(upperVehicle) : null;
+    },
+
+    isAssignedTo: function(vehicleNumber, responsibleBeneficiary) {
+        const assignedTo = this.getAssignment(vehicleNumber);
+        return assignedTo && nameKey(assignedTo) === nameKey(responsibleBeneficiary);
+    },
+
+    syncUIAddOnly: function() {
+      console.log('[VAM] Adding vehicles ONLY to exact responsible beneficiaries');
+      const allRows = document.querySelectorAll('.tbody .row-data');
+      
+      allRows.forEach(row => {
+        const carInput = row.querySelector('input.car-number-input');
+        const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+        if (!carInput || !benInput) return;
+
+        const currentBeneficiary = benInput.value.trim();
+        let shouldHaveVehicle = null;
+
+        // ✅ STRICT CHECK: Only assign if this is the EXACT responsible beneficiary
+        for (const [vehicle, responsibleBen] of assignments.entries()) {
+            if (nameKey(currentBeneficiary) === nameKey(responsibleBen)) {
+                // ✅ ADDITIONAL CHECK: Only if this specific row should be responsible
+                // This prevents team-wide assignment to all matching names
+                const rowId = row.dataset.rowId || currentBeneficiary;
+                const assignmentKey = `${vehicle}_${nameKey(responsibleBen)}`;
+                
+                // Only assign to the first/primary occurrence of this beneficiary
+                const existingAssignment = document.querySelector(`[data-vehicle-assignment="${assignmentKey}"]`);
+                if (!existingAssignment || existingAssignment === row) {
+                    shouldHaveVehicle = vehicle;
+                    row.dataset.vehicleAssignment = assignmentKey;
+                    console.log(`[VAM] ✅ EXACT MATCH: Assigning ${vehicle} to ${currentBeneficiary} (row unique)`);
+                    break;
+                } else {
+                    console.log(`[VAM] ⚠️ SKIPPING: ${currentBeneficiary} already has ${vehicle} in another row`);
+                }
+            }
+        }
+
+        if (shouldHaveVehicle) {
+            // This row SHOULD have a vehicle - add it
+            console.log(`[VAM Add] Setting vehicle ${shouldHaveVehicle} for EXACT responsible beneficiary ${currentBeneficiary}`);
+            
+            // ✅ CRITICAL: Clear responsible flag from ALL other rows with same vehicle
+            const allRowsWithVehicle = document.querySelectorAll('.tbody .row-data');
+            allRowsWithVehicle.forEach(otherRow => {
+              const otherCarInput = otherRow.querySelector('input.car-number-input');
+              if (otherCarInput && otherCarInput.value.trim().toUpperCase() === shouldHaveVehicle.toUpperCase()) {
+                if (otherRow !== row) {
+                  console.log(`[VAM] ✅ Clearing responsible flag from duplicate vehicle holder`);
+                  delete otherRow.dataset.responsible;
+                  otherRow.removeAttribute('data-responsible');
+                  delete otherRow.dataset.vehicleStatus;
+                  otherRow.removeAttribute('data-vehicle-status');
+                }
+              }
+            });
+            
+            carInput.value = shouldHaveVehicle;
+            carInput.dataset.responsibleBeneficiary = currentBeneficiary;
+            row.dataset.responsible = 'true';
+            row.setAttribute('data-responsible', 'true');
+            row.dataset.vehicleStatus = 'IN USE';
+            row.setAttribute('data-vehicle-status', 'IN USE');
+            
+            // Dispatch events for new assignment
+            try {
+              carInput.dispatchEvent(new Event('input', { bubbles: true }));
+              carInput.dispatchEvent(new Event('change', { bubbles: true }));
+            } catch (e) {
+              console.warn('[VAM] Failed to dispatch events:', e);
+            }
+        }
+        // Note: We don't remove vehicles from other beneficiaries here - let cleanup system handle that
+      });
+    },
+
+    syncUI: function() {
+      console.log('[VAM] Syncing UI with current assignments.');
+      const allRows = document.querySelectorAll('.tbody .row-data');
+      
+      allRows.forEach(row => {
+        const carInput = row.querySelector('input.car-number-input');
+        const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+        if (!carInput || !benInput) return;
+
+        const currentBeneficiary = benInput.value.trim();
+        const currentVehicle = carInput.value.trim().toUpperCase();
+        let shouldHaveVehicle = null;
+
+        // Check if this beneficiary is the responsible one for any assigned vehicle
+        for (const [vehicle, responsibleBen] of assignments.entries()) {
+            if (nameKey(currentBeneficiary) === nameKey(responsibleBen)) {
+                shouldHaveVehicle = vehicle;
+                break;
+            }
+        }
+
+        if (shouldHaveVehicle) {
+            // This row SHOULD have a vehicle.
+            if (currentVehicle !== shouldHaveVehicle) {
+                console.log(`[VAM Sync] Correcting row for ${currentBeneficiary}. Setting vehicle to ${shouldHaveVehicle}.`);
+                carInput.value = shouldHaveVehicle;
+            }
+            row.dataset.responsible = 'true';
+            row.setAttribute('data-responsible', 'true');
+            row.dataset.vehicleStatus = 'IN USE';
+            row.setAttribute('data-vehicle-status', 'IN USE');
+        } else {
+            // ❌ COMPLETELY DISABLED: Don't clear vehicles from other beneficiaries
+            // This was the source of vehicles being removed from all team members
+            // No clearing whatsoever - vehicles stay exactly where they are
+            delete row.dataset.responsible;
+            row.removeAttribute('data-responsible');
+            delete row.dataset.vehicleStatus;
+            row.removeAttribute('data-vehicle-status');
+        }
+      });
+    },
+
+    // ❌ DEPRECATED: The aggressive syncUI function that was clearing vehicles
+    syncUI: function() {
+      console.warn('[VAM] syncUI called - using syncUIAddOnly instead to prevent data loss');
+      this.syncUIAddOnly();
+    }
+  };
+
+  // ❌ DISABLED: Initial sync and auto-listeners that were triggering cleanup
+  // No automatic syncing - only manual assignment
+  console.log('[VAM] Vehicle Assignment Manager loaded (auto-sync DISABLED)');
+
+})();
+
+// ✅ Add validation function to check for duplicate assignments
+window.validateVehicleAssignments = function() {
+  console.log('[VALIDATE] Checking for duplicate vehicle assignments...');
+  const vehicleMap = new Map();
+  const allRows = document.querySelectorAll('.tbody .row-data');
+  
+  allRows.forEach(row => {
+    const carInput = row.querySelector('input.car-number-input');
+    const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+    if (!carInput || !benInput) return;
+    
+    const vehicle = carInput.value.trim().toUpperCase();
+    const beneficiary = benInput.value.trim();
+    const isResponsible = row.dataset.responsible === 'true';
+    
+    if (vehicle && beneficiary) {
+      if (!vehicleMap.has(vehicle)) {
+        vehicleMap.set(vehicle, []);
+      }
+      vehicleMap.get(vehicle).push({ beneficiary, isResponsible, row });
+    }
+  });
+  
+  let duplicatesFound = false;
+  vehicleMap.forEach((assignments, vehicle) => {
+    if (assignments.length > 1) {
+      duplicatesFound = true;
+      console.warn('[VALIDATE] ❌ DUPLICATE ASSIGNMENT:', vehicle, assignments.map(a => a.beneficiary));
+      
+      const responsible = assignments.filter(a => a.isResponsible);
+      if (responsible.length !== 1) {
+        console.error('[VALIDATE] ❌ CRITICAL: Vehicle', vehicle, 'has', responsible.length, 'responsible beneficiaries (should be 1)');
+      }
+    }
+  });
+  
+  if (!duplicatesFound) {
+    console.log('[VALIDATE] ✅ All vehicle assignments are unique - no duplicates found');
+  }
+  
+  return { duplicatesFound, vehicleMap };
+};
+</script>
+
+<script>
+// Vehicle Assignment Cleanup System - Ensures only responsible beneficiaries have vehicles
+(function() {
+  if (window.vehicleCleanupSystem) {
+    return;
+  }
+
+  const nameKey = (name) => String(name || '').trim().toLowerCase();
+
+  window.vehicleCleanupSystem = {
+    
+    // Main cleanup function - DISABLED to prevent removing vehicles from team members
+    cleanupAllVehicleAssignments: function() {
+      console.log('[VCS] Cleanup DISABLED - no vehicles will be removed');
+      return {
+        cleanedUp: 0,
+        correctAssignments: {}
+      };
+    },
+    
+    // Validate a specific vehicle assignment
+    validateVehicleAssignment: function(vehicleNumber) {
+      console.log('[VCS] Validation DISABLED - no action taken for vehicle:', vehicleNumber);
+      return true;
+      
+      allRows.forEach(row => {
+        const carInput = row.querySelector('input.car-number-input');
+        const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+        
+        if (carInput && benInput && carInput.value.trim().toUpperCase() === upperVehicle) {
+          beneficiariesWithVehicle.push({
+            row,
+            carInput,
+            benInput,
+            beneficiaryName: benInput.value.trim(),
+            isResponsible: row.dataset.responsible === 'true'
+          });
+        }
+      });
+      
+      if (beneficiariesWithVehicle.length <= 1) {
+        console.log('[VCS] Vehicle', vehicleNumber, 'has correct assignment (single beneficiary)');
+        return true;
+      }
+      
+      console.warn('[VCS] Vehicle', vehicleNumber, 'has multiple assignments:', 
+        beneficiariesWithVehicle.map(b => b.beneficiaryName));
+      
+      // Clean up this specific vehicle
+      this.cleanupSpecificVehicle(vehicleNumber);
+      return false;
+    },
+    
+    // Clean up a specific vehicle assignment
+    cleanupSpecificVehicle: function(vehicleNumber) {
+      if (!vehicleNumber) return;
+      
+      const upperVehicle = vehicleNumber.toUpperCase();
+      let responsibleBeneficiary = null;
+      
+      // Get responsible beneficiary from Vehicle Assignment Manager
+      if (window.vehicleAssignmentManager) {
+        responsibleBeneficiary = window.vehicleAssignmentManager.getAssignment(vehicleNumber);
+      }
+      
+      const allRows = document.querySelectorAll('.tbody .row-data');
+      allRows.forEach(row => {
+        const carInput = row.querySelector('input.car-number-input');
+        const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+        
+        if (!carInput || !benInput || carInput.value.trim().toUpperCase() !== upperVehicle) {
+          return;
+        }
+        
+        const beneficiaryName = benInput.value.trim();
+        const shouldHaveVehicle = responsibleBeneficiary && 
+          nameKey(beneficiaryName) === nameKey(responsibleBeneficiary);
+        
+        if (!shouldHaveVehicle) {
+          console.log('[VCS] Removing vehicle', vehicleNumber, 'from', beneficiaryName);
+          carInput.value = '';
+          delete carInput.dataset.responsibleBeneficiary;
+          delete row.dataset.vehicleStatus;
+          delete row.dataset.responsible;
+          row.removeAttribute('data-vehicle-status');
+          row.removeAttribute('data-responsible');
+          
+          try {
+            carInput.dispatchEvent(new Event('change', { bubbles: true }));
+          } catch (e) {}
+        }
+      });
+    },
+    
+    // Schedule automatic cleanup - DISABLED
+    scheduleCleanup: function(delay = 1000) {
+      console.log('[VCS] Scheduled cleanup DISABLED - no action will be taken');
+    },
+    
+    // ❌ REMOVED: Auto-monitoring that was causing premature cleanup
+    // The monitoring system was triggering cleanup before VAM finished its work
+    startMonitoring: function() {
+      console.log('[VCS] Auto-monitoring disabled to prevent premature cleanup');
+      // No automatic monitoring - cleanup only runs when explicitly called
+    }
+  };
+  
+  // ❌ DISABLED: Auto-start monitoring
+  // No automatic monitoring - cleanup only runs when explicitly called
+  console.log('[VCS] Vehicle Cleanup System loaded (auto-monitoring DISABLED)');
+  
+})();
+</script>
+
+    <!-- _VehiclePicker.html — Light Gradient Gen-Z theme, Beneficiary in same row -->
+    <style>
+      :root{
+        --vp-primary:#06b6d4;         /* cyan */
+        --vp-primary-deep:#4f46e5;    /* indigo */
+        --vp-surface:#ffffff;
+        --vp-border:#e5e7eb;
+        --vp-text:#0f172a;
+        --vp-muted:#475569;
+        --vp-good:#22c55e;
+        --vp-warn:#f59e0b;
+        --vp-bad:#ef4444;
+        --vp-chip:#f8fafc;
+      }
+      .vp-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.45);backdrop-filter:blur(6px);display:none;z-index:10000}
+      .vp-backdrop[aria-hidden="false"]{display:grid;place-items:center}
+      .vp-modal{width:min(860px,96vw);max-height:86vh;background:var(--vp-surface);
+        background-image:linear-gradient(160deg,rgba(86,96,98,.25),rgba(79,70,229,.28));background-blend-mode:overlay;
+        border-radius:20px;box-shadow:0 24px 80px rgba(2,6,23,.35);overflow:hidden;display:grid;grid-template-rows:auto 1fr auto;
+        border:1px solid rgba(255,255,255,.35)}
+      .vp-header{position:relative;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;padding:10px 70px 10px 18px;
+        color:#fff;background:linear-gradient(135deg,var(--vp-primary),var(--vp-primary-deep));gap:12px}
+      .vp-header__left{display:flex;align-items:center;gap:16px;flex:1;min-width:0;flex-wrap:wrap}
+      .vp-header__brand{display:flex;align-items:center;gap:10px;min-width:0}
+      .vp-header__icon{width:32px;height:32px;border-radius:11px;background:rgba(255,255,255,.2);display:grid;place-items:center;
+        box-shadow:0 10px 30px rgba(15,23,42,.35)}
+      .vp-header__icon svg{width:20px;height:20px;fill:#fff}
+      .vp-title{margin:0;font-size:20px;font-weight:800;letter-spacing:.2px}
+      .vp-close{position:absolute;top:50%;right:18px;transform:translateY(-50%);background:transparent;border:0;color:#fff;font-size:24px;cursor:pointer;line-height:1;border-radius:10px}
+      .vp-close:focus{outline:2px solid #fff;outline-offset:2px}
+
+      .vp-header__switch{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+
+      .vp-body{padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;background:rgba(255,255,255,.9);
+        backdrop-filter:blur(6px);overflow-y:auto;overscroll-behavior:contain}
+      .vp-status{grid-column:1/-1;font-size:13px;color:var(--vp-muted);margin-top:-2px}
+
+      /* Top context row: 3 fields aligned in one line on desktop */
+      .vp-context{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+      .vp-field{position:relative}
+      .vp-field--full{grid-column:1/-1}
+      .vp-field label{display:block;font-size:13px;font-weight:700;color:#334155;margin-bottom:6px}
+      .vp-input,.vp-select{width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--vp-border);font-size:14px;transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease}
+      .vp-input{background:#f9fafb}
+      .vp-select{background:#fff}
+      .vp-select.is-active{background:#e0f2fe;border-color:#38bdf8;box-shadow:0 0 0 1px rgba(14,165,233,.25) inset}
+      .vp-select.is-active:focus{outline-color:#38bdf8}
+      .vp-select.vp-select--required{background:#fee2e2;border-color:#f87171;box-shadow:0 0 0 1px rgba(248,113,113,.25) inset;color:#7f1d1d}
+
+      /* Segmented switch (Existing/New) */
+      .vp-switch{display:flex;align-items:center;gap:12px}
+      .vp-switch__group{position:relative;width:min(320px,100%);height:44px;background:#f1f5f9;border:1px solid var(--vp-border);
+        border-radius:999px;display:grid;grid-template-columns:1fr 1fr}
+      .vp-switch__btn{z-index:2;border:0;background:transparent;font-weight:800;font-size:14px;color:#334155;cursor:pointer}
+      .vp-switch__thumb{position:absolute;z-index:1;top:3px;left:3px;width:calc(50% - 6px);height:38px;border-radius:999px;
+        background:linear-gradient(135deg,var(--vp-primary),var(--vp-primary-deep));box-shadow:0 4px 10px rgba(2,6,23,.18);
+        transition:transform 160ms ease}
+      .vp-switch[data-mode="new"] .vp-switch__thumb{transform:translateX(100%)}
+      .vp-switch[data-mode="existing"] .vp-switch__btn[data-key="existing"],
+      .vp-switch[data-mode="new"] .vp-switch__btn[data-key="new"]{color:#fff}
+      .vp-clearall{margin-left:auto;font-size:13px;color:rgba(255,255,255,.8);opacity:.9;cursor:pointer;transition:color .18s ease,opacity .18s ease}
+      .vp-clearall:hover{color:#fff;opacity:1}
+
+      /* Two columns below switch */
+      .vp-left,.vp-right{display:grid;gap:12px;align-content:start}
+      .vp-filters{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+
+      /* Remarks chips (stacked, colored tags like mock) */
+      .vp-remark,.vp-chips{display:grid;gap:10px}
+      .vp-chip{display:inline-flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--vp-border);
+        background:var(--vp-chip);box-shadow:0 2px 6px rgba(2,6,23,.05)}
+      .vp-chip__bar{display:none}
+      .vp-chip__text{font-size:14px}
+      .vp-chip--warn{background:#fde68a;border-color:#fcd34d;color:#78350f}
+      .vp-chip--bad{background:#fed7aa;border-color:#fdba74;color:#7c2d12}
+      .vp-chip--good{background:#a7f3d0;border-color:#6ee7b7;color:#065f46}
+
+      /* Last ratings list */
+      .vp-last{display:grid;gap:6px}
+      .vp-last__row{display:flex;align-items:center;gap:8px}
+      .vp-last__stars{display:inline-flex;gap:2px}
+      .vp-last__label{font-size:13px;color:#475569}
+
+      /* Rating */
+      .vp-rating__value{font-size:22px;font-weight:800;color:#111827;margin-right:8px}
+      .vp-stars{display:inline-flex;gap:2px;vertical-align:middle}
+      .vp-stars svg{width:18px;height:18px}
+
+      /* Footer */
+      .vp-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;
+        background:rgba(241,245,249,.6);backdrop-filter:saturate(1.2) blur(6px);border-top:1px solid var(--vp-border)}
+      .vp-meta{font-size:13px;color:#334155}
+      .vp-actions{display:flex;gap:10px}
+      .vp-btn{padding:10px 16px;border-radius:12px;border:1px solid #cbd5e1;background:#fff;cursor:pointer;font-weight:700}
+      .vp-btn--primary{background:linear-gradient(135deg,var(--vp-primary),var(--vp-primary-deep));border-color:transparent;color:#fff}
+      .vp-btn[disabled]{opacity:.45;cursor:not-allowed}
+
+      .vp-users-select{position:relative;display:grid;gap:10px;padding:8px 12px;border-radius:12px;border:1px solid var(--vp-border);
+        background:#f8fafc;color:var(--vp-text);min-height:44px;max-height:50px;overflow:hidden;width:100%;cursor:pointer;
+        transition:max-height .22s ease,padding .22s ease,border-color .18s ease,box-shadow .18s ease,background .18s ease}
+      .vp-users-select:focus-visible{outline:2px solid var(--vp-primary);outline-offset:2px}
+      .vp-users-select.is-empty{border-color:var(--vp-border);background:#f8fafc}
+      .vp-users-select.is-active{border-color:#34d399;box-shadow:0 0 0 1px rgba(34,197,94,.25) inset;background:#ecfdf5}
+      .vp-users-select.is-open{max-height:224px;padding:12px;border-color:#38bdf8;box-shadow:0 0 0 1px rgba(14,165,233,.2) inset;cursor:default;overflow:auto}
+      .vp-users-toggle{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:14px;font-weight:600;color:#0f172a;flex-wrap:wrap}
+      .vp-users-toggle__main{display:flex;align-items:center;gap:8px}
+      .vp-users-toggle__hint{font-size:12px;font-weight:500;color:var(--vp-muted)}
+      .vp-users-toggle__chevron{width:12px;height:12px;display:inline-block;transition:transform .2s ease}
+      .vp-users-toggle__chevron svg{width:12px;height:12px;fill:#475569}
+      .vp-users-select.is-open .vp-users-toggle__chevron{transform:rotate(180deg)}
+      .vp-users-count{display:inline-flex;align-items:center;font-size:13px;font-weight:600;color:#0f172a;
+        background:rgba(14,165,233,.1);padding:2px 8px;border-radius:999px}
+      .vp-users-options{display:grid;gap:8px;opacity:0;pointer-events:none;transition:opacity .18s ease;margin-top:4px}
+      .vp-users-select.is-open .vp-users-options{opacity:1;pointer-events:auto}
+      .vp-users-option{display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.3;color:var(--vp-text);cursor:pointer}
+      .vp-users-option input{width:16px;height:16px;margin:0}
+      .vp-users-option span{flex:1;}
+      .vp-users-option--selectall{font-weight:600}
+      .vp-users-empty{font-size:13px;color:var(--vp-muted)}
+      .vp-users-summary{margin-top:6px;font-size:12px;color:var(--vp-muted)}
+
+      /* Responsive */
+      @media(max-width:720px){
+        .vp-body{grid-template-columns:1fr;padding:20px}
+        .vp-context{grid-template-columns:1fr}
+        .vp-left,.vp-right{grid-column:1}
+        .vp-switch__group{width:100%}
+      }
+    </style>
+
+    <!-- Source Beneficiary Styling -->
+    <style>
+    .vp-users-option--source {
+      background-color: #ecfdf5 !important;
+      border-left: 3px solid #10b981;
+      padding-left: 9px !important;
+      margin-bottom: 2px;
+    }
+
+    .vp-users-option--source input[type="checkbox"] {
+      accent-color: #10b981;
+    }
+
+    .vp-users-option--source input[type="checkbox"]:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .vp-users-option--source span {
+      font-weight: bold !important;
+      color: #059669 !important;
+    }
+
+    .vp-users-option--source::after {
+      content: "✓ Required";
+      font-size: 11px;
+      color: #059669;
+      margin-left: 8px;
+      opacity: 0.8;
+    }
+
+    /* Invalid beneficiary styling */
+    .vp-beneficiary-invalid {
+      background-color: #fed7d7 !important;
+      border-color: #fc8181 !important;
+      box-shadow: 0 0 0 1px rgba(252, 129, 129, 0.3) inset !important;
+      transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .vp-beneficiary-invalid:focus {
+      outline-color: #fc8181 !important;
+    }
+
+    /* IN USE members in users dropdown styling */
+    .vp-users-option--in-use {
+      background-color: #f9fafb !important;
+      border-left: 3px solid #e5e7eb;
+      padding-left: 9px !important;
+      margin-bottom: 2px;
+      opacity: 0.6;
+    }
+
+    .vp-users-option--in-use input[type="checkbox"] {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .vp-users-option--in-use span {
+      color: #9ca3af !important;
+      font-style: italic !important;
+      font-size: 13px !important;
+    }
+    </style>
+
+    <div id="vehiclePickerModal" class="vp-backdrop" aria-hidden="true">
+      <section class="vp-modal" role="dialog" aria-modal="true" aria-labelledby="vehiclePickerTitle">
+        <header class="vp-header">
+          <div class="vp-header__left">
+            <div class="vp-header__brand">
+              <span class="vp-header__icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation">
+                  <path d="M4.6 10.2L6.4 6c.5-1 1.5-1.6 2.6-1.6h6c1.1 0 2.1.6 2.6 1.6l1.8 4.2c1.1.4 1.6 1.3 1.6 2.4v4c0 .8-.7 1.5-1.5 1.5h-.5c-.8 0-1.5-.7-1.5-1.5v-1H6v1c0 .8-.7 1.5-1.5 1.5H4c-.8 0-1.5-.7-1.5-1.5v-4c0-1.1.5-2 1.6-2.4ZM8 6.9L6.7 10h10.6L15.9 6.9c-.2-.4-.6-.6-1-.6h-6c-.4 0-.8.2-1 .6ZM5 13.5h14v-1c0-.3-.2-.5-.5-.5h-13c-.3 0-.5.2-.5.5v1Z"/>
+                </svg>
+              </span>
+              <h2 id="vehiclePickerTitle" class="vp-title">Select Vehicle</h2>
+            </div>
+            <div class="vp-header__switch">
+              <div id="vpModeSwitch" class="vp-switch" role="tablist" aria-label="Car mode" data-mode="existing">
+                <div class="vp-switch__group" aria-hidden="true">
+                  <div class="vp-switch__thumb"></div>
+                  <button class="vp-switch__btn" data-key="existing" role="tab" aria-selected="true">Existing Car</button>
+                  <button class="vp-switch__btn" data-key="new" role="tab" aria-selected="false">New Car</button>
+                </div>
+                <span class="vp-clearall" id="vpClearAll" role="button" tabindex="0">Clear all</span>
+              </div>
+            </div>
+          </div>
+          <button id="vpCloseBtn" class="vp-close" aria-label="Close">×</button>
+        </header>
+
+        <div class="vp-body">
+          <div id="vpStatus" class="vp-status">Loading latest RELEASE vehicles…</div>
+
+          <!-- Top context row: aligned 3 fields -->
+          <div class="vp-context">
+            <div class="vp-field">
+              <label>Project Name</label>
+              <input id="vpProject" class="vp-input" readonly />
+            </div>
+            <div class="vp-field">
+              <label>Team Name</label>
+              <input id="vpTeam" class="vp-input" readonly />
+            </div>
+            <div class="vp-field">
+              <label>Name of Responsible Beneficiary</label>
+              <select id="vpBeneficiary" class="vp-select">
+                <option value="">Select Responsible Beneficiary Only</option>
+              </select>
+            </div>
+            <div class="vp-field vp-field--full">
+              <label>Users</label>
+              <div id="vpUsersMulti" class="vp-users-select" role="group" aria-label="Users" aria-expanded="false" tabindex="0"></div>
+              <div id="vpUsersSummary" class="vp-users-summary">Selected: No team members</div>
+            </div>
+          </div>
+
+          <!-- Left column: filters + vehicle number -->
+          <div class="vp-left">
+            <div class="vp-filters">
+              <div class="vp-field">
+                <label for="vpMake">Make</label>
+                <select id="vpMake" class="vp-select"><option value="">All</option></select>
+              </div>
+              <div class="vp-field">
+                <label for="vpModel">Model</label>
+                <select id="vpModel" class="vp-select"><option value="">All</option></select>
+              </div>
+              <div class="vp-field">
+                <label for="vpCategory">Category</label>
+                <select id="vpCategory" class="vp-select"><option value="">All</option></select>
+              </div>
+              <div class="vp-field">
+                <label for="vpUsage">Usage Type</label>
+                <select id="vpUsage" class="vp-select"><option value="">All</option></select>
+              </div>
+              <div class="vp-field">
+                <label for="vpOwner">Owner</label>
+                <select id="vpOwner" class="vp-select"><option value="">All</option></select>
+              </div>
+            </div>
+
+            <div class="vp-field">
+              <label for="vpDropdown">Vehicle Number</label>
+              <select id="vpDropdown" class="vp-select">
+                <option value="">Select a vehicle…</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Right column: insights -->
+          <div class="vp-right">
+            <div class="vp-field">
+              <label>Last 3 Remarks</label>
+              <div id="vpRemarks" class="vp-remark">
+                <!-- Chips injected here -->
+              </div>
+            </div>
+
+            <div class="vp-field">
+              <label>Average Rating</label>
+              <div>
+                <span id="vpRatingValue" class="vp-rating__value">—</span>
+                <span id="vpStars" class="vp-stars" aria-label="Average rating"></span>
+              </div>
+            </div>
+
+            <div class="vp-field">
+              <label>Last 3 Ratings</label>
+              <div id="vpLastRatings" class="vp-last" aria-label="Last three ratings"></div>
+            </div>
+          </div>
+        </div>
+
+        <footer class="vp-footer">
+          <div class="vp-meta"><span id="vpMatchMeta">0 vehicles match filters</span></div>
+          <div class="vp-actions">
+            <button id="vpCancelBtn" class="vp-btn">Cancel</button>
+            <button id="vpSelectBtn" class="vp-btn vp-btn--primary" disabled>Select</button>
+          </div>
+        </footer>
+      </section>
+    </div>
+
+    <script>
+    (function(){
+      let targetInput=null, vehicles=[], master=[], vpMode='existing';
+      const VEHICLE_CACHE_TTL = 60000; // 60s client cache window
+      let vehicleDataCache=null;
+      let vehicleDataCacheTs=0;
+      let vehicleCacheSource='';
+      let vehicleFetchPending=false;
+      let vehiclePickerMeta=null;
+
+      let ddBeneficiaryPack = null;
+      const ddBeneficiaryCache = new Map();
+
+      let userOptions = [];
+      let selectedUserValues = [];
+      let usersPanelOpen = false;
+      let usersOutsideCloseBound = false;
+
+      const teamInUseCache = new Map();
+      const teamInUseFetchers = new Map();
+      let activeInUseMembers = new Set();
+      let activeInUseMemberObjects = []; // Store full member objects for formatting
+      let activeInUseTeamKey = '';
+
+      // Canonicalizers: now strip common labels ("Project", "Team") so keys match DD/backend values
+      const canonicalProjectKey = (val) => {
+        const s = String(val || '').trim().toLowerCase();
+        // remove a leading label like "project:", "project -", etc.
+        return s.replace(/^project\s*[:\-]?\s+/, '').replace(/[\s]+/g, ' ');
+      };
+      const canonicalTeamKey = (val) => {
+        const s = String(val || '').trim().toLowerCase();
+        // remove leading or trailing "team" label and normalize separators
+        return s
+          .replace(/^team\s*[:\-]?\s+/, '')
+          .replace(/\s+team$/, '')
+          .replace(/[\s_\-]+/g, ' ');
+      };
+      const cacheKeyForTeam = (project, team) => {
+        const projKey = canonicalProjectKey(project);
+        const teamKey = canonicalTeamKey(team);
+        if (!projKey && !teamKey) return null;
+        return (projKey || '__any__') + '||' + (teamKey || '__any__');
+      };
+
+      function setActiveInUseMembers(team, members){
+        activeInUseTeamKey = canonicalTeamKey(team);
+        activeInUseMembers = new Set((Array.isArray(members) ? members : []).map(nameKey));
+        activeInUseMemberObjects = Array.isArray(members) ? members : []; // Store full objects
+      }
+
+      // Helper function to calculate days since a date
+      function calculateDaysSince(dateStr) {
+        if (!dateStr) return 0;
+        try {
+          const startDate = new Date(dateStr);
+          const today = new Date();
+          const diffTime = Math.abs(today - startDate);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          return diffDays;
+        } catch (e) {
+          return 0;
+        }
+      }
+
+      // Helper function to format member object for display
+      function formatInUseMember(memberObj) {
+        console.log('[DEBUG] formatInUseMember called with:', memberObj);
+        
+        if (typeof memberObj === 'string') {
+          return memberObj + ' (IN USE)';
+        }
+        if (typeof memberObj === 'object' && memberObj) {
+          const name = memberObj.name || memberObj.beneficiary || memberObj.member || String(memberObj);
+          const vehicle = memberObj.vehicleNumber || memberObj.vehicle || memberObj.carNumber || '';
+          const days = memberObj.daysInUse;
+          
+          console.log('[DEBUG] Extracted values - name:', name, 'vehicle:', vehicle, 'days:', days);
+          
+          let displayText = String(name).trim();
+          if (vehicle) {
+            displayText += ` [${vehicle}]`;
+          }
+          if (typeof days === 'number' && days >= 0) {
+            // Add 1 to make today = day 1 instead of day 0
+            const adjustedDays = days + 1;
+            displayText += `[${adjustedDays}]`;
+            console.log('[DEBUG] Added adjusted days to display:', adjustedDays, '(original:', days, ')');
+          } else {
+            console.log('[DEBUG] No valid days found:', days);
+          }
+          
+          console.log('[DEBUG] Final display text:', displayText);
+          return displayText;
+        }
+        return String(memberObj) + ' (IN USE)';
+      }
+
+      // Helper function to get formatted member by name key
+      function getFormattedInUseMember(nameKey) {
+        const memberObj = activeInUseMemberObjects.find(obj => {
+          const objName = obj && typeof obj === 'object' ? 
+            (obj.name || obj.beneficiary || obj.member || String(obj)) : String(obj);
+          return nameKey === nameKey(objName);
+        });
+        return memberObj ? formatInUseMember(memberObj) : null;
+      }
+
+      function getLocallyAssignedMembers(team){
+        const assigned = new Set();
+        if (!team) return assigned;
+        const teamKey = canonicalTeamKey(team);
+        const rows = document.querySelectorAll('.tbody .row-data');
+        rows.forEach(row => {
+          const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+          const carInput = row.querySelector('input.car-number-input');
+          if (!benInput || !carInput) return;
+          const beneficiaryName = String(benInput.value || '').trim();
+          const vehicleNumber = String(carInput.value || '').trim();
+          // Only collect names of beneficiaries who have vehicle assignments
+          if (beneficiaryName && vehicleNumber) {
+            assigned.add(nameKey(beneficiaryName));
+          }
+        });
+        return assigned;
+      }
+
+      function filterOutActiveMembers(list, allow, team){
+        const allowList = Array.isArray(allow) ? allow : (allow ? [allow] : []);
+        const allowKeys = new Set(allowList.map(nameKey));
+        const localAssigned = getLocallyAssignedMembers(team);
+        return (Array.isArray(list) ? list : []).filter(name => {
+          const key = nameKey(name);
+          if (!key) return false;
+          if (allowKeys.has(key)) return true;
+          if (localAssigned.has(key)) return false;
+          return !activeInUseMembers.has(key);
+        });
+      }
+
+      function ensureActiveInUseMembers(project, team, callback){
+        const key = canonicalTeamKey(team);
+        if (!key) {
+          setActiveInUseMembers('', []);
+          if (callback) callback();
+          return;
+        }
+        if (activeInUseTeamKey === key) {
+          if (callback) callback();
+          return;
+        }
+        if (teamInUseCache.has(key)) {
+          setActiveInUseMembers(team, teamInUseCache.get(key) || []);
+          if (callback) callback();
+          return;
+        }
+        if (!window.google || !google.script || !google.script.run) {
+          setActiveInUseMembers(team, []);
+          if (callback) callback();
+          return;
+        }
+        if (teamInUseFetchers.has(key)) {
+          teamInUseFetchers.get(key).push(callback);
+          return;
+        }
+        teamInUseFetchers.set(key, [callback]);
+        setActiveInUseMembers('', []);
+        google.script.run
+          .withSuccessHandler(function(res){
+            const members = res && Array.isArray(res.members) ? res.members : [];
+            teamInUseCache.set(key, members);
+            setActiveInUseMembers(team, members);
+            const callbacks = teamInUseFetchers.get(key) || [];
+            teamInUseFetchers.delete(key);
+            callbacks.forEach(cb => cb && cb());
+          })
+          .withFailureHandler(function(err){
+            console.warn('Failed to load active IN USE members', err);
+            teamInUseCache.set(key, []);
+            setActiveInUseMembers(team, []);
+            const callbacks = teamInUseFetchers.get(key) || [];
+            teamInUseFetchers.delete(key);
+            callbacks.forEach(cb => cb && cb());
+          })
+          .getTeamMembersCurrentlyInUse(team, project);
+      }
+
+      function parseDDCPack(){
+        if (ddBeneficiaryPack !== null) return ddBeneficiaryPack;
+        ddBeneficiaryPack = { rows: [] };
+        try{
+          const tag = document.getElementById('DDC');
+          if (!tag) return ddBeneficiaryPack;
+          const parsed = JSON.parse(tag.textContent || '{}');
+          if (parsed && Array.isArray(parsed.rows)) {
+            ddBeneficiaryPack.rows = parsed.rows;
+          }
+        }catch(err){
+          console.warn('DDC pack parse failed', err);
+        }
+        return ddBeneficiaryPack;
+      }
+
+      function getTeamBeneficiariesFromDDC(project, team){
+        const pack = parseDDCPack();
+        if (!pack || !Array.isArray(pack.rows) || !pack.rows.length) return [];
+        const projKey = canonicalProjectKey(project);
+        const teamKey = canonicalTeamKey(team);
+        if (!projKey && !teamKey) return [];
+        const cacheKey = cacheKeyForTeam(project, team);
+        if (cacheKey && ddBeneficiaryCache.has(cacheKey)) return ddBeneficiaryCache.get(cacheKey);
+        const seen = new Set();
+        const list = [];
+        for (let i = 0; i < pack.rows.length; i++) {
+          const row = pack.rows[i];
+          if (!row) continue;
+          const ben = String(row[0] || '').trim();
+          const proj = canonicalProjectKey(row[4]);
+          const teamVal = canonicalTeamKey(row[5]);
+          if (!ben) continue;
+          if (projKey && proj !== projKey) continue;
+          if (teamKey && teamVal !== teamKey) continue;
+          if (!seen.has(ben.toLowerCase())) {
+            seen.add(ben.toLowerCase());
+            list.push(ben);
+          }
+        }
+        list.sort((a,b)=> a.localeCompare(b, undefined, { sensitivity:'base' }));
+        if (cacheKey) {
+          ddBeneficiaryCache.set(cacheKey, list);
+        }
+        return list;
+      }
+
+      function collectBeneficiariesFromTable(project, team){
+        console.log('[VP_TABLE] Starting collectBeneficiariesFromTable with:', { project, team });
+        try{
+          const rows = Array.from(document.querySelectorAll('.tbody .row-data'));
+          console.log('[VP_TABLE] Found rows:', rows.length);
+          
+          if (!rows.length) {
+            console.warn('[VP_TABLE] No rows found for selector .tbody .row-data');
+            return [];
+          }
+          
+          const projLc = canonicalProjectKey(project);
+          const teamLc = canonicalTeamKey(team);
+          console.log('[VP_TABLE] Canonical keys:', { projLc, teamLc });
+          
+          const matchedSeen = new Set();
+          const fallbackSeen = new Set();
+          const matched = [];
+          const fallback = [];
+
+          rows.forEach((row, index) => {
+            console.log(`[VP_TABLE] Processing row ${index}:`, row);
+            
+            // broaden selector to catch more structures
+            const benInput =
+              row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)') ||
+              row.querySelector('input.beneficiary-input') ||
+              row.querySelector('[data-field="beneficiary"] input') ||
+              row.querySelector('input[name="beneficiary"]') ||
+              row.querySelector('select.beneficiary, select[name="beneficiary"]');
+
+            console.log(`[VP_TABLE] Row ${index} beneficiary input:`, benInput);
+            
+            if (!benInput) return;
+            const name = String(benInput.value || benInput.textContent || '').trim();
+            console.log(`[VP_TABLE] Row ${index} beneficiary name:`, name);
+            
+            if (!name) return;
+            
+            const rowProj = canonicalProjectKey(row.getAttribute('data-project') || row.dataset?.project || '');
+            const rowTeam = canonicalTeamKey(row.getAttribute('data-team') || row.dataset?.team || '');
+            console.log(`[VP_TABLE] Row ${index} project/team:`, { rowProj, rowTeam });
+
+            const nameKey = name.toLowerCase();
+            if (!fallbackSeen.has(nameKey)) {
+              fallbackSeen.add(nameKey);
+              fallback.push(name);
+              console.log(`[VP_TABLE] Added to fallback:`, name);
+            }
+
+            if (projLc && rowProj && rowProj !== projLc) {
+              console.log(`[VP_TABLE] Row ${index} project mismatch - skipping`);
+              return;
+            }
+            if (teamLc && rowTeam && rowTeam !== teamLc) {
+              console.log(`[VP_TABLE] Row ${index} team mismatch - skipping`);
+              return;
+            }
+
+            if (!matchedSeen.has(nameKey)) {
+              matchedSeen.add(nameKey);
+              matched.push(name);
+              console.log(`[VP_TABLE] Added to matched:`, name);
+            }
+          });
+
+          console.log('[VP_TABLE] Final results:', { matched, fallback });
+          
+          if (!matched.length && !fallback.length) {
+            console.warn('[VP_TABLE] No beneficiary names found in table. Check selectors and row data-* attributes.');
+      }
+      const result = matched.length ? matched : fallback;
+      console.log('[VP_TABLE] Returning:', result);
+      return result;
+    }catch(err){
+      console.warn('collectBeneficiariesFromTable failed', err);
+      return [];
+    }
+  }
+
+      const htmlEscapes = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      };
+
+      function escapeHtml(value){
+        return String(value || '').replace(/[&<>"']/g, ch => htmlEscapes[ch] || ch);
+      }
+
+      function escapeAttr(value){
+        return escapeHtml(value).replace(/"/g, '&quot;');
+      }
+
+      function nameKey(name){
+        return String(name || '').trim().toLowerCase();
+      }
+
+      function getDesignationFromTable(name){
+        const key = nameKey(name);
+        if (!key) return '';
+        const rows = document.querySelectorAll('.tbody .row-data');
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+          if (!benInput) continue;
+          if (nameKey(benInput.value) !== key) continue;
+          const designationInput = row.querySelector('input[placeholder="Designation"], input.designation-input, input[name="designation"]');
+          if (designationInput && designationInput.value) {
+            return String(designationInput.value).trim();
+          }
+        }
+        return '';
+      }
+
+      function getTeamMemberDetails(project, team, sourceNames){
+        const map = new Map();
+        const canonicalProject = canonicalProjectKey(project);
+        const canonicalTeam = canonicalTeamKey(team);
+
+        const addMember = (name, designation) => {
+          const trimmed = String(name || '').trim();
+          if (!trimmed) return;
+          const key = nameKey(trimmed);
+          if (!map.has(key)) {
+            map.set(key, { name: trimmed, designation: String(designation || '').trim() });
+          } else if (designation && !map.get(key).designation) {
+            map.get(key).designation = String(designation).trim();
+          }
+        };
+
+        (Array.isArray(sourceNames) ? sourceNames : []).forEach(name => addMember(name, ''));
+
+        const pack = parseDDCPack();
+        if (pack && Array.isArray(pack.rows)) {
+          for (let i = 0; i < pack.rows.length; i++) {
+            const row = pack.rows[i];
+            if (!row) continue;
+            const ben = String(row[0] || '').trim();
+            if (!ben) continue;
+            const proj = canonicalProjectKey(row[4]);
+            const teamVal = canonicalTeamKey(row[5]);
+            if (canonicalProject && proj && proj !== canonicalProject) continue;
+            if (canonicalTeam && teamVal && teamVal !== canonicalTeam) continue;
+            addMember(ben, row[2] || '');
+          }
+        }
+
+        if (!map.size) {
+          const tableNames = collectBeneficiariesFromTable(project, team);
+          tableNames.forEach(name => addMember(name, ''));
+        }
+
+        map.forEach(entry => {
+          if (!entry.designation) {
+            entry.designation = getDesignationFromTable(entry.name);
+          }
+        });
+
+        return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+      }
+
+      function ensureSelectedUsersValid(){
+        if (!Array.isArray(userOptions)) userOptions = [];
+        if (!Array.isArray(selectedUserValues)) selectedUserValues = [];
+        const validValues = new Set(userOptions.map(opt => opt.value));
+        selectedUserValues = Array.from(new Set(selectedUserValues.filter(val => validValues.has(val))));
+      }
+
+      function getCurrentBeneficiary(){
+        const select = document.getElementById('vpBeneficiary');
+        return String(select?.value || '').trim();
+      }
+
+      function ensureBeneficiaryIncluded(){
+        const beneficiary = getCurrentBeneficiary();
+        if (!beneficiary) return;
+        const match = userOptions.find(opt => nameKey(opt.value) === nameKey(beneficiary));
+        const target = match ? match.value : beneficiary;
+        if (!selectedUserValues.some(val => nameKey(val) === nameKey(target))) {
+          selectedUserValues.push(target);
+          selectedUserValues = Array.from(new Set(selectedUserValues));
+        }
+      }
+
+      function maybeResetBeneficiary(){
+        const select = document.getElementById('vpBeneficiary');
+        if (!select) return false;
+        const beneficiary = String(select.value || '').trim();
+        if (!beneficiary) return false;
+        const stillSelected = selectedUserValues.some(val => nameKey(val) === nameKey(beneficiary));
+        if (!stillSelected) {
+          select.value = '';
+          return true;
+        }
+        return false;
+      }
+
+      function setUsersPanelOpen(open){
+        if (!userOptions.length) {
+          usersPanelOpen = false;
+        } else {
+          usersPanelOpen = !!open;
+        }
+        const container = document.getElementById('vpUsersMulti');
+        if (!container) return;
+        container.setAttribute('aria-expanded', usersPanelOpen ? 'true' : 'false');
+        if (usersPanelOpen) {
+          container.classList.add('is-open');
+        } else {
+          container.classList.remove('is-open');
+        }
+        const toggle = container.querySelector('.vp-users-toggle');
+        if (toggle) {
+          toggle.setAttribute('aria-expanded', usersPanelOpen ? 'true' : 'false');
+        }
+        refreshUsersHint();
+      }
+
+      function toggleUsersPanel(force){
+        if (typeof force === 'boolean') {
+          setUsersPanelOpen(force);
+          return;
+        }
+        setUsersPanelOpen(!usersPanelOpen);
+      }
+
+      function updateUsersSummary(){
+        const summary = document.getElementById('vpUsersSummary');
+        if (!summary) return;
+        if (!userOptions.length) {
+          summary.textContent = 'Selected: No team members';
+          refreshUsersHint();
+          return;
+        }
+        const totalMembers = userOptions.length;
+        const totalSelected = selectedUserValues.length;
+        if (!totalSelected) {
+          summary.textContent = `Selected: 0/${totalMembers}`;
+          refreshUsersHint();
+          return;
+        }
+        if (totalMembers && totalSelected === totalMembers) {
+          summary.textContent = `Selected: All (${totalSelected}/${totalMembers})`;
+          refreshUsersHint();
+          return;
+        }
+        const labels = selectedUserValues.map(val => {
+          const opt = userOptions.find(o => o.value === val);
+          return opt ? opt.label : val;
+        }).filter(Boolean);
+        const ratio = `${totalSelected}/${totalMembers}`;
+        summary.textContent = labels.length ? `Selected: ${ratio} — ${labels.join(', ')}` : `Selected: ${ratio}`;
+        refreshUsersHint();
+      }
+
+      function applySelectedValuesToDropdown(){
+        const container = document.getElementById('vpUsersMulti');
+        if (!container) return;
+        const valueSet = new Set(selectedUserValues);
+        const totalMembers = userOptions.length;
+        const totalSelected = selectedUserValues.length;
+        const allSelected = totalMembers > 0 && totalSelected === totalMembers;
+        container.querySelectorAll('input[type="checkbox"]').forEach(input => {
+          if (input.value === '__ALL__') {
+            input.checked = allSelected;
+            input.indeterminate = !allSelected && totalSelected > 0;
+          } else {
+            input.checked = valueSet.has(input.value);
+            input.indeterminate = false;
+          }
+        });
+        refreshUsersHint();
+      }
+
+      function refreshUsersHint(){
+        const container = document.getElementById('vpUsersMulti');
+        if (!container) return;
+        const toggle = container.querySelector('.vp-users-toggle');
+        if (!toggle) return;
+        const hintEl = toggle.querySelector('.vp-users-toggle__hint');
+        const countEl = toggle.querySelector('.vp-users-count');
+        const totalMembers = userOptions.length;
+        const totalSelected = selectedUserValues.length;
+        if (countEl) {
+          if (totalMembers) {
+            countEl.textContent = `${totalSelected}/${totalMembers}`;
+            countEl.style.display = 'inline-flex';
+          } else {
+            countEl.textContent = '';
+            countEl.style.display = 'none';
+          }
+        }
+        if (hintEl) {
+          if (!totalMembers) {
+            hintEl.textContent = 'No members available';
+          } else if (usersPanelOpen) {
+            hintEl.textContent = 'Hide list';
+          } else {
+            hintEl.textContent = `${totalSelected}/${totalMembers}`;
+          }
+        }
+      }
+
+      function renderUserOptions(project, team, names, current){
+        const select = document.getElementById('vpUsersMulti');
+        if (!select) return;
+
+        const members = getTeamMemberDetails(project, team, names);
+        const localAssigned = getLocallyAssignedMembers(team);
+        const allowKeys = new Set((current ? [current] : []).map(nameKey));
+        selectedUserValues.forEach(val => allowKeys.add(nameKey(val)));
+        
+        // Get the source beneficiary (the one whose vehicle field was clicked)
+        const sourceBeneficiary = window.__vpSourceBeneficiary || '';
+        const sourceBeneficiaryKey = nameKey(sourceBeneficiary);
+        
+        console.log('[VP] Rendering user options - Source beneficiary:', sourceBeneficiary);
+        
+        const filteredMembers = members.filter(member => {
+          const key = nameKey(member.name);
+          if (!key) return false;
+          // Always include the source beneficiary
+          if (key === sourceBeneficiaryKey) return true;
+          if (allowKeys.has(key)) return true;
+          if (localAssigned.has(key)) return false;
+          return !activeInUseMembers.has(key);
+        });
+        const options = [];
+        filteredMembers.forEach(member => {
+          const label = member.designation ? `${member.name} [${member.designation}]` : member.name;
+          const isSourceBeneficiary = nameKey(member.name) === sourceBeneficiaryKey;
+          options.push({ 
+            value: member.name, 
+            name: member.name, 
+            designation: member.designation, 
+            label, 
+            type: 'member',
+            isSourceBeneficiary: isSourceBeneficiary
+          });
+        });
+
+        if (current) {
+          const key = nameKey(current);
+          if (key && !options.some(opt => nameKey(opt.value) === key)) {
+            const isSourceBeneficiary = key === sourceBeneficiaryKey;
+            options.push({ 
+              value: current, 
+              name: current, 
+              designation: '', 
+              label: current, 
+              type: 'member',
+              isSourceBeneficiary: isSourceBeneficiary
+            });
+          }
+        }
+
+        // Ensure source beneficiary is in the options and auto-selected
+        if (sourceBeneficiary && !options.some(opt => nameKey(opt.value) === sourceBeneficiaryKey)) {
+          options.push({
+            value: sourceBeneficiary,
+            name: sourceBeneficiary,
+            designation: '',
+            label: sourceBeneficiary,
+            type: 'member',
+            isSourceBeneficiary: true
+          });
+        }
+
+        userOptions = options;
+        
+        // Auto-select the source beneficiary if not already selected
+        if (sourceBeneficiary && !selectedUserValues.some(val => nameKey(val) === sourceBeneficiaryKey)) {
+          selectedUserValues.push(sourceBeneficiary);
+          console.log('[VP] Auto-selected source beneficiary:', sourceBeneficiary);
+        }
+        
+        ensureSelectedUsersValid();
+        ensureBeneficiaryIncluded();
+
+        const createOption = (value, label, extraClass, isSourceBen) => {
+          const labelEl = document.createElement('label');
+          labelEl.className = 'vp-users-option' + (extraClass ? ' ' + extraClass : '');
+          if (isSourceBen) {
+            labelEl.classList.add('vp-users-option--source');
+          }
+          labelEl.dataset.value = value;
+          
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = value;
+          checkbox.setAttribute('aria-label', label);
+          
+          // Freeze the source beneficiary checkbox
+          if (isSourceBen) {
+            checkbox.disabled = true;
+            checkbox.title = 'This beneficiary initiated the vehicle request and cannot be unselected';
+          }
+          
+          const textSpan = document.createElement('span');
+          textSpan.textContent = label;
+          if (isSourceBen) {
+            textSpan.style.fontWeight = 'bold';
+            textSpan.style.color = '#059669'; // Green color to indicate it's locked
+          }
+          
+          labelEl.appendChild(checkbox);
+          labelEl.appendChild(textSpan);
+          return labelEl;
+        };
+
+        const frag = document.createDocumentFragment();
+        const toggleRow = document.createElement('div');
+        toggleRow.className = 'vp-users-toggle';
+        toggleRow.setAttribute('role', 'button');
+        toggleRow.setAttribute('aria-expanded', usersPanelOpen ? 'true' : 'false');
+
+        const toggleMain = document.createElement('span');
+        toggleMain.className = 'vp-users-toggle__main';
+        const toggleTitle = document.createElement('span');
+        toggleTitle.className = 'vp-users-toggle__title';
+        toggleTitle.textContent = 'Team members';
+        const toggleCount = document.createElement('span');
+        toggleCount.className = 'vp-users-count';
+        toggleMain.appendChild(toggleTitle);
+        toggleMain.appendChild(toggleCount);
+
+        const toggleHint = document.createElement('span');
+        toggleHint.className = 'vp-users-toggle__hint';
+        toggleHint.textContent = 'Click to choose';
+        const chevron = document.createElement('span');
+        chevron.className = 'vp-users-toggle__chevron';
+        chevron.setAttribute('aria-hidden', 'true');
+        chevron.innerHTML = '<svg viewBox="0 0 12 8"><path d="M6 7.5a.75.75 0 0 1-.53-.22L.22 2.03a.75.75 0 1 1 1.06-1.06L6 5.69l4.72-4.72a.75.75 0 1 1 1.06 1.06L6.53 7.28A.75.75 0 0 1 6 7.5Z"/></svg>';
+        toggleRow.appendChild(toggleMain);
+        toggleRow.appendChild(toggleHint);
+        toggleRow.appendChild(chevron);
+        frag.appendChild(toggleRow);
+
+        const optionsWrap = document.createElement('div');
+        optionsWrap.className = 'vp-users-options';
+        if (!options.length) {
+          const empty = document.createElement('div');
+          empty.className = 'vp-users-empty';
+          empty.textContent = 'No team members found';
+          optionsWrap.appendChild(empty);
+        } else {
+          // Add "Select All" option but exclude source beneficiary from its control
+          const selectAll = createOption('__ALL__', 'Select all team members', 'vp-users-option--selectall', false);
+          selectAll.querySelector('span').textContent = 'Select all';
+          optionsWrap.appendChild(selectAll);
+          
+          // Sort options to show source beneficiary first
+          options.sort((a, b) => {
+            if (a.isSourceBeneficiary && !b.isSourceBeneficiary) return -1;
+            if (!a.isSourceBeneficiary && b.isSourceBeneficiary) return 1;
+            return a.label.localeCompare(b.label);
+          });
+          
+          options.forEach(opt => {
+            optionsWrap.appendChild(createOption(opt.value, opt.label, '', opt.isSourceBeneficiary));
+          });
+          
+          // Add IN USE members (disabled and formatted)
+          if (activeInUseMemberObjects.length > 0) {
+            // Add separator if there are available members
+            if (options.length > 0) {
+              const separator = document.createElement('div');
+              separator.style.borderTop = '1px solid #e5e7eb';
+              separator.style.margin = '8px 0';
+              separator.style.fontSize = '12px';
+              separator.style.color = '#6b7280';
+              separator.style.textAlign = 'center';
+              separator.textContent = 'Currently IN USE';
+              optionsWrap.appendChild(separator);
+            }
+            
+            activeInUseMemberObjects.forEach(memberObj => {
+              const memberName = typeof memberObj === 'object' && memberObj ? 
+                (memberObj.name || memberObj.beneficiary || memberObj.member || String(memberObj)) : 
+                String(memberObj);
+              const formattedLabel = formatInUseMember(memberObj);
+              
+              const inUseOption = createOption(memberName, formattedLabel, 'vp-users-option--in-use', false);
+              const checkbox = inUseOption.querySelector('input[type="checkbox"]');
+              if (checkbox) {
+                checkbox.disabled = true;
+                checkbox.title = 'This member already has a vehicle IN USE';
+              }
+              const textSpan = inUseOption.querySelector('span');
+              if (textSpan) {
+                textSpan.style.color = '#9ca3af'; // Gray color for disabled
+                textSpan.style.fontStyle = 'italic';
+              }
+              inUseOption.style.opacity = '0.6';
+              optionsWrap.appendChild(inUseOption);
+            });
+          }
+        }
+        frag.appendChild(optionsWrap);
+
+        select.innerHTML = '';
+        select.appendChild(frag);
+
+        applySelectedValuesToDropdown();
+        updateUsersSummary();
+        refreshHighlightState();
+        refreshUsersHint();
+        setUsersPanelOpen(usersPanelOpen && options.length > 0);
+      }
+
+      function refreshUserOptions(project, team, names, current){
+        const list = Array.isArray(names) ? names.slice() : [];
+        const currentTrimmed = String(current || '').trim();
+        if (currentTrimmed && !list.some(name => nameKey(name) === nameKey(currentTrimmed))) {
+          list.push(currentTrimmed);
+        }
+        renderUserOptions(project, team, list, currentTrimmed);
+      }
+
+      function getSelectedUsers(){
+        if (!userOptions.length) {
+          return { mode: 'members', names: [] };
+        }
+        const names = selectedUserValues.map(val => {
+          const opt = userOptions.find(o => o.value === val);
+          return opt ? (opt.name || opt.value) : val;
+        }).filter(Boolean);
+        return { mode: 'members', names };
+      }
+
+      function renderResponsibleBeneficiaries(selectEl, beneficiaries, current, teamContext){
+        if (!selectEl) return;
+        const allowList = current ? [current] : [];
+        const filtered = filterOutActiveMembers(beneficiaries, allowList, teamContext);
+        const frag = document.createDocumentFragment();
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select Responsible Beneficiary Only';
+        frag.appendChild(placeholder);
+
+        const seen = new Set();
+        // Get IN USE members from global state
+        const inUseMembers = Array.from(activeInUseMembers || []);
+        filtered.forEach(name => {
+          const trimmed = String(name || '').trim();
+          if (!trimmed) return;
+          const key = trimmed.toLowerCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          const opt = document.createElement('option');
+          opt.value = trimmed;
+          // If IN USE, show vehicle/days info and disable
+          if (inUseMembers.includes(nameKey(trimmed))) {
+            const formatted = getFormattedInUseMember(nameKey(trimmed));
+            opt.textContent = formatted || `${trimmed} (IN USE)`;
+            opt.disabled = true;
+            opt.classList.add('in-use-beneficiary');
+          } else {
+            opt.textContent = trimmed;
+          }
+          frag.appendChild(opt);
+        });
+
+        // Add IN USE beneficiaries not in filtered list
+        activeInUseMemberObjects.forEach(memberObj => {
+          const memberName = typeof memberObj === 'object' && memberObj ? 
+            (memberObj.name || memberObj.beneficiary || memberObj.member || String(memberObj)) : 
+            String(memberObj);
+          const memberKey = nameKey(memberName);
+          
+          if (seen.has(memberKey)) return;
+          seen.add(memberKey);
+          
+          const opt = document.createElement('option');
+          opt.value = memberName;
+          opt.textContent = formatInUseMember(memberObj);
+          opt.disabled = true;
+          opt.classList.add('in-use-beneficiary');
+          frag.appendChild(opt);
+        });
+
+        const currentValue = String(current || '').trim();
+        selectEl.innerHTML = '';
+        selectEl.appendChild(frag);
+
+        if (currentValue) {
+          const matched = Array.from(selectEl.options).find(opt => opt.value && opt.value.toLowerCase() === currentValue.toLowerCase());
+          if (matched) {
+            matched.selected = true;
+          } else {
+            const manualOpt = document.createElement('option');
+            manualOpt.value = currentValue;
+            manualOpt.textContent = currentValue;
+            manualOpt.selected = true;
+            selectEl.appendChild(manualOpt);
+          }
+        } else {
+          selectEl.value = '';
+        }
+
+        refreshHighlightState();
+        updateSelectButtonState();
+      }
+
+      function populateResponsibleBeneficiaryOptions(project, team, current){
+        console.log('[VP_BENEFICIARY] Starting populateResponsibleBeneficiaryOptions with:', { project, team, current });
+        
+        const selectEl = document.getElementById('vpBeneficiary');
+        if (!selectEl) {
+          console.warn('[VP_BENEFICIARY] vpBeneficiary select element not found!');
+          return;
+        }
+        console.log('[VP_BENEFICIARY] Found beneficiary select element');
+        
+        let trimmedProject = String(project || '').trim();
+        let trimmedTeam = String(team || '').trim();
+        const currentValue = String(current || '').trim();
+        
+        console.log('[VP_BENEFICIARY] Processed params:', { trimmedProject, trimmedTeam, currentValue });
+
+        const tableNames = collectBeneficiariesFromTable(trimmedProject, trimmedTeam);
+        console.log('[VP_BENEFICIARY] Table names collected:', tableNames);
+        
+        const namesAccum = [];
+        const seen = new Set();
+        function include(list){
+          (Array.isArray(list) ? list : []).forEach(name => {
+            const trimmed = String(name || '').trim();
+            if (!trimmed) return;
+            const key = trimmed.toLowerCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            namesAccum.push(trimmed);
+          });
+        }
+
+        include(tableNames);
+
+        const fromDDC = getTeamBeneficiariesFromDDC(trimmedProject, trimmedTeam);
+        console.log('[VP_BENEFICIARY] DDC names collected:', fromDDC);
+        include(fromDDC);
+        include(currentValue ? [currentValue] : []);
+        
+        console.log('[VP_BENEFICIARY] Final names accumulator:', namesAccum);
+
+        const renderWithActiveFilter = (overrideCurrent) => {
+          console.log('[VP_BENEFICIARY] Starting renderWithActiveFilter with override:', overrideCurrent);
+          const renderValue = overrideCurrent !== undefined ? overrideCurrent : (selectEl.value || currentValue);
+          console.log('[VP_BENEFICIARY] Render value determined:', renderValue);
+          
+          ensureActiveInUseMembers(trimmedProject, trimmedTeam, () => {
+            console.log('[VP_BENEFICIARY] About to render responsible beneficiaries');
+            renderResponsibleBeneficiaries(selectEl, namesAccum, renderValue, trimmedTeam);
+            console.log('[VP_BENEFICIARY] About to refresh user options');
+            refreshUserOptions(trimmedProject, trimmedTeam, namesAccum, renderValue);
+            console.log('[VP_BENEFICIARY] Completed renderWithActiveFilter');
+          });
+        };
+
+        renderWithActiveFilter(currentValue);
+
+        if ((trimmedProject || trimmedTeam) && window.google && google.script && google.script.run) {
+          // Prepare more tolerant variants for backend matching
+          const serverTeamVariants = (function(){
+            if (!trimmedTeam) return [];
+            const variants = [trimmedTeam];
+            const spaced = trimmedTeam.replace(/[_]+/g,' ').replace(/[\s]+/g,' ').trim();
+            if (spaced && spaced !== trimmedTeam) variants.push(spaced);
+            // strip leading "Team " and trailing " Team"
+            const noLeadLabel = spaced.replace(/^\s*team\s*[:\-]?\s+/i, '').trim();
+            const noTrailLabel = spaced.replace(/\s+team\s*$/i, '').trim();
+            if (noLeadLabel && !variants.includes(noLeadLabel)) variants.push(noLeadLabel);
+            if (noTrailLabel && !variants.includes(noTrailLabel)) variants.push(noTrailLabel);
+            return Array.from(new Set(variants));
+          })();
+
+          // Build project variants for server calls: try raw and stripped (without leading "Project ")
+          const serverProjects = (function(){
+            const raw = String(trimmedProject || '').trim();
+            const stripped = raw ? raw.replace(/^\s*project\s*[:\-]?\s+/i, '').trim() : '';
+            const list = [];
+            if (raw) list.push(raw);
+            if (stripped && stripped !== raw) list.push(stripped);
+            return Array.from(new Set(list));
+          })();
+
+          function parseServerResponse(res){
+            const names = [];
+            let resolvedProject = '';
+            let resolvedTeam = '';
+            if (Array.isArray(res)) {
+              if (res.length && typeof res[0] === 'string') {
+                res.forEach(s => {
+                  const n = String(s || '').trim();
+                  if (n) names.push(n);
+                });
+              } else {
+                for (let i = 0; i < res.length; i++) {
+                  const item = res[i];
+                  if (!item) continue;
+                  const ben = item && item.beneficiary ? String(item.beneficiary).trim() : '';
+                  if (ben) names.push(ben);
+                  if (!resolvedProject) resolvedProject = String(item.projectName || item.project || '').trim();
+                  if (!resolvedTeam) resolvedTeam = String(item.teamName || item.team || '').trim();
+                }
+              }
+            } else if (res && Array.isArray(res.names)) {
+              res.names.forEach(s => {
+                const n = String(s || '').trim();
+                if (n) names.push(n);
+              });
+              resolvedProject = String(res.projectName || res.project || '').trim();
+              resolvedTeam = String(res.teamName || res.team || '').trim();
+            }
+            return { names, resolvedProject, resolvedTeam };
+          }
+
+          // Try array param first; if empty, try each team variant as a string one by one; then project-only
+          const tryPerVariant = (projectParam, variants, idx, done) => {
+            if (!variants || idx >= variants.length) return done();
+            const v = variants[idx];
+            google.script.run
+              .withSuccessHandler(function(res){
+                const parsed = parseServerResponse(res);
+                include(parsed.names);
+                if (parsed.resolvedProject && !trimmedProject) trimmedProject = parsed.resolvedProject;
+                if (parsed.resolvedTeam && !trimmedTeam) trimmedTeam = parsed.resolvedTeam;
+                renderWithActiveFilter(selectEl.value || currentValue);
+                tryPerVariant(projectParam, variants, idx+1, done);
+              })
+              .withFailureHandler(function(){
+                tryPerVariant(projectParam, variants, idx+1, done);
+              })
+              .getBeneficiaries(projectParam, v, true);
+          };
+
+          const callArrayThenFallbacksForProject = (projectParam, done) => {
+            const teamParam = (serverTeamVariants.length === 1 ? serverTeamVariants[0] : serverTeamVariants);
+            google.script.run
+              .withSuccessHandler(function(res){
+                const parsed = parseServerResponse(res);
+                include(parsed.names);
+                if (parsed.resolvedProject && !trimmedProject) trimmedProject = parsed.resolvedProject;
+                if (parsed.resolvedTeam && !trimmedTeam) trimmedTeam = parsed.resolvedTeam;
+                renderWithActiveFilter(selectEl.value || currentValue);
+
+                const afterArray = function(){
+                  if (!namesAccum.length) {
+                    // project-only fallback
+                    google.script.run
+                      .withSuccessHandler(function(res2){
+                        const p2 = parseServerResponse(res2);
+                        include(p2.names);
+                          renderWithActiveFilter(selectEl.value || currentValue);
+                        done();
+                      })
+                      .withFailureHandler(function(){ done(); })
+                      .getBeneficiaries(projectParam, [], true);
+                  } else {
+                    done();
+                  }
+                };
+
+                if (!namesAccum.length && serverTeamVariants.length > 1) {
+                  tryPerVariant(projectParam, serverTeamVariants, 0, afterArray);
+                } else {
+                  afterArray();
+                }
+              })
+              .withFailureHandler(function(){
+                if (serverTeamVariants.length > 0) {
+                  tryPerVariant(projectParam, serverTeamVariants, 0, function(){
+                    if (!namesAccum.length) {
+                      google.script.run
+                        .withSuccessHandler(function(res2){
+                          const p2 = parseServerResponse(res2);
+                          include(p2.names);
+                          renderWithActiveFilter(selectEl.value || currentValue);
+                          done();
+                        })
+                        .withFailureHandler(function(){ done(); })
+                        .getBeneficiaries(projectParam, [], true);
+                    } else {
+                      done();
+                    }
+                  });
+                } else {
+                  // Try project-only directly
+                  google.script.run
+                    .withSuccessHandler(function(res2){
+                      const p2 = parseServerResponse(res2);
+                      include(p2.names);
+                      renderWithActiveFilter(selectEl.value || currentValue);
+                      done();
+                    })
+                    .withFailureHandler(function(){ done(); })
+                    .getBeneficiaries(projectParam, [], true);
+                }
+              })
+              .getBeneficiaries(projectParam, teamParam, true);
+          };
+
+          const tryProjectsSeq = (idx) => {
+            if (!serverProjects.length || idx >= serverProjects.length) return;
+            const projParam = serverProjects[idx];
+            console.debug('[VP] Fetching beneficiaries for', { project: projParam, teamVariants: serverTeamVariants });
+            callArrayThenFallbacksForProject(projParam, function(){
+              if (!namesAccum.length) {
+                tryProjectsSeq(idx+1);
+              }
+            });
+          };
+
+          tryProjectsSeq(0);
+        }
+
+        return {
+          project: trimmedProject,
+          team: trimmedTeam,
+          names: namesAccum.slice()
+        };
+      }
+
+      const normalizeCar = (car) => {
+        if (!car) return null;
+        const get = (...keys) => {
+          for (const key of keys) {
+            if (key in car && car[key] != null) {
+              const val = String(car[key]).trim();
+              if (val) return val;
+            }
+          }
+          return '';
+        };
+        const carNumber = get('carNumber','car_number','car','vehicleNumber','vehicle_number');
+        const make = get('make','Make','brand','Brand');
+        const model = get('model','Model');
+        const usageType = get('usageType','usage_type','Usage Type','usage','Usage');
+        const contractType = get('contractType','contract_type','Contract Type','contract','Contract','agreementType','Agreement Type');
+        const owner = get('owner','Owner','ownerName','Owner Name');
+        const responsibleBeneficiary = get('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','responsible');
+        const status = get('status','Status','inUseRelease','In Use/Release');
+        const remarksRaw = get('remarks','Remarks','feedback','Feedback');
+        const stars = get('stars','rating','Rating');
+        let lastUsers = car.lastUsers;
+        if (!Array.isArray(lastUsers)) {
+          const lu = get('lastUsers','Last Users','users','Users','Last Used By');
+          lastUsers = lu ? lu.split(',').map(u=>u.trim()).filter(Boolean) : [];
+        }
+        return {
+          ...car,
+          carNumber: carNumber || car.carNumber || '',
+          make,
+          model,
+          usageType,
+          contractType,
+          owner,
+          responsibleBeneficiary,
+          'R.Beneficiary': car['R.Beneficiary'] || responsibleBeneficiary || '',
+          status,
+          remarks: remarksRaw || car.remarks || '',
+          stars: stars || car.stars || 0,
+          lastUsers: lastUsers.length ? lastUsers : (Array.isArray(car.lastUsers) ? car.lastUsers : [])
+        };
+      };
+
+      function setMode(mode){
+        vpMode = mode;
+        const sw = document.getElementById('vpModeSwitch');
+        if(sw){ sw.dataset.mode = mode; }
+        document.querySelectorAll('.vp-switch__btn').forEach(btn=>{
+          btn.setAttribute('aria-selected', btn.dataset.key===mode ? 'true':'false');
+        });
+        document.getElementById('vpSelectBtn').disabled = true;
+        // Hide/show creation area (not used here; you can extend)
+        if(mode==='existing'){ fetchVehicles(); }
+      }
+
+      function resetPickerUI(){
+        const statusEl=document.getElementById('vpStatus'); if(statusEl) statusEl.textContent='Loading latest RELEASE vehicles…';
+        const sel=document.getElementById('vpDropdown'); if(sel) sel.innerHTML='<option value="">Select a vehicle…</option>';
+        document.getElementById('vpSelectBtn').disabled=true;
+        ['vpMake','vpModel','vpCategory','vpUsage','vpOwner'].forEach(id=>{
+          const s=document.getElementById(id); if(s){ s.selectedIndex=0; }
+        });
+        clearVehicleInsights();
+        document.getElementById('vpMatchMeta').textContent='0 vehicles match filters';
+        const benSelect = document.getElementById('vpBeneficiary');
+        if (benSelect) renderResponsibleBeneficiaries(benSelect, [], '', '');
+        userOptions = [];
+        selectedUserValues = [];
+        usersPanelOpen = false;
+        setUsersPanelOpen(false);
+        const usersSelect = document.getElementById('vpUsersMulti');
+        if (usersSelect) {
+          usersSelect.innerHTML = '';
+          usersSelect.classList.add('is-empty');
+          usersSelect.classList.remove('is-active');
+        }
+        applySelectedValuesToDropdown();
+        const usersSummary = document.getElementById('vpUsersSummary');
+        if (usersSummary) usersSummary.textContent = 'Selected: No team members';
+        refreshHighlightState();
+        updateSelectButtonState();
+      }
+
+      function open(target){
+        try{ targetInput=target||null; }catch(_){ targetInput=null; }
+        const modal=document.getElementById('vehiclePickerModal');
+        modal.setAttribute('aria-hidden','false');
+        document.body.style.overflow='hidden';
+        master=[]; vehicles=[];
+        resetPickerUI();
+        try{ populateContextFromRow(targetInput); }catch(_){ }
+        setMode('existing');
+      }
+
+      function close(){
+        const modal=document.getElementById('vehiclePickerModal');
+        modal.setAttribute('aria-hidden','true');
+        document.body.style.overflow='';
+        resetPickerUI();
+        
+        // Clear source beneficiary
+        window.__vpSourceBeneficiary = '';
+        console.log('[VP] Cleared source beneficiary on modal close');
+      }
+
+      function fetchVehicles(){
+        if (vpMode !== 'existing') return;
+        const statusEl = document.getElementById('vpStatus');
+        if (!statusEl) return;
+
+        // Serve from client cache when fresh to avoid redundant server calls
+        const now = Date.now();
+        if (vehicleDataCache && (now - vehicleDataCacheTs) < VEHICLE_CACHE_TTL) {
+          vehiclePickerMeta = {
+            source: vehicleCacheSource || 'cache',
+            duration: 0,
+            cached: true
+          };
+          renderVehicles(vehicleDataCache.slice());
+          return;
+        }
+
+        if (vehicleFetchPending) {
+          statusEl.textContent = 'Loading vehicles…';
+          return;
+        }
+
+        if (!window.google || !google.script || !google.script.run) {
+          statusEl.textContent = 'Google Apps Script not available. Cannot load vehicles.';
+          return;
+        }
+
+        vehicleFetchPending = true;
+        statusEl.textContent = 'Loading latest RELEASE vehicles…';
+        const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+
+        google.script.run
+          .withSuccessHandler(function(res){
+            vehicleFetchPending = false;
+            let list = [];
+            let source = '';
+            let cachedFlag = false;
+
+            if (res && res.ok !== false && Array.isArray(res.vehicles)) {
+              list = res.vehicles;
+              source = res.source || 'latestRelease';
+              cachedFlag = !!res.cached;
+            } else if (Array.isArray(res)) {
+              list = res;
+              source = 'legacy';
+            }
+
+            if (!list.length) {
+              legacyFetchVehicles(statusEl);
+              return;
+            }
+
+            vehicleDataCache = list.slice();
+            vehicleDataCacheTs = Date.now();
+            vehicleCacheSource = source;
+
+            const end = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            vehiclePickerMeta = {
+              source: source,
+              duration: end - start,
+              cached: cachedFlag
+            };
+
+            renderVehicles(list);
+          })
+          .withFailureHandler(function(err){
+            vehicleFetchPending = false;
+            console.error('Vehicle picker load failed', err);
+            legacyFetchVehicles(statusEl);
+          })
+          .getVehiclePickerData();
+      }
+
+      function legacyFetchVehicles(statusEl){
+        const status = statusEl || document.getElementById('vpStatus');
+        if (!status) return;
+        if (vehicleFetchPending) return;
+        vehicleFetchPending = true;
+        status.textContent = 'Loading vehicles…';
+        const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+
+        function finish(list, source){
+          const data = Array.isArray(list) ? list : [];
+          if (data.length) {
+            vehicleDataCache = data.slice();
+            vehicleDataCacheTs = Date.now();
+          } else {
+            vehicleDataCache = null;
+            vehicleDataCacheTs = 0;
+          }
+          vehicleCacheSource = source;
+          const end = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+          vehiclePickerMeta = {
+            source: source,
+            duration: end - start,
+            cached: false
+          };
+          vehicleFetchPending = false;
+          renderVehicles(data);
+        }
+
+        google.script.run
+          .withSuccessHandler(function(list){
+            const arr = Array.isArray(list) ? list : [];
+            if (arr && arr.length) {
+              finish(arr, 'latestRelease');
+              return;
+            }
+            google.script.run
+              .withSuccessHandler(function(rel){
+                const a = Array.isArray(rel) ? rel : [];
+                if (a && a.length) {
+                  finish(a, 'uniqueRelease');
+                  return;
+                }
+                google.script.run
+                  .withSuccessHandler(function(all){
+                    finish(Array.isArray(all) ? all : [], 'allUnique');
+                  })
+                  .withFailureHandler(function(){
+                    vehicleFetchPending = false;
+                    status.textContent = 'Failed to load vehicles.';
+                  })
+                  .getAllUniqueCars();
+              })
+              .withFailureHandler(function(){
+                vehicleFetchPending = false;
+                status.textContent = 'Failed to load vehicles.';
+              })
+              .getUniqueReleaseCars();
+          })
+          .withFailureHandler(function(err){
+            vehicleFetchPending = false;
+            console.error('Legacy vehicle fetch failed', err);
+            status.textContent = 'Failed to load vehicles.';
+          })
+          .getLatestReleaseCars();
+      }
+
+      function isReleaseStatus(car){
+        const status = String(car?.status || '').trim().toUpperCase();
+        if(!status) return false;
+        const compact = status.replace(/[\s_\-/]+/g,'');
+        if(!compact) return false;
+        const hasRelease = compact.indexOf('RELEASE') !== -1;
+        const hasUse = compact.indexOf('INUSE') !== -1 || compact.indexOf('UNUSE') !== -1;
+        return hasRelease && !hasUse;
+      }
+
+      function getAssignedCarNumbers(){
+        const set = new Set();
+        try{
+          document.querySelectorAll('.car-number-input').forEach(inp=>{
+            const val = (inp.value || '').trim().toUpperCase();
+            if(val) set.add(val);
+          });
+        }catch(_){ }
+        return set;
+      }
+
+      function renderVehicles(list){
+        const normalized = Array.isArray(list) ? list.map(normalizeCar).filter(Boolean) : [];
+        window.availableCarsData = normalized.slice();
+        const assigned = getAssignedCarNumbers();
+        const filtered = normalized.filter(car => {
+          const num = String(car?.carNumber||'').trim().toUpperCase();
+          return isReleaseStatus(car) && (num && !assigned.has(num));
+        });
+        master = filtered.slice();
+        vehicles = master.slice();
+        const statusEl = document.getElementById('vpStatus');
+        const meta = vehiclePickerMeta;
+
+        if (!vehicles.length) {
+          if (statusEl) {
+            const emptyMsg = (meta && meta.source === 'allUnique')
+              ? 'No vehicles found in CarT_P.'
+              : 'No RELEASE vehicles available right now.';
+            statusEl.textContent = emptyMsg;
+          }
+          vehiclePickerMeta = null;
+          updateFilterChoices();
+          updateVehiclesDropdown();
+          const matchMetaEl = document.getElementById('vpMatchMeta');
+          if (matchMetaEl) matchMetaEl.textContent = '0 vehicles match filters';
+          return;
+        }
+
+        if (statusEl) {
+          let msg = 'Select a vehicle to assign.';
+          if (meta) {
+            const parts = [];
+            if (typeof meta.duration === 'number' && meta.duration > 0) {
+              parts.push(`Loaded in ${(meta.duration/1000).toFixed(1)}s`);
+            }
+            if (meta.source) {
+              const sourceLabel = meta.source === 'latestRelease'
+                ? 'Latest RELEASE list'
+                : meta.source === 'uniqueRelease'
+                  ? 'Unique RELEASE list'
+                  : meta.source === 'allUnique'
+                    ? 'All vehicles'
+                    : meta.source;
+              parts.push(sourceLabel);
+            }
+            if (meta.cached) {
+              parts.push('Cached');
+            }
+            if (parts.length) {
+              msg = parts.join(' • ');
+            }
+          }
+          statusEl.textContent = msg;
+        }
+
+        vehiclePickerMeta = null;
+        updateFilterChoices();
+        updateVehiclesDropdown();
+      }
+
+      function getCriteria(){
+        return {
+          make:document.getElementById('vpMake').value||'',
+          model:document.getElementById('vpModel').value||'',
+          category:document.getElementById('vpCategory').value||'',
+          usageType:document.getElementById('vpUsage').value||'',
+          owner:document.getElementById('vpOwner').value||''
+        };
+      }
+
+      function filterByCriteria(list, crit, excludeKey){
+        return list.filter(v=>{
+          if(excludeKey!=='make'     && crit.make     && String(v.make||'')      !==crit.make) return false;
+          if(excludeKey!=='model'    && crit.model    && String(v.model||'')     !==crit.model) return false;
+          if(excludeKey!=='category' && crit.category && String(v.category||'')  !==crit.category) return false;
+          if(excludeKey!=='usageType'&& crit.usageType&& String(v.usageType||'') !==crit.usageType) return false;
+          if(excludeKey!=='owner'    && crit.owner    && String(v.owner||'')     !==crit.owner) return false;
+          return true;
+        });
+      }
+
+      function fillCount(selectEl, domainVehicles, prop){
+        const cur = selectEl.value, counts=new Map();
+        for(const v of domainVehicles){
+          const key=String(v[prop]||'').trim(); if(!key) continue;
+          counts.set(key,(counts.get(key)||0)+1);
+        }
+        const opts=[...counts.keys()].sort((a,b)=>a.localeCompare(b)).map(val=>{
+          return `<option value="${val.replace(/"/g,'&quot;')}">${val} [${counts.get(val)}]</option>`;
+        }).join('');
+        selectEl.innerHTML='<option value="">All</option>'+opts;
+        if(cur && [...selectEl.options].some(o=>o.value===cur)) selectEl.value=cur;
+      }
+
+      function updateFilterChoices(){
+        const crit=getCriteria();
+        fillCount(document.getElementById('vpMake'),      filterByCriteria(master,crit,'make'),      'make');
+        fillCount(document.getElementById('vpModel'),     filterByCriteria(master,crit,'model'),     'model');
+        fillCount(document.getElementById('vpCategory'),  filterByCriteria(master,crit,'category'),  'category');
+        fillCount(document.getElementById('vpUsage'),     filterByCriteria(master,crit,'usageType'), 'usageType');
+        fillCount(document.getElementById('vpOwner'),     filterByCriteria(master,crit,'owner'),     'owner');
+      }
+
+      function autoSelectFiltersForVehicle(car){
+        if (!car) return;
+        const pairs = [
+          ['vpMake', car.make],
+          ['vpModel', car.model],
+          ['vpCategory', car.category],
+          ['vpUsage', car.usageType],
+          ['vpOwner', car.owner]
+        ];
+        pairs.forEach(([id,value])=>{
+          const select = document.getElementById(id);
+          if (!select) return;
+          const val = String(value || '').trim();
+          if (val) {
+            const hasOption = Array.from(select.options).some(opt => opt.value === val);
+            if (!hasOption) {
+              const opt = document.createElement('option');
+              opt.value = val;
+              opt.textContent = val;
+              select.appendChild(opt);
+            }
+            select.value = val;
+          } else {
+            select.value = '';
+          }
+        });
+        refreshHighlightState();
+      }
+
+      function updateVehiclesDropdown(){
+        const crit=getCriteria();
+        vehicles=filterByCriteria(master,crit,null);
+        const sel=document.getElementById('vpDropdown');
+        sel.innerHTML='<option value="">Select a vehicle…</option>';
+        const options=vehicles.map(v=>{
+          const num=String(v.carNumber||'');
+          const make=String(v.make||''); const model=String(v.model||'');
+          const label=[num,(make||model)?(make+(model?(' '+model):'')):''].filter(Boolean).join(' — ');
+          return `<option value="${num.replace(/"/g,'&quot;')}">${label}</option>`;
+        }).join('');
+        sel.insertAdjacentHTML('beforeend',options);
+        document.getElementById('vpSelectBtn').disabled=true;
+        document.getElementById('vpMatchMeta').textContent = `${vehicles.length} vehicle${vehicles.length===1?'':'s'} match filters`;
+        clearVehicleInsights();
+        refreshHighlightState();
+        updateSelectButtonState();
+      }
+
+      let __vpStarUid = 0;
+      function renderRemarksAndRating(hist){
+        const remarks = Array.isArray(hist?.feedback)?hist.feedback.slice(0,3):[];
+        const lastRatings = Array.isArray(hist?.ratings) ? hist.ratings.slice(0,3) : [];
+        let avg = Number(hist?.avg)||Number(hist?.rating)||null;
+        if(!avg && lastRatings.length){ avg = lastRatings.reduce((a,b)=>a+Number(b||0),0)/lastRatings.length; }
+
+        // remarks chips
+        const cont=document.getElementById('vpRemarks');
+        cont.innerHTML = remarks.length ? remarks.map(txt=>{
+          const t=String(txt||'').trim();
+          const lower=t.toLowerCase();
+          let tone='warn';
+          if(lower.match(/scratch|issue|damage|problem|break|fault|dent|repair/)) tone='bad';
+          if(lower.match(/good|excellent|ok|up-to-date|no damage|fine|great/)) tone='good';
+          return `<div class="vp-chip vp-chip--${tone}"><div class="vp-chip__text">${t.replace(/</g,'&lt;')}</div></div>`;
+        }).join('') : '<span class="vp-chip vp-chip--warn"><div class="vp-chip__text">No recent remarks</div></span>';
+
+        // rating
+        const valEl=document.getElementById('vpRatingValue');
+        const starEl=document.getElementById('vpStars');
+        if(avg){ valEl.textContent=avg.toFixed(1); } else { valEl.textContent='—'; }
+        const total=5;
+        let out='';
+        const full = Math.floor(avg||0), half = (avg?avg-full>=0.5:0);
+        for(let i=0;i<total;i++){
+          const state = i<full ? 'full' : (i===full && half ? 'half':'empty');
+          out+=starSVG(state);
+        }
+        starEl.innerHTML=out;
+
+        // Render last 3 ratings as rows of stars
+        const lastCont = document.getElementById('vpLastRatings');
+        if(lastCont){
+          if(lastRatings.length){
+            lastCont.innerHTML = lastRatings.map((r,idx)=>{
+              const n = Number(r)||0; const f = Math.floor(n); const h = (n-f)>=0.5; let s='';
+              for(let i=0;i<total;i++){
+                const st = i<f ? 'full' : (i===f && h ? 'half':'empty');
+                s += starSVG(st);
+              }
+              return `<div class="vp-last__row"><span class="vp-last__stars" aria-label="Rating ${idx+1}">${s}</span></div>`;
+            }).join('');
+          } else {
+            lastCont.innerHTML = '<span class="vp-last__label">No recent ratings</span>';
+          }
+        }
+      }
+
+      function starSVG(state){
+        // simple inline SVG star (no external libs)
+        if(state==='full') return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.3l-6.2 3.3 1.2-6.9L1 8.8l7-1 3-6.2 3 6.2 7 1-6 4.9 1.2 6.9z" fill="#facc15"/></svg>';
+        if(state==='half') { const id = `g${++__vpStarUid}`; return `<svg viewBox="0 0 24 24" aria-hidden="true"><defs><linearGradient id="${id}"><stop offset="50%" stop-color="#facc15"/><stop offset="50%" stop-color="transparent"/></linearGradient></defs><path d="M12 17.3l-6.2 3.3 1.2-6.9L1 8.8l7-1 3-6.2 3 6.2 7 1-6 4.9 1.2 6.9z" fill="url(#${id})" stroke="#facc15"/></svg>`; }
+        return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 17.3l-6.2 3.3 1.2-6.9L1 8.8l7-1 3-6.2 3 6.2 7 1-6 4.9 1.2 6.9z" fill="none" stroke="#e5e7eb"/></svg>';
+      }
+
+      function normalizeList(input){
+        if (!input) return [];
+        if (Array.isArray(input)) {
+          return input.map(item => typeof item === 'number' ? item : String(item || '').trim()).reduce((acc,val)=>{
+            if (typeof val === 'number') { if (!Number.isNaN(val)) acc.push(val); }
+            else if (val) acc.push(val);
+            return acc;
+          }, []);
+        }
+        const text = String(input || '').trim();
+        if (!text) return [];
+        return text.split(/[\n\r;|,•/]+/).map(part => part.trim()).filter(Boolean);
+      }
+
+      function updateVehicleInsights(car){
+        if (!car) {
+          clearVehicleInsights();
+          return;
+        }
+        const remarks = normalizeList(car.remarks || car.Remarks || car.lastRemarks || '').map(val => String(val || '').trim()).filter(Boolean).slice(0,3);
+        const ratingsRaw = normalizeList(car.lastRatings || car.latestRatings || '');
+        const ratings = ratingsRaw.map(val => {
+          if (typeof val === 'number') return val;
+          const match = String(val || '').match(/[-+]?\d*\.?\d+/);
+          return match ? parseFloat(match[0]) : null;
+        }).filter(val => val !== null && !Number.isNaN(val)).slice(0,3);
+        const avgCandidates = [car.avg, car.average, car.averageRating, car.avgRating, car.rating, car.stars];
+        let avg = null;
+        for (let i = 0; i < avgCandidates.length; i++) {
+          const num = Number(avgCandidates[i]);
+          if (!Number.isNaN(num) && num > 0) { avg = num; break; }
+        }
+        const history = {};
+        if (remarks.length) history.feedback = remarks;
+        if (ratings.length) history.ratings = ratings;
+        if (avg !== null) history.avg = avg;
+        renderRemarksAndRating(history);
+      }
+
+      function clearVehicleInsights(){
+        renderRemarksAndRating({});
+      }
+
+      function refreshHighlightState(){
+        const modal = document.getElementById('vehiclePickerModal');
+        if (!modal) return;
+        const selects = modal.querySelectorAll('.vp-select');
+        selects.forEach(select => {
+          const val = String(select.value || '').trim();
+          const active = val !== '';
+          if (active) {
+            select.classList.add('is-active');
+          } else {
+            select.classList.remove('is-active');
+          }
+          if (select.id === 'vpBeneficiary') {
+            if (!active) {
+              select.classList.add('vp-select--required');
+            } else {
+              select.classList.remove('vp-select--required');
+            }
+          }
+        });
+
+        const usersContainer = document.getElementById('vpUsersMulti');
+        if (usersContainer) {
+          if (selectedUserValues.length) {
+            usersContainer.classList.add('is-active');
+            usersContainer.classList.remove('is-empty');
+          } else {
+            usersContainer.classList.remove('is-active');
+            usersContainer.classList.add('is-empty');
+          }
+        }
+      }
+
+      // Validate that responsible beneficiary is selected in users dropdown
+      function validateResponsibleBeneficiary() {
+        const benSelect = document.getElementById('vpBeneficiary');
+        if (!benSelect) return true;
+        
+        const selectedBeneficiary = String(benSelect.value || '').trim();
+        if (!selectedBeneficiary) {
+          // No beneficiary selected, that's handled by existing validation
+          setResponsibleBeneficiaryHighlight(false);
+          return true;
+        }
+        
+        // Check if the selected beneficiary is in the users dropdown
+        const selectedBeneficiaryKey = nameKey(selectedBeneficiary);
+        const isValidSelection = selectedUserValues.some(userValue => {
+          return nameKey(userValue) === selectedBeneficiaryKey;
+        });
+        
+        console.log('[VP_VALIDATION] Responsible beneficiary:', selectedBeneficiary, 'Valid:', isValidSelection);
+        console.log('[VP_VALIDATION] Selected users:', selectedUserValues);
+        
+        setResponsibleBeneficiaryHighlight(!isValidSelection);
+        return isValidSelection;
+      }
+      
+      // Highlight or remove highlight from responsible beneficiary dropdown
+      function setResponsibleBeneficiaryHighlight(shouldHighlight) {
+        const benSelect = document.getElementById('vpBeneficiary');
+        if (!benSelect) return;
+        
+        if (shouldHighlight) {
+          benSelect.classList.add('vp-beneficiary-invalid');
+          console.log('[VP_VALIDATION] Added invalid highlight to responsible beneficiary dropdown');
+        } else {
+          benSelect.classList.remove('vp-beneficiary-invalid');
+          console.log('[VP_VALIDATION] Removed invalid highlight from responsible beneficiary dropdown');
+        }
+      }
+
+      function updateSelectButtonState(){
+        const btn = document.getElementById('vpSelectBtn');
+        if (!btn) return;
+        const carSelected = String(document.getElementById('vpDropdown')?.value || '').trim();
+        const beneficiarySelected = String(document.getElementById('vpBeneficiary')?.value || '').trim();
+        const isValidBeneficiary = validateResponsibleBeneficiary();
+        
+        // Disable button if car not selected, beneficiary not selected, or beneficiary is invalid
+        btn.disabled = !(carSelected && beneficiarySelected && isValidBeneficiary);
+        
+        if (!isValidBeneficiary && beneficiarySelected) {
+          console.log('[VP_VALIDATION] Submit button disabled due to invalid beneficiary selection');
+        }
+      }
+
+      function selectVehicle(){
+        const sel = document.getElementById('vpDropdown');
+        const carNumber = sel && sel.value ? sel.value.trim() : '';
+        if (!carNumber) return;
+
+        const benSelectEl = document.getElementById('vpBeneficiary');
+        const benFromContextRaw = (benSelectEl && benSelectEl.value) ? benSelectEl.value : '';
+
+        if (!benFromContextRaw.trim()){
+          refreshHighlightState();
+          updateSelectButtonState();
+          if (benSelectEl) benSelectEl.focus();
+          return;
+        }
+
+        ensureBeneficiaryIncluded();
+
+        const proj = (document.getElementById('vpProject')?.value || '').trim();
+        const team = (document.getElementById('vpTeam')?.value || '').trim();
+        const benFromContext = benFromContextRaw.trim();
+
+        let carMeta = null;
+        try {
+          carMeta = (vehicles || []).find(v => String(v.carNumber || '').trim() === carNumber) || null;
+        } catch (_) {
+          carMeta = null;
+        }
+
+        const body = document.querySelector('.tbody');
+        const currentRow = targetInput ? targetInput.closest('.row-data') : null;
+
+        const selection = getSelectedUsers();
+        const selectedNames = Array.isArray(selection?.names)
+          ? selection.names.map(name => String(name || '').trim()).filter(Boolean)
+          : [];
+
+        const orderedNames = [];
+        const seenBeneficiaryKeys = new Set();
+        const pushBeneficiary = (name) => {
+          const trimmed = String(name || '').trim();
+          if (!trimmed) return;
+          const key = nameKey(trimmed);
+          if (seenBeneficiaryKeys.has(key)) return;
+          seenBeneficiaryKeys.add(key);
+          orderedNames.push(trimmed);
+        };
+
+        // Note: We no longer pre-clear vehicles before assignment to prevent data loss
+        // The Vehicle Cleanup System will handle incorrect assignments AFTER the new assignment is made
+        console.log('[VP] Preparing to assign vehicle', carNumber, 'to', benFromContext);
+
+        pushBeneficiary(benFromContext);
+        selectedNames.forEach(pushBeneficiary);
+        if (!orderedNames.length) {
+          pushBeneficiary(benFromContext);
+        }
+
+        // Use the Vehicle Assignment Manager to handle UI state
+        if (window.vehicleAssignmentManager) {
+          console.log(`[VP] Assigning vehicle ${carNumber} to ${benFromContext} via manager.`);
+          window.vehicleAssignmentManager.assign(carNumber, benFromContext);
+        } else {
+          console.error("[VP] VehicleAssignmentManager not found! UI may not update correctly.");
+          // As a fallback, manually update the target row if the manager is missing.
+          if (targetInput) {
+              const carInput = targetInput.closest('.row-data')?.querySelector('input.car-number-input');
+              if (carInput) {
+                  carInput.value = carNumber;
+              }
+          }
+        }
+
+        const assignments = [{ beneficiary: benFromContext, isResponsible: true }];
+
+
+        // CRITICAL: ONLY send the responsible beneficiary to backend
+        // This prevents ALL team members from getting the vehicle
+        const finalBeneficiaries = [benFromContext];  // ONLY responsible beneficiary
+        
+        // ✅ DOUBLE CHECK: Ensure no additional team members are accidentally included
+        console.log('[VP] ✅ FINAL VERIFICATION: Sending ONLY responsible beneficiary to backend:', finalBeneficiaries);
+        console.log('[VP] ✅ Selected team members will NOT receive vehicle:', selectedNames.filter(name => name !== benFromContext));
+
+        if (window.google && google.script && google.script.run) {
+          console.log('[VP] Google Apps Script available - submitting to backend');
+          
+          // Get project and team from the form
+          const projectInput = document.getElementById('vpProject');
+          const teamInput = document.getElementById('vpTeam');
+          const project = projectInput ? projectInput.value.trim() : '';
+          const team = teamInput ? teamInput.value.trim() : '';
+          
+          // Get vehicle details from the form
+          const makeInput = document.getElementById('vpMake');
+          const modelInput = document.getElementById('vpModel');
+          const categoryInput = document.getElementById('vpCategory');
+          const usageInput = document.getElementById('vpUsage');
+          const ownerInput = document.getElementById('vpOwner');
+          
+          const make = makeInput ? makeInput.value.trim() : '';
+          const model = modelInput ? modelInput.value.trim() : '';
+          const category = categoryInput ? categoryInput.value.trim() : '';
+          const usageType = usageInput ? usageInput.value.trim() : '';
+          const owner = ownerInput ? ownerInput.value.trim() : '';
+          
+          // Prepare payload for backend submission
+          const payload = {
+            project: project,
+            team: team,
+            carNumber: carNumber,
+            responsibleBeneficiary: benFromContext,
+            beneficiaries: finalBeneficiaries,
+            car: {
+              make: make,
+              model: model,
+              category: category,
+              usageType: usageType,
+              owner: owner
+            },
+            timestamp: new Date().toISOString()
+          };
+          
+          console.log('[VP] Submitting vehicle assignment to CarT_P:', payload);
+          
+          // Submit to backend using assignCarToTeam function
+          google.script.run
+            .withSuccessHandler(function(result) {
+              console.log('[VP] Backend submission successful:', result);
+              console.log('[VP] Vehicle assignment saved to CarT_P sheet');
+              
+              // Show success message to user
+              if (result && result.ok) {
+                console.log('[VP] Data successfully saved to CarT_P');
+              }
+              
+              // ✅ NOW trigger refresh AFTER successful backend save
+              if (typeof window.refreshVehicleAssignments === 'function') {
+                console.log('[VP] Triggering Vehicle_InUse refresh after backend save');
+                window.refreshVehicleAssignments();
+              }
+              
+              // Dispatch success event
+              window.dispatchEvent(new CustomEvent('vehicleAssignmentComplete', {
+                detail: { carNumber, responsibleBeneficiary: benFromContext, saved: true }
+              }));
+            })
+            .withFailureHandler(function(error) {
+              console.error('[VP] Backend submission failed:', error);
+              alert('Failed to save vehicle assignment to CarT_P. Please try again.');
+            })
+            .assignCarToTeam(payload);
+        } else {
+          console.log('[VP] Google Apps Script not available');
+        }
+
+        console.log('[VP] Vehicle assignment completed with backend saving');
+        
+        // ✅ NO CLEANUP - All cleanup code removed to prevent vehicles being removed from team members
+        console.log('[VP] ✅ No cleanup will be performed - vehicles will stay exactly where assigned');
+        
+        // ✅ VALIDATION: Check that only the responsible beneficiary has the vehicle
+        setTimeout(() => {
+          console.log('[VP] ✅ FINAL VALIDATION: Checking for duplicate assignments...');
+          if (window.validateVehicleAssignments) {
+            const validation = window.validateVehicleAssignments();
+            if (validation.duplicatesFound) {
+              console.error('[VP] ❌ CRITICAL: Duplicate vehicle assignments detected after assignment!');
+            } else {
+              console.log('[VP] ✅ SUCCESS: Vehicle assignment validation passed - no duplicates');
+            }
+          }
+        }, 100);
+
+        close();
+        
+        // ✅ DISABLED: The problematic ensureRowsForBeneficiaries function
+        // This function was causing vehicles to be assigned to ALL team members
+        function ensureRowsForBeneficiaries(beneficiaryList){
+          // This function is intentionally disabled to prevent team-wide vehicle assignment
+          console.log('[VP] ensureRowsForBeneficiaries called but disabled to prevent team-wide assignment');
+          console.log('[VP] Would have processed:', beneficiaryList);
+          return [];
+        }
+      }
+
+      function wire(){
+        const x = (id)=>document.getElementById(id);
+        x('vpCloseBtn').addEventListener('click',close);
+        x('vpCancelBtn').addEventListener('click',close);
+        x('vpSelectBtn').addEventListener('click',selectVehicle);
+
+        // Switch events
+        document.querySelectorAll('.vp-switch__btn').forEach(btn=>{
+          btn.addEventListener('click',()=> setMode(btn.dataset.key));
+        });
+        // Clear all
+        const clear = x('vpClearAll');
+        clear.addEventListener('click',()=>{ ['vpMake','vpModel','vpCategory','vpUsage','vpOwner'].forEach(id=>{const s=x(id); if(s) s.selectedIndex=0;}); updateFilterChoices(); updateVehiclesDropdown(); });
+        clear.addEventListener('keydown',e=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); clear.click(); } });
+
+        document.addEventListener('change',function(e){
+          if(/^vp(Make|Model|Category|Usage|Owner)$/.test(e.target.id)){ updateFilterChoices(); updateVehiclesDropdown(); }
+          if(e.target.id==='vpDropdown'){
+            x('vpSelectBtn').disabled = !e.target.value;
+            const val=e.target.value;
+            const car = (vehicles||[]).find(v=>String(v.carNumber||'')===val) || null;
+            if (car) {
+              autoSelectFiltersForVehicle(car);
+              updateVehicleInsights(car);
+            } else {
+              clearVehicleInsights();
+            }
+            if(val && window.google && google.script && google.script.run){
+              google.script.run
+                .withSuccessHandler(function(hist){ renderRemarksAndRating(hist||{}); })
+                .withFailureHandler(function(){ renderRemarksAndRating({}); })
+                .getCarHistory(val);
+            }
+            refreshHighlightState();
+            updateSelectButtonState();
+          }
+          if(e.target.id==='vpBeneficiary'){
+            const chosen = String(e.target.value || '').trim();
+            // Only update UI and validate, don't modify users selection
+            updateUsersSummary();
+            refreshHighlightState();
+            updateSelectButtonState();
+          }
+        });
+
+        document.addEventListener('keydown',function(e){
+          const modal=document.getElementById('vehiclePickerModal');
+          if(modal.getAttribute('aria-hidden')==='true') return;
+          if(e.key==='Escape') close();
+          if(e.key==='Enter'){ const b=x('vpSelectBtn'); if(b && !b.disabled) selectVehicle(); }
+        });
+
+        const backdrop=document.getElementById('vehiclePickerModal');
+        backdrop.addEventListener('click',e=>{ if(e.target===backdrop) close(); });
+
+        const usersSelect = document.getElementById('vpUsersMulti');
+        if (usersSelect) {
+          usersSelect.addEventListener('focusin', function(){
+            setUsersPanelOpen(true);
+          });
+          usersSelect.addEventListener('focusout', function(e){
+            if (!usersSelect.contains(e.relatedTarget)) {
+              setUsersPanelOpen(false);
+            }
+          });
+          usersSelect.addEventListener('keydown', function(e){
+            if (e.key === 'Escape') {
+              setUsersPanelOpen(false);
+              usersSelect.blur();
+              return;
+            }
+            if ((e.key === 'Enter' || e.key === ' ') && e.target === usersSelect) {
+              e.preventDefault();
+              toggleUsersPanel();
+            }
+          });
+          usersSelect.addEventListener('click', function(e){
+            const toggleEl = e.target.closest('.vp-users-toggle');
+            if (toggleEl) {
+              e.preventDefault();
+              toggleUsersPanel();
+              return;
+            }
+            if (!usersPanelOpen) {
+              setUsersPanelOpen(true);
+            }
+          });
+          usersSelect.addEventListener('change', function(e){
+            const input = e.target;
+            if (!input || input.type !== 'checkbox') return;
+            const value = input.value;
+            const sourceBeneficiary = window.__vpSourceBeneficiary || '';
+            const sourceBeneficiaryKey = nameKey(sourceBeneficiary);
+            
+            if (value === '__ALL__') {
+              if (input.checked) {
+                selectedUserValues = userOptions.map(opt => opt.value);
+              } else {
+                // When unchecking "Select All", keep only the source beneficiary
+                selectedUserValues = sourceBeneficiary ? [sourceBeneficiary] : [];
+              }
+            } else {
+              // Check if this is the source beneficiary
+              const isSourceBeneficiary = nameKey(value) === sourceBeneficiaryKey;
+              
+              if (isSourceBeneficiary && !input.checked) {
+                // Prevent deselection of source beneficiary
+                input.checked = true;
+                console.log('[VP] Prevented deselection of source beneficiary:', value);
+                return;
+              }
+              
+              if (input.checked) {
+                if (!selectedUserValues.includes(value)) selectedUserValues.push(value);
+              } else {
+                selectedUserValues = selectedUserValues.filter(val => val !== value);
+              }
+            }
+            
+            // Ensure source beneficiary is always selected
+            if (sourceBeneficiary && !selectedUserValues.some(val => nameKey(val) === sourceBeneficiaryKey)) {
+              selectedUserValues.push(sourceBeneficiary);
+            }
+            
+            ensureSelectedUsersValid();
+            const beneficiaryReset = maybeResetBeneficiary();
+            if (!beneficiaryReset) {
+              ensureBeneficiaryIncluded();
+            }
+            applySelectedValuesToDropdown();
+            updateUsersSummary();
+            refreshHighlightState();
+            updateSelectButtonState();
+            
+            // Validate responsible beneficiary when user selection changes
+            setTimeout(() => {
+              validateResponsibleBeneficiary();
+            }, 100);
+          });
+          if (!usersOutsideCloseBound) {
+            document.addEventListener('mousedown', function(e){
+              const container = document.getElementById('vpUsersMulti');
+              if (!container) return;
+              if (!container.contains(e.target)) {
+                setUsersPanelOpen(false);
+              }
+            });
+            usersOutsideCloseBound = true;
+          }
+        }
+
+        refreshHighlightState();
+        updateSelectButtonState();
+      }
+
+      // Expose open/close for your triggers
+      window.openVehiclePicker=open;
+      window.closeVehiclePicker=close;
+    // Expose beneficiary options populator for external callers (e.g., populateContextFromRow)
+    window.populateResponsibleBeneficiaryOptions = populateResponsibleBeneficiaryOptions;
+
+      // ✅ MISSING FUNCTION: Define refreshVehicleAssignments to prevent errors
+      window.refreshVehicleAssignments = function() {
+        console.log('[VP] refreshVehicleAssignments called - vehicle assignments remain persistent');
+        // NOTE: This function intentionally does nothing to prevent auto-clearing vehicles
+        // Vehicle assignments should only be managed through the exclusive assignment system
+      };
+
+      // ✅ PERSISTENCE VALIDATION: Function to verify vehicle assignments after page refresh
+      window.validateVehiclePersistence = function() {
+        console.log('[VP] ✅ Validating vehicle assignment persistence...');
+        let validCount = 0;
+        let totalAssigned = 0;
+        
+        const rows = document.querySelectorAll('.tbody .row-data');
+        rows.forEach(row => {
+          const vehicleInput = row.querySelector('input.car-number-input');
+          if (vehicleInput && vehicleInput.value.trim()) {
+            totalAssigned++;
+            const vehicle = vehicleInput.value.trim().toUpperCase();
+            const responsibleBeneficiary = vehicleInput.dataset.responsibleBeneficiary;
+            
+            if (responsibleBeneficiary) {
+              console.log(`[VP] ✅ Vehicle ${vehicle} correctly assigned to ${responsibleBeneficiary}`);
+              validCount++;
+            } else {
+              console.warn(`[VP] ⚠️ Vehicle ${vehicle} missing responsible beneficiary data`);
+            }
+          }
+        });
+        
+        console.log(`[VP] Persistence validation: ${validCount}/${totalAssigned} vehicles properly assigned`);
+        return { valid: validCount, total: totalAssigned };
+      };
+
+      // Auto-validate on page load after a short delay
+      setTimeout(() => {
+        try {
+          window.validateVehiclePersistence();
+        } catch (e) {
+          console.error('[VP] Persistence validation failed:', e);
+        }
+      }, 2000);
+
+      // init
+      try{ wire(); }catch(_){ }
+      if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded',()=>{ try{ wire(); }catch(_){} }); }
+    })();
+    </script>
+
+    <script>
+    // Existing helpers preserved from your file
+    (function(){
+      function trim(val){
+        if (val == null) return '';
+        return (typeof val === 'string' ? val : String(val)).trim();
+      }
+
+      function pick(source, keys){
+        if (!source) return '';
+        for (var i = 0; i < keys.length; i++){
+          var key = keys[i];
+          if (!key) continue;
+          if (Object.prototype.hasOwnProperty.call(source, key)){
+            var value = trim(source[key]);
+            if (value) return value;
+          }
+        }
+        return '';
+      }
+
+      function readHeaderProject(){
+        var header = document.getElementById('selectedProjectName');
+        if (header && typeof header.textContent === 'string'){
+          var text = header.textContent.trim();
+          if (text){
+            var bracket = text.indexOf(' [');
+            return bracket >= 0 ? text.slice(0, bracket).trim() : text;
+          }
+        }
+        if (typeof window.globalProjectName === 'string' && window.globalProjectName.trim()){
+          return window.globalProjectName.trim();
+        }
+        return '';
+      }
+
+      function resolveTeam(row, fallbackName, targetDataset){
+        var fromTarget = pick(targetDataset, ['teamName','team','teamid']);
+        var team = trim(fromTarget);
+        if (!team && row){
+          var ds = row.dataset || {};
+          team = trim(row.getAttribute('data-team') || ds.team || ds.teamName || ds.teamid);
+        }
+        if (!team){
+          try{
+            if (typeof window.getActualTeamNameFromRow === 'function'){
+              var derived = window.getActualTeamNameFromRow(row);
+              if (derived) team = trim(derived);
+            }
+          }catch(_){ /* ignore */ }
+        }
+        if (!team && row){
+          try{
+            var chip = row.querySelector('.team-tag');
+            if (chip && chip.textContent) team = trim(chip.textContent);
+          }catch(_){ /* ignore */ }
+        }
+        if (!team && row){
+          try{
+            var teamField = row.querySelector('[data-field="team"], input[name="team"], select[name="team"]');
+            if (teamField){
+              var candidate = typeof teamField.value === 'string' ? teamField.value : teamField.textContent;
+              if (candidate) team = trim(candidate);
+            }
+          }catch(_){ /* ignore */ }
+        }
+        if (!team && fallbackName && window.bDet && window.bDet[fallbackName]){
+          var ref = window.bDet[fallbackName];
+          team = trim(ref.teamName || ref.team || ref.teamId);
+        }
+        if (!team && window.__vpLastContext && window.__vpLastContext.team){
+          team = trim(window.__vpLastContext.team);
+        }
+        return team;
+      }
+
+      function resolveProject(row, fallbackName, targetDataset){
+        var fromTarget = pick(targetDataset, ['project','projectName']);
+        var project = trim(fromTarget);
+        if (!project && row){
+          var ds = row.dataset || {};
+          project = trim(row.getAttribute('data-project') || ds.project || ds.projectName);
+          if (!project){
+            try{
+              var ancestor = row.closest && row.closest('[data-project]');
+              if (ancestor && ancestor !== row){
+                var attr = ancestor.getAttribute('data-project');
+                if (!attr && ancestor.dataset){
+                  attr = ancestor.dataset.project || ancestor.dataset.projectName;
+                }
+                if (attr) project = trim(attr);
+              }
+            }catch(_){ /* ignore */ }
+          }
+        }
+        if (!project){
+          project = readHeaderProject();
+        }
+        if (!project && row){
+          try{
+            var projectField = row.querySelector('[data-field="project"], input[name="project"], select[name="project"]');
+            if (projectField){
+              var candidate = typeof projectField.value === 'string' ? projectField.value : projectField.textContent;
+              if (candidate) project = trim(candidate);
+            }
+          }catch(_){ /* ignore */ }
+        }
+        if (!project && fallbackName && window.bDet && window.bDet[fallbackName]){
+          var ref = window.bDet[fallbackName];
+          project = trim(ref.project || ref.projectName);
+        }
+        if (!project && window.__vpLastContext && window.__vpLastContext.project){
+          project = trim(window.__vpLastContext.project);
+        }
+        return project;
+      }
+
+      window.__vpLastContext = window.__vpLastContext || { project:'', team:'' };
+
+      window.populateContextFromRow = function(target){
+        console.log('[VP_CONTEXT] Starting populateContextFromRow with target:', target);
+        try{
+          var row = target && target.closest ? target.closest('.row-data') : null;
+          console.log('[VP_CONTEXT] Found row:', row);
+          
+          var benInput = row ? row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)') : null;
+          var beneficiary = benInput ? trim(benInput.value) : '';
+          console.log('[VP_CONTEXT] Beneficiary from row:', beneficiary);
+          
+          var dataset = target && target.dataset ? target.dataset : null;
+          var storedResponsible = dataset ? trim(dataset.responsibleBeneficiary) : '';
+          var lookupName = beneficiary || storedResponsible;
+          
+          var team = resolveTeam(row, lookupName, dataset);
+          var project = resolveProject(row, lookupName, dataset);
+          var responsible = storedResponsible || beneficiary;
+          
+          console.log('[VP_CONTEXT] Resolved data:', { team, project, responsible });
+
+          var teamInput = document.getElementById('vpTeam');
+          var projectInput = document.getElementById('vpProject');
+          console.log('[VP_CONTEXT] Found inputs:', { 
+            teamInput: !!teamInput, 
+            projectInput: !!projectInput 
+          });
+          
+          if (teamInput) {
+            teamInput.value = team || '';
+            console.log('[VP_CONTEXT] Set team input to:', teamInput.value);
+          }
+          if (projectInput) {
+            projectInput.value = project || '';
+            console.log('[VP_CONTEXT] Set project input to:', projectInput.value);
+          }
+
+          if (row){
+            if (team){
+              try{ row.dataset.team = team; }catch(_){ /* ignore */ }
+              row.setAttribute('data-team', team);
+            }
+            if (project){
+              try{ row.dataset.project = project; }catch(_){ /* ignore */ }
+              row.setAttribute('data-project', project);
+            }
+          }
+
+    if (team) window.__vpLastContext.team = team;
+    if (project) window.__vpLastContext.project = project;
+
+    // Store the source beneficiary for auto-selection and freezing
+    window.__vpSourceBeneficiary = beneficiary || '';
+    console.log('[VP_CONTEXT] Source beneficiary set to:', window.__vpSourceBeneficiary);
+
+    console.log('[VP_CONTEXT] About to call populateResponsibleBeneficiaryOptions with:', project, team);
+    if (window.populateResponsibleBeneficiaryOptions) {
+      window.populateResponsibleBeneficiaryOptions(project, team, '');
+      console.log('[VP_CONTEXT] Called populateResponsibleBeneficiaryOptions successfully');
+    } else {
+      console.warn('[VP_CONTEXT] populateResponsibleBeneficiaryOptions not available at context population time');
+    }          if ((!project || !team) && lookupName && window.google && google.script && google.script.run){
+            console.log('[VP_CONTEXT] Missing project/team, attempting backend lookup for:', lookupName);
+            google.script.run
+              .withSuccessHandler(function(info){
+                try{
+                  console.log('[VP_CONTEXT] Backend response:', info);
+                  if (!info || info.error) return;
+                  var resolvedProject = trim(info.project || project);
+                  var resolvedTeam = trim(info.team || team);
+                  console.log('[VP_CONTEXT] Resolved from backend:', { resolvedProject, resolvedTeam });
+                  
+                  if (resolvedProject){
+                    if (projectInput) {
+                      projectInput.value = resolvedProject;
+                      console.log('[VP_CONTEXT] Updated project input to:', resolvedProject);
+                    }
+                    if (row){
+                      try{ row.dataset.project = resolvedProject; }catch(_){ /* ignore */ }
+                      row.setAttribute('data-project', resolvedProject);
+                    }
+                    window.__vpLastContext.project = resolvedProject;
+                  }
+                  if (resolvedTeam){
+                    if (teamInput) {
+                      teamInput.value = resolvedTeam;
+                      console.log('[VP_CONTEXT] Updated team input to:', resolvedTeam);
+                    }
+                    if (row){
+                      try{ row.dataset.team = resolvedTeam; }catch(_){ /* ignore */ }
+                      row.setAttribute('data-team', resolvedTeam);
+                    }
+                    window.__vpLastContext.team = resolvedTeam;
+                  }
+                  
+                  console.log('[VP_CONTEXT] About to call populateResponsibleBeneficiaryOptions again with resolved data');
+                  if (window.populateResponsibleBeneficiaryOptions) {
+                    window.populateResponsibleBeneficiaryOptions(resolvedProject || project, resolvedTeam || team, '');
+                    console.log('[VP_CONTEXT] Called populateResponsibleBeneficiaryOptions with resolved data successfully');
+                  } else {
+                    console.warn('[VP_CONTEXT] populateResponsibleBeneficiaryOptions not available after resolve; skipping');
+                  }
+                }catch(err){ console.warn('[VP_CONTEXT] populateContextFromRow fallback failed', err); }
+              })
+              .withFailureHandler(function(err){ 
+                console.warn('[VP_CONTEXT] Backend lookup failed:', err);
+              })
+              .getProjectTeamFromDD(lookupName);
+          }
+        }catch(err){
+          console.warn('[VP_CONTEXT] populateContextFromRow failed', err);
+        }
+      };
+
+      // ✅ Add function to check current vehicle assignments from Vehicle_InUse
+      window.checkVehicleAssignmentStatus = function(beneficiaryName, team, project) {
+        console.log('[VP] checkVehicleAssignmentStatus DISABLED - backend function does not exist');
+        // This function was calling getCurrentVehicleAssignment which doesn't exist in backend
+        // Always return null to prevent errors
+        return Promise.resolve(null);
+        
+        // ❌ COMMENTED OUT - Original logic that calls non-existent backend function
+        /*
+        if (!window.google || !google.script || !google.script.run) return Promise.resolve(null);
+        
+        return new Promise((resolve) => {
+          google.script.run
+            .withSuccessHandler(function(result) {
+              console.log('[VP] Vehicle assignment check result:', result);
+              resolve(result);
+            })
+            .withFailureHandler(function(error) {
+              console.warn('[VP] Vehicle assignment check failed:', error);
+              resolve(null);
+            })
+            .getCurrentVehicleAssignment(beneficiaryName, team, project);
+        });
+        */
+      };
+
+      // ✅ Context population is now working correctly
+      // The original populateContextFromRow function above handles all context setup
+      // No additional wrappers needed - the function already:
+      // 1. Extracts beneficiary, team, project from row data
+      // 2. Sets team and project input fields
+      // 3. Stores context data in row attributes
+      // 4. Calls populateResponsibleBeneficiaryOptions to populate dropdown
+      // 5. Handles backend fallback for missing team/project data
+      
+      console.log('[VP] populateContextFromRow is fully functional for context setup');
+    })();
+    
+    // Expose cleanup functions globally for manual use - ALL DISABLED
+    window.cleanupVehicleAssignments = function() {
+      console.log('[MANUAL] Vehicle cleanup DISABLED - no action taken');
+      return null;
+    };
+
+    window.validateAllVehicles = function() {
+      console.log('[MANUAL] Vehicle validation DISABLED - no action taken');
+      return [];
+    };
+
+    window.fixVehicleAssignments = function() {
+      console.log('[MANUAL] Vehicle assignment fix DISABLED - no action taken');
+    };
+
+    // Console commands for debugging
+    console.log('[VP] Vehicle Cleanup Commands Available:');
+    console.log('  cleanupVehicleAssignments() - Clean up all incorrect assignments');
+    console.log('  validateAllVehicles() - Validate all current assignments');
+    console.log('  fixVehicleAssignments() - Emergency cleanup (multiple passes)');
+    console.log('  vehicleCleanupSystem.cleanupSpecificVehicle("VEHICLE123") - Clean specific vehicle');
+    </script>

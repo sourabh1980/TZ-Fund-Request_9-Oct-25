@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Wizard Assistant Demo</title>
+<style>
+  :root{
+    --bg:#f3f7fb;
+    --panel:#ffffff;
+    --muted:#64748b;
+    --wizard-blue:#1e5799;
+    --wizard-accent:#2d9bd6;
+    --beard:#ffffff;
+    --hat-star:#ffd54a;
+    --red:#dc2626;
+    --star:#f5a623;
+  }
+  html,body{height:100%;margin:0;font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,var(--bg),#fff7ff);-webkit-font-smoothing:antialiased}
+  .layout{max-width:920px;margin:36px auto;padding:20px;display:grid;grid-template-columns:140px 1fr;gap:18px;align-items:start}
+  .panel{background:var(--panel);border-radius:12px;padding:16px;box-shadow:0 8px 30px rgba(12,20,30,0.06);min-height:260px;position:relative}
+  .chat-area{height:220px;overflow:auto;padding:10px;border-radius:8px;border:1px dashed rgba(0,0,0,0.04);background:linear-gradient(180deg,#fff,#fcfdff)}
+  .composer-row{display:flex;gap:8px;margin-top:12px;align-items:center}
+  .composer{flex:1;min-height:46px;border-radius:24px;padding:10px 14px;background:#f7fafc;border:1px solid rgba(0,0,0,0.04);outline:none}
+  .composer[placeholder]:empty:before{content:attr(placeholder);color:var(--muted)}
+  .send-btn{width:48px;height:48px;border-radius:50%;border:none;background:linear-gradient(135deg,var(--wizard-accent),var(--wizard-blue));color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 20px rgba(26,26,60,0.08)}
+  .msg{padding:8px 12px;border-radius:12px;margin:8px 0;max-width:78%}
+  .msg.user{background:linear-gradient(135deg,var(--wizard-accent),var(--wizard-blue));color:#fff;margin-left:auto}
+  .msg.bot{background:#fff;border:1px solid rgba(0,0,0,0.04);color:var(--muted)}
+  .hint{font-size:13px;color:var(--muted);margin-top:8px}
+
+/* Wizard column */
+  .wizard-wrap{width:140px;position:relative;pointer-events:none;display:flex;align-items:flex-start;justify-content:center}
+  .wizard-card{width:120px;height:180px;display:flex;align-items:center;justify-content:center;position:relative}
+  .wizard-svg{width:120px;height:180px;display:block;overflow:visible}
+  /* eyes movement */
+  .eye{transform-origin:center;transition:transform 220ms ease}
+  .wizard.look-user .eye.left  { transform: translate(-2px,-2px) scale(1.02); }
+  .wizard.look-user .eye.right { transform: translate(2px,-2px) scale(1.02); }
+  .wizard.look-screen .eye.left { transform: translate(0px,0); }
+  .wizard.look-screen .eye.right{ transform: translate(0px,0); }
+
+  /* arm wave */
+  @keyframes wave {
+    0% { transform: rotate(0deg); }
+    20% { transform: rotate(-22deg); }
+    50% { transform: rotate(12deg); }
+    80% { transform: rotate(-8deg); }
+    100% { transform: rotate(0deg); }
+  }
+  .arm { transform-origin: 10px 6px; transition: transform 180ms ease; }
+  .wizard.waving .arm { animation: wave 1.05s ease-in-out 1; }
+
+  /* badge & stars */
+  .badge{position:absolute;right:-8px;top:-8px;min-width:20px;height:20px;border-radius:999px;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;opacity:0;transform:scale(.9);transition:opacity 160ms ease,transform 160ms ease;pointer-events:none}
+  .badge.visible{opacity:1;transform:scale(1)}
+  .star{position:absolute;font-size:14px;color:var(--star);pointer-events:none;opacity:0;transform:translateY(0) scale(.8);transition:transform 420ms cubic-bezier(.2,.9,.2,1),opacity 320ms ease}
+  .star.show{opacity:1;transform:translateY(-56px) scale(1)}
+  /* hat decoration */
+  .hat-stars { fill: var(--hat-star); }
+
+/* responsive small screens */
+@media (max-width:640px){ .layout{grid-template-columns:96px 1fr;gap:12px} .wizard-card{width:90px;height:140px} .wizard-svg{width:90px;height:140px} }
+</style>
+</head>
+<body>
+  <main class="layout">
+    <div class="wizard-wrap">
+      <div class="wizard-card wizard" id="wizard">
+        <!-- Custom SVG wizard: hat, robe, beard, eyes, arm -->
+        <svg class="wizard-svg" viewBox="0 0 120 180" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img">
+          <!-- body / robe -->
+          <g transform="translate(10,38)">
+            <path d="M10 100 C8 72, 18 20, 60 20 C102 20, 112 72, 110 100 C108 130, 12 132, 10 100 Z" fill="url(#robeGrad)" stroke="#0f3b63" stroke-width="1" />
+            <defs>
+              <linearGradient id="robeGrad" x1="0" x2="1">
+                <stop offset="0" stop-color="#2a76b3"/>
+                <stop offset="1" stop-color="#1a496e"/>
+              </linearGradient>
+            </defs>
+            <!-- robe moon/star patterns -->
+            <g transform="translate(18,30)" fill="#ffd54a" opacity="0.95">
+              <circle cx="34" cy="6" r="3" />
+              <circle cx="14" cy="26" r="2" />
+              <path d="M46 30 L48 34 L44 34 Z" />
+              <circle cx="64" cy="14" r="2" />
+            </g>
+          </g>
+
+          <!-- hat -->
+          <g transform="translate(20,0)">
+            <path d="M10 36 C30 -6, 82 -6, 102 36 C92 34, 28 34, 10 36 Z" fill="#1e5799" stroke="#143a6b" stroke-width="1"/>
+            <!-- hat brim -->
+            <ellipse cx="60" cy="44" rx="42" ry="10" fill="#164a7a" stroke="#0f3556" stroke-width="1"/>
+            <!-- hat stars -->
+            <g class="hat-stars" transform="translate(28,6)">
+              <polygon points="8,4 10.5,8.5 15,9 11,12 12,16 8,14 4,16 5,12 1,9 5.5,8.5" transform="scale(.18) translate(40,10)"/>
+              <circle cx="18" cy="10" r="2"/>
+              <circle cx="46" cy="18" r="2"/>
+            </g>
+          </g>
+
+          <!-- face / beard -->
+          <g transform="translate(20,52)">
+            <ellipse cx="60" cy="24" rx="28" ry="22" fill="#ffecca" stroke="#e0cfa8" stroke-width="1"/>
+            <path d="M36 36 C44 56, 76 56, 84 36 C72 64, 48 64, 36 36 Z" fill="#fff" stroke="#e6e6e6" stroke-width="1"/> <!-- beard lower -->
+            <rect x="46" y="32" width="28" height="10" rx="6" fill="#fff" /> <!-- mustache block -->
+            <!-- eyes -->
+            <g class="eyes" transform="translate(36,18)">
+              <circle class="eye left" cx="8" cy="0" r="4" fill="#0f172a"/>
+              <circle class="eye right" cx="28" cy="0" r="4" fill="#0f172a"/>
+            </g>
+            <!-- nose -->
+            <path d="M60 26 q-3 6 0 10" stroke="#d8b79a" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </g>
+
+          <!-- arm (waving) -->
+          <g transform="translate(88,88)">
+            <g class="arm" id="arm">
+              <path d="M0 0 q-10 -14 -26 -6" stroke="#ffecca" stroke-width="8" stroke-linecap="round" fill="none"/>
+              <circle cx="-26" cy="-6" r="6" fill="#ffecca" stroke="#d8b79a" stroke-width="1"/>
+            </g>
+          </g>
+        </svg>
+
+        <div id="badge" class="badge" aria-hidden="true">★</div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel">
+      <div class="chat-area" id="chatArea" aria-live="polite"></div>
+
+      <div class="composer-row">
+        <div id="composer" class="composer" contenteditable="true" role="textbox" aria-multiline="true" placeholder="Type a message..."></div>
+        <button id="sendBtn" class="send-btn" title="Send" aria-label="Send">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 21L23 12 2 3 2 10 17 12 2 14 2 21Z" fill="currentColor"/></svg>
+        </button>
+      </div>
+
+      <div class="hint">A friendly wizard avatar: it waves while you type, looks at the screen on send and flings stars.</div>
+    </div>
+  </main>
+
+<script>
+(function(){
+  const wizard = document.getElementById('wizard');
+  const composer = document.getElementById('composer');
+  const sendBtn = document.getElementById('sendBtn');
+  const chatArea = document.getElementById('chatArea');
+  const badge = document.getElementById('badge');
+  const panel = document.getElementById('panel');
+
+  let savedRange = null;
+  function saveRange(){ const s = window.getSelection(); if(s && s.rangeCount) savedRange = s.getRangeAt(0).cloneRange(); }
+  ['input','keyup','mouseup','click','focus','touchend'].forEach(ev => composer.addEventListener(ev, saveRange));
+
+  // Wave behavior
+  let waveTimer = null;
+  function waveOnce(){
+    wizard.classList.add('waving','look-user');
+    if (waveTimer) clearTimeout(waveTimer);
+    waveTimer = setTimeout(()=> {
+      wizard.classList.remove('waving');
+      setTimeout(()=> wizard.classList.remove('look-user'), 700);
+    }, 1100);
+  }
+  function lookScreen(){
+    wizard.classList.remove('look-user');
+    wizard.classList.add('look-screen');
+  }
+
+  // Star burst
+  function countStars(n){
+    if (!n || n < 1) n = 3;
+    lookScreen();
+    badge.textContent = String(n);
+    badge.classList.add('visible');
+
+    const panelRect = panel.getBoundingClientRect();
+    const wizRect = wizard.getBoundingClientRect();
+    const baseLeft = wizRect.left - panelRect.left + wizRect.width/2;
+    const baseTop = wizRect.top - panelRect.top + 10;
+
+    for (let i=0;i<n;i++){
+      const s = document.createElement('div');
+      s.className = 'star';
+      s.style.left = (baseLeft + (i % 2 ? -12 : 12) + i*4) + 'px';
+      s.style.top = (baseTop + (i*2)) + 'px';
+      s.textContent = '★';
+      panel.appendChild(s);
+      requestAnimationFrame(()=> s.classList.add('show'));
+      setTimeout(()=> {
+        s.classList.remove('show');
+        s.remove();
+        if (i === n-1) setTimeout(()=> badge.classList.remove('visible'), 600);
+      }, 900 + i*90);
+    }
+  }
+
+  composer.addEventListener('input', ()=>{
+    const txt = (composer.textContent || '').trim();
+    if (txt.length) waveOnce();
+  });
+
+  sendBtn.addEventListener('click', (e)=>{
+    e.preventDefault();
+    const text = (composer.textContent || '').trim();
+    if (!text) return;
+    const userMsg = document.createElement('div');
+    userMsg.className = 'msg user';
+    userMsg.textContent = text;
+    chatArea.appendChild(userMsg);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    composer.textContent = '';
+    // assistant actions
+    lookScreen();
+    setTimeout(()=> countStars(4), 140);
+    // simulate bot reply
+    setTimeout(()=> {
+      const bot = document.createElement('div');
+      bot.className = 'msg bot';
+      bot.textContent = 'Wizard: I have noted "' + text + '"';
+      chatArea.appendChild(bot);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }, 1200);
+  });
+
+  // Enter to send (Shift+Enter newline)
+  composer.addEventListener('keydown', (e)=>{
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendBtn.click();
+    }
+  });
+
+  // Expose helpers for console testing
+  window._wizardAssistant = { wave: waveOnce, lookScreen, countStars };
+})();
+</script>
+</body>
+</html>

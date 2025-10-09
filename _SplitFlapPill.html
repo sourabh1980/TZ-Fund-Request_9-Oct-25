@@ -1,0 +1,274 @@
+<!--
+  _SplitFlapPill.html  — Hologlow theme (Row Variant) — v2
+  ---------------------------------------------------------------------
+  Changes (per Sourabh):
+  - Category color map aligned to card colors (fuel, da, car, air, misc, transport)
+  - Subtle flip micro-animation class (.flip-micro) to trigger on broadcast
+  - Density tied to global --compact (font, height, min-width)
+  - Row variant uses a softer glow for performance
+  ---------------------------------------------------------------------
+  Usage:
+    [Include this file in your main template]
+
+    <div class="splitflap splitflap--row splitflap--holo [flip-micro]"
+         data-cal="fuel" tabindex="0" role="button" aria-label="Fuel date">
+      <div class="line">DD - MM</div>
+      <div class="line">DD - MM</div>
+    </div>
+
+  Notes:
+    - “Today” breathes twice on first paint, then holds; disabled under reduced motion.
+    - Toggle states by adding/removing classes; your calendar code already sets .line text.
+    - Add/remove .flip-micro briefly to play the micro flip (remove on animationend).
+-->
+
+<style>
+  /* ======================
+     Metrics & base tokens
+     ====================== */
+  :root {
+    --flap-row-font-size: 12px;
+    --flap-row-line-height: 1.12;
+    --flap-row-xpad: 0.38ch;
+    --flap-row-ypad: 6px;
+    --flap-row-radius: 12px; /* slightly softer than 10px */
+    --flap-row-bg-top: #10131c;  /* ink gradient (top)  */
+    --flap-row-bg-bot: #0b0e17;  /* ink gradient (bottom) */
+    --flap-row-fg: #eaf2ff;
+    --flap-row-letterspace: 0.3px;
+
+    /* Global compact factor is defined in _Head.html; default to 1 here */
+    --compact: 1;
+  }
+
+  /* ======================
+     Base split-flap block
+     ====================== */
+  .splitflap {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+
+    color: var(--flap-row-fg);
+    background: linear-gradient(180deg, var(--flap-row-bg-top), var(--flap-row-bg-bot));
+    border-radius: var(--flap-row-radius);
+    border: 1px solid rgba(20,24,36,0.9); /* inner crisp edge */
+    padding: calc(var(--flap-row-ypad) * var(--compact, 1)) var(--flap-row-xpad);
+
+    min-width: calc(70px * var(--compact, 1)); /* content drives width, stabilized minimum */
+    user-select: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+
+    /* subtle inner bevel for depth (fast + cheap) */
+    box-shadow: none;
+  }
+
+  /* Row variant (no transforms by default — micro flip only when class present) */
+  .splitflap--row { transform: none; }
+
+  /* Line typography */
+  .splitflap .line {
+    display: block;
+    font-size: calc(var(--flap-row-font-size) * var(--compact, 1));
+    line-height: var(--flap-row-line-height);
+    font-weight: 800;
+    letter-spacing: var(--flap-row-letterspace);
+    text-align: center;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+    backface-visibility: hidden;
+  }
+  .splitflap .line:first-child { margin-bottom: 2px; }
+
+  /* ======================
+     Hologlow theme (base)
+     ====================== */
+  .splitflap--holo {
+    /* Neon edge ring built from layered box-shadows (no filters) */
+    box-shadow:
+      0 0 0 1px var(--holo-outline, rgba(77,163,255,0.85)),
+      0 0 8px 2px var(--holo-glow-1, rgba(77,163,255,0.55)),
+      0 0 18px 6px var(--holo-glow-2, rgba(106,225,255,0.35));
+    outline: none; /* focus ring handled below */
+    will-change: box-shadow;
+  }
+
+  /* Softer row glow for performance */
+  .splitflap--holo.splitflap--row {
+    box-shadow:
+      0 0 0 1px var(--holo-outline, rgba(77,163,255,0.85)),
+      0 0 6px 1.5px var(--holo-glow-1, rgba(77,163,255,0.55)),
+      0 0 12px 4px var(--holo-glow-2, rgba(106,225,255,0.35));
+  }
+
+  /* Always-visible seam removed */
+
+  /* Seam shimmer sweep (triggered on hover/focus) */
+  .splitflap--holo::before {
+    content: "";
+    position: absolute;
+    left: 6px; right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent);
+    background-size: 200% 100%;
+    background-position: 0% 0;
+    opacity: 0;
+    pointer-events: none;
+  }
+  .splitflap--holo:hover::before,
+  .splitflap--holo:focus-visible::before {
+    opacity: 1;
+    animation: seam-sheen 300ms ease-in-out 1;
+  }
+  @keyframes seam-sheen {
+    from { background-position: 0% 0; opacity: 0.0; }
+    25% { opacity: 1; }
+    to   { background-position: 100% 0; opacity: 0.0; }
+  }
+
+  /* Hover/focus: brighten ring + accessible focus ring */
+  .splitflap--holo:hover,
+  .splitflap--holo:focus-visible {
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 -1px 0 rgba(0,0,0,0.45),
+      0 0 0 1px var(--holo-accent, #4DA3FF),
+      0 0 10px 3px rgba(0,0,0,0.0), /* spacer */
+      0 0 22px 10px var(--holo-accent-2, #6AE1FF);
+  }
+  .splitflap--holo:focus-visible {
+    outline: 2px solid var(--holo-accent, #4DA3FF);
+    outline-offset: 2px; /* may be clipped if parent has overflow hidden */
+  }
+
+  /* Today: breathe twice on first paint, then hold steady */
+  .splitflap--holo.is-today {
+    animation: holo-breathe 8s ease-in-out 0s 2 alternate;
+  }
+  @keyframes holo-breathe {
+    from {
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.04),
+        inset 0 -1px 0 rgba(0,0,0,0.35),
+        0 0 0 1px var(--holo-outline),
+        0 0 8px 2px var(--holo-glow-1),
+        0 0 18px 6px var(--holo-glow-2);
+    }
+    to {
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.05),
+        inset 0 -1px 0 rgba(0,0,0,0.40),
+        0 0 0 1px var(--holo-accent),
+        0 0 12px 4px var(--holo-glow-1),
+        0 0 26px 12px var(--holo-glow-2);
+    }
+  }
+
+  /* Late: warm the hue toward amber/red */
+  .splitflap--holo.is-late {
+    --holo-accent: #FFB45E;
+    --holo-accent-2: #FF5E5B;
+    --holo-outline: rgba(255,180,94,0.9);
+    --holo-glow-1: rgba(255,180,94,0.55);
+    --holo-glow-2: rgba(255,94,91,0.35);
+  }
+
+  /* Disabled: quiet text + neutralized glow, no interactions */
+  .splitflap--holo.is-disabled {
+    color: rgba(234,242,255,0.60);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.03),
+      inset 0 -1px 0 rgba(0,0,0,0.35),
+      0 0 0 1px rgba(120,130,150,0.35),
+      0 0 8px 2px rgba(0,0,0,0.0),
+      0 0 18px 6px rgba(0,0,0,0.0);
+    pointer-events: none;
+  }
+
+  /* ======================
+     Flip micro-animation
+     ====================== */
+  .splitflap--holo.flip-micro { perspective: 800px; }
+  .splitflap--holo.flip-micro .line:first-child {
+    animation: rowFlipTop 320ms cubic-bezier(.17,.67,.30,1) 1 both;
+    transform-origin: bottom center;
+  }
+  .splitflap--holo.flip-micro .line:last-child {
+    animation: rowFlipBot 320ms cubic-bezier(.17,.67,.30,1) 1 both;
+    transform-origin: top center;
+  }
+  @keyframes rowFlipTop { 0%{transform:rotateX(0)}50%{transform:rotateX(-90deg)}100%{transform:rotateX(-180deg)} }
+  @keyframes rowFlipBot { 0%{transform:rotateX(180deg)}50%{transform:rotateX(90deg)}100%{transform:rotateX(0)} }
+
+  /* ======================
+     Category → color map
+     Aligned to summary cards palette
+     ====================== */
+  /* FUEL — magenta/violet */
+  .splitflap--holo[data-cal="fuel"] {
+    --holo-accent: #FF6AD5;                           /* rgb(255,106,213) */
+    --holo-accent-2: #C084FC;                         /* rgb(192,132,252) */
+    --holo-outline: rgba(255,106,213,0.90);
+    --holo-glow-1: rgba(255,106,213,0.55);
+    --holo-glow-2: rgba(192,132,252,0.35);
+  }
+  /* DA — teal/blue */
+  .splitflap--holo[data-cal="da"] {
+    --holo-accent: #22D3EE;                           /* rgb(34,211,238) */
+    --holo-accent-2: #3B82F6;                         /* rgb(59,130,246) */
+    --holo-outline: rgba(34,211,238,0.90);
+    --holo-glow-1: rgba(34,211,238,0.55);
+    --holo-glow-2: rgba(59,130,246,0.35);
+  }
+  /* CAR — green/teal */
+  .splitflap--holo[data-cal="car"] {
+    --holo-accent: #22C55E;                           /* rgb(34,197,94) */
+    --holo-accent-2: #06B6D4;                         /* rgb(6,182,212) */
+    --holo-outline: rgba(34,197,94,0.90);
+    --holo-glow-1: rgba(34,197,94,0.55);
+    --holo-glow-2: rgba(6,182,212,0.35);
+  }
+  /* AIRTIME — amber/red */
+  .splitflap--holo[data-cal="air"] {
+    --holo-accent: #F59E0B;                           /* rgb(245,158,11) */
+    --holo-accent-2: #EF4444;                         /* rgb(239,68,68) */
+    --holo-outline: rgba(245,158,11,0.90);
+    --holo-glow-1: rgba(245,158,11,0.55);
+    --holo-glow-2: rgba(239,68,68,0.35);
+  }
+  /* MISC — violet/indigo */
+  .splitflap--holo[data-cal="misc"] {
+    --holo-accent: #8B5CF6;                           /* rgb(139,92,246) */
+    --holo-accent-2: #6366F1;                         /* rgb(99,102,241) */
+    --holo-outline: rgba(139,92,246,0.90);
+    --holo-glow-1: rgba(139,92,246,0.55);
+    --holo-glow-2: rgba(99,102,241,0.35);
+  }
+  /* TRANSPORT — emerald/aqua */
+  .splitflap--holo[data-cal="transport"] {
+    --holo-accent: #14B8A6;                           /* rgb(20,184,166) */
+    --holo-accent-2: #06B6D4;                         /* rgb(6,182,212) */
+    --holo-outline: rgba(20,184,166,0.90);
+    --holo-glow-1: rgba(20,184,166,0.55);
+    --holo-glow-2: rgba(6,182,212,0.35);
+  }
+
+  /* Motion preferences & manual kill switch */
+  @media (prefers-reduced-motion: reduce) {
+    .splitflap--holo,
+    .splitflap--holo.is-today { animation: none !important; }
+    .splitflap--holo::before { animation: none !important; opacity: 0 !important; }
+    .splitflap--holo.flip-micro .line { animation: none !important; }
+  }
+  .splitflap--holo.no-anim,
+  .splitflap--holo.no-anim.is-today {
+    animation: none !important;
+  }
+  .splitflap--holo.no-anim::before { animation: none !important; opacity: 0 !important; }
+  .splitflap--holo.no-anim.flip-micro .line { animation: none !important; }
+</style>

@@ -1,0 +1,1087 @@
+<!-- _FooterScripts.html -->
+<!-- Helper to reset/append rows from beneficiaries (used by _ProjectPicker) -->
+<script>
+(function(){
+  'use strict';
+
+  // ========================= Utilities =========================
+  function getBody(){ return document.getElementById('tbody'); }
+
+  function norm(v){ return (v==null? '' : String(v)).trim(); }
+  function lower(v){ return norm(v).toLowerCase(); }
+
+  // Designation priority (lower is earlier). Unknowns come after these, A→Z.
+  var ROLE_ORDER = ['CM','PM','Mgr','TL','DTE','Tech','Rigg'];
+  var ROLE_RANK = {};
+  for (var i=0;i<ROLE_ORDER.length;i++){ ROLE_RANK[ROLE_ORDER[i].toLowerCase()] = i; }
+
+  function roleRank(desig){
+    var d = lower(desig);
+    // starts-with matching (e.g., 'Manager' → 'Mgr')
+    if (d.startsWith('chief')) return ROLE_RANK['cm'];
+    if (d.startsWith('program') || d==='pm') return ROLE_RANK['pm'];
+    if (d.startsWith('manag')) return ROLE_RANK['mgr'];
+    if (d==='tl' || d.startsWith('team l')) return ROLE_RANK['tl'];
+    if (d==='dte') return ROLE_RANK['dte'];
+    if (d.startsWith('tech')) return ROLE_RANK['tech'];
+    if (d.startsWith('rigg')) return ROLE_RANK['rigg'];
+    // unknowns after defined set; we return a large base rank
+    return 1000;
+  }
+
+  function teamOf(item){
+    return norm(item.teamName || item.team || item.team_id || item.teamId || '');
+  }
+  function projectOf(item){
+    return norm(item.projectName || item.project || '');
+  }
+
+  // ========================= Team vehicle prefill =========================
+  const vehiclePrefillState = {
+    pendingTeams: new Set(),
+    timer: null,
+    inFlightKey: ''
+  };
+
+  function scheduleTeamVehiclePrefill(items){
+    if (!Array.isArray(items) || !items.length) return;
+    items.forEach(function(it){
+      const team = teamOf(it);
+      if (team) vehiclePrefillState.pendingTeams.add(team);
+    });
+    if (vehiclePrefillState.timer) return;
+    vehiclePrefillState.timer = setTimeout(function(){
+      const teams = Array.from(vehiclePrefillState.pendingTeams).filter(Boolean);
+      vehiclePrefillState.pendingTeams.clear();
+      vehiclePrefillState.timer = null;
+      requestTeamVehiclePrefill(teams);
+    }, 150);
+  }
+
+  function requestTeamVehiclePrefill(teams){
+    if (!Array.isArray(teams) || !teams.length) return;
+    if (!(window.google && google.script && google.script.run)) return;
+    const key = teams
+      .map(function(t){ return String(t || '').toLowerCase(); })
+      .filter(Boolean)
+      .sort()
+      .join('|');
+    if (!key || vehiclePrefillState.inFlightKey === key) return;
+    vehiclePrefillState.inFlightKey = key;
+
+    google.script.run
+      .withSuccessHandler(function(res){
+        vehiclePrefillState.inFlightKey = '';
+        try{
+          if (!res || res.ok !== true || !res.teams) return;
+          applyTeamVehiclePrefill(res.teams);
+        }catch(err){ console.error('applyTeamVehiclePrefill failed', err); }
+      })
+      .withFailureHandler(function(err){
+        vehiclePrefillState.inFlightKey = '';
+        console.error('Team vehicle prefill failed:', err);
+      })
+      .getLatestInUseVehiclesForTeams(teams);
+  }
+
+  function applyTeamVehiclePrefill(mapping){
+    if (!mapping) return;
+    console.log('[PREFILL] ⚠️ Team vehicle prefill disabled to prevent overriding exclusive assignments');
+    console.log('[PREFILL] Vehicle assignments should only be managed through the exclusive assignment system');
+    
+    // ❌ DISABLED: This function was filling vehicles for ALL team members
+    // instead of respecting the exclusive assignment to responsible beneficiary only
+    // 
+    // Original logic was:
+    // - Loop through all rows for each team
+    // - Fill vehicle for every row in that team
+    // - This violated the exclusive assignment principle
+    //
+    // Vehicles should ONLY be assigned through the Vehicle Assignment Manager
+    // which ensures exclusive assignment to the responsible beneficiary
+    
+    return; // Exit early to prevent team-wide vehicle assignment
+    
+    // ❌ COMMENTED OUT - Original team-wide assignment logic
+    /*
+    const lowerMap = {};
+    Object.keys(mapping).forEach(function(key){
+      const info = mapping[key];
+      if (!info || !info.carNumber) return;
+      lowerMap[key.toLowerCase()] = info;
+    });
+    const rows = document.querySelectorAll('.tbody .row-data');
+    rows.forEach(function(row){
+      const team = String(row.getAttribute('data-team') || row.dataset.team || '').trim();
+      if (!team) return;
+      const info = mapping[team] || lowerMap[team.toLowerCase()];
+      const input = row.querySelector('input.car-number-input');
+      if (!input) return;
+      if (!info || !info.carNumber) {
+        if (input.dataset && input.dataset.prefillSource) {
+          input.value = '';
+          try { delete input.dataset.prefillSource; } catch(_){  }
+          try { input.dispatchEvent(new Event('input', { bubbles:true })); } catch(_){  }
+        }
+        return;
+      }
+      if (input.value && input.value.trim() && !input.dataset.prefillSource) return;
+      input.value = info.carNumber;
+      try { input.dataset.prefillSource = info.source || 'inUse'; } catch(_){  }
+      try { input.dispatchEvent(new Event('input', { bubbles:true })); } catch(_){  }
+    });
+    */
+  }
+
+  // ========================= Prototype clone =========================
+  let protoRowTemplate = null;
+  function ensurePrototype(){
+    if (protoRowTemplate) return protoRowTemplate;
+    const body = getBody();
+    if (!body) return null;
+    const proto = body.querySelector('.row-data');
+    if (!proto) return null;
+    const clone = proto.cloneNode(true);
+    // Clear inputs
+    clone.querySelectorAll('input').forEach(inp => {
+      if (inp.type === 'number' || inp.classList.contains('amt')) {
+        inp.value = (inp.hasAttribute('readonly') ? inp.value : '');
+      } else {
+        inp.value = '';
+      }
+      inp.classList.remove('diff-flag');
+    });
+    // Reset splitflap lines to placeholders if present
+    clone.querySelectorAll('.splitflap .line').forEach((line) => { line.textContent = 'DD - MM'; });
+    // Ensure no stale attributes
+    clone.removeAttribute('data-team'); clone.removeAttribute('data-project');
+    protoRowTemplate = clone;
+    return protoRowTemplate;
+  }
+
+  // ========================= Painter (fallback) =========================
+  function hexToRgb(hex){ var h=hex.replace('#',''); if(h.length===3){h=h.split('').map(function(c){return c+c}).join(''); } var n=parseInt(h,16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; }
+  function rgba(hex,a){ var c=hexToRgb(hex); return 'rgba('+c.r+','+c.g+','+c.b+','+a+')'; }
+  function hash32(str){ var h=2166136261>>>0; for(var i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+  // Indian flag colors - Saffron, White, Green pattern for team distinction
+  var PALETTE = ['#FF9933','#FFFFFF','#138808','#FFFFFF'];
+
+  function miniPaintByTeam(orderedTeamList){
+    try{
+      var rows = Array.from(document.querySelectorAll('.tbody .row-data'));
+      if(!rows.length) return;
+
+      // Assign palette in sequential order for consistent Saffron-White-Green-White pattern
+      var teamToColor = {};
+      var order = orderedTeamList && orderedTeamList.length ? orderedTeamList : Array.from(new Set(rows.map(function(r){return r.getAttribute('data-team')||'';}))).filter(Boolean).sort();
+      for (var k=0; k<order.length; k++){
+        var key = order[k];
+        var idx = k % PALETTE.length;
+        teamToColor[key] = PALETTE[idx];
+      }
+
+      // Apply tints inline with alternating team highlighting
+      var teamList = [];
+      
+      // First pass: collect unique teams in order
+      rows.forEach(function(row){
+        var t = row.getAttribute('data-team') || '';
+        if(t && teamList.indexOf(t) === -1) {
+          teamList.push(t);
+        }
+      });
+      
+      rows.forEach(function(row){
+        var t = row.getAttribute('data-team') || '';
+        if(!t) {
+          return;
+        }
+        var accent = teamToColor[t]; if(!accent) return;
+        var teamIndex = teamList.indexOf(t);
+        
+        // Teams cycle through saffron, white, green colors
+        if(accent === '#FFFFFF') {
+          // White teams get white background
+          var tint = 'rgba(255, 255, 255, 0.03)';
+          var tintIn = 'rgba(200, 200, 200, 0.05)';
+        } else {
+          // Colored teams get reduced intensity team color
+          var tint = rgba(accent, 0.15);
+           var tintIn = rgba(accent, 0.50);
+        }
+        var cells = row.getElementsByClassName('cell');
+        Array.prototype.forEach.call(cells, function(c){ c.style.background = tint; });
+        var inputs = row.querySelectorAll('.cell input, .cell select, .cell textarea');
+        inputs.forEach(function(inp){ inp.style.backgroundColor = tintIn; });
+      });
+    }catch(e){ /* silent */ }
+  }
+
+  function repaintTeams(orderedTeamList){
+    if (window.FRTZ && typeof window.FRTZ.applyTeamTints === 'function'){
+      try{ window.FRTZ.applyTeamTints(); return; }catch(e){ /* fall through */ }
+    }
+    miniPaintByTeam(orderedTeamList);
+  }
+
+  // ========================= Row filling =========================
+  function fillRowFromItem(row, it){
+    // Target inputs by specific classes instead of position to avoid conflicts
+    const beneficiaryInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+    const accountHolderInput = row.querySelector('input.account-holder-input');
+    const carNumberInput = row.querySelector('input.car-number-input');
+    const designationInput = row.querySelector('input.txt[placeholder="Designation"], input.txt[placeholder*="Designation"]');
+    const amts = row.querySelectorAll('input.amt'); // [Row Total, Fuel, ERDA, Car, Air, Misc]
+
+    if (beneficiaryInput) beneficiaryInput.value = it.beneficiary || '';
+    if (accountHolderInput) accountHolderInput.value = it.accountHolder || '';
+    if (designationInput) designationInput.value = it.designation || '';
+    // Show vehicle number for beneficiaries present in Vehicle_InUse assignments
+    if (carNumberInput) {
+      // Assume window.vehicleInUseMap is a map: beneficiaryName -> vehicleNumber
+      let assignedVehicle = '';
+      if (window.vehicleInUseMap && it.beneficiary) {
+        assignedVehicle = window.vehicleInUseMap[it.beneficiary.trim()] || '';
+      }
+      carNumberInput.value = assignedVehicle;
+    }
+
+    if (amts[0]) amts[0].value = (window.FRTZ && window.FRTZ.formatAmt ? window.FRTZ.formatAmt(0) : Number(0).toFixed(2));                 // Row Total
+    // ER DA amount should remain empty by default - user must fill it manually
+    // if (amts[2]) amts[2].value = (window.FRTZ && window.FRTZ.formatAmt ? window.FRTZ.formatAmt(it.erdaAmt || 0) : Number(it.erdaAmt || 0).toFixed(2));   // ER DA Amt
+
+    // diff flag
+    if (it.diffNames){
+      if (beneficiaryInput) beneficiaryInput.classList.add('diff-flag');
+      if (accountHolderInput) accountHolderInput.classList.add('diff-flag');
+    }
+
+    // stamp team/project
+    var tName = teamOf(it);
+    if (tName){ row.dataset.team = tName; row.setAttribute('data-team', tName); } else { row.removeAttribute('data-team'); }
+    var pName = projectOf(it);
+    if (pName){
+      row.dataset.project = pName;
+      row.setAttribute('data-project', pName);
+    } else {
+      row.removeAttribute('data-project');
+      try { delete row.dataset.project; } catch(_){ /* ignore */ }
+    }
+    
+    // Build bDet object for car popup functionality
+    if (!window.bDet) window.bDet = {};
+    console.log('fillRowFromItem - Processing item:', it);
+    console.log('fillRowFromItem - Beneficiary:', it.beneficiary, 'Team:', it.team, 'TeamName:', it.teamName);
+    if (it.beneficiary && (it.team || it.teamName || it.teamId)) {
+      const teamValue = it.team || it.teamName || it.teamId;
+      window.bDet[it.beneficiary] = {
+        team: teamValue,
+        teamName: it.teamName || teamValue,
+        project: it.project || it.projectName
+      };
+      console.log('fillRowFromItem - Added to bDet:', it.beneficiary, '→', window.bDet[it.beneficiary]);
+    } else {
+      console.log('fillRowFromItem - Skipped bDet (missing data):', {
+        beneficiary: it.beneficiary,
+        team: it.team,
+        teamName: it.teamName,
+        teamId: it.teamId
+      });
+    }
+    console.log('fillRowFromItem - Current bDet state:', window.bDet);
+    
+    // Trigger name mismatch check after data is loaded
+    setTimeout(function() {
+      if (window.checkNameMismatch && typeof window.checkNameMismatch === 'function') {
+        window.checkNameMismatch();
+      }
+    }, 100);
+
+    return row;
+  }
+
+  // ========================= Sorting & Grouping =========================
+  function sortItemsForRendering(items){
+    // Build team order A→Z
+    var teamOrder = Array.from(new Set(items.map(teamOf))).filter(Boolean).sort(function(a,b){ return a.localeCompare(b); });
+
+    // Comparator: team by A→Z, then role priority, then beneficiary A→Z
+    items.sort(function(a,b){
+      var ta = teamOf(a), tb = teamOf(b);
+      if (ta !== tb) return ta.localeCompare(tb);
+      var ra = roleRank(a.designation), rb = roleRank(b.designation);
+      if (ra !== rb){
+        // known roles (rank < 1000) come before unknowns (1000)
+        return ra - rb;
+      }
+      // both unknown → alphabetical by designation, then by beneficiary
+      var da = lower(a.designation), db = lower(b.designation);
+      if (da !== db) return da.localeCompare(db);
+      return norm(a.beneficiary).localeCompare(norm(b.beneficiary));
+    });
+
+    return teamOrder;
+  }
+
+  // ========================= Public helpers =========================
+  window.clearAllDataRows = function(){
+    const body = getBody(); if (!body) return;
+    while (body.firstChild) body.removeChild(body.firstChild);
+  };
+
+  function appendMany(items){
+    const body = getBody(); if (!body) return;
+    const tpl  = ensurePrototype(); if (!tpl) { console.error('No prototype .row-data found in tbody'); return; }
+
+    items.forEach(function(it){
+      const row = tpl.cloneNode(true);
+      fillRowFromItem(row, it);
+      body.appendChild(row);
+    });
+    body.lastElementChild && body.lastElementChild.scrollIntoView({behavior:'smooth', block:'nearest'});
+  }
+
+  window.appendRowsFromBeneficiaries = function(items){
+    try{
+      if (!Array.isArray(items) || !items.length) return;
+      var teamOrder = sortItemsForRendering(items);
+      appendMany(items);
+      // repaint using the determined team order so adjacent blocks differ
+      setTimeout(function(){ repaintTeams(teamOrder); }, 0);
+      scheduleTeamVehiclePrefill(items);
+    }catch(err){
+      console.error('appendRowsFromBeneficiaries error:', err);
+      alert('Could not add rows: ' + err);
+    }
+  };
+
+  // Debounce mechanism to prevent multiple rapid animation triggers
+  let replaceRowsTimeout = null;
+  let lastReplaceCall = 0;
+  
+  window.replaceRowsFromBeneficiaries = function(items){
+    const body = getBody(); if (!body) return;
+    const tpl = ensurePrototype();
+    
+    // Clear any pending timeout
+    if (replaceRowsTimeout) {
+      clearTimeout(replaceRowsTimeout);
+      replaceRowsTimeout = null;
+    }
+    
+    // Debounce rapid calls within 100ms
+    const now = Date.now();
+    if (now - lastReplaceCall < 100) {
+      replaceRowsTimeout = setTimeout(() => {
+        window.replaceRowsFromBeneficiaries(items);
+      }, 100);
+      return;
+    }
+    
+    lastReplaceCall = now;
+    window.clearAllDataRows();
+    if (!Array.isArray(items) || !items.length){ return; }
+    var teamOrder = sortItemsForRendering(items);
+    appendMany(items);
+    setTimeout(function(){ repaintTeams(teamOrder); }, 0);
+    scheduleTeamVehiclePrefill(items);
+  };
+
+})();
+</script>
+
+<!-- Debug: Car RELEASE list popup (for quick verification) -->
+<style>
+  #carDebugModal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);z-index:10000}
+  #carDebugCard{width:min(720px,96vw);max-height:80vh;background:#fff;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);overflow:hidden;display:flex;flex-direction:column}
+  #carDebugHdr{padding:12px 14px;background:linear-gradient(135deg,#06b6d4,#3b82f6);color:#fff;display:flex;align-items:center;justify-content:space-between}
+  #carDebugHdr h3{margin:0;font-size:16px;font-weight:800}
+  #carDebugClose{appearance:none;border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:8px;padding:6px 10px;cursor:pointer}
+  #carDebugBd{padding:12px;overflow:auto}
+  #carDebugTbl{width:100%;border-collapse:collapse;font-size:12px}
+  #carDebugTbl th,#carDebugTbl td{border:1px solid #e5e7eb;padding:6px 8px;text-align:left;white-space:nowrap}
+  #carDebugTbl th{position:sticky;top:0;background:#f8fafc;z-index:1}
+  #carDebugNote{font-size:12px;opacity:.75;margin:8px 0 0}
+</style>
+
+<div id="carDebugModal" aria-hidden="true" role="dialog" aria-labelledby="carDebugTitle">
+  <div id="carDebugCard">
+    <div id="carDebugHdr">
+      <h3 id="carDebugTitle">Available Cars (Latest Entries)</h3>
+      <button id="carDebugClose" type="button">Close</button>
+    </div>
+    <div id="carDebugBd">
+      <div id="carDebugStatus">Loading…</div>
+      <table id="carDebugTbl" style="display:none">
+        <thead>
+          <tr>
+            <th>Car #</th>
+            <th>Make</th>
+            <th>Model</th>
+            <th>Usage</th>
+            <th>Contract</th>
+            <th>Owner</th>
+            <th>Status</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody id="carDebugBody"></tbody>
+      </table>
+      <div id="carDebugNote"></div>
+    </div>
+  </div>
+  
+  <script>
+  (function(){
+    const modal  = document.getElementById('carDebugModal');
+    const close  = document.getElementById('carDebugClose');
+    const status = document.getElementById('carDebugStatus');
+    const table  = document.getElementById('carDebugTbl');
+    const tbody  = document.getElementById('carDebugBody');
+    const note   = document.getElementById('carDebugNote');
+
+    // Request guard to avoid race conditions from rapid reopens
+    let __reqId = 0;
+
+    function fmtDate(v){ try{ return v ? new Date(v).toLocaleString() : ''; }catch(_){ return String(v||''); } }
+
+    function openDebug(){
+      const rid = ++__reqId; // token for this open action
+      // State for finalization
+      let gotRaw=false, rawCount=0; 
+      let gotMap=false, mapGrouped=0; 
+      let gotCars=false, carsUsedCount=0;
+
+      function isStale(){ return rid !== __reqId; }
+      function maybeFinalize(){
+        if (isStale()) return;
+        // Only show the no-data message if ALL calls have returned and we truly have nothing
+        const allDone = gotRaw && gotMap && gotCars;
+        if (!allDone) return;
+        if (carsUsedCount>0) { status.textContent=''; return; }
+        if (rawCount>0 || mapGrouped>0) { status.textContent=''; return; }
+        status.textContent = 'No cars returned from CarT_P.';
+        note.textContent += `\nNo vehicles available. Ensure 'Vehicle Number' column has values in CarT_P.`;
+      }
+      if(!window.google || !google.script || !google.script.run){
+        alert('google.script.run not available. Please run as a deployed web app.');
+        return;
+      }
+      modal.style.display='grid';
+      status.textContent = 'Loading…';
+      table.style.display = 'none';
+      tbody.innerHTML = '';
+      note.textContent = '';
+
+      let populated = false;
+      let diagnosed = false;
+      let groupedVehiclesCount = 0; // set by mapping step; used to avoid premature "no cars" message
+
+      // 1) Show diagnostics early
+      google.script.run
+        .withSuccessHandler(function(meta){
+          try{
+            if (isStale()) return;
+            diagnosed = true;
+            const lines = [];
+            if (meta && meta.ok){
+              lines.push(`Sheet ID: ${meta.sheetId}`);
+              lines.push(`Found sheet: ${meta.sheetName}`);
+              lines.push(`Sheets: ${Array.isArray(meta.sheets)? meta.sheets.join(', '): ''}`);
+              lines.push(`Size: ${meta.lastRow} rows x ${meta.lastCol} cols`);
+              lines.push('Header:');
+              lines.push((meta.header||[]).map((h,i)=>`[${i+1}] ${h}`).join(' | '));
+            } else {
+              lines.push('CarT_P not found.');
+              if (meta && meta.sheets) lines.push(`Sheets present: ${meta.sheets.join(', ')}`);
+              if (meta && meta.error) lines.push(`Error: ${meta.error}`);
+            }
+            status.textContent = 'Diagnostics:';
+            note.textContent = lines.join('\n');
+            note.style.whiteSpace = 'pre-wrap';
+          }catch(e){ /* ignore */ }
+        })
+        .debugCarTPOverview();
+
+      // 2) Raw extract preview
+      google.script.run
+        .withSuccessHandler(function(raw){
+          try{
+            if (isStale()) return;
+            const list = (raw && raw.ok && Array.isArray(raw.rows)) ? raw.rows : [];
+            rawCount = list.length; gotRaw = true;
+            if(list.length){
+              const rows = list.map(c => `<tr>
+                <td>${c.carNumber||''}</td>
+                <td>${c.make||''}</td>
+                <td>${c.model||''}</td>
+                <td>${c.usageType||''}</td>
+                <td>${c.contractType||''}</td>
+                <td>${c.owner||''}</td>
+                <td>${c.status||''}</td>
+                <td>${fmtDate(c.dateTime)}</td>
+              </tr>`).join('');
+              tbody.innerHTML = rows;
+              table.style.display = 'table';
+              populated = true;
+              note.textContent += `\nParsed ${raw.count} rows from CarT_P (showing up to 50).`;
+            }
+            maybeFinalize();
+          }catch(e){ /* ignore */ }
+        })
+        .debugExtractCars();
+
+      // 3) Mapping diagnostics (indices + sample cars)
+      google.script.run
+        .withSuccessHandler(function(map){
+          try{
+            if (isStale()) return;
+            if(map && map.ok){
+              const lines = [];
+              lines.push(`Detected Vehicle Number index: ${map.carIndex} (heuristic: ${map.carIndexHeuristic})`);
+              if (Array.isArray(map.header) && map.carIndex>=0){
+                lines.push(`Vehicle Number header: ${map.header[map.carIndex]}`);
+              }
+              groupedVehiclesCount = Number(map.groupedVehicles||0);
+              mapGrouped = groupedVehiclesCount; gotMap = true;
+              lines.push(`Unique vehicles (grouped): ${groupedVehiclesCount}`);
+              if ((map.sample||[]).length){
+                const list = map.sample.map(s => `${s.carNumber} [${s.status||''}]`).join(', ');
+                lines.push(`Sample cars: ${list}`);
+              } else {
+                lines.push('Sample cars: none detected');
+              }
+              note.textContent += `\n${lines.join('\n')}`;
+              note.style.whiteSpace = 'pre-wrap';
+            }
+            maybeFinalize();
+          }catch(e){ /* ignore */ }
+        })
+        .debugCarTPMapping();
+
+      // 4) Finally load the filtered list; only override if we actually get cars
+      google.script.run
+        .withSuccessHandler(function(cars){
+          try{
+            if (isStale()) return;
+            const list = Array.isArray(cars) ? cars : [];
+            const release = list.filter(c => String(c.status||'').toUpperCase()==='RELEASE');
+            const used = release.length ? release : list;
+            carsUsedCount = used.length; gotCars = true;
+            if(used.length){
+              status.textContent = '';
+              note.textContent = release.length
+                ? `Showing ${release.length} vehicles with latest status RELEASE.`
+                : `Showing ${used.length} vehicles (latest per vehicle, all statuses).`;
+              const rows = used.map(c => `<tr>
+                <td>${c.carNumber||''}</td>
+                <td>${c.make||''}</td>
+                <td>${c.model||''}</td>
+                <td>${c.usageType||''}</td>
+                <td>${c.contractType||''}</td>
+                <td>${c.owner||''}</td>
+                <td>${c.status||''}</td>
+                <td>${fmtDate(c.dateTime)}</td>
+              </tr>`).join('');
+              tbody.innerHTML = rows;
+              table.style.display = 'table';
+              populated = true;
+            }
+            maybeFinalize();
+          }catch(e){ status.textContent = 'Error rendering data'; console.error(e); }
+        })
+        .withFailureHandler(function(err){ status.textContent = 'Failed to load cars: '+ err; })
+        .getAvailableCars();
+    }
+
+    function closeDebug(){ modal.style.display='none'; }
+    close.addEventListener('click', closeDebug);
+    modal.addEventListener('click', function(e){ if(e.target===modal) closeDebug(); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape' && modal.style.display==='grid') closeDebug(); });
+
+    // Removed: account holder click -> car assignment modal trigger
+
+    // Expose helpers if needed
+    window.openCarReleaseDebug = openDebug;
+    window.closeCarReleaseDebug = closeDebug;
+  })();
+  </script>
+</div>
+
+<!-- NEW: DDC fast‑path — instant client build on Apply (keeps your renderer; server confirms in background) -->
+<script>
+(function(){
+  if (window.__DDC_FASTPATH_WIRED__) return; window.__DDC_FASTPATH_WIRED__ = true;
+
+  function fromDDC(projectId, teamIds){
+    try{
+      var tag = document.getElementById('DDC');
+      if (!tag) return null;
+      var pack = JSON.parse(tag.textContent||'{}');
+      if (!pack || !Array.isArray(pack.rows)) return null;
+      var p = (projectId||'').trim();
+      var tset = new Set((teamIds||[]).map(function(s){ return String(s||'').trim(); }));
+      var have = tset.size>0;
+      var out = [];
+      for (var i=0;i<pack.rows.length;i++){
+        var r = pack.rows[i]; // [ben, acct, desig, erda, proj, team]
+        if (!r || r[4]!==p) continue;
+        var team = String(r[5]||'');
+        if (have && !tset.has(team)) continue;
+        var ben = String(r[0]||'');
+        if (!ben) continue;
+        out.push({
+          beneficiary: ben,
+          accountHolder: String(r[1]||''),
+          designation: String(r[2]||''),
+          erdaAmt: Number(r[3]||0),
+          project: p,
+          projectName: p,
+          team: team,
+          teamId: team,
+          teamName: team,
+          diffNames: (ben && r[1]) ? (ben.toLowerCase() !== String(r[1]).toLowerCase()) : false
+        });
+      }
+      out.sort(function(a,b){ return (a.beneficiary||'').localeCompare(b.beneficiary||''); });
+      return out;
+    }catch(e){
+      console.warn('DDC parse/build failed', e);
+      return null;
+    }
+  }
+
+  // Capture-phase listener so we run before bubble listeners
+  document.addEventListener('pp:applied', function(e){
+    try{
+      var d = (e && e.detail) || {};
+      var projectId = d.projectId || '';
+      var teamIds = d.teamIds || [];
+      if (!projectId) return;
+      var arr = fromDDC(projectId, teamIds);
+      if (Array.isArray(arr)){
+        // Instant paint using your existing builder
+        if (window.replaceRowsFromBeneficiaries) window.replaceRowsFromBeneficiaries(arr);
+        // Do NOT stop propagation; downstream handler will confirm/replace from server/cache.
+      }
+    }catch(err){ console.warn('DDC fast-path error', err); }
+  }, { capture: true });
+})();
+</script>
+
+<!-- Wire Right Side Sheet → data rows (your last working Apply logic, unchanged) -->
+<script>
+// Wire Right Side Sheet → data rows (with Instant Apply cache-first)
+(function(){
+  function arr(v){ return Array.isArray(v)? v : (v? [v] : []); }
+  function setBusy(b){
+    try{
+      var a = document.getElementById('ppApply');
+      if (a){ if (b){ a.dataset.busy='1'; } else { delete a.dataset.busy; } }
+    }catch(_){}
+  }
+  document.addEventListener('pp:applied', function(e){
+    var d = (e && e.detail) || {};
+    var projectId = d.projectId || '';
+    var teamIds = d.teamIds || [];
+    if (!projectId){ return; }
+
+    // 1) Try cache first for instant paint
+    var cached = (window.ppGetCached && window.ppGetCached(projectId, teamIds)) || null;
+    if (cached && cached.length){
+      try { window.replaceRowsFromBeneficiaries(cached); } catch(_){}
+      // Background refresh for authority (optional)
+      google.script.run.withSuccessHandler(function(items){
+        try { window.replaceRowsFromBeneficiaries(items || []); } catch(_){}
+      }).getBeneficiaries(projectId, teamIds);
+      return;
+    }
+
+    // 2) Fallback to RPC if cache not ready
+    setBusy(true);
+    google.script.run
+      .withSuccessHandler(function(items){
+        try { window.replaceRowsFromBeneficiaries(items || []); } catch(_){}
+        setBusy(false);
+      })
+      .withFailureHandler(function(err){
+        console.error('getBeneficiaries failed:', err);
+        setBusy(false);
+        alert('Could not load beneficiaries for the selected project/teams.');
+      })
+      .getBeneficiaries(projectId, teamIds);
+  });
+
+  document.addEventListener('pp:clear', function(){
+    try{ window.clearAllDataRows(); }catch(_){}
+  });
+})();
+
+/* === Submit Functionality === */
+(function(){
+  'use strict';
+  
+  // Function to check for validation violations
+  function hasValidationViolations() {
+    if (typeof window.getValidationState === 'function') {
+      const validationState = window.getValidationState();
+      if (validationState && validationState.size > 0) {
+        for (let [key, state] of validationState) {
+          // Only consider actual error states as violations
+          if (state.type === 'missing-dates' || state.type === 'missing-amount') {
+            console.log('Validation violation found:', key, state);
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+  
+  // Function to collect all form data regardless of filtering
+  function collectAllFormData() {
+    // Get project name from header bar
+    let globalProjectName = '';
+    const selectedProjectNameElement = document.getElementById('selectedProjectName');
+    if (selectedProjectNameElement && selectedProjectNameElement.textContent.trim()) {
+      // Extract just the project name (remove existing counts if any)
+      const fullText = selectedProjectNameElement.textContent.trim();
+      globalProjectName = fullText.split(' [')[0]; // Get text before first bracket
+    }
+    
+    // Make project name globally accessible
+    window.globalProjectName = globalProjectName;
+    
+    const rows = [];
+    const allRowElements = document.querySelectorAll('.tbody .row-data');
+    
+    allRowElements.forEach(rowElement => {
+      // Get input elements using the correct selectors
+      const beneficiaryElement = rowElement.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+      const accountHolderElement = rowElement.querySelector('input.account-holder-input');
+      const designationElement = rowElement.querySelector('.cell:nth-child(4) input.txt');
+      const mobElement = rowElement.querySelector('.cell:nth-child(11) input.txt');
+      const displayNameElement = rowElement.querySelector('.cell:nth-child(12) input.txt');
+      const whChargesElement = rowElement.querySelector('.cell:nth-child(13) input.amt');
+      const remarksElement = rowElement.querySelector('.cell:nth-child(14) input.txt');
+      const totalElement = rowElement.querySelector('input.amt[readonly]');
+      
+      if (!beneficiaryElement) return; // Skip if no beneficiary input
+      
+      const beneficiaryName = beneficiaryElement.value.trim();
+      if (!beneficiaryName) return; // Skip empty rows
+      
+      // Get team and project info
+      let team = '';
+      let project = globalProjectName; // Use project name from header bar
+      
+      // Try to get team name using the same logic as getActualTeamNameFromRow
+      if (typeof getActualTeamNameFromRow === 'function') {
+        team = getActualTeamNameFromRow(rowElement) || '';
+      } else {
+        // Fallback: get team from data attributes or bDet
+        const ds = rowElement.dataset;
+        team = (ds.teamName || ds.team || ds.teamid || '').trim();
+        if (!team && window.bDet && window.bDet[beneficiaryName]) {
+          team = window.bDet[beneficiaryName].teamName || window.bDet[beneficiaryName].team || '';
+        }
+      }
+      
+      // Fallback for project from bDet if not found in header
+      if (!project && window.bDet && window.bDet[beneficiaryName]) {
+        project = window.bDet[beneficiaryName].project || '';
+      }
+      
+      // Collect expense data for each category
+      const categories = ['fuel', 'erda', 'car', 'air', 'transport', 'misc'];
+      const expenseData = {};
+      
+      categories.forEach(category => {
+        const container = rowElement.querySelector(`[data-cal="${category}"]`);
+        if (container) {
+          const amountInput = container.querySelector('.amount-input');
+          const amount = amountInput ? parseFloat(amountInput.value.replace(/,/g, '')) || 0 : 0;
+          
+          // Get date information from pills
+          let fromDate = '';
+          let toDate = '';
+          const pills = container.querySelectorAll('.splitflap--holo');
+          if (pills.length >= 2) {
+            const fromPill = pills[0];
+            const toPill = pills[1];
+            
+            const fromDay = fromPill.querySelector('.day')?.textContent?.trim();
+            const fromMonth = fromPill.querySelector('.month')?.textContent?.trim();
+            const toDay = toPill.querySelector('.day')?.textContent?.trim();
+            const toMonth = toPill.querySelector('.month')?.textContent?.trim();
+            
+            if (fromDay && fromMonth && fromDay !== 'DD' && fromMonth !== 'MM') {
+              const currentYear = new Date().getFullYear();
+              // Convert month abbreviation to numeric format
+              const monthAbbr = ['JA','FE','MA','AP','MA','JU','JL','AU','SE','OC','NO','DE'];
+              const monthIndex = monthAbbr.indexOf(fromMonth);
+              const monthNum = monthIndex >= 0 ? String(monthIndex + 1).padStart(2, '0') : fromMonth;
+              // Ensure day is zero-padded and use DD/MM/YYYY format for backend parsing
+              const dayPadded = String(fromDay).padStart(2, '0');
+              fromDate = `${dayPadded}/${monthNum}/${currentYear}`;
+            }
+            if (toDay && toMonth && toDay !== 'DD' && toMonth !== 'MM') {
+              const currentYear = new Date().getFullYear();
+              // Convert month abbreviation to numeric format
+              const monthAbbr = ['JA','FE','MA','AP','MA','JU','JL','AU','SE','OC','NO','DE'];
+              const monthIndex = monthAbbr.indexOf(toMonth);
+              const monthNum = monthIndex >= 0 ? String(monthIndex + 1).padStart(2, '0') : toMonth;
+              // Ensure day is zero-padded and use DD/MM/YYYY format for backend parsing
+              const dayPadded = String(toDay).padStart(2, '0');
+              toDate = `${dayPadded}/${monthNum}/${currentYear}`;
+            }
+          }
+          
+          expenseData[category] = {
+            from: fromDate,
+            to: toDate,
+            amount: amount
+          };
+        }
+      });
+      
+      const rowData = {
+        beneficiary: beneficiaryName,
+        accountHolder: accountHolderElement ? accountHolderElement.value.trim() : '',
+        team: team,
+        project: project,
+        teamName: team, // Add explicit teamName field
+        projectName: project, // Add explicit projectName field
+        total: totalElement ? parseFloat(totalElement.value.replace(/,/g, '')) || 0 : 0,
+        designation: designationElement ? designationElement.value.trim() : '',
+        fuel: expenseData.fuel,
+        erda: expenseData.erda,
+        car: expenseData.car,
+        air: expenseData.air,
+        transport: expenseData.transport,
+        misc: expenseData.misc,
+        mob: mobElement ? mobElement.value.trim() : '',
+        displayName: displayNameElement ? displayNameElement.value.trim() : '',
+        whCharges: whChargesElement ? parseFloat(whChargesElement.value.replace(/,/g, '')) || 0 : 0,
+        remarks: remarksElement ? remarksElement.value.trim() : ''
+      };
+      
+      rows.push(rowData);
+    });
+    
+    return rows;
+  }
+  
+  // Submit button event handler
+  function handleSubmit() {
+    // Check for validation violations
+    if (hasValidationViolations()) {
+      // Get specific validation errors for better user feedback
+      const validationState = window.getValidationState();
+      const errors = [];
+      if (validationState) {
+        for (let [key, state] of validationState) {
+          if (state.type === 'missing-dates') {
+            errors.push(`${key}: Amount entered but dates not selected`);
+          } else if (state.type === 'missing-amount') {
+            errors.push(`${key}: Dates selected but amount is zero`);
+          }
+        }
+      }
+      
+      const errorMessage = errors.length > 0 
+        ? `Cannot submit due to validation errors:\n\n${errors.join('\n')}\n\nPlease resolve all validation errors (red highlights and traffic lights) before submitting.`
+        : 'Cannot submit: Please resolve all validation errors (red highlights and traffic lights) before submitting.';
+      
+      alert(errorMessage);
+      return;
+    }
+    
+    // Collect all form data
+    const formData = collectAllFormData();
+    
+    if (formData.length === 0) {
+      alert('No data to submit. Please add some beneficiaries and fill in their information.');
+      return;
+    }
+    
+    // Prepare submission data
+    const submissionData = {
+      rows: formData,
+      hasViolations: false
+    };
+    
+    // Show loading state
+    const submitBtn = document.getElementById('btnSubmit');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'Submitting...';
+    submitBtn.disabled = true;
+    
+    // Call Google Apps Script function
+    google.script.run
+      .withSuccessHandler(function(result) {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        
+        if (result.ok) {
+          alert(`Successfully submitted ${result.submitted} records with Submission ID: ${result.submissionId}`);
+          // Optionally clear the form or redirect
+        } else {
+          alert('Submission failed: ' + (result.error || 'Unknown error'));
+        }
+      })
+      .withFailureHandler(function(error) {
+        submitBtn.textContent = originalText;
+        submitBtn.disabled = false;
+        alert('Submission failed: ' + error.message);
+      })
+      .submitToSubmissions(submissionData);
+  }
+  
+  // Wire up submit button when DOM is ready
+  document.addEventListener('DOMContentLoaded', function() {
+    const submitBtn = document.getElementById('btnSubmit');
+    if (submitBtn) {
+      submitBtn.addEventListener('click', handleSubmit);
+    }
+    
+    // Also wire up via FRTZ if available
+    if (window.FRTZ && window.FRTZ.submitBtn) {
+      window.FRTZ.submitBtn.addEventListener('click', handleSubmit);
+    }
+  });
+  
+  // Expose submit function globally for testing
+  window.handleFormSubmit = handleSubmit;
+  window.collectAllFormData = collectAllFormData;
+  window.hasValidationViolations = hasValidationViolations;
+})();
+</script>
+
+<!-- Debug: Alt+Click Beneficiary to write a test value to CarT_P!A (first blank) -->
+<script>
+(function(){
+  document.addEventListener('click', function(e){
+    // Target: first cell input (Beneficiary) within a row
+    const inp = e.target.closest('.tbody .row-data .cell:first-child input.txt');
+    if (!inp) return;
+    // Require Alt key to avoid interfering with normal typing/clicking
+    if (!e.altKey) return;
+    e.preventDefault();
+    if (!window.google || !google.script || !google.script.run){
+      alert('google.script.run not available (not running as web app).');
+      return;
+    }
+    const val = prompt('Enter a test value to write to CarT_P column A (Ref):', 'TEST');
+    if (val === null) return; // cancelled
+    google.script.run
+      .withSuccessHandler(function(res){
+        if (res && res.ok){
+          alert('Wrote to CarT_P at A' + res.row + ': ' + res.value);
+        } else {
+          alert('Write failed: ' + (res && res.error ? res.error : 'Unknown error'));
+        }
+      })
+      .withFailureHandler(function(err){
+        alert('Write failed: ' + err);
+      })
+      .debugWriteTest(val);
+  });
+})();
+
+// Removed: testCarAssignmentModal (car assignment functionality removed)
+
+// Debug function to test CarT_P sheet connection
+function debugCarTPConnection() {
+  console.log('=== DEBUGGING CART_P CONNECTION ===');
+  
+  if (typeof google !== 'undefined' && google.script && google.script.run) {
+    console.log('Google Apps Script available, testing CarT_P connection...');
+    
+    // Call the backend function to get detailed debug info
+    google.script.run
+      .withSuccessHandler((result) => {
+        console.log('testCarConnection result:', result);
+        if (result && result.success) {
+          const debug = result.debug;
+          const cars = result.cars;
+          const carCount = result.carCount || 0;
+          const allCars = result.allCars;
+          const allCarsCount = result.allCarsCount || 0;
+          
+          let message = `CarT_P Sheet Status: OK\n`;
+          message += `Sheet ID: ${debug.sheetId}\n`;
+          message += `Rows: ${debug.lastRow}\n`;
+          message += `Columns: ${debug.lastCol}\n`;
+          message += `Total Vehicles: ${allCarsCount}\n`;
+          message += `RELEASE Vehicles: ${carCount}\n`;
+          
+          if (allCars && allCars.length > 0) {
+            message += `\nAll Vehicles (first 3):\n`;
+            allCars.slice(0, 3).forEach((car, i) => {
+              message += `${i+1}. ${car.make} ${car.model} (${car.carNumber}) - Status: '${car.status}'\n`;
+            });
+          }
+          
+          if (cars && cars.length > 0) {
+            message += `\nRELEASE Vehicles:\n`;
+            cars.slice(0, 3).forEach((car, i) => {
+              message += `${i+1}. ${car.make} ${car.model} (${car.carNumber}) - Status: '${car.status}'\n`;
+            });
+          } else {
+            message += `\nNo RELEASE vehicles found. Check status values in CarT_P sheet.`;
+          }
+          
+          alert(message);
+        } else {
+          const errMsg = (result && (result.error || result.reason)) ? (result.error || result.reason) : 'Unknown error';
+          alert(`CarT_P Sheet Status: ERROR\nError: ${errMsg}`);
+        }
+      })
+      .withFailureHandler((error) => {
+        console.error('testCarConnection failed:', error);
+        alert(`Failed to check CarT_P sheet: ${error.message || error}`);
+      })
+      .testCarConnection();
+  } else {
+    console.error('Google Apps Script not available!');
+    alert('Google Apps Script not available in this environment.');
+  }
+}
+
+// Function to add sample car data to CarT_P sheet
+function addSampleCarData() {
+  console.log('Adding sample vehicle data...');
+  
+  // Check if Google Apps Script is available
+  if (typeof google === 'undefined' || !google.script) {
+    alert('Google Apps Script not available. This function only works when deployed to Google Apps Script.');
+    console.error('Google Apps Script not available');
+    return;
+  }
+  
+  // Confirm with user before adding data
+  if (!confirm('This will add 5 sample vehicle records to the CarT_P sheet. Continue?')) {
+    return;
+  }
+  
+  // Call the backend function
+  google.script.run
+    .withSuccessHandler(function(result) {
+      console.log('addSampleCarData result:', result);
+      if (result && result.success) {
+        alert(`Success: ${result.message}\nRecords added: ${result.recordsAdded}`);
+        // Optionally refresh any UI dependent on vehicle data
+        console.log('Sample vehicle data added successfully');
+      } else {
+        alert(`Error adding sample data: ${result ? result.error : 'Unknown error'}`);
+      }
+    })
+    .withFailureHandler(function(error) {
+      console.error('addSampleCarData failed:', error);
+      alert(`Failed to add sample vehicle data: ${error.message || error}`);
+    })
+    .addSampleCarData();
+}
+
+</script>
