@@ -941,9 +941,9 @@ function forceRefreshAndTest() {
 
 /**
  * Refreshes summary sheets for vehicle status:
- * - Vehicle_Released: latest RELEASE row per car
- * - Vehicle_InUse: latest IN USE row per car
- * - Vehicle_History: all RELEASE rows (full history)
+ * - Vehicle_InUse: latest IN USE row per beneficiary
+ * - Vehicle_Released: latest RELEASE row per beneficiary
+ * - Vehicle_History: full CarT_P history (unchanged)
  * Call this after any change (assignment, release, beneficiary change).
  */
 function refreshVehicleStatusSheets() {
@@ -953,77 +953,55 @@ function refreshVehicleStatusSheets() {
     return { ok: false, error: 'No CarT_P data' };
   }
 
-  // 1. Group all records by Vehicle Number
-  const recordsByVehicle = allCarRows.reduce((acc, row) => {
-    const carNum = String(row['Vehicle Number'] || '').trim();
-    if (carNum) {
-      if (!acc[carNum]) {
-        acc[carNum] = [];
-      }
-      acc[carNum].push(row);
-    }
-    return acc;
-  }, {});
+  const latestByBeneficiary = new Map();
+  for (const row of allCarRows) {
+    const beneficiary = String(
+      row['R.Beneficiary'] ||
+      row.responsibleBeneficiary ||
+      row['Responsible Beneficiary'] ||
+      row['Name of Responsible beneficiary'] ||
+      ''
+    ).trim();
+    if (!beneficiary) continue;
 
-  const finalInUseSummaries = [];
-
-  // 2. Process each vehicle's records with improved logic for multi-beneficiary assignments
-  for (const carNum in recordsByVehicle) {
-    const vehicleRecords = recordsByVehicle[carNum];
-
-    // Sort records to easily find the latest ones (newest first)
-    vehicleRecords.sort((a, b) => new Date(b['Date and time of entry']) - new Date(a['Date and time of entry']));
-
-    // ✅ IMPROVED: Track active beneficiaries per vehicle instead of treating RELEASE as global boundary
-    const activeBeneficiaries = new Map(); // beneficiary -> latest IN USE record
-    
-    for (const record of vehicleRecords) {
-      const status = String(record.Status || '').trim().toUpperCase();
-      const recordBeneficiary = String(record['Name of Responsible beneficiary'] || record['Team Member'] || '').trim();
-      
-      if (!recordBeneficiary) continue; // Skip records without beneficiary
-      
-      if (status === 'IN USE') {
-        // Add/update this beneficiary's active assignment for this vehicle
-        if (!activeBeneficiaries.has(recordBeneficiary)) {
-          activeBeneficiaries.set(recordBeneficiary, record);
-        }
-      } else if (status === 'RELEASE') {
-        // Remove this beneficiary's active assignment for this vehicle
-        activeBeneficiaries.delete(recordBeneficiary);
-      }
-      // Continue processing all records to get the most recent state
+    const ts = typeof row._ts === 'number' ? row._ts : _parseTs_(row['Date and time of entry']);
+    if (typeof ts === 'number' && !isNaN(ts)) {
+      row._ts = ts;
     }
 
-    // Add all currently active beneficiaries to the final summary
-    activeBeneficiaries.forEach(record => {
-      finalInUseSummaries.push(record);
-    });
+    const previous = latestByBeneficiary.get(beneficiary);
+    if (!previous || (row._ts || 0) >= (previous._ts || 0)) {
+      latestByBeneficiary.set(beneficiary, row);
+    }
   }
 
-  // 6. Write the summaries to the "Vehicle_InUse" sheet
-  console.log(`Writing ${finalInUseSummaries.length} rows to Vehicle_InUse sheet.`);
-  writeVehicleSummarySheet('Vehicle_InUse', finalInUseSummaries);
+  const finalInUseSummaries = [];
+  const finalReleasedSummaries = [];
 
-  // For compatibility, we can write other sheets as before
-  const releasedMap = new Map();
-  allCarRows.forEach(row => {
-    const carNum = String(row['Vehicle Number'] || '').trim();
-    if (!carNum) return;
-    const status = (row.Status || '').toUpperCase();
-    const ts = new Date(row['Date and time of entry']).getTime() || 0;
-    if (status === 'RELEASE') {
-      if (!releasedMap.has(carNum) || ts > releasedMap.get(carNum)._ts) {
-        row._ts = ts;
-        releasedMap.set(carNum, row);
-      }
+  latestByBeneficiary.forEach(row => {
+    const status = _normStatus_(row.Status);
+    if (status === 'IN USE') {
+      finalInUseSummaries.push(row);
+    } else if (status === 'RELEASE') {
+      finalReleasedSummaries.push(row);
+    } else {
+      console.log(`Skipping beneficiary ${row['R.Beneficiary'] || row.responsibleBeneficiary || ''} with status ${row.Status}`);
     }
   });
 
-  writeVehicleSummarySheet('Vehicle_Released', Array.from(releasedMap.values()));
+  console.log(`Writing ${finalInUseSummaries.length} rows to Vehicle_InUse sheet.`);
+  writeVehicleSummarySheet('Vehicle_InUse', finalInUseSummaries);
+
+  console.log(`Writing ${finalReleasedSummaries.length} rows to Vehicle_Released sheet.`);
+  writeVehicleSummarySheet('Vehicle_Released', finalReleasedSummaries);
+
   writeVehicleSummarySheet('Vehicle_History', allCarRows);
 
-  return { ok: true, inUse: finalInUseSummaries.length };
+  return {
+    ok: true,
+    inUse: finalInUseSummaries.length,
+    released: finalReleasedSummaries.length
+  };
 }
 
 /**
