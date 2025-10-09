@@ -1157,8 +1157,11 @@ function onCarTPChange(e) {
     if (!_shouldProcessCarTPEvent_(e, { fallbackToActiveSheet: true })) {
       return { ok: false, skipped: true, changeType, reason: 'Not a CarT_P change' };
     }
-    if (changeType === 'EDIT') {
-      // onEdit already handles direct cell edits; avoid duplicate refresh.
+    const sameSpreadsheet = !CAR_SHEET_ID || CAR_SHEET_ID === SHEET_ID;
+    if (changeType === 'EDIT' && sameSpreadsheet) {
+      // When the script is bound to the same spreadsheet as CarT_P,
+      // the simple onEdit trigger will already refresh the summaries.
+      // Skip here to avoid running the refresh twice for the same edit.
       return { ok: true, skipped: true, changeType, reason: 'Handled by onEdit' };
     }
     return _runCarTPSummaryRefresh_('onCarTPChange', { changeType });
