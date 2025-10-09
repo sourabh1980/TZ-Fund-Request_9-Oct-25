@@ -967,13 +967,6 @@ function refreshVehicleStatusSheets() {
 
   const finalInUseSummaries = [];
 
-  // 2. Process each vehicle's records
-  for (const carNum in recordsByVehicle) {
-    const vehicleRecords = recordsByVehicle[carNum];
-
-    // Sort records to easily find the latest ones (newest first)
-    vehicleRecords.sort((a, b) => new Date(b['Date and time of entry']) - new Date(a['Date and time of entry']));
-
   // 2. Process each vehicle's records with improved logic for multi-beneficiary assignments
   for (const carNum in recordsByVehicle) {
     const vehicleRecords = recordsByVehicle[carNum];
@@ -1006,7 +999,6 @@ function refreshVehicleStatusSheets() {
     activeBeneficiaries.forEach(record => {
       finalInUseSummaries.push(record);
     });
-  }
   }
 
   // 6. Write the summaries to the "Vehicle_InUse" sheet
@@ -1100,6 +1092,12 @@ function _shouldProcessCarTPEvent_(e, options) {
         return false;
       }
       return _sheetMatchesCarTP_(e.source.getActiveSheet());
+    }
+    if (e && e.source && typeof e.source.getId === 'function' && CAR_SHEET_ID && e.source.getId() === CAR_SHEET_ID) {
+      // Installable change events often omit the edited range. If the event
+      // originated from the Car spreadsheet itself, treat it as a CarT_P
+      // update so downstream refresh logic still runs.
+      return true;
     }
   } catch (err) {
     console.warn('_shouldProcessCarTPEvent_ error', err);
