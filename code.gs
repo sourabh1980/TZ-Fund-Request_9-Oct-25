@@ -5,8 +5,128 @@
  * DISABLED: All manual vehicle assignments removed - always returns empty array
  */
 function getVehicleInUseData() {
-  console.log('[BACKEND] getVehicleInUseData() disabled - no automatic vehicle assignments');
-  return []; // Return empty array to prevent any automatic vehicle loading
+  try {
+    console.log('[BACKEND] getVehicleInUseData() loading latest Vehicle_InUse assignments');
+
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sh = ss.getSheetByName('Vehicle_InUse');
+    if (!sh) {
+      console.warn('[BACKEND] Vehicle_InUse sheet not found');
+      return { ok: false, error: 'Vehicle_InUse sheet not found' };
+    }
+
+    const lastRow = sh.getLastRow();
+    const lastCol = sh.getLastColumn();
+    if (lastRow <= 1 || lastCol < 1) {
+      console.log('[BACKEND] Vehicle_InUse sheet has no data rows');
+      return {
+        ok: true,
+        assignments: [],
+        updatedAt: new Date().toISOString(),
+        sheetId: sh.getSheetId ? sh.getSheetId() : null,
+        rowCount: 0
+      };
+    }
+
+    const header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    const IX = _headerIndex_(header);
+    function idx(labels, required) {
+      try {
+        return IX.get(labels);
+      } catch (err) {
+        if (required) throw err;
+        return -1;
+      }
+    }
+
+    const iBeneficiary = idx([
+      'R.Beneficiary',
+      'Responsible Beneficiary',
+      'Beneficiary',
+      'Name of Responsible Beneficiary',
+      'Responsible'
+    ], false);
+    const iVehicle = idx([
+      'Vehicle Number',
+      'Car Number',
+      'Vehicle No',
+      'Car No',
+      'Car #',
+      'Vehicle'
+    ], true);
+    const iTeam = idx(['Team', 'Team Name'], false);
+    const iProject = idx(['Project', 'Project Name'], false);
+    const iStatus = idx(['Status', 'In Use/Release', 'In Use'], false);
+    const iDate = idx(['Date and time of entry', 'Date and time', 'Timestamp', 'Date'], false);
+
+    const rng = sh.getRange(2, 1, lastRow - 1, lastCol);
+    const values = rng.getValues();
+    const display = rng.getDisplayValues();
+
+    const assignments = [];
+    for (let r = 0; r < values.length; r++) {
+      const row = values[r];
+      const disp = display[r];
+
+      const rawVehicle = iVehicle >= 0 ? (row[iVehicle] || disp[iVehicle] || '') : '';
+      const vehicleNumber = String(rawVehicle || '').trim();
+      if (!vehicleNumber) continue;
+
+      const rawStatus = iStatus >= 0 ? (row[iStatus] || disp[iStatus] || '') : '';
+      const statusNorm = _normStatus_(rawStatus || '');
+      if (statusNorm && statusNorm !== 'IN USE') continue;
+
+      const rawBeneficiary = iBeneficiary >= 0 ? (row[iBeneficiary] || disp[iBeneficiary] || '') : '';
+      const beneficiary = String(rawBeneficiary || '').trim();
+      if (!beneficiary) continue;
+
+      const project = iProject >= 0 ? String(row[iProject] || disp[iProject] || '').trim() : '';
+      const team = iTeam >= 0 ? String(row[iTeam] || disp[iTeam] || '').trim() : '';
+
+      let entryTimestamp = 0;
+      let entryDateIso = '';
+      if (iDate >= 0) {
+        const rawDate = row[iDate] || disp[iDate] || '';
+        if (rawDate instanceof Date) {
+          entryTimestamp = rawDate.getTime();
+          entryDateIso = rawDate.toISOString();
+        } else if (rawDate) {
+          const parsed = new Date(rawDate);
+          if (!isNaN(parsed.getTime())) {
+            entryTimestamp = parsed.getTime();
+            entryDateIso = parsed.toISOString();
+          } else {
+            entryDateIso = String(rawDate);
+          }
+        }
+      }
+
+      assignments.push({
+        beneficiary: beneficiary,
+        responsibleBeneficiary: beneficiary,
+        vehicleNumber: vehicleNumber,
+        team: team,
+        project: project,
+        status: statusNorm || (rawStatus ? String(rawStatus).trim() : 'IN USE'),
+        entryDate: entryDateIso,
+        entryTimestamp: entryTimestamp,
+        rowNumber: r + 2
+      });
+    }
+
+    console.log(`[BACKEND] Vehicle_InUse assignments loaded: ${assignments.length}`);
+
+    return {
+      ok: true,
+      assignments: assignments,
+      updatedAt: new Date().toISOString(),
+      sheetId: sh.getSheetId ? sh.getSheetId() : null,
+      rowCount: assignments.length
+    };
+  } catch (error) {
+    console.error('getVehicleInUseData error:', error);
+    return { ok: false, error: String(error) };
+  }
 }
 
 /**
