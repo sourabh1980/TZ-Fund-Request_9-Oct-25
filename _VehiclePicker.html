@@ -71,6 +71,23 @@
         return assignedTo && nameKey(assignedTo) === nameKey(responsibleBeneficiary);
     },
 
+    loadAssignmentsFromVehicleInUse: function(records) {
+      const list = Array.isArray(records) ? records : [];
+      console.log(`[VAM] Loading ${list.length} assignments from Vehicle_InUse sheet.`);
+
+      assignments.clear();
+
+      list.forEach(function(entry) {
+        if (!entry) return;
+        const vehicleNumber = String(entry.vehicleNumber || entry.carNumber || entry.vehicle || '').toUpperCase().trim();
+        const responsible = String(entry.beneficiary || entry.responsibleBeneficiary || entry.member || entry.name || '').trim();
+        if (!vehicleNumber || !responsible) return;
+        assignments.set(vehicleNumber, responsible);
+      });
+
+      this.syncUIAddOnly();
+    },
+
     syncUIAddOnly: function() {
       console.log('[VAM] Adding vehicles ONLY to exact responsible beneficiaries');
       const allRows = document.querySelectorAll('.tbody .row-data');
