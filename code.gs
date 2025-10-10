@@ -967,10 +967,25 @@ function refreshVehicleStatusSheets() {
     const ts = typeof row._ts === 'number' ? row._ts : _parseTs_(row['Date and time of entry']);
     if (typeof ts === 'number' && !isNaN(ts)) {
       row._ts = ts;
+    } else {
+      row._ts = 0;
+    }
+
+    if (typeof row._rowIndex !== 'number') {
+      row._rowIndex = 0;
     }
 
     const previous = latestByBeneficiary.get(beneficiary);
-    if (!previous || (row._ts || 0) >= (previous._ts || 0)) {
+    if (!previous) {
+      latestByBeneficiary.set(beneficiary, row);
+      continue;
+    }
+
+    const prevTs = typeof previous._ts === 'number' ? previous._ts : 0;
+    const prevRowIdx = typeof previous._rowIndex === 'number' ? previous._rowIndex : 0;
+    const rowIdx = typeof row._rowIndex === 'number' ? row._rowIndex : 0;
+
+    if (row._ts > prevTs || (row._ts === prevTs && rowIdx >= prevRowIdx)) {
       latestByBeneficiary.set(beneficiary, row);
     }
   }
@@ -988,6 +1003,18 @@ function refreshVehicleStatusSheets() {
       console.log(`Skipping beneficiary ${row['R.Beneficiary'] || row.responsibleBeneficiary || ''} with status ${row.Status}`);
     }
   });
+
+  const sortByLatestEntry = (a, b) => {
+    const tsA = typeof a._ts === 'number' ? a._ts : 0;
+    const tsB = typeof b._ts === 'number' ? b._ts : 0;
+    if (tsA !== tsB) return tsB - tsA;
+    const idxA = typeof a._rowIndex === 'number' ? a._rowIndex : 0;
+    const idxB = typeof b._rowIndex === 'number' ? b._rowIndex : 0;
+    return idxB - idxA;
+  };
+
+  finalInUseSummaries.sort(sortByLatestEntry);
+  finalReleasedSummaries.sort(sortByLatestEntry);
 
   console.log(`Writing ${finalInUseSummaries.length} rows to Vehicle_InUse sheet.`);
   writeVehicleSummarySheet('Vehicle_InUse', finalInUseSummaries);
@@ -1031,7 +1058,7 @@ function writeVehicleSummarySheet(sheetName, rows) {
       r.Category || '',
       r['Usage Type'] || '',
       r.Owner || '',
-      r.Status || '',
+      _normStatus_(r.Status) || (r.Status || ''),
       r['Last Users remarks'] || '',
       r.Ratings || '',
       r['Submitter username'] || ''
@@ -6635,6 +6662,7 @@ function _readCarTP_objects_(){
       Ratings: iRate>=0 ? (row[iRate] || disp[r][iRate] || '') : '',
       'Submitter username': iSubmit>=0 ? (row[iSubmit] || disp[r][iSubmit] || '') : ''
     };
+    obj._rowIndex = r + 2;
     if (!obj.responsibleBeneficiary) {
       obj.responsibleBeneficiary = obj['R.Beneficiary'] || '';
     }
@@ -6695,9 +6723,14 @@ function _parseTs_(v){
 }
 
 function _normStatus_(s){
-  const t = String(s||'').trim().toUpperCase();
-  if (t==='INUSE' || t==='IN-USE' || t==='IN_USE') return 'IN USE';
-  return t;
+  const raw = String(s||'').trim().toUpperCase();
+  if (!raw) return '';
+  const compact = raw.replace(/\s+/g, ' ');
+  if (compact === 'IN USE' || raw === 'INUSE' || raw === 'IN-USE' || raw === 'IN_USE') return 'IN USE';
+  if (compact === 'RELEASE' || compact === 'RELEASED') return 'RELEASE';
+  if (/IN\s*USE/.test(raw)) return 'IN USE';
+  if (/RELEAS/.test(raw)) return 'RELEASE';
+  return compact;
 }
 
 
