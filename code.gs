@@ -130,99 +130,6 @@ function getVehicleInUseData() {
 }
 
 /**
- * Clear specific vehicle assignments for TZ-1234-AB from CarT_P sheet
- * This removes the hardwired TZ-1234-AB assignments that are causing automatic loading
- */
-function clearTZ1234ABAssignments() {
-  try {
-    console.log('[CLEAR_TZ1234AB] Starting to clear TZ-1234-AB assignments');
-    
-    const ss = SpreadsheetApp.openById(CAR_SHEET_ID);
-    const sh = ss.getSheetByName('CarT_P');
-    
-    if (!sh) {
-      console.log('[CLEAR_TZ1234AB] CarT_P sheet not found');
-      return { ok: false, error: 'CarT_P sheet not found' };
-    }
-    
-    const lastRow = sh.getLastRow();
-    if (lastRow <= 1) {
-      console.log('[CLEAR_TZ1234AB] No data rows in CarT_P');
-      return { ok: true, message: 'No data to clear' };
-    }
-    
-    // Get all data
-    const data = sh.getRange(1, 1, lastRow, sh.getLastColumn()).getValues();
-    const header = data[0];
-    
-    // Find column indices
-    const vehicleColIndex = header.findIndex(h => 
-      ['Vehicle Number', 'Car Number', 'Car No', 'Vehicle No', 'Car #', 'Car'].includes(h)
-    );
-    const beneficiaryColIndex = header.findIndex(h => 
-      ['R.Beneficiary', 'Responsible Beneficiary', 'R Beneficiary', 'Responsible'].includes(h)
-    );
-    
-    if (vehicleColIndex === -1) {
-      console.log('[CLEAR_TZ1234AB] Vehicle Number column not found');
-      return { ok: false, error: 'Vehicle Number column not found' };
-    }
-    
-    console.log('[CLEAR_TZ1234AB] Vehicle column index:', vehicleColIndex);
-    console.log('[CLEAR_TZ1234AB] Beneficiary column index:', beneficiaryColIndex);
-    
-    // Find rows with TZ-1234-AB for Lone Motswiri or Tomu
-    const rowsToDelete = [];
-    for (let i = 1; i < data.length; i++) { // Skip header row
-      const vehicleValue = String(data[i][vehicleColIndex] || '').trim();
-      const beneficiaryValue = String(data[i][beneficiaryColIndex] || '').trim();
-      
-      if (vehicleValue === 'TZ-1234-AB' && 
-          (beneficiaryValue === 'Lone Motswiri' || beneficiaryValue === 'Tomu')) {
-        console.log('[CLEAR_TZ1234AB] Found row to delete:', {
-          row: i + 1,
-          vehicle: vehicleValue,
-          beneficiary: beneficiaryValue
-        });
-        rowsToDelete.push(i + 1); // +1 because sheet rows are 1-based
-      }
-    }
-    
-    if (rowsToDelete.length === 0) {
-      console.log('[CLEAR_TZ1234AB] No TZ-1234-AB assignments found for Lone Motswiri or Tomu');
-      return { ok: true, message: 'No matching assignments found' };
-    }
-    
-    // Delete rows in reverse order to maintain row indices
-    for (let i = rowsToDelete.length - 1; i >= 0; i--) {
-      const rowToDelete = rowsToDelete[i];
-      console.log('[CLEAR_TZ1234AB] Deleting row:', rowToDelete);
-      sh.deleteRow(rowToDelete);
-    }
-    
-    console.log('[CLEAR_TZ1234AB] Successfully deleted', rowsToDelete.length, 'rows');
-    
-    // Refresh vehicle status sheets after deletion
-    try {
-      refreshVehicleStatusSheets();
-      console.log('[CLEAR_TZ1234AB] Vehicle status sheets refreshed');
-    } catch (refreshErr) {
-      console.error('[CLEAR_TZ1234AB] Failed to refresh vehicle status sheets:', refreshErr);
-    }
-    
-    return { 
-      ok: true, 
-      deletedRows: rowsToDelete.length,
-      message: `Cleared ${rowsToDelete.length} TZ-1234-AB assignments for Lone Motswiri and Tomu`
-    };
-    
-  } catch (error) {
-    console.error('[CLEAR_TZ1234AB] Error:', error);
-    return { ok: false, error: error.message };
-  }
-}
-
-/**
  * Returns RELEASE history for a car by reading directly from CarT_P sheet
  */
 function getVehicleReleaseHistory(carNumber) {
@@ -1172,6 +1079,74 @@ function onCarTPChange(e) {
     console.error('onCarTPChange error', err, 'changeType:', changeType);
     return { ok: false, error: String(err), changeType };
   }
+}
+
+/**
+ * Quick diagnostic + setup for realtime Vehicle_InUse updates.
+ * - Verifies CarT_P access (via debugCarTPOverview)
+ * - Ensures the summary tab name exists exactly as 'Vehicle_InUse' in SHEET_ID
+ * - Ensures the installable onChange trigger is attached to the CarT_P spreadsheet
+ * - Forces one refresh and sync
+ * Returns a summary object for visibility.
+ */
+function checkCarTPRealtimeSync() {
+  const summary = { ok: true, steps: [] };
+
+  // 1) Verify CarT_P access
+  try {
+    const car = debugCarTPOverview();
+    if (!car || !car.ok) {
+      summary.ok = false;
+      summary.steps.push('CarT_P not accessible. Check CAR_SHEET_ID and sharing/permissions.');
+      return summary;
+    }
+    summary.steps.push(`CarT_P found: ${car.sheetName} (rows=${car.lastRow}, cols=${car.lastCol})`);
+  } catch (e) {
+    summary.ok = false;
+    summary.steps.push('CarT_P overview failed: ' + String(e));
+    return summary;
+  }
+
+  // 2) Ensure Vehicle_InUse tab exists in target SHEET_ID
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sh = ss.getSheetByName('Vehicle_InUse');
+    if (!sh) {
+      sh = ss.insertSheet('Vehicle_InUse');
+      summary.steps.push('Created Vehicle_InUse tab (exact name).');
+    } else {
+      summary.steps.push('Vehicle_InUse tab exists.');
+    }
+  } catch (e) {
+    summary.ok = false;
+    summary.steps.push('Failed to verify/create Vehicle_InUse tab: ' + String(e));
+    return summary;
+  }
+
+  // 3) Ensure installable onChange trigger for CarT_P
+  try {
+    const trigRes = createCarTPOnChangeTrigger();
+    if (trigRes && trigRes.ok) {
+      summary.steps.push('onChange trigger ensured for CarT_P.');
+    } else {
+      summary.steps.push('Trigger creation attempted; check triggers in editor if issues persist.');
+    }
+  } catch (e) {
+    summary.steps.push('Trigger setup error: ' + String(e));
+  }
+
+  // 4) Force one refresh + sync
+  try {
+    const res = _runCarTPSummaryRefresh_('manual-check', {});
+    const inUse = res && res.refreshResult ? res.refreshResult.inUse : undefined;
+    const released = res && res.refreshResult ? res.refreshResult.released : undefined;
+    summary.steps.push(`Refresh done. InUse=${inUse}, Released=${released}`);
+  } catch (e) {
+    summary.ok = false;
+    summary.steps.push('Refresh failed: ' + String(e));
+  }
+
+  return summary;
 }
 
 /**
