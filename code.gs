@@ -1,5 +1,9 @@
 const VEHICLE_IN_USE_CACHE_KEY = 'vehicle_in_use_payload_v3';
 const VEHICLE_IN_USE_PROP_KEY = 'vehicle_in_use_payload_v3_json';
+const VEHICLE_RELEASED_CACHE_KEY = 'vehicle_released_dropdown_payload_v1';
+const VEHICLE_RELEASED_PROP_KEY = 'vehicle_released_dropdown_payload_v1_json';
+const VEHICLE_RELEASED_VERSION_PROP_KEY = 'vehicle_released_dropdown_payload_v1_version';
+const VEHICLE_RELEASED_CACHE_TTL_SECONDS = 120;
 
 function invalidateVehicleInUseCache() {
   try {
@@ -11,6 +15,28 @@ function invalidateVehicleInUseCache() {
     PropertiesService.getScriptProperties().deleteProperty(VEHICLE_IN_USE_PROP_KEY);
   } catch (_propErr) {
     // ignore property purge failures
+  }
+}
+
+function invalidateVehicleReleasedCache(reason) {
+  try {
+    CacheService.getScriptCache().remove(VEHICLE_RELEASED_CACHE_KEY);
+  } catch (_cacheErr) {
+    // ignore cache purge failures
+  }
+  try {
+    const props = PropertiesService.getScriptProperties();
+    props.deleteProperty(VEHICLE_RELEASED_PROP_KEY);
+    props.deleteProperty(VEHICLE_RELEASED_VERSION_PROP_KEY);
+  } catch (_propErr) {
+    // ignore property purge failures
+  }
+  if (reason) {
+    try {
+      console.log('[CACHE] Vehicle_Released cache invalidated:', reason);
+    } catch (_logErr) {
+      // logging optional
+    }
   }
 }
 
@@ -251,6 +277,7 @@ function getVehicleSummaryRows(sheetName) {
       return {
         rows: rows,
         headerIndex: IX,
+        headerRow: headers,
         updatedAt: updatedAt,
         rowsFetched: rows.length,
         sheetId: candidate.id,
@@ -290,7 +317,30 @@ function getVehicleInUseSummary() {
     try { return IX.get(labels); } catch (_err) { return -1; }
   };
   const beneficiaryIdx = idx(['R.Beneficiary', 'Beneficiary', 'Responsible Beneficiary']);
-  const vehicleIdx = idx(['Vehicle Number', 'Vehicle']);
+  let vehicleIdx = idx(['Vehicle Number', 'Car Number', 'Vehicle No', 'Car No', 'Car #', 'Car', 'Vehicle']);
+  if (vehicleIdx < 0 && Array.isArray(summary.headerRow)) {
+    vehicleIdx = _findCarNumberColumn_(summary.headerRow, summary.rows);
+    if (vehicleIdx >= 0) {
+      try {
+        console.log('[BACKEND] Vehicle_Released header fallback matched car column at index', vehicleIdx, {
+          header: String(summary.headerRow[vehicleIdx] || '')
+        });
+      } catch (_logErr) {
+        // logging optional
+      }
+    }
+  }
+  if (vehicleIdx < 0) {
+    try {
+      console.error('[BACKEND] Vehicle_Released summary missing vehicle column', {
+        headers: Array.isArray(summary.headerRow) ? summary.headerRow : null,
+        sheetId: summary.sheetId || null,
+        sheetLabel: summary.sheetLabel || null
+      });
+    } catch (_logErr) {
+      // best-effort logging
+    }
+  }
   const assignmentIdx = idx(['Status', 'Assignment Status']);
   const tsIdx = idx(['Date and time of entry', 'Timestamp', 'Latest Timestamp']);
   const projectIdx = idx(['Project']);
@@ -359,7 +409,7 @@ function getVehicleReleasedSummary() {
     if (!IX) return -1;
     try { return IX.get(labels); } catch (_err) { return -1; }
   };
-  const vehicleIdx = idx(['Vehicle Number', 'Vehicle']);
+  const vehicleIdx = idx(['Vehicle Number', 'Car Number', 'Vehicle No', 'Car No', 'Car #', 'Car', 'Vehicle']);
   const releaseTsIdx = idx(['Date and time of entry', 'Timestamp', 'Latest Timestamp']);
   const statusIdx = idx(['Status', 'Release Status']);
   const projectIdx = idx(['Project']);
@@ -945,6 +995,7 @@ function refreshVehicleStatusSheets() {
   const allCarRows = _readCarTP_objects_();
   if (!allCarRows.length) {
     console.log('No CarT_P data found.');
+    invalidateVehicleReleasedCache('CarT_P refresh encountered no data');
     return { ok: false, error: 'No CarT_P data' };
   }
 
@@ -1073,6 +1124,54 @@ function writeVehicleSummarySheet(sheetName, rows) {
     sh.getRange(2,1,values.length,header.length).setValues(values);
   }
   try { sh.autoResizeColumns(1, header.length); } catch(_){}
+  if (sheetName === 'Vehicle_Released') {
+    invalidateVehicleReleasedCache('Vehicle_Released sheet rewritten');
+  }
+}
+
+function _sheetMatchesVehicleReleased_(sheet) {
+  if (!sheet || typeof sheet.getName !== 'function') return false;
+  const name = String(sheet.getName() || '').trim();
+  if (name === 'Vehicle_Released') return true;
+  const normalized = name.replace(/\s+/g, '').toLowerCase();
+  return normalized === 'vehicle_released' || normalized === 'vehiclereleased';
+}
+
+function _shouldProcessVehicleReleasedEvent_(e) {
+  try {
+    if (e && e.range && typeof e.range.getSheet === 'function') {
+      if (!_sheetMatchesVehicleReleased_(e.range.getSheet())) {
+        return false;
+      }
+    } else if (e && e.source && typeof e.source.getActiveSheet === 'function') {
+      if (!_sheetMatchesVehicleReleased_(e.source.getActiveSheet())) {
+        return false;
+      }
+    }
+    if (e && e.source && typeof e.source.getId === 'function' && SHEET_ID) {
+      if (e.source.getId() !== SHEET_ID) {
+        return false;
+      }
+    }
+    return true;
+  } catch (err) {
+    console.warn('_shouldProcessVehicleReleasedEvent_ error', err);
+  }
+  return false;
+}
+
+function onVehicleReleasedChange(e) {
+  const changeType = e && e.changeType ? e.changeType : 'UNKNOWN';
+  try {
+    if (!_shouldProcessVehicleReleasedEvent_(e)) {
+      return { ok: false, skipped: true, changeType };
+    }
+    invalidateVehicleReleasedCache(`Vehicle_Released change (${changeType})`);
+    return { ok: true, invalidated: true, changeType };
+  } catch (err) {
+    console.error('onVehicleReleasedChange error', err, 'changeType:', changeType);
+    return { ok: false, error: String(err), changeType };
+  }
 }
 
 /**
@@ -1129,6 +1228,7 @@ function _runCarTPSummaryRefresh_(source, meta) {
     context.refreshResult = refreshResult;
     context.syncResult = syncResult;
     console.log('CarT_P summaries refreshed', context);
+    invalidateVehicleReleasedCache(`CarT_P summary refresh (${context.source || 'unknown'})`);
     return { ok: true, durationMs, refreshResult, syncResult };
   } catch (err) {
     console.error('CarT_P summary refresh failed', err, { source, meta });
@@ -1148,6 +1248,7 @@ function _maybeAutoRefreshCarTPSummaries_(ttlSec) {
     const refreshResult = refreshVehicleStatusSheets();
     const syncResult = syncVehicleSheetFromCarTP();
     props.setProperty('CAR_TP_LAST_AUTO_REFRESH', String(now));
+    invalidateVehicleReleasedCache('Auto refresh trigger');
     return { ok: true, refreshResult: refreshResult, syncResult: syncResult };
   } catch (error) {
     console.error('_maybeAutoRefreshCarTPSummaries_ error:', error);
@@ -1786,6 +1887,34 @@ function submitToSubmissions(submissionData) {
 }
 
 /**
+  function createVehicleReleasedOnChangeTrigger() {
+    try {
+      removeVehicleReleasedOnChangeTrigger();
+      ScriptApp.newTrigger('onVehicleReleasedChange')
+        .forSpreadsheet(SHEET_ID)
+        .onChange()
+        .create();
+      return { ok: true, message: 'Vehicle_Released onChange trigger created' };
+    } catch (error) {
+      console.error('Failed to create Vehicle_Released onChange trigger:', error);
+      return { ok: false, error: String(error) };
+    }
+  }
+
+  function removeVehicleReleasedOnChangeTrigger() {
+    try {
+      const triggers = ScriptApp.getProjectTriggers();
+      triggers.forEach(trigger => {
+        if (trigger.getHandlerFunction && trigger.getHandlerFunction() === 'onVehicleReleasedChange') {
+          ScriptApp.deleteTrigger(trigger);
+        }
+      });
+      return { ok: true, message: 'Removed Vehicle_Released onChange triggers' };
+    } catch (error) {
+      console.error('Failed to remove Vehicle_Released onChange triggers:', error);
+      return { ok: false, error: String(error) };
+    }
+  }
  * Build a latest Ops (Ops_P + Ops_T) mapping keyed by account holder.
  * Internal helper; returns JSON-safe data for caching/serialization.
  */
@@ -4054,7 +4183,7 @@ function _headerIndex_(headRow) {
 }
 
 /** Fallback: aggressively detect the Car Number column by heuristics */
-function _findCarNumberColumn_(headRow){
+function _findCarNumberColumn_(headRow, rows){
   try{
     // headRow is array of header display strings
     for (var i=0;i<headRow.length;i++){
@@ -4063,6 +4192,37 @@ function _findCarNumberColumn_(headRow){
       var hasVehicle = /(car|vehicle)/.test(h);
       var hasNumberish = /(number|no\b|#|registration|reg|plate)/.test(h);
       if (hasVehicle && hasNumberish) return i;
+    }
+    if (Array.isArray(rows) && rows.length) {
+      var sampleCount = Math.min(rows.length, 25);
+      var colScores = new Map();
+      for (var rowIdx = 0; rowIdx < sampleCount; rowIdx++) {
+        var row = rows[rowIdx];
+        if (!Array.isArray(row)) continue;
+        for (var col = 0; col < row.length; col++) {
+          var raw = row[col];
+          var text = raw == null ? '' : String(raw).trim();
+          if (!text) continue;
+          // prefer values that look like vehicle identifiers (letters+numbers, allow dashes/slashes/spaces)
+          if (!/[0-9]/.test(text)) continue;
+          if (!/[A-Za-z]/.test(text)) continue;
+          if (text.length < 3) continue;
+          if (/(beneficiary|team|project)/i.test(String(headRow[col]||''))) continue;
+          var score = colScores.get(col) || 0;
+          score += /^[A-Z0-9\-\/\s]+$/.test(text) ? 2 : 1;
+          if (/vehicle|car|reg|plate|number/i.test(String(headRow[col]||''))) score += 2;
+          colScores.set(col, score);
+        }
+      }
+      var bestCol = -1;
+      var bestScore = 0;
+      colScores.forEach(function(score, col){
+        if (score > bestScore) {
+          bestScore = score;
+          bestCol = col;
+        }
+      });
+      if (bestCol >= 0 && bestScore >= 3) return bestCol;
     }
   }catch(e){ /* ignore */ }
   return -1;
@@ -8078,58 +8238,281 @@ function getTeamMembersCurrentlyInUse(teamName, projectName) {
   }
 }
 
-function getVehiclePickerData(){
+function _deserializeVehicleReleasedWrapper_(raw, sourceLabel) {
+  if (!raw) return null;
   try {
-    _maybeAutoRefreshCarTPSummaries_(10);
-    const summary = getVehicleReleasedSummary();
-    if (!summary.ok) {
-      return {
-        ok: false,
-        source: 'Vehicle_Released',
-        count: 0,
-        vehicles: [],
-        cached: false,
-        updatedAt: summary.updatedAt || '',
-        error: summary.error || 'Vehicle_Released summary unavailable'
-      };
+    const wrapper = JSON.parse(raw);
+    if (!wrapper || typeof wrapper !== 'object' || !wrapper.payload) {
+      return null;
+    }
+    const payload = Object.assign({}, wrapper.payload);
+    payload.cached = true;
+    payload.cacheSource = sourceLabel || null;
+    payload.cacheVersion = wrapper.version || null;
+    return payload;
+  } catch (err) {
+    console.warn('Vehicle_Released cache parse failed:', err);
+    return null;
+  }
+}
+
+function _loadVehicleReleasedDropdownPayload_() {
+  const cache = (typeof CacheService !== 'undefined') ? CacheService.getScriptCache() : null;
+  let props = null;
+  try {
+    props = PropertiesService.getScriptProperties();
+  } catch (_err) {
+    props = null;
+  }
+
+  let version = null;
+  if (props) {
+    try {
+      version = props.getProperty(VEHICLE_RELEASED_VERSION_PROP_KEY) || null;
+    } catch (_err) {
+      version = null;
+    }
+  }
+
+  function fromCache(raw, label) {
+    const parsed = _deserializeVehicleReleasedWrapper_(raw, label);
+    if (!parsed) return null;
+    if (version && parsed.cacheVersion && parsed.cacheVersion !== version) {
+      return null;
+    }
+    return parsed;
+  }
+
+  let payload = null;
+
+  if (!payload && cache) {
+    try {
+      const cachedRaw = cache.get(VEHICLE_RELEASED_CACHE_KEY);
+      if (cachedRaw) {
+        payload = fromCache(cachedRaw, 'CacheService');
+      }
+    } catch (cacheErr) {
+      console.warn('Vehicle_Released cache lookup failed:', cacheErr);
+    }
+  }
+
+  if (!payload && props) {
+    try {
+      const storedRaw = props.getProperty(VEHICLE_RELEASED_PROP_KEY);
+      if (storedRaw) {
+        payload = _deserializeVehicleReleasedWrapper_(storedRaw, 'PropertiesService');
+        if (payload) {
+          version = payload.cacheVersion || version;
+          if (cache) {
+            try {
+              cache.put(VEHICLE_RELEASED_CACHE_KEY, storedRaw, VEHICLE_RELEASED_CACHE_TTL_SECONDS);
+            } catch (cachePutErr) {
+              console.warn('Vehicle_Released cache backfill failed:', cachePutErr);
+            }
+          }
+        }
+      }
+    } catch (propErr) {
+      console.warn('Vehicle_Released properties lookup failed:', propErr);
+    }
+  }
+
+  let lock = null;
+  let locked = false;
+  if (!payload && typeof LockService !== 'undefined') {
+    try {
+      lock = LockService.getScriptLock();
+      lock.waitLock(5000);
+      locked = true;
+    } catch (lockErr) {
+      console.warn('Vehicle_Released cache lock acquisition failed:', lockErr);
+    }
+  }
+
+  try {
+    if (!payload && cache) {
+      try {
+        const cachedRaw = cache.get(VEHICLE_RELEASED_CACHE_KEY);
+        if (cachedRaw) {
+          payload = fromCache(cachedRaw, 'CacheService');
+        }
+      } catch (cacheRetryErr) {
+        console.warn('Vehicle_Released cache retry failed:', cacheRetryErr);
+      }
     }
 
-    const vehicles = summary.vehicles.map(function(entry){
-      const carNumber = String(entry.vehicleNumber || entry.carNumber || '').trim();
-      const status = _normStatus_(entry.status || 'RELEASE') || 'RELEASE';
-      return Object.assign({}, entry, {
-        carNumber: carNumber,
-        vehicleNumber: carNumber,
-        latestRelease: entry.latestRelease || summary.updatedAt || '',
-        status: status
-      });
-    }).filter(function(entry){
-      return String(entry.carNumber || '').trim() !== '';
+    if (!payload && props) {
+      try {
+        const storedRaw = props.getProperty(VEHICLE_RELEASED_PROP_KEY);
+        if (storedRaw) {
+          payload = _deserializeVehicleReleasedWrapper_(storedRaw, 'PropertiesService');
+          if (payload && cache) {
+            try {
+              cache.put(VEHICLE_RELEASED_CACHE_KEY, storedRaw, VEHICLE_RELEASED_CACHE_TTL_SECONDS);
+            } catch (cachePutErr) {
+              console.warn('Vehicle_Released cache backfill failed (post-lock):', cachePutErr);
+            }
+          }
+        }
+      } catch (propRetryErr) {
+        console.warn('Vehicle_Released properties retry failed:', propRetryErr);
+      }
+    }
+  } finally {
+    if (locked && lock) {
+      try { lock.releaseLock(); } catch (_releaseErr) { /* ignore */ }
+    }
+  }
+
+  if (!payload) {
+    const fresh = _buildVehicleReleasedDropdownPayload_();
+    payload = Object.assign({}, fresh, {
+      cached: false,
+      cacheSource: 'fresh',
+      cacheVersion: null
     });
 
-    if (!vehicles.length) {
-      console.warn('[BACKEND] getVehiclePickerData returned 0 vehicles', {
-        summaryMessage: summary.message || null,
-        notes: summary.notes || null,
-        tried: summary.tried || null,
-        sheetId: summary.sheetId || null
-      });
-    } else {
-      console.log(`[BACKEND] getVehiclePickerData loaded ${vehicles.length} vehicles from Vehicle_Released (sheet ${summary.sheetLabel || summary.sheetId || 'unknown'})`);
+    if (fresh && fresh.ok) {
+      const versionStamp = String(Date.now());
+      payload.cacheVersion = versionStamp;
+      const wrapper = { version: versionStamp, payload: fresh };
+      const serialized = JSON.stringify(wrapper);
+      if (!props) {
+        try {
+          props = PropertiesService.getScriptProperties();
+        } catch (_propInitErr) {
+          props = null;
+        }
+      }
+      if (props) {
+        try {
+          props.setProperty(VEHICLE_RELEASED_PROP_KEY, serialized);
+          props.setProperty(VEHICLE_RELEASED_VERSION_PROP_KEY, versionStamp);
+        } catch (propStoreErr) {
+          console.error('Failed to persist Vehicle_Released payload to PropertiesService:', propStoreErr);
+        }
+      }
+      if (cache) {
+        try {
+          cache.put(VEHICLE_RELEASED_CACHE_KEY, serialized, VEHICLE_RELEASED_CACHE_TTL_SECONDS);
+        } catch (cacheStoreErr) {
+          console.warn('Failed to persist Vehicle_Released payload to CacheService:', cacheStoreErr);
+        }
+      }
     }
+  }
 
+  if (payload && payload.cached && payload.ok !== false) {
+    const vehicles = Array.isArray(payload.vehicles) ? payload.vehicles : [];
+    if (!vehicles.length) {
+      invalidateVehicleReleasedCache('Cached Vehicle_Released payload empty, forcing rebuild');
+      const fresh = _buildVehicleReleasedDropdownPayload_();
+      payload = Object.assign({}, fresh, {
+        cached: false,
+        cacheSource: 'fresh',
+        cacheVersion: null
+      });
+      if (fresh && fresh.ok) {
+        const versionStamp = String(Date.now());
+        payload.cacheVersion = versionStamp;
+        const wrapper = { version: versionStamp, payload: fresh };
+        const serialized = JSON.stringify(wrapper);
+        if (!props) {
+          try {
+            props = PropertiesService.getScriptProperties();
+          } catch (_propInitErr) {
+            props = null;
+          }
+        }
+        if (props) {
+          try {
+            props.setProperty(VEHICLE_RELEASED_PROP_KEY, serialized);
+            props.setProperty(VEHICLE_RELEASED_VERSION_PROP_KEY, versionStamp);
+          } catch (propStoreErr) {
+            console.error('Failed to persist Vehicle_Released payload to PropertiesService (rebuild):', propStoreErr);
+          }
+        }
+        if (cache) {
+          try {
+            cache.put(VEHICLE_RELEASED_CACHE_KEY, serialized, VEHICLE_RELEASED_CACHE_TTL_SECONDS);
+          } catch (cacheStoreErr) {
+            console.warn('Failed to persist Vehicle_Released payload to CacheService (rebuild):', cacheStoreErr);
+          }
+        }
+      }
+    }
+  }
+
+  return payload;
+}
+
+function _buildVehicleReleasedDropdownPayload_() {
+  _maybeAutoRefreshCarTPSummaries_(10);
+
+  const summary = getVehicleReleasedSummary();
+  const generatedAt = new Date().toISOString();
+
+  if (!summary.ok) {
     return {
-      ok: true,
+      ok: false,
       source: 'Vehicle_Released',
-      count: vehicles.length,
-      vehicles: vehicles,
+      count: 0,
+      vehicles: [],
       cached: false,
-      updatedAt: summary.updatedAt || new Date().toISOString(),
-      generatedAt: new Date().toISOString(),
+      updatedAt: summary.updatedAt || '',
+      error: summary.error || 'Vehicle_Released summary unavailable',
       notes: summary.notes || null,
       sheetId: summary.sheetId || null,
-      tried: summary.tried || null
+      tried: summary.tried || null,
+      summaryMessage: summary.message || null,
+      generatedAt: generatedAt
     };
+  }
+
+  const vehicles = (summary.vehicles || []).map(function(entry) {
+    const carNumber = String(entry.vehicleNumber || entry.carNumber || '').trim();
+    const status = _normStatus_(entry.status || 'RELEASE') || 'RELEASE';
+    return Object.assign({}, entry, {
+      carNumber: carNumber,
+      vehicleNumber: carNumber,
+      latestRelease: entry.latestRelease || summary.updatedAt || '',
+      status: status
+    });
+  }).filter(function(entry) {
+    return String(entry.carNumber || '').trim() !== '';
+  });
+
+  if (!vehicles.length) {
+    console.warn('[BACKEND] getVehiclePickerData via cache builder returned 0 vehicles (Vehicle_Released empty)', {
+      summaryMessage: summary.message || null,
+      notes: summary.notes || null,
+      tried: summary.tried || null,
+      sheetId: summary.sheetId || null,
+      headers: summary.headerRow || null
+    });
+  } else {
+    console.log(`[BACKEND] getVehiclePickerData cache builder loaded ${vehicles.length} vehicles from Vehicle_Released (sheet ${summary.sheetLabel || summary.sheetId || 'unknown'})`);
+  }
+
+  return {
+    ok: true,
+    source: 'Vehicle_Released',
+    count: vehicles.length,
+    vehicles: vehicles,
+    cached: false,
+    updatedAt: summary.updatedAt || new Date().toISOString(),
+    generatedAt: generatedAt,
+  notes: summary.notes || null,
+  headers: summary.headerRow || null,
+    sheetId: summary.sheetId || null,
+    tried: summary.tried || null,
+    summaryMessage: summary.message || null
+  };
+}
+
+function getVehiclePickerData(){
+  try {
+    return _loadVehicleReleasedDropdownPayload_();
   } catch (e) {
     console.error('getVehiclePickerData failed:', e);
     return { ok:false, source: 'Vehicle_Released', error:String(e) };

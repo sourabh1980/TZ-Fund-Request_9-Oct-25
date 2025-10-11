@@ -58,17 +58,6 @@ setTimeout
 loadProjects @ userCodeAppPanel?createOAuthDialog=true:82
 (anonymous) @ userCodeAppPanel?createOAuthDialog=true:424
 (anonymous) @ userCodeAppPanel?createOAuthDialog=true:461
-userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
-userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: false
-userCodeAppPanel?createOAuthDialog=true:553 Applied default state (blue glow) - page load or no data
-userCodeAppPanel?createOAuthDialog=true:553 [VP] ✅ Validating vehicle assignment persistence...
-userCodeAppPanel?createOAuthDialog=true:553 [VP] Persistence validation: 0/0 vehicles properly assigned
-userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
-userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: false
-userCodeAppPanel?createOAuthDialog=true:553 Applied default state (blue glow) - page load or no data
-userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
-userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: false
-userCodeAppPanel?createOAuthDialog=true:553 Applied default state (blue glow) - page load or no data
 userCodeAppPanel?createOAuthDialog=true:553 fillRowFromItem - Processing item: {beneficiary: 'Mohassin', accountHolder: 'Mohassin', designation: 'PM', erdaAmt: 150, project: 'Admin/ Mislenious', …}
 userCodeAppPanel?createOAuthDialog=true:553 fillRowFromItem - Beneficiary: Mohassin Team: HW_VOD_M_Moh TeamName: HW_VOD_M_Moh
  fillRowFromItem - Added to bDet: Mohassin → {team: 'HW_VOD_M_Moh', teamName: 'HW_VOD_M_Moh', project: 'Admin/ Mislenious'}
@@ -679,9 +668,9 @@ userCodeAppPanel?createOAuthDialog=true:553 fillRowFromItem - Beneficiary: Mohas
  Debug: Getting beneficiary name from row: 
  Debug: Found beneficiary name: Rahman
  Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
- Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
- Debug: HW_VOD_M_Rah airtime - validDates found: 0, hasDate: false
- Debug: Found team name in data attributes: HW_VOD_M_Moh
+userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah airtime - validDates found: 0, hasDate: false
+userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - airtime (no calendar or amount data)
@@ -829,14 +818,19 @@ userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) -
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
-userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
-userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:553 [VP] ✅ Validating vehicle assignment persistence...
+userCodeAppPanel?createOAuthDialog=true:553 [VP] Persistence validation: 0/0 vehicles properly assigned
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
 userCodeAppPanel?createOAuthDialog=true:553 Expense symbol content change detected
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon update notification received
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon update notification received
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon update notification received
@@ -862,6 +856,22 @@ userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) -
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:107 Team loading timeout for project: Admin/ Mislenious
+(anonymous) @ userCodeAppPanel?createOAuthDialog=true:107
+setTimeout
+loadTeams @ userCodeAppPanel?createOAuthDialog=true:106
+ensureTeams @ userCodeAppPanel?createOAuthDialog=true:128
+(anonymous) @ userCodeAppPanel?createOAuthDialog=true:448
+(anonymous) @ userCodeAppPanel?createOAuthDialog=true:90
+gs @ 2774173870-mae_html_user_bin_i18n_mae_html_user__en_gb.js:222
+(anonymous) @ 2774173870-mae_html_user_bin_i18n_mae_html_user__en_gb.js:50
+Us.F @ 2774173870-mae_html_user_bin_i18n_mae_html_user__en_gb.js:247
+xr @ 2774173870-mae_html_user_bin_i18n_mae_html_user__en_gb.js:202
+c @ 2774173870-mae_html_user_bin_i18n_mae_html_user__en_gb.js:300
+a @ 2774173870-mae_html_user_bin_i18n_mae_html_user__en_gb.js:200
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
@@ -873,606 +883,606 @@ userCodeAppPanel?createOAuthDialog=true:553 fillRowFromItem - Processing item: {
 userCodeAppPanel?createOAuthDialog=true:553 fillRowFromItem - Beneficiary: Rahman Team: HW_VOD_M_Rah TeamName: HW_VOD_M_Rah
 userCodeAppPanel?createOAuthDialog=true:553 fillRowFromItem - Added to bDet: Rahman → {team: 'HW_VOD_M_Rah', teamName: 'HW_VOD_M_Rah', project: 'Admin/ Mislenious'}
 userCodeAppPanel?createOAuthDialog=true:553 fillRowFromItem - Current bDet state: {Mohassin: {…}, Rahman: {…}}
-userCodeAppPanel?createOAuthDialog=true:553 
+ 
 === REFRESHING TEAM SIDEBAR ===
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Refreshing with actual team names: (2) ['HW_VOD_M_Moh', 'HW_VOD_M_Rah']
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Updated selectedTeams: (2) [{…}, {…}]
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Refreshing with actual team names: (2) ['HW_VOD_M_Moh', 'HW_VOD_M_Rah']
+ Debug: Updated selectedTeams: (2) [{…}, {…}]
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING FUEL FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - fuel (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - fuel (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING FUEL FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah fuel - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah fuel - Final check: amount=0, hasDate=false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - fuel (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Rah fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - fuel (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING CARRENT FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - carrent (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - carrent (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING CARRENT FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah carrent - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - carrent (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - carrent (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - airtime (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - airtime (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah airtime - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - airtime (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - airtime (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - transport (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - transport (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah transport - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - transport (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - transport (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING MISC FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - misc (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - misc (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING MISC FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah misc - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - misc (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - misc (no calendar or amount data)
+ 
 === GENERATING SYMBOLS FOR TEAM: HW_VOD_M_Moh ===
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - isTeamDeactivated: false
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: HW_VOD_M_Moh - isTeamDeactivated: false
+ 
 --- VALIDATING FUEL FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - fuel (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - fuel validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - F set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - fuel (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - fuel validation status: no-data
+ Debug: HW_VOD_M_Moh - F set to GREY (no data)
+ 
 --- VALIDATING DA FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh da - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh, beneficiary Mohassin da/erda - Final check: amount=0, hasDate=false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - da (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - da validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - D set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh da - validDates found: 0, hasDate: false
+ Debug: Team HW_VOD_M_Moh, beneficiary Mohassin da/erda - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - da (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - da validation status: no-data
+ Debug: HW_VOD_M_Moh - D set to GREY (no data)
+ 
 --- VALIDATING CARRENT FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - carrent (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - carrent validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - C set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - carrent (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - carrent validation status: no-data
+ Debug: HW_VOD_M_Moh - C set to GREY (no data)
+ 
 --- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - airtime (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - airtime validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - A set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - airtime (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - airtime validation status: no-data
+ Debug: HW_VOD_M_Moh - A set to GREY (no data)
+ 
 --- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - transport (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - transport validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - T set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - transport (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - transport validation status: no-data
+ Debug: HW_VOD_M_Moh - T set to GREY (no data)
+ 
 --- VALIDATING MISC FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - misc (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - misc validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh - M set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Final symbols HTML for HW_VOD_M_Moh: <div class="expense-symbol grey">F</div><div class="expense-symbol grey">D</div><div class="expense-symbol grey">C</div><div class="expense-symbol grey">A</div><div class="expense-symbol grey">T</div><div class="expense-symbol grey">M</div>
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - misc (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - misc validation status: no-data
+ Debug: HW_VOD_M_Moh - M set to GREY (no data)
+ Debug: Final symbols HTML for HW_VOD_M_Moh: <div class="expense-symbol grey">F</div><div class="expense-symbol grey">D</div><div class="expense-symbol grey">C</div><div class="expense-symbol grey">A</div><div class="expense-symbol grey">T</div><div class="expense-symbol grey">M</div>
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 === GENERATING SYMBOLS FOR TEAM: HW_VOD_M_Rah ===
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - isTeamDeactivated: false
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah - isTeamDeactivated: false
+ 
 --- VALIDATING FUEL FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah fuel - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah fuel - Final check: amount=0, hasDate=false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - fuel (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - fuel validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - F set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Rah fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - fuel (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - fuel validation status: no-data
+ Debug: HW_VOD_M_Rah - F set to GREY (no data)
+ 
 --- VALIDATING DA FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah da - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah, beneficiary Rahman da/erda - Final check: amount=0, hasDate=false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - da (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - da validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - D set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah da - validDates found: 0, hasDate: false
+ Debug: Team HW_VOD_M_Rah, beneficiary Rahman da/erda - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - da (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - da validation status: no-data
+ Debug: HW_VOD_M_Rah - D set to GREY (no data)
+ 
 --- VALIDATING CARRENT FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah carrent - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - carrent (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - carrent validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - C set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - carrent (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - carrent validation status: no-data
+ Debug: HW_VOD_M_Rah - C set to GREY (no data)
+ 
 --- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah airtime - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - airtime (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - airtime validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - A set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - airtime (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - airtime validation status: no-data
+ Debug: HW_VOD_M_Rah - A set to GREY (no data)
+ 
 --- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah transport - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - transport (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - transport validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - T set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - transport (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - transport validation status: no-data
+ Debug: HW_VOD_M_Rah - T set to GREY (no data)
+ 
 --- VALIDATING MISC FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah misc - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - misc (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - misc validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - M set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Final symbols HTML for HW_VOD_M_Rah: <div class="expense-symbol grey">F</div><div class="expense-symbol grey">D</div><div class="expense-symbol grey">C</div><div class="expense-symbol grey">A</div><div class="expense-symbol grey">T</div><div class="expense-symbol grey">M</div>
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - misc (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - misc validation status: no-data
+ Debug: HW_VOD_M_Rah - M set to GREY (no data)
+ Debug: Final symbols HTML for HW_VOD_M_Rah: <div class="expense-symbol grey">F</div><div class="expense-symbol grey">D</div><div class="expense-symbol grey">C</div><div class="expense-symbol grey">A</div><div class="expense-symbol grey">T</div><div class="expense-symbol grey">M</div>
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING FUEL FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - fuel (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - fuel (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING FUEL FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah fuel - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah fuel - Final check: amount=0, hasDate=false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - fuel (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Rah fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - fuel (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING CARRENT FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - carrent (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - carrent (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING CARRENT FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah carrent - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - carrent (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - carrent (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - airtime (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - airtime (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
 userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah airtime - validDates found: 0, hasDate: false
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
@@ -1488,13 +1498,13 @@ userCodeAppPanel?createOAuthDialog=true:553
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
+userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​::before​<div class=​"cells">​…​</div>​grid<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Beneficiary" readonly=​"true" style=​"cursor:​ default;​ background-color:​ rgb(248, 249, 250)​;​ pointer-events:​ none;​ user-select:​ none;​">​</div>​<div class=​"cell account-holder-cell">​…​</div>​flex<input class=​"txt account-holder-input" placeholder=​"Account Holder">​<input class=​"txt car-number-input" placeholder=​"Vehicle Number" readonly style=​"cursor:​ pointer;​ background-color:​ #f8f9fa;​">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" value=​"0.00" readonly>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Designation">​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"fuel">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"fuel">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"da">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"da">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"car">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"car">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"air">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"air">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"transport">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"transport">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"misc">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"misc">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"0XXXXXXXXX">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Display Name">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"wh">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Remarks">​</div>​</div>​</div>​
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
 userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
+userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​::before​<div class=​"cells">​…​</div>​grid<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Beneficiary" readonly=​"true" style=​"cursor:​ default;​ background-color:​ rgb(248, 249, 250)​;​ pointer-events:​ none;​ user-select:​ none;​">​</div>​<div class=​"cell account-holder-cell">​…​</div>​flex<input class=​"txt account-holder-input" placeholder=​"Account Holder">​<input class=​"txt car-number-input" placeholder=​"Vehicle Number" readonly style=​"cursor:​ pointer;​ background-color:​ #f8f9fa;​">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" value=​"0.00" readonly>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Designation">​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"fuel">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"fuel">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"da">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"da">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"car">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"car">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"air">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"air">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"transport">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"transport">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"misc">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"misc">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"0XXXXXXXXX">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Display Name">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"wh">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Remarks">​</div>​</div>​</div>​
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
@@ -1508,11 +1518,11 @@ userCodeAppPanel?createOAuthDialog=true:553
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
+userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​::before​<div class=​"cells">​…​</div>​grid<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Beneficiary" readonly=​"true" style=​"cursor:​ default;​ background-color:​ rgb(248, 249, 250)​;​ pointer-events:​ none;​ user-select:​ none;​">​</div>​<div class=​"cell account-holder-cell">​…​</div>​flex<input class=​"txt account-holder-input" placeholder=​"Account Holder">​<input class=​"txt car-number-input" placeholder=​"Vehicle Number" readonly style=​"cursor:​ pointer;​ background-color:​ #f8f9fa;​">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" value=​"0.00" readonly>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Designation">​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"fuel">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"fuel">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"da">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"da">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"car">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"car">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"air">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"air">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"transport">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"transport">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"misc">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"misc">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"0XXXXXXXXX">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Display Name">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"wh">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Remarks">​</div>​</div>​</div>​
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
+userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​::before​<div class=​"cells">​…​</div>​grid<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Beneficiary" readonly=​"true" style=​"cursor:​ default;​ background-color:​ rgb(248, 249, 250)​;​ pointer-events:​ none;​ user-select:​ none;​">​</div>​<div class=​"cell account-holder-cell">​…​</div>​flex<input class=​"txt account-holder-input" placeholder=​"Account Holder">​<input class=​"txt car-number-input" placeholder=​"Vehicle Number" readonly style=​"cursor:​ pointer;​ background-color:​ #f8f9fa;​">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" value=​"0.00" readonly>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Designation">​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"fuel">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"fuel">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"da">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"da">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"car">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"car">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"air">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"air">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"transport">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"transport">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"misc">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"misc">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"0XXXXXXXXX">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Display Name">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"wh">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Remarks">​</div>​</div>​</div>​
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
@@ -1530,13 +1540,13 @@ userCodeAppPanel?createOAuthDialog=true:553
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
+userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​::before​<div class=​"cells">​…​</div>​grid<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Beneficiary" readonly=​"true" style=​"cursor:​ default;​ background-color:​ rgb(248, 249, 250)​;​ pointer-events:​ none;​ user-select:​ none;​">​</div>​<div class=​"cell account-holder-cell">​…​</div>​flex<input class=​"txt account-holder-input" placeholder=​"Account Holder">​<input class=​"txt car-number-input" placeholder=​"Vehicle Number" readonly style=​"cursor:​ pointer;​ background-color:​ #f8f9fa;​">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" value=​"0.00" readonly>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Designation">​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"fuel">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"fuel">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"da">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"da">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"car">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"car">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"air">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"air">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"transport">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"transport">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"misc">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"misc">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"0XXXXXXXXX">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Display Name">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"wh">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Remarks">​</div>​</div>​</div>​
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
 userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
+userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​::before​<div class=​"cells">​…​</div>​grid<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Beneficiary" readonly=​"true" style=​"cursor:​ default;​ background-color:​ rgb(248, 249, 250)​;​ pointer-events:​ none;​ user-select:​ none;​">​</div>​<div class=​"cell account-holder-cell">​…​</div>​flex<input class=​"txt account-holder-input" placeholder=​"Account Holder">​<input class=​"txt car-number-input" placeholder=​"Vehicle Number" readonly style=​"cursor:​ pointer;​ background-color:​ #f8f9fa;​">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" value=​"0.00" readonly>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Designation">​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"fuel">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"fuel">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"da">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"da">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"car">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"car">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"air">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"air">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"transport">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"transport">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"misc">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"misc">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"0XXXXXXXXX">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Display Name">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"wh">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Remarks">​</div>​</div>​</div>​
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
@@ -1550,11 +1560,11 @@ userCodeAppPanel?createOAuthDialog=true:553
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
+userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​::before​<div class=​"cells">​…​</div>​grid<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Beneficiary" readonly=​"true" style=​"cursor:​ default;​ background-color:​ rgb(248, 249, 250)​;​ pointer-events:​ none;​ user-select:​ none;​">​</div>​<div class=​"cell account-holder-cell">​…​</div>​flex<input class=​"txt account-holder-input" placeholder=​"Account Holder">​<input class=​"txt car-number-input" placeholder=​"Vehicle Number" readonly style=​"cursor:​ pointer;​ background-color:​ #f8f9fa;​">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" value=​"0.00" readonly>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Designation">​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"fuel">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"fuel">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"da">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"da">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"car">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"car">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"air">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"air">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"transport">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"transport">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"misc">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"misc">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"0XXXXXXXXX">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Display Name">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"wh">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Remarks">​</div>​</div>​</div>​
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
+userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​::before​<div class=​"cells">​…​</div>​grid<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Beneficiary" readonly=​"true" style=​"cursor:​ default;​ background-color:​ rgb(248, 249, 250)​;​ pointer-events:​ none;​ user-select:​ none;​">​</div>​<div class=​"cell account-holder-cell">​…​</div>​flex<input class=​"txt account-holder-input" placeholder=​"Account Holder">​<input class=​"txt car-number-input" placeholder=​"Vehicle Number" readonly style=​"cursor:​ pointer;​ background-color:​ #f8f9fa;​">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" value=​"0.00" readonly>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Designation">​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"fuel">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"fuel">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"da">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"da">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"car">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"car">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"air">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"air">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"transport">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"transport">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<div class=​"split-calendar-container" data-cal=​"misc">​…​</div>​flex<div class=​"calendar-pills-row">​…​</div>​flex<div class=​"amount-input-row">​…​</div>​flex<input class=​"amt amount-input" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"misc">​</div>​</div>​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"0XXXXXXXXX">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Display Name">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"amt" placeholder=​"0.00" autocomplete=​"off" inputmode=​"decimal" data-field=​"wh">​</div>​<div class=​"cell">​…​</div>​flex<input class=​"txt" placeholder=​"Remarks">​</div>​</div>​</div>​
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
@@ -1628,9 +1638,6 @@ userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) -
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
-userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
-userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon update notification received
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon update notification received
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon update notification received
@@ -1650,14 +1657,6 @@ userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) -
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
-userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
-userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
-userCodeAppPanel?createOAuthDialog=true:553 [VAM] Clearing all assignments.
-userCodeAppPanel?createOAuthDialog=true:553 [VAM] Adding vehicles ONLY to exact responsible beneficiaries
-446282941-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-userCodeAppPanel?createOAuthDialog=true:553 [PREFILL] ⚠️ Team vehicle prefill disabled to prevent overriding exclusive assignments
-userCodeAppPanel?createOAuthDialog=true:553 [PREFILL] Vehicle assignments should only be managed through the exclusive assignment system
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
@@ -2167,35 +2166,35 @@ userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attri
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah misc - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - misc (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - misc validation status: no-data
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah - M set to GREY (no data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Final symbols HTML for HW_VOD_M_Rah: <div class="expense-symbol grey">F</div><div class="expense-symbol grey">D</div><div class="expense-symbol grey">C</div><div class="expense-symbol grey">A</div><div class="expense-symbol grey">T</div><div class="expense-symbol grey">M</div>
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - misc (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - misc validation status: no-data
+ Debug: HW_VOD_M_Rah - M set to GREY (no data)
+ Debug: Final symbols HTML for HW_VOD_M_Rah: <div class="expense-symbol grey">F</div><div class="expense-symbol grey">D</div><div class="expense-symbol grey">C</div><div class="expense-symbol grey">A</div><div class="expense-symbol grey">T</div><div class="expense-symbol grey">M</div>
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING FUEL FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
@@ -2290,132 +2289,137 @@ userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attri
 userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
 userCodeAppPanel?createOAuthDialog=true:553 
 --- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah airtime - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - airtime (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - airtime (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - transport (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - transport (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah transport - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - transport (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - transport (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING MISC FOR TEAM HW_VOD_M_Moh ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - misc (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - misc (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
 --- VALIDATING MISC FOR TEAM HW_VOD_M_Rah ---
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found 2 total rows in table
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking all beneficiaries in team for violations
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Mohassin
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255, 255, 255, 0.35)​;​ --row-ring:​ rgba(200, 200, 200, 0.15)​;​" data-team=​"HW_VOD_M_Rah" data-project=​"Admin/​ Mislenious">​…​</div>​
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found beneficiary name: Rahman
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: HW_VOD_M_Rah misc - validDates found: 0, hasDate: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Found team name in data attributes: HW_VOD_M_Rah
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
-userCodeAppPanel?createOAuthDialog=true:553 Debug: Returning 'no-data' for team HW_VOD_M_Rah - misc (no calendar or amount data)
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol content change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol content change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol content change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-userCodeAppPanel?createOAuthDialog=true:553 Expense symbol visual change detected
-446282941-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
-userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Debug: Found 2 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - misc (no calendar or amount data)
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol content change detected
+ Expense symbol content change detected
+ Expense symbol content change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
@@ -2450,12 +2454,8 @@ userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) -
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
-userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
-userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
-userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
-userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:553 [PREFILL] ⚠️ Team vehicle prefill disabled to prevent overriding exclusive assignments
+userCodeAppPanel?createOAuthDialog=true:553 [PREFILL] Vehicle assignments should only be managed through the exclusive assignment system
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon update notification received
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon update notification received
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon update notification received
@@ -2484,15 +2484,13 @@ userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) -
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:553 [VAM] Clearing all assignments.
+userCodeAppPanel?createOAuthDialog=true:553 [VAM] Adding vehicles ONLY to exact responsible beneficiaries
 userCodeAppPanel?createOAuthDialog=true:553 [VP_BENEFICIARY] Starting renderWithActiveFilter with override: 
 userCodeAppPanel?createOAuthDialog=true:553 [VP_BENEFICIARY] Render value determined: 
-userCodeAppPanel?createOAuthDialog=true:553 [VP] Vehicle picker response {count: 0, source: '', cached: false, debug: null}
-userCodeAppPanel?createOAuthDialog=true:553 [VP_DEBUG] Vehicle render pipeline {raw: 0, normalized: 0, assignedCount: 0}
-userCodeAppPanel?createOAuthDialog=true:553 [VP_VALIDATION] Removed invalid highlight from responsible beneficiary dropdown
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
-446282941-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
 userCodeAppPanel?createOAuthDialog=true:553 [VP_BENEFICIARY] About to render responsible beneficiaries
 userCodeAppPanel?createOAuthDialog=true:553 [VP_VALIDATION] Removed invalid highlight from responsible beneficiary dropdown
 userCodeAppPanel?createOAuthDialog=true:553 [VP_BENEFICIARY] About to refresh user options
@@ -2504,6 +2502,16 @@ userCodeAppPanel?createOAuthDialog=true:553 [VP_VALIDATION] Removed invalid high
 userCodeAppPanel?createOAuthDialog=true:553 [VP_BENEFICIARY] About to refresh user options
 userCodeAppPanel?createOAuthDialog=true:553 [VP] Rendering user options - Source beneficiary: Mohassin
 userCodeAppPanel?createOAuthDialog=true:553 [VP_BENEFICIARY] Completed renderWithActiveFilter
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+446282941-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
+userCodeAppPanel?createOAuthDialog=true:553 [VP] Vehicle picker response {count: 0, source: '', cached: false, debug: null}
+userCodeAppPanel?createOAuthDialog=true:553 [VP_DEBUG] Vehicle render pipeline {raw: 0, normalized: 0, assignedCount: 0}
+userCodeAppPanel?createOAuthDialog=true:553 [VP_VALIDATION] Removed invalid highlight from responsible beneficiary dropdown
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
@@ -2569,8 +2577,33 @@ userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) -
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
-window.vehiclePickerLastResponse
-undefined
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:553 [VP_VALIDATION] Responsible beneficiary: Mohassin Valid: true
+userCodeAppPanel?createOAuthDialog=true:553 [VP_VALIDATION] Selected users: ['Mohassin']
+userCodeAppPanel?createOAuthDialog=true:553 [VP_VALIDATION] Removed invalid highlight from responsible beneficiary dropdown
+userCodeAppPanel?createOAuthDialog=true:553 [VP_VALIDATION] Responsible beneficiary: Mohassin Valid: true
+userCodeAppPanel?createOAuthDialog=true:553 [VP_VALIDATION] Selected users: ['Mohassin']
+userCodeAppPanel?createOAuthDialog=true:553 [VP_VALIDATION] Removed invalid highlight from responsible beneficiary dropdown
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
+userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
+userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations
 userCodeAppPanel?createOAuthDialog=true:553 Updating Teams icon state...
 userCodeAppPanel?createOAuthDialog=true:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
 userCodeAppPanel?createOAuthDialog=true:553 Applied success state (green glow) - teams selected, no violations

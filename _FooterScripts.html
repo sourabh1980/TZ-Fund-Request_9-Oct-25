@@ -730,21 +730,7 @@
     function openDebug(){
       const rid = ++__reqId; // token for this open action
       // State for finalization
-      let gotRaw=false, rawCount=0; 
-      let gotMap=false, mapGrouped=0; 
-      let gotCars=false, carsUsedCount=0;
-
       function isStale(){ return rid !== __reqId; }
-      function maybeFinalize(){
-        if (isStale()) return;
-        // Only show the no-data message if ALL calls have returned and we truly have nothing
-        const allDone = gotRaw && gotMap && gotCars;
-        if (!allDone) return;
-        if (carsUsedCount>0) { status.textContent=''; return; }
-        if (rawCount>0 || mapGrouped>0) { status.textContent=''; return; }
-        status.textContent = 'No cars returned from CarT_P.';
-        note.textContent += `\nNo vehicles available. Ensure 'Vehicle Number' column has values in CarT_P.`;
-      }
       if(!window.google || !google.script || !google.script.run){
         alert('google.script.run not available. Please run as a deployed web app.');
         return;
@@ -756,44 +742,44 @@
       note.textContent = '';
 
       let populated = false;
-      let diagnosed = false;
-      let groupedVehiclesCount = 0; // set by mapping step; used to avoid premature "no cars" message
 
-      // 1) Show diagnostics early
+      const appendMeta = function(metaLines){
+        if (!metaLines || !metaLines.length) return;
+        const existing = note.textContent ? note.textContent + '\n' : '';
+        note.textContent = existing + metaLines.join('\n');
+        note.style.whiteSpace = 'pre-wrap';
+      };
+
       google.script.run
-        .withSuccessHandler(function(meta){
+        .withSuccessHandler(function(res){
           try{
             if (isStale()) return;
-            diagnosed = true;
-            const lines = [];
-            if (meta && meta.ok){
-              lines.push(`Sheet ID: ${meta.sheetId}`);
-              lines.push(`Found sheet: ${meta.sheetName}`);
-              lines.push(`Sheets: ${Array.isArray(meta.sheets)? meta.sheets.join(', '): ''}`);
-              lines.push(`Size: ${meta.lastRow} rows x ${meta.lastCol} cols`);
-              lines.push('Header:');
-              lines.push((meta.header||[]).map((h,i)=>`[${i+1}] ${h}`).join(' | '));
-            } else {
-              lines.push('CarT_P not found.');
-              if (meta && meta.sheets) lines.push(`Sheets present: ${meta.sheets.join(', ')}`);
-              if (meta && meta.error) lines.push(`Error: ${meta.error}`);
+            const ok = res && res.ok !== false;
+            const list = ok && Array.isArray(res.vehicles) ? res.vehicles : [];
+            const metaLines = [];
+            metaLines.push(`Source: ${res && res.source ? res.source : 'Vehicle_Released'}`);
+            if (res && res.sheetId) metaLines.push(`Sheet: ${res.sheetId}`);
+            if (res && res.summaryMessage) metaLines.push(`Summary: ${res.summaryMessage}`);
+            if (res && Array.isArray(res.notes) && res.notes.length) {
+              metaLines.push('Notes:');
+              res.notes.forEach(function(line){ metaLines.push(` - ${line}`); });
             }
-            status.textContent = 'Diagnostics:';
-            note.textContent = lines.join('\n');
-            note.style.whiteSpace = 'pre-wrap';
-          }catch(e){ /* ignore */ }
-        })
-        .debugCarTPOverview();
+            if (res && Array.isArray(res.tried) && res.tried.length) {
+              metaLines.push(`Tried IDs: ${res.tried.join(', ')}`);
+            }
+            if (res && res.updatedAt) metaLines.push(`Updated: ${fmtDate(res.updatedAt)}`);
 
-      // 2) Raw extract preview
-      google.script.run
-        .withSuccessHandler(function(raw){
-          try{
-            if (isStale()) return;
-            const list = (raw && raw.ok && Array.isArray(raw.rows)) ? raw.rows : [];
-            rawCount = list.length; gotRaw = true;
-            if(list.length){
-              const rows = list.map(c => `<tr>
+            if (!list.length) {
+              status.textContent = 'No RELEASE vehicles found in Vehicle_Released.';
+              appendMeta(metaLines);
+              table.style.display = 'none';
+              tbody.innerHTML = '';
+              return;
+            }
+
+            status.textContent = '';
+            const rows = list.map(function(c){
+              return `<tr>
                 <td>${c.carNumber||''}</td>
                 <td>${c.make||''}</td>
                 <td>${c.model||''}</td>
@@ -801,79 +787,25 @@
                 <td>${c.contractType||''}</td>
                 <td>${c.owner||''}</td>
                 <td>${c.status||''}</td>
-                <td>${fmtDate(c.dateTime)}</td>
-              </tr>`).join('');
-              tbody.innerHTML = rows;
-              table.style.display = 'table';
-              populated = true;
-              note.textContent += `\nParsed ${raw.count} rows from CarT_P (showing up to 50).`;
-            }
-            maybeFinalize();
-          }catch(e){ /* ignore */ }
+                <td>${fmtDate(c.latestRelease || res.updatedAt)}</td>
+              </tr>`;
+            }).join('');
+            tbody.innerHTML = rows;
+            table.style.display = 'table';
+            populated = true;
+            metaLines.unshift(`Showing ${list.length} vehicles from Vehicle_Released.`);
+            appendMeta(metaLines);
+          } catch (err) {
+            status.textContent = 'Failed to load Vehicle_Released data.';
+            console.error(err);
+          }
         })
-        .debugExtractCars();
-
-      // 3) Mapping diagnostics (indices + sample cars)
-      google.script.run
-        .withSuccessHandler(function(map){
-          try{
-            if (isStale()) return;
-            if(map && map.ok){
-              const lines = [];
-              lines.push(`Detected Vehicle Number index: ${map.carIndex} (heuristic: ${map.carIndexHeuristic})`);
-              if (Array.isArray(map.header) && map.carIndex>=0){
-                lines.push(`Vehicle Number header: ${map.header[map.carIndex]}`);
-              }
-              groupedVehiclesCount = Number(map.groupedVehicles||0);
-              mapGrouped = groupedVehiclesCount; gotMap = true;
-              lines.push(`Unique vehicles (grouped): ${groupedVehiclesCount}`);
-              if ((map.sample||[]).length){
-                const list = map.sample.map(s => `${s.carNumber} [${s.status||''}]`).join(', ');
-                lines.push(`Sample cars: ${list}`);
-              } else {
-                lines.push('Sample cars: none detected');
-              }
-              note.textContent += `\n${lines.join('\n')}`;
-              note.style.whiteSpace = 'pre-wrap';
-            }
-            maybeFinalize();
-          }catch(e){ /* ignore */ }
+        .withFailureHandler(function(err){
+          if (isStale()) return;
+          status.textContent = 'Failed to load vehicles: ' + err;
+          console.error(err);
         })
-        .debugCarTPMapping();
-
-      // 4) Finally load the filtered list; only override if we actually get cars
-      google.script.run
-        .withSuccessHandler(function(cars){
-          try{
-            if (isStale()) return;
-            const list = Array.isArray(cars) ? cars : [];
-            const release = list.filter(c => String(c.status||'').toUpperCase()==='RELEASE');
-            const used = release.length ? release : list;
-            carsUsedCount = used.length; gotCars = true;
-            if(used.length){
-              status.textContent = '';
-              note.textContent = release.length
-                ? `Showing ${release.length} vehicles with latest status RELEASE.`
-                : `Showing ${used.length} vehicles (latest per vehicle, all statuses).`;
-              const rows = used.map(c => `<tr>
-                <td>${c.carNumber||''}</td>
-                <td>${c.make||''}</td>
-                <td>${c.model||''}</td>
-                <td>${c.usageType||''}</td>
-                <td>${c.contractType||''}</td>
-                <td>${c.owner||''}</td>
-                <td>${c.status||''}</td>
-                <td>${fmtDate(c.dateTime)}</td>
-              </tr>`).join('');
-              tbody.innerHTML = rows;
-              table.style.display = 'table';
-              populated = true;
-            }
-            maybeFinalize();
-          }catch(e){ status.textContent = 'Error rendering data'; console.error(e); }
-        })
-        .withFailureHandler(function(err){ status.textContent = 'Failed to load cars: '+ err; })
-        .getAvailableCars();
+        .getVehiclePickerData();
     }
 
     function closeDebug(){ modal.style.display='none'; }
