@@ -2021,20 +2021,40 @@
               let list = [];
               let source = '';
               let cachedFlag = false;
+              let debugInfo = null;
 
               if (res && res.ok !== false && Array.isArray(res.vehicles)) {
                 list = res.vehicles;
                 source = res.source || 'latestRelease';
                 cachedFlag = !!res.cached;
+                debugInfo = {
+                  notes: Array.isArray(res.notes) ? res.notes.filter(Boolean) : null,
+                  sheetId: res.sheetId || null,
+                  tried: Array.isArray(res.tried) ? res.tried.slice() : null,
+                  updatedAt: res.updatedAt || null
+                };
               } else if (Array.isArray(res)) {
                 list = res;
                 source = 'legacy';
               }
 
-              if (!list.length) {
-                legacyFetchVehicles(statusEl);
-                return;
-              }
+              window.vehiclePickerLastResponse = {
+                timestamp: new Date().toISOString(),
+                raw: res,
+                normalizedCount: Array.isArray(list) ? list.length : 0,
+                source: source,
+                cached: cachedFlag,
+                debug: debugInfo
+              };
+
+              try {
+                console.log('[VP] Vehicle picker response', {
+                  count: list.length,
+                  source: source,
+                  cached: cachedFlag,
+                  debug: debugInfo
+                });
+              } catch(_){ /* console logging best effort */ }
 
               vehicleDataCache = list.slice();
               vehicleDataCacheTs = Date.now();
@@ -2044,7 +2064,9 @@
               vehiclePickerMeta = {
                 source: source,
                 duration: end - start,
-                cached: cachedFlag
+                cached: cachedFlag,
+                debug: debugInfo,
+                fetched: list.length
               };
 
               renderVehicles(list);
@@ -2052,75 +2074,14 @@
             .withFailureHandler(function(err){
               vehicleFetchPending = false;
               console.error('Vehicle picker load failed', err);
-              legacyFetchVehicles(statusEl);
+              window.vehiclePickerLastResponse = {
+                timestamp: new Date().toISOString(),
+                error: err
+              };
+              const status = statusEl || document.getElementById('vpStatus');
+              if (status) status.textContent = 'Failed to load Vehicle_Released summary.';
             })
             .getVehiclePickerData();
-        }
-
-        function legacyFetchVehicles(statusEl){
-          const status = statusEl || document.getElementById('vpStatus');
-          if (!status) return;
-          if (vehicleFetchPending) return;
-          vehicleFetchPending = true;
-          status.textContent = 'Loading vehicles…';
-          const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-
-          function finish(list, source){
-            const data = Array.isArray(list) ? list : [];
-            if (data.length) {
-              vehicleDataCache = data.slice();
-              vehicleDataCacheTs = Date.now();
-            } else {
-              vehicleDataCache = null;
-              vehicleDataCacheTs = 0;
-            }
-            vehicleCacheSource = source;
-            const end = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-            vehiclePickerMeta = {
-              source: source,
-              duration: end - start,
-              cached: false
-            };
-            vehicleFetchPending = false;
-            renderVehicles(data);
-          }
-
-          google.script.run
-            .withSuccessHandler(function(list){
-              const arr = Array.isArray(list) ? list : [];
-              if (arr && arr.length) {
-                finish(arr, 'latestRelease');
-                return;
-              }
-              google.script.run
-                .withSuccessHandler(function(rel){
-                  const a = Array.isArray(rel) ? rel : [];
-                  if (a && a.length) {
-                    finish(a, 'uniqueRelease');
-                    return;
-                  }
-                  google.script.run
-                    .withSuccessHandler(function(all){
-                      finish(Array.isArray(all) ? all : [], 'allUnique');
-                    })
-                    .withFailureHandler(function(){
-                      vehicleFetchPending = false;
-                      status.textContent = 'Failed to load vehicles.';
-                    })
-                    .getAllUniqueCars();
-                })
-                .withFailureHandler(function(){
-                  vehicleFetchPending = false;
-                  status.textContent = 'Failed to load vehicles.';
-                })
-                .getUniqueReleaseCars();
-            })
-            .withFailureHandler(function(err){
-              vehicleFetchPending = false;
-              console.error('Legacy vehicle fetch failed', err);
-              status.textContent = 'Failed to load vehicles.';
-            })
-            .getLatestReleaseCars();
         }
 
         function isReleaseStatus(car){
@@ -2146,23 +2107,60 @@
 
         function renderVehicles(list){
           const normalized = Array.isArray(list) ? list.map(normalizeCar).filter(Boolean) : [];
+          window.availableCarsRaw = Array.isArray(list) ? list.slice() : [];
           window.availableCarsData = normalized.slice();
           const assigned = getAssignedCarNumbers();
-          const filtered = normalized.filter(car => {
+          const assignedCount = assigned.size;
+          try {
+            console.log('[VP_DEBUG] Vehicle render pipeline', {
+              raw: Array.isArray(list) ? list.length : 0,
+              normalized: normalized.length,
+              assignedCount: assignedCount
+            });
+          } catch(_){ /* logging best effort */ }
+          let filtered = normalized.filter(car => {
             const num = String(car?.carNumber||'').trim().toUpperCase();
             return isReleaseStatus(car) && (num && !assigned.has(num));
           });
+
+          let usedFallback = false;
+          if (!filtered.length && normalized.length) {
+            filtered = normalized.slice();
+            usedFallback = true;
+            try {
+              console.warn('[VP_DEBUG] Using fallback vehicle list', {
+                releaseStatuses: normalized.map(v => ({ carNumber: v.carNumber, status: v.status }))
+              });
+            } catch(_){ /* ignore */ }
+          }
+
           master = filtered.slice();
           vehicles = master.slice();
           const statusEl = document.getElementById('vpStatus');
           const meta = vehiclePickerMeta;
+          const fetchedCount = meta && typeof meta.fetched === 'number' ? meta.fetched : normalized.length;
 
           if (!vehicles.length) {
             if (statusEl) {
-              const emptyMsg = (meta && meta.source === 'allUnique')
-                ? 'No vehicles found in CarT_P.'
+              const emptyMsg = (meta && meta.source)
+                ? `No vehicles available from ${meta.source === 'Vehicle_Released' ? 'Vehicle_Released summary' : meta.source}.`
                 : 'No RELEASE vehicles available right now.';
-              statusEl.textContent = emptyMsg;
+              const extraParts = [];
+              if (fetchedCount > 0) extraParts.push(`Fetched: ${fetchedCount}`);
+              if (assignedCount > 0) extraParts.push(`Already assigned in form: ${assignedCount}`);
+              if (usedFallback) extraParts.push('Showing all summary vehicles (duplicates allowed)');
+              if (meta && meta.debug) {
+                if (meta.debug.sheetId) extraParts.push(`Sheet: ${meta.debug.sheetId}`);
+                if (Array.isArray(meta.debug.notes) && meta.debug.notes.length) extraParts.push(meta.debug.notes.join(' | '));
+                if (Array.isArray(meta.debug.tried) && meta.debug.tried.length) extraParts.push(`Tried: ${meta.debug.tried.join(', ')}`);
+                if (meta.debug.updatedAt) extraParts.push(`Updated: ${meta.debug.updatedAt}`);
+              }
+              statusEl.textContent = extraParts.length ? `${emptyMsg} (${extraParts.join(' • ')})` : emptyMsg;
+            }
+            if (meta && meta.debug) {
+              try {
+                console.warn('[VP] No vehicles returned from summary', meta.debug, { fetchedCount, assignedCount, normalizedCount: normalized.length });
+              } catch(_){ /* ignore */ }
             }
             vehiclePickerMeta = null;
             updateFilterChoices();
@@ -2180,17 +2178,22 @@
                 parts.push(`Loaded in ${(meta.duration/1000).toFixed(1)}s`);
               }
               if (meta.source) {
-                const sourceLabel = meta.source === 'latestRelease'
-                  ? 'Latest RELEASE list'
-                  : meta.source === 'uniqueRelease'
-                    ? 'Unique RELEASE list'
-                    : meta.source === 'allUnique'
-                      ? 'All vehicles'
-                      : meta.source;
+                  const sourceLabel = meta.source === 'Vehicle_Released'
+                    ? 'Vehicle_Released summary'
+                    : meta.source === 'latestRelease'
+                      ? 'Latest RELEASE list'
+                      : meta.source === 'uniqueRelease'
+                        ? 'Unique RELEASE list'
+                        : meta.source === 'allUnique'
+                          ? 'All vehicles'
+                          : meta.source;
                 parts.push(sourceLabel);
               }
               if (meta.cached) {
                 parts.push('Cached');
+              }
+              if (usedFallback) {
+                parts.push('Showing all summary records');
               }
               if (parts.length) {
                 msg = parts.join(' • ');
