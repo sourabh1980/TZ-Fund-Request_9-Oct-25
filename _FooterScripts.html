@@ -8,10 +8,14 @@
   const vehicleInUseState = (function(){
     const exact = (window.vehicleInUseMap && typeof window.vehicleInUseMap === 'object') ? window.vehicleInUseMap : Object.create(null);
     const lower = (window.vehicleInUseLowerMap && typeof window.vehicleInUseLowerMap === 'object') ? window.vehicleInUseLowerMap : Object.create(null);
+    const teamPairs = (window.vehicleInUseTeamMap && typeof window.vehicleInUseTeamMap === 'object') ? window.vehicleInUseTeamMap : Object.create(null);
+    const projectPairs = (window.vehicleInUseProjectMap && typeof window.vehicleInUseProjectMap === 'object') ? window.vehicleInUseProjectMap : Object.create(null);
     const records = Array.isArray(window.vehicleInUseRecords) ? window.vehicleInUseRecords.slice() : [];
     return {
       exact: exact,
       lower: lower,
+      teamPairs: teamPairs,
+      projectPairs: projectPairs,
       records: records,
       fetching: false,
       updatedAt: '',
@@ -21,12 +25,30 @@
 
   window.vehicleInUseMap = vehicleInUseState.exact;
   window.vehicleInUseLowerMap = vehicleInUseState.lower;
+  window.vehicleInUseTeamMap = vehicleInUseState.teamPairs;
+  window.vehicleInUseProjectMap = vehicleInUseState.projectPairs;
   if (!Array.isArray(window.vehicleInUseRecords)) {
     window.vehicleInUseRecords = vehicleInUseState.records;
   }
 
+  function normalizeName(value) {
+    return String(value == null ? '' : value)
+      .replace(/\u00A0/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+  }
+
   function vehicleNameKey(name){
-    return String(name == null ? '' : name).trim().toLowerCase();
+    return normalizeName(name);
+  }
+
+  function teamNameKey(name){
+    return normalizeName(name);
+  }
+
+  function projectNameKey(name){
+    return normalizeName(name);
   }
 
   function parseVehicleDate(value){
@@ -56,7 +78,31 @@
       const beneficiary = String(benInput.value || '').trim();
       if (!beneficiary) return;
       const key = vehicleNameKey(beneficiary);
-      const assignedVehicle = vehicleInUseState.exact[beneficiary] || vehicleInUseState.lower[key] || '';
+      const rowTeam = String(row.dataset.team || row.getAttribute('data-team') || '').trim();
+      const rowProject = String(row.dataset.project || row.getAttribute('data-project') || '').trim();
+      const teamKey = teamNameKey(rowTeam);
+      const projectKey = projectNameKey(rowProject);
+      let assignedVehicle =
+        vehicleInUseState.exact[beneficiary] ||
+        vehicleInUseState.lower[key] ||
+        (teamKey ? vehicleInUseState.teamPairs[teamKey + '|' + key] : '') ||
+        (projectKey ? vehicleInUseState.projectPairs[projectKey + '|' + key] : '');
+      if (!assignedVehicle && Array.isArray(window.vehicleInUseRecords)) {
+        const match = window.vehicleInUseRecords.find(function(rec){
+          if (!rec) return false;
+          if (rec.key !== key) return false;
+          if (teamKey) {
+            const recTeamKey = teamNameKey(rec.team);
+            if (recTeamKey && recTeamKey !== teamKey) return false;
+          }
+          if (!teamKey && projectKey) {
+            const recProjectKey = projectNameKey(rec.project);
+            if (recProjectKey && recProjectKey !== projectKey) return false;
+          }
+          return true;
+        });
+        assignedVehicle = match ? match.vehicleNumber : '';
+      }
       const currentValue = String(carInput.value || '').trim();
       const dataset = carInput.dataset;
       const isPrefilled = dataset && dataset.prefillSource === 'Vehicle_InUse';
@@ -117,10 +163,22 @@
     clearObject(vehicleInUseState.exact);
     clearObject(vehicleInUseState.lower);
     vehicleInUseState.records = [];
+    clearObject(vehicleInUseState.teamPairs);
+    clearObject(vehicleInUseState.projectPairs);
 
     byKey.forEach(function(info){
       vehicleInUseState.exact[info.beneficiary] = info.vehicleNumber;
       vehicleInUseState.lower[info.key] = info.vehicleNumber;
+      if (info.key) {
+        const teamKey = teamNameKey(info.team);
+        const projectKey = projectNameKey(info.project);
+        if (teamKey) {
+          vehicleInUseState.teamPairs[teamKey + '|' + info.key] = info.vehicleNumber;
+        }
+        if (projectKey) {
+          vehicleInUseState.projectPairs[projectKey + '|' + info.key] = info.vehicleNumber;
+        }
+      }
       vehicleInUseState.records.push(info);
     });
 
@@ -418,12 +476,33 @@
     // Show vehicle number for beneficiaries present in Vehicle_InUse assignments
     if (carNumberInput) {
       const beneficiaryName = String(it.beneficiary || '').trim();
+      const rowTeam = String(it.teamName || it.team || row.dataset.team || row.getAttribute('data-team') || '').trim();
+      const rowProject = String(it.projectName || it.project || row.dataset.project || row.getAttribute('data-project') || '').trim();
+      const teamKey = teamNameKey(rowTeam);
+      const projectKey = projectNameKey(rowProject);
       let assignedVehicle = '';
       if (beneficiaryName) {
+        const beneficiaryKey = vehicleNameKey(beneficiaryName);
         if (window.vehicleInUseMap && window.vehicleInUseMap[beneficiaryName]) {
           assignedVehicle = window.vehicleInUseMap[beneficiaryName];
         } else if (window.vehicleInUseLowerMap) {
-          assignedVehicle = window.vehicleInUseLowerMap[vehicleNameKey(beneficiaryName)] || '';
+          assignedVehicle = window.vehicleInUseLowerMap[beneficiaryKey] || '';
+          if (!assignedVehicle && window.vehicleInUseTeamMap && teamKey) {
+            assignedVehicle = window.vehicleInUseTeamMap[teamKey + '|' + beneficiaryKey] || '';
+          }
+          if (!assignedVehicle && window.vehicleInUseProjectMap && projectKey) {
+            assignedVehicle = window.vehicleInUseProjectMap[projectKey + '|' + beneficiaryKey] || '';
+          }
+          if (!assignedVehicle && Array.isArray(window.vehicleInUseRecords)) {
+            const match = window.vehicleInUseRecords.find(function(rec){
+              if (!rec) return false;
+              if (rec.key !== beneficiaryKey) return false;
+              if (teamKey && teamNameKey(rec.team) && teamNameKey(rec.team) !== teamKey) return false;
+              if (!teamKey && projectKey && projectNameKey(rec.project) && projectNameKey(rec.project) !== projectKey) return false;
+              return true;
+            });
+            assignedVehicle = match ? match.vehicleNumber : '';
+          }
         }
       }
 

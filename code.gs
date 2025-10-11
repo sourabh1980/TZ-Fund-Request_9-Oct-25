@@ -1,277 +1,192 @@
 /**
  * Gets vehicle assignment data from Vehicle_InUse tab
- * Returns array of objects with team, responsibleBeneficiary, and vehicleNumber
- * 
- * DISABLED: All manual vehicle assignments removed - always returns empty array
+ * Returns latest IN USE vehicle mapped per beneficiary so UI can prefill rows.
  */
 function getVehicleInUseData() {
+  const CACHE_KEY = 'vehicle_in_use_payload_v3';
+  const PROP_KEY = 'vehicle_in_use_payload_v3_json';
   try {
-    console.log('[BACKEND] getVehicleInUseData() loading latest Vehicle_InUse assignments');
+    const cache = (typeof CacheService !== 'undefined') ? CacheService.getScriptCache() : null;
+    let props = null;
+    try {
+      props = PropertiesService.getScriptProperties();
+    } catch (_propErr) {
+      props = null;
+    }
+    if (cache) {
+      const cached = cache.get(CACHE_KEY);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.ok) {
+            parsed.cached = true;
+            return parsed;
+          }
+        } catch (_err) {
+          cache.remove(CACHE_KEY);
+        }
+      }
+    }
+
+    _maybeAutoRefreshCarTPSummaries_(5);
+
+    if (props) {
+      const stored = props.getProperty(PROP_KEY);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored);
+          if (parsed && parsed.ok) {
+            parsed.cached = true;
+            parsed.fromProperties = true;
+            return parsed;
+          }
+        } catch (_propParseErr) {
+          try { props.deleteProperty(PROP_KEY); } catch (_){ /* ignore */ }
+        }
+      }
+    }
 
     const ss = SpreadsheetApp.openById(SHEET_ID);
-    const sh = ss.getSheetByName('Vehicle_InUse');
-    if (!sh) {
-      console.warn('[BACKEND] Vehicle_InUse sheet not found');
-      return { ok: false, error: 'Vehicle_InUse sheet not found' };
+    let sheet = ss.getSheetByName('Vehicle_InUse');
+    let refreshed = false;
+
+    if (!sheet) {
+      console.warn('[BACKEND] Vehicle_InUse sheet missing, triggering refresh');
+      try { refreshVehicleStatusSheets(); refreshed = true; } catch (refreshErr) {
+        console.error('[BACKEND] refreshVehicleStatusSheets() failed:', refreshErr);
+      }
+      sheet = ss.getSheetByName('Vehicle_InUse');
     }
 
-    const lastRow = sh.getLastRow();
-    const lastCol = sh.getLastColumn();
-    if (lastRow <= 1 || lastCol < 1) {
-      console.log('[BACKEND] Vehicle_InUse sheet has no data rows');
-      return {
-        ok: true,
-        assignments: [],
-        updatedAt: new Date().toISOString(),
-        sheetId: sh.getSheetId ? sh.getSheetId() : null,
-        rowCount: 0
-      };
+    if (!sheet) {
+      return { ok: false, source: 'Vehicle_InUse', error: 'Vehicle_InUse sheet not found' };
     }
 
-    const header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    let lastRow = sheet.getLastRow();
+    if (lastRow <= 1 && !refreshed) {
+      console.log('[BACKEND] Vehicle_InUse empty, attempting refresh');
+      try { refreshVehicleStatusSheets(); refreshed = true; } catch (refreshErr) {
+        console.error('[BACKEND] refreshVehicleStatusSheets() failed on empty sheet:', refreshErr);
+      }
+      lastRow = sheet.getLastRow();
+    }
+
+    if (lastRow <= 1) {
+      const emptyPayload = { ok: true, source: 'Vehicle_InUse', assignments: [], updatedAt: '', message: 'No IN USE assignments found' };
+      if (cache) cache.put(CACHE_KEY, JSON.stringify(emptyPayload), 15);
+      if (props) {
+        try { props.setProperty(PROP_KEY, JSON.stringify(emptyPayload)); } catch (_err) { /* ignore */ }
+      }
+      return emptyPayload;
+    }
+
+    const lastCol = sheet.getLastColumn();
+    const header = sheet.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
     const IX = _headerIndex_(header);
-    function idx(labels, required) {
+    const idx = (labels, required) => {
       try {
         return IX.get(labels);
       } catch (err) {
         if (required) throw err;
         return -1;
       }
-    }
+    };
 
-    const iBeneficiary = idx([
-      'R.Beneficiary',
-      'Responsible Beneficiary',
-      'Beneficiary',
-      'Name of Responsible Beneficiary',
-      'Responsible'
-    ], false);
-    const iVehicle = idx([
-      'Vehicle Number',
-      'Car Number',
-      'Vehicle No',
-      'Car No',
-      'Car #',
-      'Vehicle'
-    ], true);
-    const iTeam = idx(['Team', 'Team Name'], false);
+    const iBeneficiary = idx(['R.Beneficiary', 'Responsible Beneficiary', 'Beneficiary', 'Name'], true);
+    const iVehicle = idx(['Vehicle Number', 'Car Number', 'Vehicle'], true);
     const iProject = idx(['Project', 'Project Name'], false);
+    const iTeam = idx(['Team', 'Team Name'], false);
     const iStatus = idx(['Status', 'In Use/Release', 'In Use'], false);
     const iDate = idx(['Date and time of entry', 'Date and time', 'Timestamp', 'Date'], false);
+    const iMake = idx(['Make', 'Car Make', 'Brand'], false);
+    const iModel = idx(['Model', 'Car Model'], false);
+    const iCategory = idx(['Category', 'Vehicle Category'], false);
+    const iUsage = idx(['Usage Type', 'Usage'], false);
+    const iOwner = idx(['Owner', 'Owner Name'], false);
+    const iRemarks = idx(['Last Users remarks', 'Remarks', 'Feedback'], false);
+    const iRatings = idx(['Ratings', 'Stars', 'Rating'], false);
+    const iRef = idx(['Ref', 'Reference Number'], false);
+    const iSubmitter = idx(['Submitter username', 'Submitter', 'User'], false);
 
-    const rng = sh.getRange(2, 1, lastRow - 1, lastCol);
-    const values = rng.getValues();
-    const display = rng.getDisplayValues();
+    const dataRange = sheet.getRange(2, 1, lastRow - 1, lastCol);
+    const values = dataRange.getValues();
+    const displayValues = dataRange.getDisplayValues();
 
     const assignments = [];
+    let newestTs = 0;
+
     for (let r = 0; r < values.length; r++) {
       const row = values[r];
-      const disp = display[r];
+      const disp = displayValues[r];
 
-      const rawVehicle = iVehicle >= 0 ? (row[iVehicle] || disp[iVehicle] || '') : '';
-      const vehicleNumber = String(rawVehicle || '').trim();
-      if (!vehicleNumber) continue;
+      const beneficiary = String((row[iBeneficiary] != null ? row[iBeneficiary] : disp[iBeneficiary]) || '').trim();
+      const vehicleNumber = String((row[iVehicle] != null ? row[iVehicle] : disp[iVehicle]) || '').trim();
+      if (!beneficiary || !vehicleNumber) {
+        continue;
+      }
 
-      const rawStatus = iStatus >= 0 ? (row[iStatus] || disp[iStatus] || '') : '';
-      const statusNorm = _normStatus_(rawStatus || '');
-      if (statusNorm && statusNorm !== 'IN USE') continue;
+      const rawStatus = iStatus >= 0 ? (row[iStatus] || disp[iStatus] || '') : 'IN USE';
+      const status = _normStatus_(rawStatus) || 'IN USE';
+      if (status !== 'IN USE') {
+        continue;
+      }
 
-      const rawBeneficiary = iBeneficiary >= 0 ? (row[iBeneficiary] || disp[iBeneficiary] || '') : '';
-      const beneficiary = String(rawBeneficiary || '').trim();
-      if (!beneficiary) continue;
-
-      const project = iProject >= 0 ? String(row[iProject] || disp[iProject] || '').trim() : '';
-      const team = iTeam >= 0 ? String(row[iTeam] || disp[iTeam] || '').trim() : '';
-
-      let entryTimestamp = 0;
-      let entryDateIso = '';
-      if (iDate >= 0) {
-        const rawDate = row[iDate] || disp[iDate] || '';
-        if (rawDate instanceof Date) {
-          entryTimestamp = rawDate.getTime();
-          entryDateIso = rawDate.toISOString();
-        } else if (rawDate) {
-          const parsed = new Date(rawDate);
-          if (!isNaN(parsed.getTime())) {
-            entryTimestamp = parsed.getTime();
-            entryDateIso = parsed.toISOString();
-          } else {
-            entryDateIso = String(rawDate);
-          }
-        }
+      const rawDate = iDate >= 0 ? (row[iDate] || disp[iDate] || '') : '';
+      const ts = _parseTs_(rawDate);
+      if (ts > newestTs) {
+        newestTs = ts;
       }
 
       assignments.push({
         beneficiary: beneficiary,
         responsibleBeneficiary: beneficiary,
         vehicleNumber: vehicleNumber,
-        team: team,
-        project: project,
-        status: statusNorm || (rawStatus ? String(rawStatus).trim() : 'IN USE'),
-        entryDate: entryDateIso,
-        entryTimestamp: entryTimestamp,
-        rowNumber: r + 2
+        project: iProject >= 0 ? (row[iProject] || disp[iProject] || '') : '',
+        team: iTeam >= 0 ? (row[iTeam] || disp[iTeam] || '') : '',
+        status: status,
+        entryDate: rawDate,
+        entryTimestamp: ts,
+        rowNumber: r + 2,
+        sheet: 'Vehicle_InUse',
+        ref: iRef >= 0 ? (row[iRef] || disp[iRef] || '') : '',
+        make: iMake >= 0 ? (row[iMake] || disp[iMake] || '') : '',
+        model: iModel >= 0 ? (row[iModel] || disp[iModel] || '') : '',
+        category: iCategory >= 0 ? (row[iCategory] || disp[iCategory] || '') : '',
+        usageType: iUsage >= 0 ? (row[iUsage] || disp[iUsage] || '') : '',
+        owner: iOwner >= 0 ? (row[iOwner] || disp[iOwner] || '') : '',
+        remarks: iRemarks >= 0 ? (row[iRemarks] || disp[iRemarks] || '') : '',
+        ratings: iRatings >= 0 ? (row[iRatings] || disp[iRatings] || '') : '',
+        submitter: iSubmitter >= 0 ? (row[iSubmitter] || disp[iSubmitter] || '') : ''
       });
     }
 
-    console.log(`[BACKEND] Vehicle_InUse assignments loaded: ${assignments.length}`);
-
-    return {
-      ok: true,
-      assignments: assignments,
-      updatedAt: new Date().toISOString(),
-      sheetId: sh.getSheetId ? sh.getSheetId() : null,
-      rowCount: assignments.length
-    };
-  } catch (error) {
-    console.error('getVehicleInUseData error:', error);
-    return { ok: false, error: String(error) };
-  }
-}
-
-/**
- * Returns RELEASE history for a car by reading directly from CarT_P sheet
- */
-function getVehicleReleaseHistory(carNumber) {
-  try {
-    console.log('getVehicleReleaseHistory called with carNumber:', carNumber);
-    
-    if (!carNumber) {
-      console.log('getVehicleReleaseHistory: No car number provided');
-      return [['No car number provided']];
-    }
-    
-    // Read directly from CarT_P sheet
-    // Read directly from CarT_P sheet
-    const sh = _openCarTP_();
-    if (!sh) {
-      console.log('CarT_P sheet not found');
-      return [['CarT_P sheet not found']];
-    }
-    
-    const lastRow = sh.getLastRow();
-    if (lastRow <= 1) {
-      console.log('CarT_P sheet has no data');
-      return [['CarT_P sheet has no data']];
-    }
-    
-    const lastCol = sh.getLastColumn();
-    const data = sh.getRange(1, 1, lastRow, lastCol).getValues();
-    const header = data[0];
-    
-    console.log('Header found:', header);
-    
-    // Find column indices
-    const carIdx = header.findIndex(h => 
-      String(h || '').toLowerCase().includes('vehicle') || 
-      String(h || '').toLowerCase().includes('car')
-    );
-    const statusIdx = header.findIndex(h => 
-      String(h || '').toLowerCase().includes('status') ||
-      String(h || '').toLowerCase().includes('release') ||
-      String(h || '').toLowerCase().includes('use')
-    );
-    
-    console.log('Column indices - car:', carIdx, 'status:', statusIdx);
-    
-    if (carIdx === -1) {
-      console.log('Vehicle Number column not found');
-      return [['Vehicle Number column not found']];
-    }
-    
-    // Filter for RELEASE status and matching car number
-    const filteredRows = data.slice(1).filter(row => {
-      const rowCarNumber = String(row[carIdx] || '').trim();
-      const rowStatus = String(row[statusIdx] || '').trim().toUpperCase();
-      console.log(`Checking row: car=${rowCarNumber}, status=${rowStatus}`);
-      return rowCarNumber === carNumber && rowStatus === 'RELEASE';
+    assignments.sort(function(a, b) {
+      const aTs = typeof a.entryTimestamp === 'number' ? a.entryTimestamp : 0;
+      const bTs = typeof b.entryTimestamp === 'number' ? b.entryTimestamp : 0;
+      if (aTs !== bTs) return bTs - aTs;
+      return (b.rowNumber || 0) - (a.rowNumber || 0);
     });
-    
-    console.log(`Found ${filteredRows.length} RELEASE entries for car ${carNumber}`);
-    
-    if (filteredRows.length === 0) {
-      return [['Info', 'No RELEASE history found for car: ' + carNumber]];
-    }
-    
-    // Return header + filtered rows
-    const result = [header].concat(filteredRows);
-    console.log('Returning RELEASE history result:', result);
-    return result;
-    
-  } catch (error) {
-    console.error('Error in getVehicleReleaseHistory:', error);
-    return [['Error', 'Error retrieving RELEASE history: ' + error.toString()]];
-  }
-  
-  // Final safety net - should never be reached
-  console.error('getVehicleReleaseHistory reached end without return');
-  return [['Error', 'Function execution incomplete']];
-}
 
-/**
- * Comprehensive test function that ensures data exists and tests history functionality
- */
-function testHistoryFunctionsWithData() {
-  try {
-    console.log('=== Testing History Functions with Data ===');
-    
-    // Force fresh sample data for testing
-    console.log('Adding fresh sample data...');
-    const sampleResult = forceClearAndAddSampleData();
-    console.log('Sample data result:', sampleResult);
-    
-    if (!sampleResult.success) {
-      return {
-        ok: false,
-        error: 'Failed to add sample data',
-        sampleResult: sampleResult
-      };
-    }
-    
-    // Now test the debug function
-    const debugResult = debugCarTPData();
-    console.log('Debug result after adding fresh data:', debugResult);
-    
-    if (!debugResult.ok) {
-      return {
-        ok: false,
-        error: 'Debug failed after adding sample data',
-        debugResult: debugResult
-      };
-    }
-    
-    // Test specific functions with generic test car numbers
-    console.log('Testing history functions with generic test car numbers...');
-    const testResults = {};
-    
-    // Test with generic test vehicle (should have both RELEASE and IN USE entries)
-    testResults['TEST-VEHICLE-1'] = {
-      release: getVehicleReleaseHistory('TEST-VEHICLE-1'),
-      inUse: getInUseHistoryForcedWorking('TEST-VEHICLE-1', '')
-    };
-    
-    // Test with generic test vehicle (should have IN USE entry)
-    testResults['TEST-VEHICLE-2'] = {
-      release: getVehicleReleaseHistory('TEST-VEHICLE-2'),
-      inUse: getInUseHistoryForcedWorking('TEST-VEHICLE-2', '')
-    };
-    
-    console.log('Test results:', testResults);
-    
-    return {
+    const updatedAt = newestTs > 0 ? new Date(newestTs).toISOString() : new Date().toISOString();
+    const payload = {
       ok: true,
-      message: 'Fresh sample data added and history functions tested',
-      sampleResult: sampleResult,
-      debugResult: debugResult,
-      testResults: testResults
+      source: 'Vehicle_InUse',
+      assignments: assignments,
+      updatedAt: updatedAt,
+      generatedAt: updatedAt
     };
-    
+
+    if (cache) {
+      try { cache.put(CACHE_KEY, JSON.stringify(payload), 15); } catch (_err) { /* ignore */ }
+    }
+    if (props) {
+      try { props.setProperty(PROP_KEY, JSON.stringify(payload)); } catch (_err) { /* ignore */ }
+    }
+
+    return payload;
   } catch (error) {
-    console.error('Error in testHistoryFunctionsWithData:', error);
-    return {
-      ok: false,
-      error: String(error)
-    };
+    console.error('[BACKEND] getVehicleInUseData failed:', error);
+    return { ok: false, source: 'Vehicle_InUse', error: String(error) };
   }
 }
 
@@ -861,53 +776,65 @@ function refreshVehicleStatusSheets() {
   }
 
   const latestByBeneficiary = new Map();
-  for (const row of allCarRows) {
-    const beneficiary = String(
-      row['R.Beneficiary'] ||
-      row.responsibleBeneficiary ||
-      row['Responsible Beneficiary'] ||
-      row['Name of Responsible beneficiary'] ||
-      ''
-    ).trim();
-    if (!beneficiary) continue;
+  const latestByVehicle = new Map();
 
-    const ts = typeof row._ts === 'number' ? row._ts : _parseTs_(row['Date and time of entry']);
-    if (typeof ts === 'number' && !isNaN(ts)) {
-      row._ts = ts;
+  for (let idx = 0; idx < allCarRows.length; idx++) {
+    const row = allCarRows[idx];
+
+    const tsRaw = typeof row._ts === 'number' ? row._ts : _parseTs_(row['Date and time of entry']);
+    row._ts = (typeof tsRaw === 'number' && !isNaN(tsRaw)) ? tsRaw : 0;
+    row._rowIndex = (typeof row._rowIndex === 'number') ? row._rowIndex : (idx + 2);
+
+    const names = _beneficiaryNamesFromRow_(row);
+    if (names.length) {
+      names.forEach(function(name){
+        const key = name.toLowerCase();
+        const prev = latestByBeneficiary.get(key);
+        if (!prev || row._ts > prev._ts || (row._ts === prev._ts && row._rowIndex >= prev._rowIndex)) {
+          const clone = Object.assign({}, row);
+          clone['R.Beneficiary'] = name;
+          clone.responsibleBeneficiary = name;
+          clone.__beneficiaryKey = key;
+          latestByBeneficiary.set(key, clone);
+        }
+      });
     } else {
-      row._ts = 0;
+      const beneficiary = String(
+        row['R.Beneficiary'] ||
+        row.responsibleBeneficiary ||
+        row['Responsible Beneficiary'] ||
+        row['Name of Responsible beneficiary'] ||
+        ''
+      ).trim();
+      if (beneficiary) {
+        const key = beneficiary.toLowerCase();
+        const prev = latestByBeneficiary.get(key);
+        if (!prev || row._ts > prev._ts || (row._ts === prev._ts && row._rowIndex >= prev._rowIndex)) {
+          latestByBeneficiary.set(key, row);
+        }
+      }
     }
 
-    if (typeof row._rowIndex !== 'number') {
-      row._rowIndex = 0;
-    }
-
-    const previous = latestByBeneficiary.get(beneficiary);
-    if (!previous) {
-      latestByBeneficiary.set(beneficiary, row);
-      continue;
-    }
-
-    const prevTs = typeof previous._ts === 'number' ? previous._ts : 0;
-    const prevRowIdx = typeof previous._rowIndex === 'number' ? previous._rowIndex : 0;
-    const rowIdx = typeof row._rowIndex === 'number' ? row._rowIndex : 0;
-
-    if (row._ts > prevTs || (row._ts === prevTs && rowIdx >= prevRowIdx)) {
-      latestByBeneficiary.set(beneficiary, row);
+    const vehicle = String(row['Vehicle Number'] || '').trim().toUpperCase();
+    if (vehicle) {
+      const prevVeh = latestByVehicle.get(vehicle);
+      if (!prevVeh || row._ts > prevVeh._ts || (row._ts === prevVeh._ts && row._rowIndex >= prevVeh._rowIndex)) {
+        latestByVehicle.set(vehicle, row);
+      }
     }
   }
 
   const finalInUseSummaries = [];
-  const finalReleasedSummaries = [];
-
-  latestByBeneficiary.forEach(row => {
-    const status = _normStatus_(row.Status);
-    if (status === 'IN USE') {
+  latestByBeneficiary.forEach(function(row){
+    if (_normStatus_(row.Status) === 'IN USE') {
       finalInUseSummaries.push(row);
-    } else if (status === 'RELEASE') {
+    }
+  });
+
+  const finalReleasedSummaries = [];
+  latestByVehicle.forEach(function(row){
+    if (_normStatus_(row.Status) === 'RELEASE') {
       finalReleasedSummaries.push(row);
-    } else {
-      console.log(`Skipping beneficiary ${row['R.Beneficiary'] || row.responsibleBeneficiary || ''} with status ${row.Status}`);
     }
   });
 
@@ -1033,6 +960,26 @@ function _runCarTPSummaryRefresh_(source, meta) {
   } catch (err) {
     console.error('CarT_P summary refresh failed', err, { source, meta });
     return { ok: false, error: String(err) };
+  }
+}
+
+function _maybeAutoRefreshCarTPSummaries_(ttlSec) {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const ttlMs = Math.max(3, Number(ttlSec) || 5) * 1000;
+    const now = Date.now();
+    const last = Number(props.getProperty('CAR_TP_LAST_AUTO_REFRESH') || '0');
+    if (now - last < ttlMs) {
+      return { ok: true, skipped: true, reason: 'ttl' };
+    }
+    const refreshResult = refreshVehicleStatusSheets();
+    const syncResult = syncVehicleSheetFromCarTP();
+    props.setProperty('CAR_TP_LAST_AUTO_REFRESH', String(now));
+    return { ok: true, refreshResult: refreshResult, syncResult: syncResult };
+  } catch (error) {
+    console.error('_maybeAutoRefreshCarTPSummaries_ error:', error);
+    try { PropertiesService.getScriptProperties().deleteProperty('CAR_TP_LAST_AUTO_REFRESH'); } catch (_e) { /* ignore */ }
+    return { ok: false, error: String(error) };
   }
 }
 
@@ -3560,6 +3507,26 @@ function _openVehicleSheet_(){
   }
 }
 
+/** Locate Vehicle_Released summary sheet */
+function _openVehicleReleasedSheet_(){
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sh = ss.getSheetByName('Vehicle_Released');
+    if (sh) return sh;
+    const all = ss.getSheets();
+    for (let i = 0; i < all.length; i++) {
+      const name = String(all[i].getName() || '').toLowerCase().replace(/\s+/g, '');
+      if (name === 'vehicle_released' || name === 'vehiclereleased') {
+        return all[i];
+      }
+    }
+    return null;
+  } catch (e) {
+    console.error('Open Vehicle_Released sheet failed:', e);
+    return null;
+  }
+}
+
 /** Debug helper: return CarT_P overview (sheet id, names, header, size) */
 function debugCarTPOverview(){
   try{
@@ -3736,7 +3703,17 @@ function assignCarToTeam(payload){
     const project = _norm(payload.project);
     const team    = _norm(payload.team);
     const carNum  = _norm(payload.carNumber);
-    const bens    = Array.isArray(payload.beneficiaries) ? payload.beneficiaries.filter(Boolean) : [];
+    const rawBeneficiaries = Array.isArray(payload.beneficiaries) ? payload.beneficiaries : [];
+    const bens = [];
+    const seenBeneficiaries = new Set();
+    rawBeneficiaries.forEach(name => {
+      const trimmed = _norm(name);
+      if (!trimmed) return;
+      const key = trimmed.toLowerCase();
+      if (seenBeneficiaries.has(key)) return;
+      seenBeneficiaries.add(key);
+      bens.push(trimmed);
+    });
     const car     = payload.car || {};
     
     console.log('[ASSIGN_CAR] Parsed data:', { project, team, carNum, beneficiaries: bens });
@@ -3842,7 +3819,26 @@ function assignCarToTeam(payload){
     const cat   = _norm(car.category);
     const use   = _norm(car.usageType);
     const owner = _norm(car.owner);
-    const responsible = _norm(payload.responsibleBeneficiary) || (bens.length ? _norm(bens[0]) : '');
+
+    const responsible = _norm(payload.responsibleBeneficiary) || (bens.length ? bens[0] : '');
+    const responsibleKey = responsible.toLowerCase();
+
+    const targetBeneficiaries = [];
+    const targetSeen = new Set();
+    if (responsible) {
+      targetBeneficiaries.push(responsible);
+      targetSeen.add(responsibleKey);
+    }
+    bens.forEach(name => {
+      const key = name.toLowerCase();
+      if (targetSeen.has(key)) return;
+      targetSeen.add(key);
+      targetBeneficiaries.push(name);
+    });
+    if (!targetBeneficiaries.length) {
+      console.warn('[ASSIGN_CAR] No beneficiaries supplied; creating placeholder row.');
+      targetBeneficiaries.push(responsible || '');
+    }
 
     const toRow = (beneficiaryName, isResponsibleRow)=>{
       const columnCount = Math.max(head.length, sh.getLastColumn());
@@ -3871,22 +3867,11 @@ function assignCarToTeam(payload){
       return arr;
     };
 
-    // ✅ FIX: Write only ONE row for the responsible beneficiary
-    // This prevents vehicle from being assigned to all team members
-    const responsibleBeneficiary = _norm(payload.responsibleBeneficiary) || (bens.length ? _norm(bens[0]) : '');
-    
-    if(responsibleBeneficiary) {
-      console.log('[ASSIGN_CAR] ✅ Creating single row for responsible beneficiary:', responsibleBeneficiary);
-      rows.push(toRow(responsibleBeneficiary, true));
-    } else if(bens.length === 0) {
-      // Fallback: if no responsible beneficiary and no beneficiaries, create empty row
-      console.log('[ASSIGN_CAR] ⚠️ No responsible beneficiary found, creating empty row');
-      rows.push(toRow('', true));
-    } else {
-      // Fallback: use first beneficiary if no responsible beneficiary specified
-      console.log('[ASSIGN_CAR] ⚠️ Using first beneficiary as responsible:', bens[0]);
-      rows.push(toRow(bens[0], true));
-    }
+    targetBeneficiaries.forEach(name => {
+      const key = _norm(name).toLowerCase();
+      const isResponsible = !!responsible && key === responsibleKey;
+      rows.push(toRow(name, isResponsible));
+    });
 
     if(rows.length){
       const start = sh.getLastRow() + 1;
@@ -6708,6 +6693,43 @@ function _normStatus_(s){
   return compact;
 }
 
+function _splitBeneficiaryNames_(value) {
+  if (!value && value !== 0) return [];
+  if (Array.isArray(value)) {
+    return Array.from(new Set(value.map(function(v){ return String(v || '').trim(); }).filter(Boolean)));
+  }
+  let str = String(value || '')
+    .replace(/[&]/g, ',')
+    .replace(/\band\b/gi, ',')
+    .replace(/[()]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!str) return [];
+  return Array.from(new Set(
+    str.split(/[,;/\n]+/).map(function(part){ return part.trim(); }).filter(Boolean)
+  ));
+}
+
+function _beneficiaryNamesFromRow_(row) {
+  const sources = [
+    row['R.Beneficiary'],
+    row.responsibleBeneficiary,
+    row['Responsible Beneficiary'],
+    row['Name of Responsible beneficiary']
+  ];
+  const names = [];
+  sources.forEach(function(source){
+    _splitBeneficiaryNames_(source).forEach(function(name){
+      if (!names.includes(name)) names.push(name);
+    });
+  });
+  if (!names.length && row['Submitter username']) {
+    const fallback = String(row['Submitter username']).trim();
+    if (fallback) names.push(fallback);
+  }
+  return names;
+}
+
 
 /**
  * Parse month/year phrases like 'sept 2025', 'sep 2025', 'september 2025',
@@ -7829,29 +7851,72 @@ function getLatestInUseVehiclesForTeams(teamNames){
     const out = {};
     requested.forEach(function(req){
       const entry = teamMap.get(req.key);
-      if (!entry || !entry.latest || !entry.latest.record) return;
-      const latest = entry.latest.record;
-      if (_normStatus_(latest.status) !== 'IN USE') {
-        return; // Latest entry is not IN USE, so do not prefill for this team
-      }
-      if (!latest.carNumber) return;
+      if (!entry) return;
+      const preferred = entry.inUse && entry.inUse.record ? entry.inUse.record : (entry.latest && entry.latest.record ? entry.latest.record : null);
+      if (!preferred) return;
+      const status = _normStatus_(preferred.status || '');
+      if (status !== 'IN USE') return;
+      if (!preferred.carNumber) return;
       out[req.original] = {
-        carNumber: latest.carNumber,
-        status: latest.status,
-        project: latest.project,
-        make: latest.make,
-        model: latest.model,
-        usageType: latest.usageType,
-        category: latest.category,
-        owner: latest.owner,
-        remarks: latest.remarks,
-        stars: latest.stars,
-        team: latest.team,
-        dateTime: latest.dateTime,
-        responsibleBeneficiary: latest.responsibleBeneficiary,
-        source: 'latest'
+        carNumber: preferred.carNumber,
+        status: status,
+        project: preferred.project,
+        make: preferred.make,
+        model: preferred.model,
+        usageType: preferred.usageType,
+        category: preferred.category,
+        owner: preferred.owner,
+        remarks: preferred.remarks,
+        stars: preferred.stars,
+        team: preferred.team,
+        dateTime: preferred.dateTime,
+        responsibleBeneficiary: preferred.responsibleBeneficiary,
+        source: entry.inUse && entry.inUse.record ? 'car_tp_inuse' : 'car_tp_latest'
       };
     });
+
+    if (!Object.keys(out).length) {
+      try {
+        const summary = getVehicleInUseData();
+        if (summary && summary.ok && Array.isArray(summary.assignments)) {
+          const summaryMap = summary.assignments.reduce(function(map, row){
+            if (!row) return map;
+            const key = String(row.team || '').trim().toLowerCase();
+            if (!key || map.has(key)) return map;
+            map.set(key, row);
+            return map;
+          }, new Map());
+
+          requested.forEach(function(req){
+            if (out[req.original]) return;
+            const row = summaryMap.get(req.key);
+            if (!row) return;
+            const status = _normStatus_(row.status || 'IN USE');
+            if (status !== 'IN USE') return;
+            const vehicleNumber = String(row.vehicleNumber || '').trim();
+            if (!vehicleNumber) return;
+            out[req.original] = {
+              carNumber: vehicleNumber,
+              status: status,
+              project: row.project || '',
+              make: row.make || '',
+              model: row.model || '',
+              usageType: row.usageType || '',
+              category: row.category || '',
+              owner: row.owner || '',
+              remarks: row.remarks || '',
+              stars: row.ratings ? Number(row.ratings) || 0 : 0,
+              team: row.team || '',
+              dateTime: row.generatedAt || row.updatedAt || row.entryDate || '',
+              responsibleBeneficiary: row.responsibleBeneficiary || row.beneficiary || '',
+              source: 'vehicle_in_use_summary'
+            };
+          });
+        }
+      } catch (fallbackErr) {
+        console.warn('getLatestInUseVehiclesForTeams summary fallback failed:', fallbackErr);
+      }
+    }
 
     return { ok:true, teams: out };
   }catch(e){
