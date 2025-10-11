@@ -9,6 +9,57 @@
 
     const nameKey = (name) => String(name || '').trim().toLowerCase();
 
+    function isManagedRow(row, carInput) {
+      if (!row || !carInput) {
+        return false;
+      }
+      const dataset = carInput.dataset || {};
+      if (dataset.responsibleBeneficiary) return true;
+      if (dataset.prefillSource === 'Vehicle_InUse') return true;
+      if (carInput.getAttribute && carInput.getAttribute('data-prefill-source') === 'Vehicle_InUse') return true;
+      if (row.dataset) {
+        if (row.dataset.responsible === 'true') return true;
+        if (row.dataset.vehicleStatus) return true;
+        if (row.dataset.vehicleAssignment) return true;
+      }
+      return false;
+    }
+
+    function clearRowAssignment(row, carInput) {
+      if (!row || !carInput) return;
+      const dataset = carInput.dataset || {};
+      carInput.value = '';
+      try { delete dataset.responsibleBeneficiary; } catch (_err) { /* ignore */ }
+      try { delete dataset.prefillSource; carInput.removeAttribute('data-prefill-source'); } catch (_err) { /* ignore */ }
+      try { delete row.dataset.responsible; row.removeAttribute('data-responsible'); } catch (_err) { /* ignore */ }
+      try { delete row.dataset.vehicleStatus; row.removeAttribute('data-vehicle-status'); } catch (_err) { /* ignore */ }
+      try { delete row.dataset.vehicleAssignment; row.removeAttribute('data-vehicle-assignment'); } catch (_err) { /* ignore */ }
+      try { carInput.dispatchEvent(new Event('input', { bubbles: true })); } catch (_err) { /* ignore */ }
+      try { carInput.dispatchEvent(new Event('change', { bubbles: true })); } catch (_err) { /* ignore */ }
+    }
+
+    function clearVehicleFromUI(upperVehicle) {
+      if (!upperVehicle) return;
+      const allRows = document.querySelectorAll('.tbody .row-data');
+      allRows.forEach(row => {
+        const carInput = row.querySelector('input.car-number-input');
+        if (!carInput) return;
+        if (carInput.value.trim().toUpperCase() !== upperVehicle) return;
+        if (!isManagedRow(row, carInput)) return;
+        clearRowAssignment(row, carInput);
+      });
+    }
+
+    function clearAllManagedAssignments() {
+      const allRows = document.querySelectorAll('.tbody .row-data');
+      allRows.forEach(row => {
+        const carInput = row.querySelector('input.car-number-input');
+        if (!carInput) return;
+        if (!isManagedRow(row, carInput)) return;
+        clearRowAssignment(row, carInput);
+      });
+    }
+
     window.vehicleAssignmentManager = {
       assign: function(vehicleNumber, responsibleBeneficiary) {
         const upperVehicle = String(vehicleNumber || '').toUpperCase().trim();
@@ -51,14 +102,40 @@
         if (assignments.has(upperVehicle)) {
           console.log(`[VAM] Clearing assignment for ${upperVehicle}`);
           assignments.delete(upperVehicle);
-          if (doSync) this.syncUI();
         }
+        clearVehicleFromUI(upperVehicle);
+        if (doSync) this.syncUIAddOnly();
       },
 
-      clearAll: function() {
+      clearAll: function(options = {}) {
+          const suppressUI = options && options.suppressUI === true;
           console.log(`[VAM] Clearing all assignments.`);
           assignments.clear();
-          this.syncUI();
+          if (!suppressUI) {
+            clearAllManagedAssignments();
+          }
+      },
+
+      loadAssignmentsFromSummaries: function(summaries, options = {}) {
+        const sync = options && Object.prototype.hasOwnProperty.call(options, 'sync') ? options.sync !== false : true;
+        assignments.clear();
+        const list = Array.isArray(summaries) ? summaries : [];
+        list.forEach(summary => {
+          if (!summary) return;
+          const vehicleNumber = String(summary.vehicleNumber || summary.carNumber || summary.vehicle || '').trim();
+          const beneficiary = String(
+            summary.beneficiary ||
+            summary.responsibleBeneficiary ||
+            summary.member ||
+            summary.name ||
+            ''
+          ).trim();
+          if (!vehicleNumber || !beneficiary) return;
+          assignments.set(vehicleNumber.toUpperCase(), beneficiary);
+        });
+        if (sync) {
+          this.syncUIAddOnly();
+        }
       },
 
       getAssignment: function(vehicleNumber) {

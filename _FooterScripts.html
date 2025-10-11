@@ -187,7 +187,16 @@
       vehicleInUseState.updatedAt = meta.updatedAt;
     }
 
-    applyVehicleInUseAssignmentsToRows(false);
+    if (window.vehicleAssignmentManager && typeof window.vehicleAssignmentManager.loadAssignmentsFromSummaries === 'function') {
+      try {
+        window.vehicleAssignmentManager.clearAll();
+        window.vehicleAssignmentManager.loadAssignmentsFromSummaries(vehicleInUseState.records);
+      } catch (managerErr) {
+        console.error('[VehicleInUse] Failed to sync VehicleAssignmentManager from summaries', managerErr);
+      }
+    }
+
+    applyVehicleInUseAssignmentsToRows(true);
   }
 
   function processVehicleInUseResponse(res){

@@ -1189,6 +1189,79 @@
         });
       }
 
+      pruneVehicleInUseLocalState(carNumber) {
+        const upper = String(carNumber || '').trim().toUpperCase();
+        if (!upper) {
+          return;
+        }
+
+        try {
+          if (Array.isArray(window.vehicleInUseRecords)) {
+            window.vehicleInUseRecords = window.vehicleInUseRecords.filter(rec => {
+              if (!rec) return false;
+              const recVehicle = String(rec.vehicleNumber || rec.carNumber || rec.vehicle || '').trim().toUpperCase();
+              return recVehicle && recVehicle !== upper;
+            });
+          }
+        } catch (err) {
+          console.warn('Failed to prune vehicleInUseRecords cache', err);
+        }
+
+        const mapCandidates = [
+          window.vehicleInUseMap,
+          window.vehicleInUseLowerMap,
+          window.vehicleInUseTeamMap,
+          window.vehicleInUseProjectMap
+        ];
+
+        mapCandidates.forEach((map) => {
+          if (!map || typeof map !== 'object') return;
+          try {
+            Object.keys(map).forEach((key) => {
+              const value = String(map[key] || '').trim().toUpperCase();
+              if (value === upper) {
+                delete map[key];
+              }
+            });
+          } catch (mapErr) {
+            console.warn('Failed to prune vehicleInUse map entry', mapErr);
+          }
+        });
+      }
+
+      handlePostReleaseRefresh(carNumber) {
+        const carValue = String(carNumber || '').trim();
+        if (!carValue) {
+          return;
+        }
+
+        this.pruneVehicleInUseLocalState(carValue);
+
+        try {
+          window.vehicleAssignmentManager?.clear(carValue);
+        } catch (err) {
+          console.warn('Failed to clear vehicle assignment manager state', err);
+        }
+
+        try {
+          window.refreshVehicleInUseData?.();
+        } catch (err) {
+          console.warn('Failed to request vehicle in-use refresh', err);
+        }
+
+        try {
+          setTimeout(() => {
+            try {
+              window.applyVehicleInUseAssignmentsToRows?.(true);
+            } catch (applyErr) {
+              console.warn('Failed to force vehicle assignment application', applyErr);
+            }
+          }, 750);
+        } catch (timerErr) {
+          console.warn('Failed to schedule vehicle assignment refresh', timerErr);
+        }
+      }
+
       async confirmRelease() {
         if (this.releaseMode === 'user') {
           await this.confirmUserRelease();
@@ -1237,11 +1310,13 @@
               this.originalCarInput.value = '';
               try { delete this.originalCarInput.dataset.responsibleBeneficiary; } catch(_){ }
             }
-            
+
             // Show success message
             const refSuffix = result.refNumber ? ` Reference: ${result.refNumber}` : '';
             this.showSuccessMessage(`Vehicle released successfully!${refSuffix}`);
-            
+
+            this.handlePostReleaseRefresh(releaseData.carNumber);
+
             // Close modal after delay
             setTimeout(() => {
               this.closeModal();
@@ -1308,6 +1383,7 @@
               this.removeUserFromCurrentData(selectedUser);
               this.hideReleaseForm();
               this.populateCarDetails();
+              this.handlePostReleaseRefresh(payload.carNumber);
             } else {
               if (this.originalCarInput) {
                 this.originalCarInput.value = '';
@@ -1315,6 +1391,7 @@
               }
               const refSuffix = result.refNumber ? ` Reference: ${result.refNumber}` : '';
               this.showSuccessMessage(`Vehicle released successfully!${refSuffix}`);
+              this.handlePostReleaseRefresh(payload.carNumber);
               setTimeout(() => {
                 this.closeModal();
               }, 2000);

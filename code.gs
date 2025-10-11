@@ -1,10 +1,24 @@
+const VEHICLE_IN_USE_CACHE_KEY = 'vehicle_in_use_payload_v3';
+const VEHICLE_IN_USE_PROP_KEY = 'vehicle_in_use_payload_v3_json';
+
+function invalidateVehicleInUseCache() {
+  try {
+    CacheService.getScriptCache().remove(VEHICLE_IN_USE_CACHE_KEY);
+  } catch (_cacheErr) {
+    // ignore cache purge failures
+  }
+  try {
+    PropertiesService.getScriptProperties().deleteProperty(VEHICLE_IN_USE_PROP_KEY);
+  } catch (_propErr) {
+    // ignore property purge failures
+  }
+}
+
 /**
  * Gets vehicle assignment data from Vehicle_InUse tab
  * Returns latest IN USE vehicle mapped per beneficiary so UI can prefill rows.
  */
 function getVehicleInUseData() {
-  const CACHE_KEY = 'vehicle_in_use_payload_v3';
-  const PROP_KEY = 'vehicle_in_use_payload_v3_json';
   try {
     const cache = (typeof CacheService !== 'undefined') ? CacheService.getScriptCache() : null;
     let props = null;
@@ -14,7 +28,7 @@ function getVehicleInUseData() {
       props = null;
     }
     if (cache) {
-      const cached = cache.get(CACHE_KEY);
+      const cached = cache.get(VEHICLE_IN_USE_CACHE_KEY);
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
@@ -23,7 +37,7 @@ function getVehicleInUseData() {
             return parsed;
           }
         } catch (_err) {
-          cache.remove(CACHE_KEY);
+          cache.remove(VEHICLE_IN_USE_CACHE_KEY);
         }
       }
     }
@@ -31,7 +45,7 @@ function getVehicleInUseData() {
     _maybeAutoRefreshCarTPSummaries_(5);
 
     if (props) {
-      const stored = props.getProperty(PROP_KEY);
+      const stored = props.getProperty(VEHICLE_IN_USE_PROP_KEY);
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
@@ -41,7 +55,7 @@ function getVehicleInUseData() {
             return parsed;
           }
         } catch (_propParseErr) {
-          try { props.deleteProperty(PROP_KEY); } catch (_){ /* ignore */ }
+          try { props.deleteProperty(VEHICLE_IN_USE_PROP_KEY); } catch (_){ /* ignore */ }
         }
       }
     }
@@ -73,9 +87,9 @@ function getVehicleInUseData() {
 
     if (lastRow <= 1) {
       const emptyPayload = { ok: true, source: 'Vehicle_InUse', assignments: [], updatedAt: '', message: 'No IN USE assignments found' };
-      if (cache) cache.put(CACHE_KEY, JSON.stringify(emptyPayload), 15);
+      if (cache) cache.put(VEHICLE_IN_USE_CACHE_KEY, JSON.stringify(emptyPayload), 15);
       if (props) {
-        try { props.setProperty(PROP_KEY, JSON.stringify(emptyPayload)); } catch (_err) { /* ignore */ }
+        try { props.setProperty(VEHICLE_IN_USE_PROP_KEY, JSON.stringify(emptyPayload)); } catch (_err) { /* ignore */ }
       }
       return emptyPayload;
     }
@@ -177,10 +191,10 @@ function getVehicleInUseData() {
     };
 
     if (cache) {
-      try { cache.put(CACHE_KEY, JSON.stringify(payload), 15); } catch (_err) { /* ignore */ }
+      try { cache.put(VEHICLE_IN_USE_CACHE_KEY, JSON.stringify(payload), 15); } catch (_err) { /* ignore */ }
     }
     if (props) {
-      try { props.setProperty(PROP_KEY, JSON.stringify(payload)); } catch (_err) { /* ignore */ }
+      try { props.setProperty(VEHICLE_IN_USE_PROP_KEY, JSON.stringify(payload)); } catch (_err) { /* ignore */ }
     }
 
     return payload;
@@ -2167,6 +2181,7 @@ function submitCarRelease(releaseData) {
     }
 
     try { CacheService.getScriptCache().remove('VEH_PICKER_V1'); } catch (_cacheClearErr) { /* cache purge best-effort */ }
+    invalidateVehicleInUseCache();
 
     return {
       ok: true,
@@ -2325,6 +2340,7 @@ function releaseCarUser(payload) {
       try { refreshVehicleStatusSheets(); } catch (err) { console.error('Partial user release refresh failed:', err); }
       try { syncVehicleSheetFromCarTP(); } catch (err) { console.error('Partial user release sync failed:', err); }
       try { CacheService.getScriptCache().remove('VEH_PICKER_V1'); } catch (_e) { /* ignore */ }
+      invalidateVehicleInUseCache();
       return { ok: true, partial: true, releasedUser: userName };
     }
 
