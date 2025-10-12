@@ -2470,6 +2470,7 @@ function submitCarRelease(releaseData) {
 
     try { CacheService.getScriptCache().remove('VEH_PICKER_V1'); } catch (_cacheClearErr) { /* cache purge best-effort */ }
     invalidateVehicleInUseCache();
+    invalidateVehicleReleasedCache('Vehicle release persisted to CarT_P');
 
     return {
       ok: true,
@@ -2629,6 +2630,7 @@ function releaseCarUser(payload) {
       try { syncVehicleSheetFromCarTP(); } catch (err) { console.error('Partial user release sync failed:', err); }
       try { CacheService.getScriptCache().remove('VEH_PICKER_V1'); } catch (_e) { /* ignore */ }
       invalidateVehicleInUseCache();
+      invalidateVehicleReleasedCache('Partial user release updated assignments');
       return { ok: true, partial: true, releasedUser: userName };
     }
 

@@ -1244,9 +1244,14 @@
         }
 
         try {
-          window.refreshVehicleInUseData?.();
+          if (typeof window.refreshVehicleAssignments === 'function') {
+            window.refreshVehicleAssignments({ prefetchVehicles: true });
+          } else {
+            window.clearVehiclePickerCache?.();
+            window.refreshVehicleInUseData?.();
+          }
         } catch (err) {
-          console.warn('Failed to request vehicle in-use refresh', err);
+          console.warn('Failed to trigger vehicle assignment refresh workflow', err);
         }
 
         try {

@@ -187,10 +187,14 @@
       vehicleInUseState.updatedAt = meta.updatedAt;
     }
 
-    if (window.vehicleAssignmentManager && typeof window.vehicleAssignmentManager.loadAssignmentsFromSummaries === 'function') {
+    if (window.vehicleAssignmentManager) {
       try {
-        window.vehicleAssignmentManager.clearAll();
-        window.vehicleAssignmentManager.loadAssignmentsFromSummaries(vehicleInUseState.records);
+        if (typeof window.vehicleAssignmentManager.hydrateFromSummary === 'function') {
+          window.vehicleAssignmentManager.hydrateFromSummary(vehicleInUseState.records);
+        } else if (typeof window.vehicleAssignmentManager.loadAssignmentsFromSummaries === 'function') {
+          window.vehicleAssignmentManager.clearAll({ suppressUI: true });
+          window.vehicleAssignmentManager.loadAssignmentsFromSummaries(vehicleInUseState.records);
+        }
       } catch (managerErr) {
         console.error('[VehicleInUse] Failed to sync VehicleAssignmentManager from summaries', managerErr);
       }
