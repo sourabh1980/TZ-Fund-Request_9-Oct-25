@@ -43,6 +43,75 @@
     return normalizeName(name);
   }
 
+  function stripNameKey(name) {
+    return String(name || '')
+      .replace(/[^a-z0-9]/gi, '')
+      .toLowerCase();
+  }
+
+  function beneficiaryKeysMatch(a, b) {
+    const keyA = String(a || '').trim().toLowerCase();
+    const keyB = String(b || '').trim().toLowerCase();
+    if (!keyA || !keyB) return false;
+    if (keyA === keyB) return true;
+    if (keyA.startsWith(keyB) || keyB.startsWith(keyA)) return true;
+    const strippedA = stripNameKey(keyA);
+    const strippedB = stripNameKey(keyB);
+    if (strippedA && strippedA === strippedB) return true;
+    return false;
+  }
+
+  function getAssignedVehicleNumber(beneficiary, teamKey, projectKey) {
+    const normalizedName = vehicleNameKey(beneficiary);
+    const normalizedTeamKey = teamNameKey(teamKey || '');
+    const normalizedProjectKey = projectNameKey(projectKey || '');
+
+    const records = Array.isArray(vehicleInUseState.records)
+      ? vehicleInUseState.records
+      : (Array.isArray(window.vehicleInUseRecords) ? window.vehicleInUseRecords : []);
+
+    if (records && records.length) {
+      for (var i = 0; i < records.length; i++) {
+        var rec = records[i];
+        if (!rec) continue;
+        var recKey = rec.key || vehicleNameKey(rec.beneficiary || rec.responsibleBeneficiary || '');
+        if (!beneficiaryKeysMatch(recKey, normalizedName)) continue;
+        if (normalizedTeamKey) {
+          var recTeamKey = teamNameKey(rec.team);
+          if (recTeamKey && recTeamKey !== normalizedTeamKey) continue;
+        }
+        if (!normalizedTeamKey && normalizedProjectKey) {
+          var recProjectKey = projectNameKey(rec.project);
+          if (recProjectKey && recProjectKey !== normalizedProjectKey) continue;
+        }
+        return String(rec.vehicleNumber || '');
+      }
+    }
+
+    const exactMap = vehicleInUseState.exact;
+    if (exactMap && typeof exactMap === 'object') {
+      for (const name in exactMap) {
+        if (!Object.prototype.hasOwnProperty.call(exactMap, name)) continue;
+        if (beneficiaryKeysMatch(name, beneficiary)) {
+          return String(exactMap[name] || '');
+        }
+      }
+    }
+
+    const lowerMap = vehicleInUseState.lower;
+    if (lowerMap && typeof lowerMap === 'object') {
+      if (lowerMap[normalizedName]) return String(lowerMap[normalizedName] || '');
+      for (const key in lowerMap) {
+        if (!Object.prototype.hasOwnProperty.call(lowerMap, key)) continue;
+        if (beneficiaryKeysMatch(key, normalizedName)) {
+          return String(lowerMap[key] || '');
+        }
+      }
+    }
+
+    return '';
+  }
+
   function teamNameKey(name){
     return normalizeName(name);
   }
@@ -77,41 +146,22 @@
       if (!benInput || !carInput) return;
       const beneficiary = String(benInput.value || '').trim();
       if (!beneficiary) return;
-      const key = vehicleNameKey(beneficiary);
       const rowTeam = String(row.dataset.team || row.getAttribute('data-team') || '').trim();
       const rowProject = String(row.dataset.project || row.getAttribute('data-project') || '').trim();
       const teamKey = teamNameKey(rowTeam);
       const projectKey = projectNameKey(rowProject);
-      let assignedVehicle =
-        vehicleInUseState.exact[beneficiary] ||
-        vehicleInUseState.lower[key] ||
-        (teamKey ? vehicleInUseState.teamPairs[teamKey + '|' + key] : '') ||
-        (projectKey ? vehicleInUseState.projectPairs[projectKey + '|' + key] : '');
-      if (!assignedVehicle && Array.isArray(window.vehicleInUseRecords)) {
-        const match = window.vehicleInUseRecords.find(function(rec){
-          if (!rec) return false;
-          if (rec.key !== key) return false;
-          if (teamKey) {
-            const recTeamKey = teamNameKey(rec.team);
-            if (recTeamKey && recTeamKey !== teamKey) return false;
-          }
-          if (!teamKey && projectKey) {
-            const recProjectKey = projectNameKey(rec.project);
-            if (recProjectKey && recProjectKey !== projectKey) return false;
-          }
-          return true;
-        });
-        assignedVehicle = match ? match.vehicleNumber : '';
-      }
+      let assignedVehicle = getAssignedVehicleNumber(beneficiary, teamKey, projectKey);
       const currentValue = String(carInput.value || '').trim();
       const dataset = carInput.dataset;
       const isPrefilled = dataset && dataset.prefillSource === 'Vehicle_InUse';
 
       if (!assignedVehicle) {
-        if ((isPrefilled || force) && currentValue) {
+        const hasPrefillVehicle = dataset && dataset.prefillSource === 'Vehicle_InUse';
+        const shouldClear = currentValue && (hasPrefillVehicle || (!dataset || !dataset.prefillSource) && force);
+        if (shouldClear) {
           carInput.value = '';
-          try { if (dataset) { delete dataset.prefillSource; } } catch(_){ /* ignore */ }
-          try { carInput.removeAttribute('data-prefill-source'); } catch(_){ /* ignore */ }
+          try { if (hasPrefillVehicle && dataset) { delete dataset.prefillSource; } } catch(_){ /* ignore */ }
+          try { if (hasPrefillVehicle) { carInput.removeAttribute('data-prefill-source'); } } catch(_){ /* ignore */ }
           try { carInput.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){ /* ignore */ }
         }
         return;
@@ -200,7 +250,7 @@
       }
     }
 
-    applyVehicleInUseAssignmentsToRows(true);
+    applyVehicleInUseAssignmentsToRows(false);
   }
 
   function processVehicleInUseResponse(res){
@@ -495,28 +545,7 @@
       const projectKey = projectNameKey(rowProject);
       let assignedVehicle = '';
       if (beneficiaryName) {
-        const beneficiaryKey = vehicleNameKey(beneficiaryName);
-        if (window.vehicleInUseMap && window.vehicleInUseMap[beneficiaryName]) {
-          assignedVehicle = window.vehicleInUseMap[beneficiaryName];
-        } else if (window.vehicleInUseLowerMap) {
-          assignedVehicle = window.vehicleInUseLowerMap[beneficiaryKey] || '';
-          if (!assignedVehicle && window.vehicleInUseTeamMap && teamKey) {
-            assignedVehicle = window.vehicleInUseTeamMap[teamKey + '|' + beneficiaryKey] || '';
-          }
-          if (!assignedVehicle && window.vehicleInUseProjectMap && projectKey) {
-            assignedVehicle = window.vehicleInUseProjectMap[projectKey + '|' + beneficiaryKey] || '';
-          }
-          if (!assignedVehicle && Array.isArray(window.vehicleInUseRecords)) {
-            const match = window.vehicleInUseRecords.find(function(rec){
-              if (!rec) return false;
-              if (rec.key !== beneficiaryKey) return false;
-              if (teamKey && teamNameKey(rec.team) && teamNameKey(rec.team) !== teamKey) return false;
-              if (!teamKey && projectKey && projectNameKey(rec.project) && projectNameKey(rec.project) !== projectKey) return false;
-              return true;
-            });
-            assignedVehicle = match ? match.vehicleNumber : '';
-          }
-        }
+        assignedVehicle = getAssignedVehicleNumber(beneficiaryName, teamKey, projectKey);
       }
 
       if (assignedVehicle) {

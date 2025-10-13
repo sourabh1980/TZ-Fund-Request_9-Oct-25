@@ -77,14 +77,16 @@
           
           if (carInput && carInput.value.trim().toUpperCase() === upperVehicle) {
             const currentBeneficiary = benInput ? benInput.value.trim() : '';
-            if (nameKey(currentBeneficiary) !== nameKey(benName)) {
-              console.log(`[VAM] ✅ Clearing vehicle ${upperVehicle} from non-responsible beneficiary: ${currentBeneficiary}`);
-              carInput.value = '';
-              delete carInput.dataset.responsibleBeneficiary;
-              delete row.dataset.responsible;
-              row.removeAttribute('data-responsible');
-              delete row.dataset.vehicleStatus;
-              row.removeAttribute('data-vehicle-status');
+              if (nameKey(currentBeneficiary) !== nameKey(benName)) {
+                console.log(`[VAM] ✅ Clearing vehicle ${upperVehicle} from non-responsible beneficiary: ${currentBeneficiary}`);
+                carInput.value = '';
+                delete carInput.dataset.responsibleBeneficiary;
+                delete carInput.dataset.prefillSource;
+                carInput.removeAttribute('data-prefill-source');
+                delete row.dataset.responsible;
+                row.removeAttribute('data-responsible');
+                delete row.dataset.vehicleStatus;
+                row.removeAttribute('data-vehicle-status');
             }
           }
         });
@@ -212,16 +214,19 @@
                     delete otherRow.dataset.vehicleStatus;
                     otherRow.removeAttribute('data-vehicle-status');
                   }
-                }
-              });
-              
-              carInput.value = shouldHaveVehicle;
-              carInput.dataset.responsibleBeneficiary = currentBeneficiary;
-              row.dataset.responsible = 'true';
-              row.setAttribute('data-responsible', 'true');
-              row.dataset.vehicleStatus = 'IN USE';
-              row.setAttribute('data-vehicle-status', 'IN USE');
-              
+              }
+            });
+            
+            carInput.value = shouldHaveVehicle;
+            carInput.dataset.responsibleBeneficiary = currentBeneficiary;
+            // Mark as manual assignment so Vehicle_InUse prefill won't immediately clear it
+            carInput.dataset.prefillSource = 'ManualAssignment';
+            carInput.setAttribute('data-prefill-source', 'ManualAssignment');
+            row.dataset.responsible = 'true';
+            row.setAttribute('data-responsible', 'true');
+            row.dataset.vehicleStatus = 'IN USE';
+            row.setAttribute('data-vehicle-status', 'IN USE');
+            
               // Dispatch events for new assignment
               try {
                 carInput.dispatchEvent(new Event('input', { bubbles: true }));
@@ -416,6 +421,8 @@
             console.log('[VCS] Removing vehicle', vehicleNumber, 'from', beneficiaryName);
             carInput.value = '';
             delete carInput.dataset.responsibleBeneficiary;
+            delete carInput.dataset.prefillSource;
+            carInput.removeAttribute('data-prefill-source');
             delete row.dataset.vehicleStatus;
             delete row.dataset.responsible;
             row.removeAttribute('data-vehicle-status');
@@ -966,6 +973,8 @@
             }
 
             carInput.dataset.responsibleBeneficiary = responsibleBeneficiary || '';
+            carInput.dataset.prefillSource = 'ManualAssignment';
+            carInput.setAttribute('data-prefill-source', 'ManualAssignment');
             row.dataset.vehicleStatus = 'IN USE';
             row.setAttribute('data-vehicle-status', 'IN USE');
             delete row.dataset.responsible;
