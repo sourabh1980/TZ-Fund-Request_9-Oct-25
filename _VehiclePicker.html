@@ -510,6 +510,9 @@
         .vp-switch[data-mode="new"] .vp-switch__btn[data-key="new"]{color:#fff}
         .vp-clearall{margin-left:auto;font-size:13px;color:rgba(255,255,255,.8);opacity:.9;cursor:pointer;transition:color .18s ease,opacity .18s ease}
         .vp-clearall:hover{color:#fff;opacity:1}
+        .vp-refresh{margin-left:4px;padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.6);background:transparent;color:#fff;font-size:12px;font-weight:600;cursor:pointer;transition:background-color .18s ease,color .18s ease,opacity .18s ease}
+        .vp-refresh:hover{background:rgba(255,255,255,.15)}
+        .vp-refresh.is-busy{opacity:.6;cursor:progress}
 
         /* Two columns below switch */
         .vp-left,.vp-right{display:grid;gap:12px;align-content:start}
@@ -662,6 +665,7 @@
                     <button class="vp-switch__btn" data-key="new" role="tab" aria-selected="false">New Car</button>
                   </div>
                   <span class="vp-clearall" id="vpClearAll" role="button" tabindex="0">Clear all</span>
+                  <button type="button" class="vp-refresh" id="vpRefreshBtn">Refresh</button>
                 </div>
               </div>
             </div>
@@ -771,6 +775,95 @@
         let vehicleFetchPending=false;
         let vehicleRetryTimer=null;
         let vehiclePickerMeta=null;
+        let vehicleDataCacheVersion=null;
+        let vehicleVersionMonitorTimer=null;
+        let lastKnownVehicleServerVersion=null;
+        let vehicleVersionRefreshPending=false;
+        let vehicleWarmInitiated=false;
+        let vehicleWarmRetryTimer=null;
+        let vehicleVersionMonitorStartTimer=null;
+        const VEHICLE_VERSION_POLL_INTERVAL = 10000;
+        let manualRefreshInProgress = false;
+
+        function setRefreshButtonState(active){
+          const btn = document.getElementById('vpRefreshBtn');
+          if (!btn) return;
+          if (!btn.dataset.label) {
+            btn.dataset.label = btn.textContent || 'Refresh';
+          }
+          if (active) {
+            btn.disabled = true;
+            btn.classList.add('is-busy');
+            btn.setAttribute('aria-busy','true');
+            btn.textContent = 'Refreshing…';
+          } else {
+            btn.disabled = false;
+            btn.classList.remove('is-busy');
+            btn.removeAttribute('aria-busy');
+            btn.textContent = btn.dataset.label;
+          }
+        }
+
+        function finalizeManualRefresh(){
+          if (!manualRefreshInProgress) return;
+          manualRefreshInProgress = false;
+          setRefreshButtonState(false);
+        }
+
+        function manualRefreshVehiclePicker(){
+          if (manualRefreshInProgress) return;
+          manualRefreshInProgress = true;
+          setRefreshButtonState(true);
+
+          const statusEl = document.getElementById('vpStatus');
+          if (statusEl) {
+            statusEl.textContent = 'Refreshing vehicle list…';
+          }
+
+          const project = document.getElementById('vpProject')?.value || '';
+          const team = document.getElementById('vpTeam')?.value || '';
+          const currentBeneficiary = document.getElementById('vpBeneficiary')?.value || '';
+
+          const resetLocalCaches = () => {
+            clearVehiclePickerCacheInternal();
+            if (ddBeneficiaryCache && typeof ddBeneficiaryCache.clear === 'function') {
+              ddBeneficiaryCache.clear();
+            }
+            ddBeneficiaryPack = null;
+            teamInUseCache.clear();
+            activeInUseMembers = new Set();
+            activeInUseMemberObjects = [];
+            activeInUseTeamKey = '';
+          };
+
+          const postInvalidate = (scriptAvailable) => {
+            resetLocalCaches();
+            if (vpMode === 'existing') {
+              fetchVehicles({ force: true, skipCache: true });
+            }
+            if (typeof window.populateResponsibleBeneficiaryOptions === 'function') {
+              window.populateResponsibleBeneficiaryOptions(project, team, currentBeneficiary);
+            }
+            if (!scriptAvailable || vpMode !== 'existing') {
+              finalizeManualRefresh();
+            }
+          };
+
+          const scriptAvailable = window.google && google.script && google.script.run;
+          if (scriptAvailable) {
+            google.script.run
+              .withSuccessHandler(function(){
+                postInvalidate(true);
+              })
+              .withFailureHandler(function(err){
+                console.warn('[VP] Manual refresh cache invalidate failed', err);
+                postInvalidate(true);
+              })
+              .invalidateVehicleReleasedCache('manual_refresh_button');
+          } else {
+            postInvalidate(false);
+          }
+        }
 
         let ddBeneficiaryPack = null;
         const ddBeneficiaryCache = new Map();
@@ -2014,9 +2107,18 @@
           master=[]; vehicles=[];
           resetPickerUI();
           try{ populateContextFromRow(targetInput); }catch(_){ }
-          clearVehiclePickerCacheInternal();
+          const hadCache = Array.isArray(vehicleDataCache) && vehicleDataCache.length;
+          if (hadCache) {
+            try {
+              renderVehicles(vehicleDataCache.slice());
+            } catch (cacheRenderErr) {
+              console.warn('[VP] Failed to render cached vehicles on open', cacheRenderErr);
+            }
+          }
           setMode('existing', { autoFetch: false });
-          fetchVehicles({ force: true, skipCache: true });
+          const cacheIsFresh = hadCache && (Date.now() - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
+          const shouldForce = !hadCache || !cacheIsFresh;
+          fetchVehicles({ force: shouldForce, skipCache: false });
         }
 
         function close(){
@@ -2035,10 +2137,13 @@
         }
 
         function fetchVehicles(options){
-          const opts = Object.assign({ attempt: 0, skipCache: false, retry: false, force: false }, options);
-          if (vpMode !== 'existing') return;
+          const opts = Object.assign({ attempt: 0, skipCache: false, retry: false, force: false, silent: false }, options);
+          const silentFetch = opts.silent === true;
+          if (vpMode !== 'existing') {
+            vehicleVersionRefreshPending = false;
+            return;
+          }
           const statusEl = document.getElementById('vpStatus');
-          if (!statusEl) return;
           if (vehicleRetryTimer){
             clearTimeout(vehicleRetryTimer);
             vehicleRetryTimer = null;
@@ -2046,18 +2151,22 @@
 
           // Serve from client cache when fresh to avoid redundant server calls
           const now = Date.now();
-          if (!opts.skipCache && vehicleDataCache && (now - vehicleDataCacheTs) < VEHICLE_CACHE_TTL) {
+          if (!opts.skipCache && !opts.force && vehicleDataCache && (now - vehicleDataCacheTs) < VEHICLE_CACHE_TTL) {
             vehiclePickerMeta = {
               source: vehicleCacheSource || 'cache',
               duration: 0,
-              cached: true
+              cached: true,
+              version: vehicleDataCacheVersion || null
             };
+            vehicleVersionRefreshPending = false;
             renderVehicles(vehicleDataCache.slice());
             return;
           }
 
           if (vehicleFetchPending && !opts.force) {
-            statusEl.textContent = 'Loading vehicles…';
+            if (!silentFetch && statusEl) {
+              statusEl.textContent = 'Loading vehicles…';
+            }
             return;
           }
 
@@ -2072,12 +2181,17 @@
           }
 
           if (!window.google || !google.script || !google.script.run) {
-            statusEl.textContent = 'Google Apps Script not available. Cannot load vehicles.';
+            vehicleVersionRefreshPending = false;
+            if (!silentFetch && statusEl) {
+              statusEl.textContent = 'Google Apps Script not available. Cannot load vehicles.';
+            }
             return;
           }
 
           vehicleFetchPending = true;
-          statusEl.textContent = 'Loading latest vehicles…';
+          if (!silentFetch && statusEl) {
+            statusEl.textContent = 'Loading latest vehicles…';
+          }
           const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
 
           google.script.run
@@ -2086,13 +2200,17 @@
             })
             .withFailureHandler(function(err){
               vehicleFetchPending = false;
+              vehicleVersionRefreshPending = false;
               console.error('Vehicle picker load failed', err);
               window.vehiclePickerLastResponse = {
                 timestamp: new Date().toISOString(),
                 error: err
               };
               const status = statusEl || document.getElementById('vpStatus');
-              if (status) status.textContent = 'Failed to load Vehicle_Released summary.';
+              if (!silentFetch && status) status.textContent = 'Failed to load Vehicle_Released summary.';
+              if (manualRefreshInProgress) {
+                finalizeManualRefresh();
+              }
             })
             .getVehiclePickerData();
         }
@@ -2120,12 +2238,19 @@
             source = 'legacy';
           }
 
+          const incomingVersion = (res && Object.prototype.hasOwnProperty.call(res, 'cacheVersion'))
+            ? (res.cacheVersion != null ? String(res.cacheVersion) : null)
+            : null;
+          vehicleDataCacheVersion = incomingVersion;
+          lastKnownVehicleServerVersion = incomingVersion;
+
           window.vehiclePickerLastResponse = {
             timestamp: new Date().toISOString(),
             raw: res,
             normalizedCount: Array.isArray(list) ? list.length : 0,
             source: source,
             cached: cachedFlag,
+            version: incomingVersion || null,
             debug: debugInfo
           };
 
@@ -2171,10 +2296,15 @@
             duration: end - startTs,
             cached: cachedFlag,
             debug: debugInfo,
-            fetched: list.length
+            fetched: list.length,
+            version: vehicleDataCacheVersion || incomingVersion || null
           };
+          vehicleVersionRefreshPending = false;
 
           renderVehicles(list);
+          if (manualRefreshInProgress) {
+            finalizeManualRefresh();
+          }
         }
 
         function retryVehicleFetch(nextAttempt){
@@ -2216,6 +2346,79 @@
             vehicleRetryTimer = null;
             fetchVehicles({ attempt: nextAttempt, skipCache: true, retry: true, force: true });
           }, VEHICLE_RETRY_DELAY_MS);
+        }
+
+        function warmVehiclePickerCache(forceRefresh = false){
+          if (!forceRefresh && vehicleWarmInitiated) return;
+          if (!window.google || !google.script || !google.script.run) {
+            if (!vehicleWarmRetryTimer) {
+              vehicleWarmRetryTimer = setTimeout(function(){
+                vehicleWarmRetryTimer = null;
+                warmVehiclePickerCache(forceRefresh);
+              }, 600);
+            }
+            return;
+          }
+          if (vehicleWarmRetryTimer) {
+            clearTimeout(vehicleWarmRetryTimer);
+            vehicleWarmRetryTimer = null;
+          }
+          vehicleWarmInitiated = true;
+          try {
+            fetchVehicles({ force: true, skipCache: false, silent: true });
+          } catch (warmErr) {
+            console.warn('[VP] Warm cache fetch failed', warmErr);
+          }
+        }
+
+        function startVehicleCacheMonitor(){
+          if (vehicleVersionMonitorTimer) return;
+          if (!window.google || !google.script || !google.script.run) {
+            if (!vehicleVersionMonitorStartTimer) {
+              vehicleVersionMonitorStartTimer = setTimeout(function(){
+                vehicleVersionMonitorStartTimer = null;
+                startVehicleCacheMonitor();
+              }, 1000);
+            }
+            return;
+          }
+          if (vehicleVersionMonitorStartTimer) {
+            clearTimeout(vehicleVersionMonitorStartTimer);
+            vehicleVersionMonitorStartTimer = null;
+          }
+          vehicleVersionMonitorTimer = setInterval(function(){
+            try {
+              google.script.run
+                .withSuccessHandler(handleVehicleVersionProbe)
+                .withFailureHandler(function(err){
+                  console.warn('[VP] Vehicle version probe failed', err);
+                })
+                .getVehicleReleasedCacheVersion();
+            } catch (probeErr) {
+              console.warn('[VP] Vehicle version probe scheduling failed', probeErr);
+            }
+          }, VEHICLE_VERSION_POLL_INTERVAL);
+        }
+
+        function handleVehicleVersionProbe(res){
+          if (!res || res.ok === false) {
+            return;
+          }
+          const serverVersion = res.version != null ? String(res.version) : null;
+          lastKnownVehicleServerVersion = serverVersion;
+          if (vehicleDataCacheVersion == null && serverVersion == null) {
+            return;
+          }
+          if (serverVersion === vehicleDataCacheVersion) {
+            return;
+          }
+          if (vehicleFetchPending || vehicleVersionRefreshPending) {
+            return;
+          }
+          vehicleVersionRefreshPending = true;
+          const modal = document.getElementById('vehiclePickerModal');
+          const modalVisible = modal && modal.getAttribute('aria-hidden') === 'false';
+          fetchVehicles({ force: true, skipCache: false, silent: !modalVisible });
         }
 
         function isReleaseStatus(car){
@@ -2833,6 +3036,10 @@
           const clear = x('vpClearAll');
           clear.addEventListener('click',()=>{ ['vpMake','vpModel','vpCategory','vpUsage','vpOwner'].forEach(id=>{const s=x(id); if(s) s.selectedIndex=0;}); updateFilterChoices(); updateVehiclesDropdown(); });
           clear.addEventListener('keydown',e=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); clear.click(); } });
+          const refresh = x('vpRefreshBtn');
+          if (refresh) {
+            refresh.addEventListener('click', manualRefreshVehiclePicker);
+          }
 
           document.addEventListener('change',function(e){
             if(/^vp(Make|Model|Category|Usage|Owner)$/.test(e.target.id)){ updateFilterChoices(); updateVehiclesDropdown(); }
@@ -2984,6 +3191,13 @@
           vehicleDataCache = null;
           vehicleDataCacheTs = 0;
           vehicleCacheSource = '';
+          vehicleDataCacheVersion = null;
+          vehicleVersionRefreshPending = false;
+          vehicleWarmInitiated = false;
+          if (vehicleWarmRetryTimer) {
+            clearTimeout(vehicleWarmRetryTimer);
+            vehicleWarmRetryTimer = null;
+          }
           vehicleFetchPending = false;
           if (vehicleRetryTimer) {
             clearTimeout(vehicleRetryTimer);
@@ -3064,19 +3278,20 @@
         function scheduleAutoLaunch(){
           if (window.__vpAutoLaunchDone) return;
           window.__vpAutoLaunchDone = true;
-          setTimeout(() => {
-            try {
-              open(null);
-            } catch (err) {
-              console.warn('[VP] Auto launch failed:', err);
-            }
-          }, 400);
+          // Auto launching the vehicle picker on load is intentionally disabled.
+          // Cache warmers still execute in onVehiclePickerReady so data remains fresh.
+        }
+
+        function onVehiclePickerReady(){
+          warmVehiclePickerCache(true);
+          startVehicleCacheMonitor();
+          scheduleAutoLaunch();
         }
 
         if (document.readyState === 'complete' || document.readyState === 'interactive') {
-          scheduleAutoLaunch();
+          onVehiclePickerReady();
         } else {
-          window.addEventListener('DOMContentLoaded', scheduleAutoLaunch, { once: true });
+          window.addEventListener('DOMContentLoaded', onVehiclePickerReady, { once: true });
         }
 
         // init

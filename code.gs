@@ -4,6 +4,88 @@ const VEHICLE_RELEASED_CACHE_KEY = 'vehicle_released_dropdown_payload_v1';
 const VEHICLE_RELEASED_PROP_KEY = 'vehicle_released_dropdown_payload_v1_json';
 const VEHICLE_RELEASED_VERSION_PROP_KEY = 'vehicle_released_dropdown_payload_v1_version';
 const VEHICLE_RELEASED_CACHE_TTL_SECONDS = 120;
+const VEHICLE_SUMMARY_HEADER = [
+  'Ref','Date and time of entry','Project','Team','R.Beneficiary','Vehicle Number',
+  'Make','Model','Category','Usage Type','Owner','Status','Last Users remarks','Ratings','Submitter username'
+];
+
+function upsertVehicleSummaryRow(sheetName, rowData, keyType) {
+  try {
+    if (!rowData || typeof rowData !== 'object') return;
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    let sh = ss.getSheetByName(sheetName);
+    if (!sh) {
+      sh = ss.insertSheet(sheetName);
+    }
+    const currentHeader = sh.getRange(1, 1, 1, VEHICLE_SUMMARY_HEADER.length).getValues()[0];
+    const needsHeaderUpdate = VEHICLE_SUMMARY_HEADER.some(function(expected, idx){
+      return String(currentHeader[idx] || '').trim() !== expected;
+    });
+    if (needsHeaderUpdate) {
+      sh.getRange(1, 1, 1, VEHICLE_SUMMARY_HEADER.length).setValues([VEHICLE_SUMMARY_HEADER]);
+      sh.setFrozenRows(1);
+    }
+
+    const rawKey = keyType === 'vehicle'
+      ? String(
+          rowData['Vehicle Number'] ||
+          rowData.carNumber ||
+          ''
+        ).trim().toUpperCase()
+      : String(
+          rowData['R.Beneficiary'] ||
+          rowData.responsibleBeneficiary ||
+          ''
+        ).trim().toLowerCase();
+
+    if (!rawKey) return;
+
+    const keyColumnName = keyType === 'vehicle' ? 'Vehicle Number' : 'R.Beneficiary';
+    const keyColumnIndex = VEHICLE_SUMMARY_HEADER.indexOf(keyColumnName);
+    if (keyColumnIndex < 0) return;
+
+    const lastRow = sh.getLastRow();
+    let targetRow = -1;
+    if (lastRow > 1) {
+      const keyRange = sh.getRange(2, keyColumnIndex + 1, lastRow - 1, 1).getValues();
+      for (let i = 0; i < keyRange.length; i++) {
+        const cellValue = String(keyRange[i][0] || '').trim();
+        if (!cellValue) continue;
+        const cellKey = keyType === 'vehicle' ? cellValue.toUpperCase() : cellValue.toLowerCase();
+        if (cellKey === rawKey) {
+          targetRow = i + 2;
+          break;
+        }
+      }
+    }
+
+    const rowValues = [
+      rowData.Ref || '',
+      rowData['Date and time of entry'] || rowData.Timestamp || '',
+      rowData.Project || '',
+      rowData.Team || '',
+      rowData['R.Beneficiary'] || rowData.responsibleBeneficiary || '',
+      rowData['Vehicle Number'] || rowData.carNumber || '',
+      rowData.Make || rowData.make || '',
+      rowData.Model || rowData.model || '',
+      rowData.Category || rowData.category || '',
+      rowData['Usage Type'] || rowData.usageType || '',
+      rowData.Owner || rowData.owner || '',
+      rowData.Status || rowData.status || '',
+      rowData['Last Users remarks'] || rowData.remarks || '',
+      rowData.Ratings || rowData.rating || rowData.stars || '',
+      rowData['Submitter username'] || rowData.submitter || rowData.Submitter || ''
+    ];
+
+    if (targetRow > 0) {
+      sh.getRange(targetRow, 1, 1, rowValues.length).setValues([rowValues]);
+    } else {
+      sh.appendRow(rowValues);
+    }
+  } catch (err) {
+    console.error('upsertVehicleSummaryRow failed:', err, { sheetName, keyType });
+  }
+}
 
 function invalidateVehicleInUseCache() {
   try {
@@ -1096,12 +1178,8 @@ function writeVehicleSummarySheet(sheetName, rows) {
   const ss = SpreadsheetApp.openById(SHEET_ID);
   let sh = ss.getSheetByName(sheetName);
   if (!sh) sh = ss.insertSheet(sheetName);
-  const header = [
-    'Ref','Date and time of entry','Project','Team','R.Beneficiary','Vehicle Number',
-    'Make','Model','Category','Usage Type','Owner','Status','Last Users remarks','Ratings','Submitter username'
-  ];
   sh.clearContents();
-  sh.getRange(1,1,1,header.length).setValues([header]);
+  sh.getRange(1,1,1,VEHICLE_SUMMARY_HEADER.length).setValues([VEHICLE_SUMMARY_HEADER]);
   sh.setFrozenRows(1);
   if (rows.length) {
     const values = rows.map(r => [
@@ -1121,9 +1199,9 @@ function writeVehicleSummarySheet(sheetName, rows) {
       r.Ratings || '',
       r['Submitter username'] || ''
     ]);
-    sh.getRange(2,1,values.length,header.length).setValues(values);
+    sh.getRange(2,1,values.length,VEHICLE_SUMMARY_HEADER.length).setValues(values);
   }
-  try { sh.autoResizeColumns(1, header.length); } catch(_){}
+  try { sh.autoResizeColumns(1, VEHICLE_SUMMARY_HEADER.length); } catch(_){}
   if (sheetName === 'Vehicle_Released') {
     invalidateVehicleReleasedCache('Vehicle_Released sheet rewritten');
   }
@@ -2452,6 +2530,17 @@ function submitCarRelease(releaseData) {
 
     const startRow = sh.getLastRow() + 1;
     sh.getRange(startRow, 1, 1, rowValues.length).setValues([rowValues]);
+
+    try {
+      const summaryObj = {};
+      for (let i = 0; i < VEHICLE_SUMMARY_HEADER.length; i++) {
+        summaryObj[VEHICLE_SUMMARY_HEADER[i]] = rowValues[i] || '';
+      }
+      summaryObj.status = summaryObj.Status || 'RELEASE';
+      upsertVehicleSummaryRow('Vehicle_Released', summaryObj, 'vehicle');
+    } catch (summaryErr) {
+      console.warn('submitCarRelease: Vehicle_Released summary update failed', summaryErr);
+    }
 
     // Auto-resize columns for better readability
     sh.autoResizeColumns(1, rowValues.length);
@@ -4075,6 +4164,19 @@ function assignCarToTeam(payload){
       
       console.log('[ASSIGN_CAR] ✅ Data successfully written to CarT_P sheet');
       console.log('[ASSIGN_CAR] New last row after write:', sh.getLastRow());
+
+      try {
+        rows.forEach(function(rowValues){
+          const summaryObj = {};
+          for (let i = 0; i < VEHICLE_SUMMARY_HEADER.length; i++) {
+            summaryObj[VEHICLE_SUMMARY_HEADER[i]] = rowValues[i] || '';
+          }
+          summaryObj.status = summaryObj.Status || 'IN USE';
+          upsertVehicleSummaryRow('Vehicle_InUse', summaryObj, 'beneficiary');
+        });
+      } catch (summaryErr) {
+        console.warn('[ASSIGN_CAR] Vehicle_InUse summary update failed:', summaryErr);
+      }
     } else {
       console.warn('[ASSIGN_CAR] No rows to write - this should not happen');
     }
@@ -8518,6 +8620,72 @@ function getVehiclePickerData(){
   } catch (e) {
     console.error('getVehiclePickerData failed:', e);
     return { ok:false, source: 'Vehicle_Released', error:String(e) };
+  }
+}
+
+function getVehicleReleasedCacheVersion(){
+  try {
+    let version = null;
+    let updatedAt = '';
+
+    const cache = (typeof CacheService !== 'undefined') ? CacheService.getScriptCache() : null;
+    if (cache) {
+      try {
+        const cached = cache.get(VEHICLE_RELEASED_CACHE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed) {
+            if (!version && parsed.version) version = String(parsed.version);
+            const payload = parsed.payload || parsed;
+            if (!version && payload && payload.cacheVersion) version = String(payload.cacheVersion);
+            if (!updatedAt && payload && payload.generatedAt) updatedAt = String(payload.generatedAt);
+            if (!updatedAt && payload && payload.updatedAt) updatedAt = String(payload.updatedAt);
+          }
+        }
+      } catch (cacheErr) {
+        console.warn('getVehicleReleasedCacheVersion cache parse failed:', cacheErr);
+      }
+    }
+
+    let props = null;
+    try {
+      props = PropertiesService.getScriptProperties();
+    } catch (_propErr) {
+      props = null;
+    }
+
+    if (props) {
+      if (!version || !updatedAt) {
+        const stored = props.getProperty(VEHICLE_RELEASED_PROP_KEY);
+        if (stored) {
+          try {
+            const parsed = JSON.parse(stored);
+            if (parsed) {
+              if (!version && parsed.version) version = String(parsed.version);
+              const payload = parsed.payload || parsed;
+              if (!version && payload && payload.cacheVersion) version = String(payload.cacheVersion);
+              if (!updatedAt && payload && payload.generatedAt) updatedAt = String(payload.generatedAt);
+              if (!updatedAt && payload && payload.updatedAt) updatedAt = String(payload.updatedAt);
+            }
+          } catch (propParseErr) {
+            console.warn('getVehicleReleasedCacheVersion properties parse failed:', propParseErr);
+          }
+        }
+      }
+      if (!version) {
+        try {
+          const propVersion = props.getProperty(VEHICLE_RELEASED_VERSION_PROP_KEY);
+          if (propVersion) version = String(propVersion);
+        } catch (_versionReadErr) {
+          // ignore
+        }
+      }
+    }
+
+    return { ok: true, version: version, updatedAt: updatedAt };
+  } catch (err) {
+    console.error('getVehicleReleasedCacheVersion failed:', err);
+    return { ok: false, error: String(err) };
   }
 }
 
