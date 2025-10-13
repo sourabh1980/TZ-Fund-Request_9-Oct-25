@@ -5,6 +5,8 @@
   'use strict';
 
   // ========================= Vehicle In Use Prefill =========================
+  const VEHICLE_IN_USE_CACHE_KEY = 'vehicleInUseAssignments.v1';
+
   const vehicleInUseState = (function(){
     const exact = (window.vehicleInUseMap && typeof window.vehicleInUseMap === 'object') ? window.vehicleInUseMap : Object.create(null);
     const lower = (window.vehicleInUseLowerMap && typeof window.vehicleInUseLowerMap === 'object') ? window.vehicleInUseLowerMap : Object.create(null);
@@ -41,6 +43,15 @@
 
   function vehicleNameKey(name){
     return normalizeName(name);
+  }
+
+  function onNextFrame(fn) {
+    if (typeof fn !== 'function') return;
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      window.requestAnimationFrame(fn);
+    } else {
+      setTimeout(fn, 16);
+    }
   }
 
   function stripNameKey(name) {
@@ -182,7 +193,101 @@
   }
   window.applyVehicleInUseAssignmentsToRows = applyVehicleInUseAssignmentsToRows;
 
-  function storeVehicleInUseRecords(records, meta){
+  const vehicleInUseDomMonitor = {
+    observer: null,
+    pending: false,
+    domReadyHooked: false,
+    bootstrapped: false,
+    retryTimer: null
+  };
+
+  function scheduleVehicleRowSync(){
+    if (vehicleInUseDomMonitor.pending) return;
+    vehicleInUseDomMonitor.pending = true;
+    onNextFrame(function(){
+      vehicleInUseDomMonitor.pending = false;
+      try {
+        applyVehicleInUseAssignmentsToRows(false);
+      } catch (syncErr) {
+        console.error('[VehicleInUse] Failed to sync vehicle numbers after DOM change', syncErr);
+      }
+    });
+  }
+
+  function startVehicleRowObserver(){
+    if (vehicleInUseDomMonitor.observer || typeof MutationObserver !== 'function') return;
+    const body = getBody();
+    if (!body) {
+      if (!vehicleInUseDomMonitor.retryTimer) {
+        vehicleInUseDomMonitor.retryTimer = setTimeout(function(){
+          vehicleInUseDomMonitor.retryTimer = null;
+          startVehicleRowObserver();
+        }, 150);
+      }
+      return;
+    }
+
+    try {
+      const observer = new MutationObserver(function(mutations){
+        for (let i = 0; i < mutations.length; i++) {
+          const mutation = mutations[i];
+          if (mutation.type !== 'childList') continue;
+          if ((mutation.addedNodes && mutation.addedNodes.length) || (mutation.removedNodes && mutation.removedNodes.length)) {
+            scheduleVehicleRowSync();
+            break;
+          }
+        }
+      });
+      observer.observe(body, { childList: true });
+      vehicleInUseDomMonitor.observer = observer;
+    } catch (observerErr) {
+      console.warn('[VehicleInUse] Unable to observe beneficiary rows for updates', observerErr);
+    }
+  }
+
+  function ensureVehicleRowPrefillHooks(){
+    if (document.readyState === 'loading') {
+      if (!vehicleInUseDomMonitor.domReadyHooked) {
+        vehicleInUseDomMonitor.domReadyHooked = true;
+        document.addEventListener('DOMContentLoaded', ensureVehicleRowPrefillHooks);
+      }
+      return;
+    }
+
+    startVehicleRowObserver();
+
+    if (!vehicleInUseDomMonitor.bootstrapped) {
+      vehicleInUseDomMonitor.bootstrapped = true;
+      scheduleVehicleRowSync();
+    }
+  }
+
+  ensureVehicleRowPrefillHooks();
+
+  function persistVehicleInUseCache(snapshot) {
+    try {
+      if (!window || !window.localStorage) return;
+      window.localStorage.setItem(VEHICLE_IN_USE_CACHE_KEY, JSON.stringify(snapshot));
+    } catch (cacheErr) {
+      console.warn('[VehicleInUse] Failed to persist cache', cacheErr);
+    }
+  }
+
+  function restoreVehicleInUseCache(){
+    try {
+      if (!window || !window.localStorage) return;
+      const raw = window.localStorage.getItem(VEHICLE_IN_USE_CACHE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.records) || !parsed.records.length) return;
+      storeVehicleInUseRecords(parsed.records, { updatedAt: parsed.updatedAt || '' }, { skipPersistence: true, source: 'cache' });
+    } catch (cacheErr) {
+      console.warn('[VehicleInUse] Failed to restore cache', cacheErr);
+    }
+  }
+
+  function storeVehicleInUseRecords(records, meta, options){
+    const opts = options && typeof options === 'object' ? options : {};
     const byKey = new Map();
     (Array.isArray(records) ? records : []).forEach(function(rec){
       if (!rec) return;
@@ -237,6 +342,13 @@
       vehicleInUseState.updatedAt = meta.updatedAt;
     }
 
+    if (opts.skipPersistence !== true) {
+      persistVehicleInUseCache({
+        updatedAt: vehicleInUseState.updatedAt,
+        records: vehicleInUseState.records
+      });
+    }
+
     if (window.vehicleAssignmentManager) {
       try {
         if (typeof window.vehicleAssignmentManager.hydrateFromSummary === 'function') {
@@ -275,6 +387,8 @@
       console.error('[VehicleInUse] Failed to process assignments', err);
     }
   }
+
+  restoreVehicleInUseCache();
 
   function fetchVehicleInUseAssignments(){
     if (vehicleInUseState.fetching) return;
