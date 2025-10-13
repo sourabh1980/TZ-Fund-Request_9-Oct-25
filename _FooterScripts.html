@@ -193,6 +193,43 @@
   }
   window.applyVehicleInUseAssignmentsToRows = applyVehicleInUseAssignmentsToRows;
 
+  const vehicleInUseRetryManager = {
+    timer: null,
+    attempts: 0,
+    maxAttempts: 0,
+    delay: 300
+  };
+
+  function scheduleVehicleInUseReapply(options){
+    const opts = options && typeof options === 'object' ? options : {};
+    const attempts = Number.isFinite(opts.attempts) && opts.attempts > 0 ? Math.floor(opts.attempts) : 5;
+    const delay = Number.isFinite(opts.delay) && opts.delay > 0 ? opts.delay : 300;
+
+    if (vehicleInUseRetryManager.timer) {
+      clearTimeout(vehicleInUseRetryManager.timer);
+      vehicleInUseRetryManager.timer = null;
+    }
+
+    vehicleInUseRetryManager.attempts = 0;
+    vehicleInUseRetryManager.maxAttempts = attempts;
+    vehicleInUseRetryManager.delay = delay;
+
+    function runAttempt(){
+      vehicleInUseRetryManager.timer = null;
+      vehicleInUseRetryManager.attempts++;
+      try {
+        applyVehicleInUseAssignmentsToRows(false);
+      } catch (retryErr) {
+        console.warn('[VehicleInUse] Retry prefill failed', retryErr);
+      }
+      if (vehicleInUseRetryManager.attempts < vehicleInUseRetryManager.maxAttempts) {
+        vehicleInUseRetryManager.timer = setTimeout(runAttempt, vehicleInUseRetryManager.delay);
+      }
+    }
+
+    runAttempt();
+  }
+
   const vehicleInUseDomMonitor = {
     observer: null,
     pending: false,
@@ -281,6 +318,7 @@
       const parsed = JSON.parse(raw);
       if (!parsed || !Array.isArray(parsed.records) || !parsed.records.length) return;
       storeVehicleInUseRecords(parsed.records, { updatedAt: parsed.updatedAt || '' }, { skipPersistence: true, source: 'cache' });
+      scheduleVehicleInUseReapply({ reason: 'cache-restore', attempts: 6, delay: 350 });
     } catch (cacheErr) {
       console.warn('[VehicleInUse] Failed to restore cache', cacheErr);
     }
@@ -363,6 +401,7 @@
     }
 
     applyVehicleInUseAssignmentsToRows(false);
+    scheduleVehicleInUseReapply({ reason: 'store-records', attempts: 5, delay: 320 });
   }
 
   function processVehicleInUseResponse(res){
@@ -382,6 +421,7 @@
       }
       vehicleInUseState.lastError = null;
       storeVehicleInUseRecords(rows, meta);
+      scheduleVehicleInUseReapply({ reason: 'fetch-success', attempts: 6, delay: 320 });
     } catch (err) {
       vehicleInUseState.lastError = err;
       console.error('[VehicleInUse] Failed to process assignments', err);
@@ -414,8 +454,18 @@
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fetchVehicleInUseAssignments);
+    document.addEventListener('DOMContentLoaded', function(){
+      scheduleVehicleInUseReapply({ reason: 'dom-ready', attempts: 6, delay: 300 });
+    });
   } else {
     fetchVehicleInUseAssignments();
+    scheduleVehicleInUseReapply({ reason: 'immediate-load', attempts: 6, delay: 300 });
+  }
+
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('pageshow', function(){
+      scheduleVehicleInUseReapply({ reason: 'pageshow', attempts: 6, delay: 300 });
+    });
   }
 
   // ========================= Utilities =========================
