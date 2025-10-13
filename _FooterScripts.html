@@ -200,7 +200,8 @@
       }
     }
 
-    applyVehicleInUseAssignmentsToRows(true);
+    // Avoid forcing clears so manual assignments stay intact until a prefill marks them
+    applyVehicleInUseAssignmentsToRows(false);
   }
 
   function processVehicleInUseResponse(res){
