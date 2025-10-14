@@ -7,7 +7,42 @@
 
     const assignments = new Map(); // vehicleNumber (uppercase) -> responsibleBeneficiary
 
-    const nameKey = (name) => String(name || '').trim().toLowerCase();
+    const normalizeWhitespace = (value) => String(value == null ? '' : value)
+      .replace(/\u00A0/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const lowerTrim = (value) => normalizeWhitespace(value).toLowerCase();
+    const canonicalNameKey = (value) => {
+      const lower = lowerTrim(value);
+      if (!lower) return '';
+      const cleaned = lower
+        .replace(/\[[^\]]*]/g, ' ')
+        .replace(/\([^)]*\)/g, ' ')
+        .replace(/[-–—]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      return cleaned || lower;
+    };
+    const strippedNameKey = (value) => canonicalNameKey(value).replace(/[^a-z0-9]/g, '');
+    const nameKey = (value) => canonicalNameKey(value);
+    const assignmentNameKey = (value) => {
+      const canonical = canonicalNameKey(value);
+      const lower = lowerTrim(value);
+      if (canonical && lower && canonical !== lower) {
+        return canonical + '__' + lower;
+      }
+      return canonical || lower;
+    };
+    const namesMatch = (a, b) => {
+      const keyA = canonicalNameKey(a);
+      const keyB = canonicalNameKey(b);
+      if (!keyA || !keyB) return false;
+      if (keyA === keyB) return true;
+      if (keyA.startsWith(keyB) || keyB.startsWith(keyA)) return true;
+      const stripA = strippedNameKey(a);
+      const stripB = strippedNameKey(b);
+      return stripA && stripA === stripB;
+    };
 
     function isManagedRow(row, carInput) {
       if (!row || !carInput) {
@@ -75,9 +110,9 @@
           const carInput = row.querySelector('input.car-number-input');
           const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
           
-          if (carInput && carInput.value.trim().toUpperCase() === upperVehicle) {
-            const currentBeneficiary = benInput ? benInput.value.trim() : '';
-              if (nameKey(currentBeneficiary) !== nameKey(benName)) {
+        if (carInput && carInput.value.trim().toUpperCase() === upperVehicle) {
+          const currentBeneficiary = benInput ? benInput.value.trim() : '';
+            if (!namesMatch(currentBeneficiary, benName)) {
                 console.log(`[VAM] ✅ Clearing vehicle ${upperVehicle} from non-responsible beneficiary: ${currentBeneficiary}`);
                 carInput.value = '';
                 delete carInput.dataset.responsibleBeneficiary;
@@ -162,7 +197,7 @@
 
       isAssignedTo: function(vehicleNumber, responsibleBeneficiary) {
           const assignedTo = this.getAssignment(vehicleNumber);
-          return assignedTo && nameKey(assignedTo) === nameKey(responsibleBeneficiary);
+          return assignedTo && namesMatch(assignedTo, responsibleBeneficiary);
       },
 
       syncUIAddOnly: function() {
@@ -179,11 +214,11 @@
 
           // ✅ STRICT CHECK: Only assign if this is the EXACT responsible beneficiary
           for (const [vehicle, responsibleBen] of assignments.entries()) {
-              if (nameKey(currentBeneficiary) === nameKey(responsibleBen)) {
+              if (namesMatch(currentBeneficiary, responsibleBen)) {
                   // ✅ ADDITIONAL CHECK: Only if this specific row should be responsible
                   // This prevents team-wide assignment to all matching names
                   const rowId = row.dataset.rowId || currentBeneficiary;
-                  const assignmentKey = `${vehicle}_${nameKey(responsibleBen)}`;
+                  const assignmentKey = `${vehicle}_${assignmentNameKey(responsibleBen)}`;
                   
                   // Only assign to the first/primary occurrence of this beneficiary
                   const existingAssignment = document.querySelector(`[data-vehicle-assignment="${assignmentKey}"]`);
@@ -254,7 +289,7 @@
 
           // Check if this beneficiary is the responsible one for any assigned vehicle
           for (const [vehicle, responsibleBen] of assignments.entries()) {
-              if (nameKey(currentBeneficiary) === nameKey(responsibleBen)) {
+              if (namesMatch(currentBeneficiary, responsibleBen)) {
                   shouldHaveVehicle = vehicle;
                   break;
               }

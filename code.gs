@@ -128,6 +128,22 @@ function invalidateVehicleReleasedCache(reason) {
  */
 function getVehicleInUseData() {
   try {
+    const nowMs = Date.now();
+    const cacheFreshMsWithAssignments = 5 * 60 * 1000; // 5 minutes
+    const cacheFreshMsEmpty = 60 * 1000;               // 1 minute for empty payloads
+
+    function shouldUseVehicleInUseSnapshot(payload) {
+      if (!payload || payload.ok === false) return false;
+      const assignments = Array.isArray(payload.assignments) ? payload.assignments : [];
+      const tsCandidate = payload.checkedAt || payload.generatedAt || payload.updatedAt;
+      const tsValue = _parseTs_(tsCandidate);
+      if (!tsValue) return false;
+      const ageMs = nowMs - tsValue;
+      if (isNaN(ageMs) || ageMs < 0) return false;
+      const freshnessLimit = assignments.length ? cacheFreshMsWithAssignments : cacheFreshMsEmpty;
+      return ageMs <= freshnessLimit;
+    }
+
     const cache = (typeof CacheService !== 'undefined') ? CacheService.getScriptCache() : null;
     let props = null;
     try {
@@ -140,8 +156,11 @@ function getVehicleInUseData() {
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
-          if (parsed && parsed.ok) {
+          if (parsed && parsed.ok && shouldUseVehicleInUseSnapshot(parsed)) {
             parsed.cached = true;
+            const referenceTs = parsed.checkedAt || parsed.generatedAt || parsed.updatedAt;
+            const refValue = _parseTs_(referenceTs);
+            if (refValue) parsed.cacheAgeMs = nowMs - refValue;
             return parsed;
           }
         } catch (_err) {
@@ -157,9 +176,12 @@ function getVehicleInUseData() {
       if (stored) {
         try {
           const parsed = JSON.parse(stored);
-          if (parsed && parsed.ok) {
+          if (parsed && parsed.ok && shouldUseVehicleInUseSnapshot(parsed)) {
             parsed.cached = true;
             parsed.fromProperties = true;
+            const referenceTs = parsed.checkedAt || parsed.generatedAt || parsed.updatedAt;
+            const refValue = _parseTs_(referenceTs);
+            if (refValue) parsed.cacheAgeMs = nowMs - refValue;
             return parsed;
           }
         } catch (_propParseErr) {
@@ -194,7 +216,16 @@ function getVehicleInUseData() {
     }
 
     if (lastRow <= 1) {
-      const emptyPayload = { ok: true, source: 'Vehicle_InUse', assignments: [], updatedAt: '', message: 'No IN USE assignments found' };
+      const emptyTs = new Date().toISOString();
+      const emptyPayload = {
+        ok: true,
+        source: 'Vehicle_InUse',
+        assignments: [],
+        updatedAt: '',
+        generatedAt: emptyTs,
+        checkedAt: emptyTs,
+        message: 'No assignments found'
+      };
       if (cache) cache.put(VEHICLE_IN_USE_CACHE_KEY, JSON.stringify(emptyPayload), 15);
       if (props) {
         try { props.setProperty(VEHICLE_IN_USE_PROP_KEY, JSON.stringify(emptyPayload)); } catch (_err) { /* ignore */ }
@@ -212,8 +243,6 @@ function getVehicleInUseData() {
       const beneficiary = String(entry.beneficiary || entry.responsibleBeneficiary || '').trim();
       const vehicleNumber = String(entry.vehicleNumber || entry.carNumber || '').trim();
       if (!beneficiary || !vehicleNumber) return null;
-      const status = _normStatus_(entry.assignmentStatus || entry.status || 'IN USE') || 'IN USE';
-      if (status !== 'IN USE') return null;
       const timestampValue = entry.latestTimestamp || entry.entryDate || '';
       const ts = _parseTs_(timestampValue);
       return {
@@ -222,7 +251,7 @@ function getVehicleInUseData() {
         vehicleNumber: vehicleNumber,
         project: entry.project || '',
         team: entry.team || '',
-        status: status,
+        status: entry.assignmentStatus || entry.status || '',
         entryDate: timestampValue || '',
         entryTimestamp: ts,
         rowNumber: entry.rowNumber || (idx + 2),
@@ -251,12 +280,14 @@ function getVehicleInUseData() {
     }, 0) : 0;
 
     const updatedAt = newestTs > 0 ? new Date(newestTs).toISOString() : (summaryData.updatedAt || new Date().toISOString());
+    const generatedIso = new Date().toISOString();
     const payload = {
       ok: true,
       source: 'Vehicle_InUse',
       assignments: assignments,
       updatedAt: updatedAt,
-      generatedAt: new Date().toISOString()
+      generatedAt: generatedIso,
+      checkedAt: generatedIso
     };
 
     if (cache) {
@@ -425,8 +456,8 @@ function getVehicleInUseSummary() {
   }
   const assignmentIdx = idx(['Status', 'Assignment Status']);
   const tsIdx = idx(['Date and time of entry', 'Timestamp', 'Latest Timestamp']);
-  const projectIdx = idx(['Project']);
-  const teamIdx = idx(['Team']);
+  const projectIdx = idx(['Project', 'Project Name', 'ProjectName']);
+  const teamIdx = idx(['Team', 'Team Name', 'TeamName']);
   const remarksIdx = idx(['Last Users remarks', 'Remarks']);
   const ownerIdx = idx(['Owner']);
   const categoryIdx = idx(['Category']);
@@ -494,8 +525,8 @@ function getVehicleReleasedSummary() {
   const vehicleIdx = idx(['Vehicle Number', 'Car Number', 'Vehicle No', 'Car No', 'Car #', 'Car', 'Vehicle']);
   const releaseTsIdx = idx(['Date and time of entry', 'Timestamp', 'Latest Timestamp']);
   const statusIdx = idx(['Status', 'Release Status']);
-  const projectIdx = idx(['Project']);
-  const teamIdx = idx(['Team']);
+  const projectIdx = idx(['Project', 'Project Name', 'ProjectName']);
+  const teamIdx = idx(['Team', 'Team Name', 'TeamName']);
   const remarksIdx = idx(['Last Users remarks', 'Remarks']);
   const ownerIdx = idx(['Owner']);
   const categoryIdx = idx(['Category']);

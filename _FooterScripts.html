@@ -82,21 +82,37 @@
       : (Array.isArray(window.vehicleInUseRecords) ? window.vehicleInUseRecords : []);
 
     if (records && records.length) {
+      let projectMatch = '';
+      let teamMatch = '';
+      let nameOnlyMatch = '';
+
       for (var i = 0; i < records.length; i++) {
-        var rec = records[i];
+        const rec = records[i];
         if (!rec) continue;
-        var recKey = rec.key || vehicleNameKey(rec.beneficiary || rec.responsibleBeneficiary || '');
+        const recKey = rec.key || vehicleNameKey(rec.beneficiary || rec.responsibleBeneficiary || '');
         if (!beneficiaryKeysMatch(recKey, normalizedName)) continue;
-        if (normalizedTeamKey) {
-          var recTeamKey = teamNameKey(rec.team);
-          if (recTeamKey && recTeamKey !== normalizedTeamKey) continue;
+
+        const recProjectKey = projectNameKey(rec.project);
+        const recTeamKey = teamNameKey(rec.team);
+        const vehicleValue = String(rec.vehicleNumber || '');
+
+        if (normalizedProjectKey && recProjectKey === normalizedProjectKey) {
+          projectMatch = vehicleValue;
+          break;
         }
-        if (!normalizedTeamKey && normalizedProjectKey) {
-          var recProjectKey = projectNameKey(rec.project);
-          if (recProjectKey && recProjectKey !== normalizedProjectKey) continue;
+
+        if (!projectMatch && normalizedTeamKey && recTeamKey && recTeamKey === normalizedTeamKey && !teamMatch) {
+          teamMatch = vehicleValue;
         }
-        return String(rec.vehicleNumber || '');
+
+        if (!projectMatch && !teamMatch && !nameOnlyMatch) {
+          nameOnlyMatch = vehicleValue;
+        }
       }
+
+      if (projectMatch) return projectMatch;
+      if (teamMatch) return teamMatch;
+      if (nameOnlyMatch) return nameOnlyMatch;
     }
 
     const exactMap = vehicleInUseState.exact;
@@ -230,6 +246,229 @@
     runAttempt();
   }
 
+  const vehicleMatchPopupState = {
+    shown: false,
+    setup: false,
+    lastSelectionKey: ''
+  };
+
+  function setupVehicleMatchPopup(){
+    if (vehicleMatchPopupState.setup) return;
+    const modal = document.getElementById('vehicleMatchModal');
+    if (!modal) return;
+    vehicleMatchPopupState.setup = true;
+    const closeBtn = modal.querySelector('.vehicle-match-close');
+    const close = function(){
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+    };
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    modal.addEventListener('click', function(event){
+      if (event.target === modal) close();
+    });
+    document.addEventListener('keydown', function(event){
+      if (event.key === 'Escape' && modal.style.display === 'grid') {
+        close();
+      }
+    });
+    window.closeVehicleMatchPopup = close;
+  }
+
+  function collectVisibleVehicleMatches(){
+    const rows = document.querySelectorAll('.tbody .row-data');
+    if (!rows || !rows.length) return [];
+    const seen = new Set();
+    const matches = [];
+    rows.forEach(function(row){
+      if (!row) return;
+      const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+      const carInput = row.querySelector('input.car-number-input');
+      if (!benInput || !carInput) return;
+      const beneficiary = String(benInput.value || '').trim();
+      const vehicle = String(carInput.value || '').trim();
+      if (!beneficiary || !vehicle) return;
+      const dataset = carInput.dataset || {};
+      const prefillSource = dataset.prefillSource || carInput.getAttribute && carInput.getAttribute('data-prefill-source');
+      if (prefillSource !== 'Vehicle_InUse') return;
+      const team = String(row.dataset.team || row.getAttribute('data-team') || '').trim();
+      const project = String(row.dataset.project || row.getAttribute('data-project') || '').trim();
+      const key = [beneficiary.toLowerCase(), team.toLowerCase(), project.toLowerCase(), vehicle.toLowerCase()].join('|');
+      if (seen.has(key)) return;
+      seen.add(key);
+      matches.push({ beneficiary, team, project, vehicle });
+    });
+    return matches;
+  }
+
+  function populateVehicleMatchPopup(matches, summaryOverride){
+    const modal = document.getElementById('vehicleMatchModal');
+    if (!modal) return;
+    const tbody = modal.querySelector('.vehicle-match-body tbody');
+    const summary = modal.querySelector('.vehicle-match-summary');
+    if (tbody) {
+      tbody.innerHTML = '';
+      matches.forEach(function(match){
+        const tr = document.createElement('tr');
+        const cells = [
+          match.beneficiary || '—',
+          match.vehicle || '—',
+          match.team || '—',
+          match.project || '—'
+        ];
+        cells.forEach(function(text){
+          const td = document.createElement('td');
+          td.textContent = text || '—';
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+    if (summary) {
+      if (summaryOverride) {
+        summary.textContent = summaryOverride;
+      } else {
+        const count = matches.length;
+        summary.textContent = count === 1
+          ? 'Found 1 active vehicle assignment matching your current selection.'
+          : `Found ${count} active vehicle assignments matching your current selection.`;
+      }
+    }
+  }
+
+  function openVehicleMatchPopup(matches, summaryOverride){
+    const modal = document.getElementById('vehicleMatchModal');
+    if (!modal) return;
+    populateVehicleMatchPopup(matches, summaryOverride);
+    modal.style.display = 'grid';
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function maybeShowInitialVehicleMatchPopup(){
+    if (vehicleMatchPopupState.shown) return;
+    setupVehicleMatchPopup();
+    const matches = collectVisibleVehicleMatches();
+    if (!matches.length) return;
+    vehicleMatchPopupState.shown = true;
+    openVehicleMatchPopup(matches);
+  }
+  window.maybeShowInitialVehicleMatchPopup = maybeShowInitialVehicleMatchPopup;
+
+  function buildSelectionKey(projectName, teamNames){
+    const projectKey = projectNameKey(projectName || '');
+    const teamKeyList = (Array.isArray(teamNames) ? teamNames : [teamNames])
+      .map(function(name){ return teamNameKey(name); })
+      .filter(Boolean)
+      .sort();
+    return [projectKey || '', teamKeyList.join('|')].join('::');
+  }
+
+  function extractTeamNames(source){
+    if (!source) return [];
+    if (Array.isArray(source)) {
+      return source.map(function(item){
+        if (!item) return '';
+        if (typeof item === 'string') return item.trim();
+        if (typeof item === 'object') {
+          const raw = item.name || item.teamName || item.id || item.teamId || '';
+          return typeof raw === 'string' ? raw.trim() : String(raw || '').trim();
+        }
+        return String(item || '').trim();
+      }).filter(function(val){ return val && String(val).trim(); });
+    }
+    return [source].filter(Boolean);
+  }
+
+  function findAssignmentsForSelection(projectName, teamNames){
+    const records = Array.isArray(vehicleInUseState.records) ? vehicleInUseState.records : [];
+    if (!records.length) return [];
+    const projectKey = projectNameKey(projectName || '');
+    const teamKeys = new Set(
+      extractTeamNames(teamNames).map(function(name){ return teamNameKey(name); }).filter(Boolean)
+    );
+    const hasProject = !!projectKey;
+    const hasTeams = teamKeys.size > 0;
+    if (!hasProject && !hasTeams) return [];
+    const seen = new Set();
+    const matches = [];
+    records.forEach(function(rec){
+      if (!rec) return;
+      const vehicleNumber = String(rec.vehicleNumber || rec.carNumber || '').trim();
+      const beneficiary = String(rec.responsibleBeneficiary || rec.beneficiary || rec.member || '').trim();
+      if (!vehicleNumber || !beneficiary) return;
+      const recProject = projectNameKey(rec.project || '');
+      const recTeam = teamNameKey(rec.team || '');
+      if (hasProject && recProject !== projectKey) return;
+      if (hasTeams && !teamKeys.has(recTeam)) return;
+      const key = beneficiary.toLowerCase() + '|' + vehicleNumber.toUpperCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      matches.push({
+        beneficiary: beneficiary,
+        vehicle: vehicleNumber,
+        team: rec.team || '',
+        project: rec.project || ''
+      });
+    });
+    return matches;
+  }
+
+  function ensureVehicleInUseDataReady(callback, attempt){
+    const attempts = typeof attempt === 'number' ? attempt : 0;
+    const maxAttempts = 8;
+    if (Array.isArray(vehicleInUseState.records) && vehicleInUseState.records.length) {
+      callback();
+      return;
+    }
+    if (attempts >= maxAttempts) {
+      callback();
+      return;
+    }
+    if (!vehicleInUseState.fetching) {
+      try { fetchVehicleInUseAssignments(); } catch(_){ /* ignore */ }
+    }
+    setTimeout(function(){
+      ensureVehicleInUseDataReady(callback, attempts + 1);
+    }, 220 + Math.min(680, attempts * 160));
+  }
+
+  function scheduleVehicleAssignmentPopup(projectName, teamNames, options){
+    const opts = options && typeof options === 'object' ? options : {};
+    const projectLabel = projectName ? String(projectName).trim() : '';
+    const normalizedTeams = extractTeamNames(teamNames);
+    if (!projectLabel && !normalizedTeams.length) return;
+    const selectionKey = buildSelectionKey(projectLabel, normalizedTeams);
+    if (!selectionKey) return;
+    if (!opts.force && selectionKey === vehicleMatchPopupState.lastSelectionKey) return;
+    vehicleMatchPopupState.lastSelectionKey = selectionKey;
+    ensureVehicleInUseDataReady(function(){
+      const matches = findAssignmentsForSelection(projectLabel, normalizedTeams);
+      if (!matches.length) return;
+      setupVehicleMatchPopup();
+      const summaryParts = [];
+      if (projectLabel) summaryParts.push('Project: ' + projectLabel);
+      if (normalizedTeams.length) {
+        summaryParts.push('Team' + (normalizedTeams.length > 1 ? 's' : '') + ': ' + normalizedTeams.join(', '));
+      }
+      const summaryText = summaryParts.length
+        ? `Found ${matches.length} active vehicle assignment${matches.length === 1 ? '' : 's'} for ${summaryParts.join(' • ')}.`
+        : `Found ${matches.length} active vehicle assignment${matches.length === 1 ? '' : 's'}.`;
+      openVehicleMatchPopup(matches, summaryText);
+    });
+  }
+
+  document.addEventListener('pp:applied', function(event){
+    try {
+      const detail = event && event.detail ? event.detail : {};
+      const projectName = detail.projectId || detail.projectName || '';
+      const teamNames = extractTeamNames(
+        (Array.isArray(detail.selectedTeams) && detail.selectedTeams.length) ? detail.selectedTeams : detail.teamIds
+      );
+      scheduleVehicleAssignmentPopup(projectName, teamNames);
+    } catch (selErr) {
+      console.warn('[VehicleInUse] Unable to process selection for vehicle assignments', selErr);
+    }
+  });
+
   const vehicleInUseDomMonitor = {
     observer: null,
     pending: false,
@@ -296,6 +535,7 @@
     if (!vehicleInUseDomMonitor.bootstrapped) {
       vehicleInUseDomMonitor.bootstrapped = true;
       scheduleVehicleRowSync();
+      setupVehicleMatchPopup();
     }
   }
 
@@ -332,9 +572,7 @@
       const beneficiary = String(rec.beneficiary || rec.responsibleBeneficiary || rec.member || rec.name || rec['R.Beneficiary'] || '').trim();
       const vehicleNumber = String(rec.vehicleNumber || rec.carNumber || rec['Vehicle Number'] || '').trim();
       if (!beneficiary || !vehicleNumber) return;
-      let status = String(rec.status || rec.Status || rec['In Use/Release'] || '').trim().toUpperCase();
-      if (!status) status = 'IN USE';
-      if (status && status !== 'IN USE') return;
+      let status = String(rec.status || rec.Status || rec['In Use/Release'] || '').trim();
       const key = vehicleNameKey(beneficiary);
       const ts = parseVehicleDate(rec.entryTimestamp || rec.entryDate || rec.timestamp);
       const existing = byKey.get(key);
@@ -360,18 +598,55 @@
     clearObject(vehicleInUseState.projectPairs);
 
     byKey.forEach(function(info){
-      vehicleInUseState.exact[info.beneficiary] = info.vehicleNumber;
-      vehicleInUseState.lower[info.key] = info.vehicleNumber;
-      if (info.key) {
-        const teamKey = teamNameKey(info.team);
-        const projectKey = projectNameKey(info.project);
-        if (teamKey) {
-          vehicleInUseState.teamPairs[teamKey + '|' + info.key] = info.vehicleNumber;
-        }
-        if (projectKey) {
-          vehicleInUseState.projectPairs[projectKey + '|' + info.key] = info.vehicleNumber;
+      const synonyms = new Set();
+      const beneficiary = String(info.beneficiary || '').trim();
+      const baseKey = info.key;
+      if (beneficiary) {
+        synonyms.add(beneficiary);
+        const hyphenParts = beneficiary.split(/[-–—]/);
+        if (hyphenParts.length > 1) {
+          const prefix = hyphenParts[0].trim();
+          if (prefix) {
+            synonyms.add(prefix);
+            synonyms.add(prefix + '-');
+          }
         }
       }
+
+      synonyms.forEach(function(nameVariant){
+        if (!nameVariant) return;
+        if (!Object.prototype.hasOwnProperty.call(vehicleInUseState.exact, nameVariant)) {
+          vehicleInUseState.exact[nameVariant] = info.vehicleNumber;
+        }
+        const variantKey = vehicleNameKey(nameVariant);
+        if (variantKey) {
+          vehicleInUseState.lower[variantKey] = info.vehicleNumber;
+        }
+      });
+
+      if (baseKey) {
+        vehicleInUseState.lower[baseKey] = info.vehicleNumber;
+      }
+
+      const teamKey = teamNameKey(info.team);
+      const projectKey = projectNameKey(info.project);
+      const normalizedKeys = new Set();
+      synonyms.forEach(function(nameVariant){
+        const variantKey = vehicleNameKey(nameVariant);
+        if (variantKey) normalizedKeys.add(variantKey);
+      });
+      if (baseKey) normalizedKeys.add(baseKey);
+
+      normalizedKeys.forEach(function(variantKey){
+        if (!variantKey) return;
+        if (teamKey) {
+          vehicleInUseState.teamPairs[teamKey + '|' + variantKey] = info.vehicleNumber;
+        }
+        if (projectKey) {
+          vehicleInUseState.projectPairs[projectKey + '|' + variantKey] = info.vehicleNumber;
+        }
+      });
+
       vehicleInUseState.records.push(info);
     });
 
@@ -421,6 +696,14 @@
       }
       vehicleInUseState.lastError = null;
       storeVehicleInUseRecords(rows, meta);
+      try { applyVehicleInUseAssignmentsToRows(true); } catch (_forceErr) { /* best-effort */ }
+      try {
+        setTimeout(function(){
+          try { maybeShowInitialVehicleMatchPopup(); } catch (_popupErr) { /* ignore */ }
+        }, 120);
+      } catch (_scheduleErr) {
+        /* ignore */
+      }
       scheduleVehicleInUseReapply({ reason: 'fetch-success', attempts: 6, delay: 320 });
     } catch (err) {
       vehicleInUseState.lastError = err;
@@ -868,6 +1151,46 @@
 
 })();
 </script>
+
+<!-- Vehicle match popup -->
+<style>
+  #vehicleMatchModal{position:fixed;inset:0;display:none;place-items:center;background:rgba(15,23,42,.45);backdrop-filter:blur(3px);z-index:10000;}
+  .vehicle-match-card{width:min(520px,92vw);max-height:80vh;background:#ffffff;border-radius:18px;box-shadow:0 20px 40px rgba(15,23,42,.25);overflow:hidden;display:flex;flex-direction:column;}
+  .vehicle-match-header{padding:16px 18px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:space-between;}
+  .vehicle-match-header h3{margin:0;font-size:16px;font-weight:800;}
+  .vehicle-match-close{appearance:none;border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:10px;padding:6px 12px;font-weight:600;cursor:pointer;}
+  .vehicle-match-close:hover{background:rgba(255,255,255,.3);}
+  .vehicle-match-body{padding:18px;overflow:auto;}
+  .vehicle-match-summary{margin:0 0 12px 0;font-size:14px;color:#1f2937;}
+  .vehicle-match-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .vehicle-match-table th,.vehicle-match-table td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left;white-space:nowrap;}
+  .vehicle-match-table th{background:#f8fafc;font-weight:700;color:#0f172a;position:sticky;top:0;z-index:1;}
+  .vehicle-match-note{margin:14px 0 0 0;font-size:12px;color:#64748b;}
+</style>
+
+<div id="vehicleMatchModal" aria-hidden="true" role="dialog" aria-labelledby="vehicleMatchTitle">
+  <div class="vehicle-match-card">
+    <div class="vehicle-match-header">
+      <h3 id="vehicleMatchTitle">Assigned Vehicles Found</h3>
+      <button type="button" class="vehicle-match-close">Close</button>
+    </div>
+    <div class="vehicle-match-body">
+      <p class="vehicle-match-summary">Loading assignments…</p>
+      <table class="vehicle-match-table">
+        <thead>
+          <tr>
+            <th>Beneficiary</th>
+            <th>Vehicle</th>
+            <th>Team</th>
+            <th>Project</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p class="vehicle-match-note">Vehicle numbers are sourced from the Vehicle_InUse sheet and reflect the latest assignments for the selected team and project.</p>
+    </div>
+  </div>
+</div>
 
 <!-- Debug: Car RELEASE list popup (for quick verification) -->
 <style>
