@@ -70,79 +70,200 @@
   }
 
   function applyVehicleInUseAssignmentsToRows(force){
+    console.log('[VehicleInUse DEBUG] 🔍 Starting applyVehicleInUseAssignmentsToRows, force=' + force);
+    console.log('[VehicleInUse DEBUG] 📊 Available data:', {
+      exactKeys: Object.keys(vehicleInUseState.exact),
+      lowerKeys: Object.keys(vehicleInUseState.lower),
+      teamPairsKeys: Object.keys(vehicleInUseState.teamPairs),
+      projectPairsKeys: Object.keys(vehicleInUseState.projectPairs),
+      recordsCount: vehicleInUseState.records.length
+    });
+
     const rows = document.querySelectorAll('.tbody .row-data');
-    rows.forEach(function(row){
+    console.log('[VehicleInUse DEBUG] 📝 Found ' + rows.length + ' rows to process');
+
+    let processedCount = 0;
+    let assignedCount = 0;
+    let skippedCount = 0;
+
+    rows.forEach(function(row, index){
       const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
       const carInput = row.querySelector('input.car-number-input');
-      if (!benInput || !carInput) return;
+      if (!benInput || !carInput) {
+        console.log('[VehicleInUse DEBUG] ⚠️ Row ' + index + ': Missing input elements');
+        return;
+      }
+
       const beneficiary = String(benInput.value || '').trim();
-      if (!beneficiary) return;
+      if (!beneficiary) {
+        console.log('[VehicleInUse DEBUG] ⚠️ Row ' + index + ': Empty beneficiary');
+        return;
+      }
+
+      processedCount++;
       const key = vehicleNameKey(beneficiary);
       const rowTeam = String(row.dataset.team || row.getAttribute('data-team') || '').trim();
       const rowProject = String(row.dataset.project || row.getAttribute('data-project') || '').trim();
       const teamKey = teamNameKey(rowTeam);
       const projectKey = projectNameKey(rowProject);
-      let assignedVehicle =
-        vehicleInUseState.exact[beneficiary] ||
-        vehicleInUseState.lower[key] ||
-        (teamKey ? vehicleInUseState.teamPairs[teamKey + '|' + key] : '') ||
-        (projectKey ? vehicleInUseState.projectPairs[projectKey + '|' + key] : '');
-      if (!assignedVehicle && Array.isArray(window.vehicleInUseRecords)) {
+
+      console.log('[VehicleInUse DEBUG] 🔎 Row ' + index + ' - Beneficiary: "' + beneficiary + '"');
+      console.log('[VehicleInUse DEBUG]   └─ Normalized key: "' + key + '"');
+      console.log('[VehicleInUse DEBUG]   └─ Team: "' + rowTeam + '" (key: "' + teamKey + '")');
+      console.log('[VehicleInUse DEBUG]   └─ Project: "' + rowProject + '" (key: "' + projectKey + '")');
+
+      let assignedVehicle = '';
+      let matchSource = '';
+
+      // Try exact match
+      if (vehicleInUseState.exact[beneficiary]) {
+        assignedVehicle = vehicleInUseState.exact[beneficiary];
+        matchSource = 'exact match';
+        console.log('[VehicleInUse DEBUG]   ✅ Found via exact match: ' + assignedVehicle);
+      }
+      // Try lowercase match
+      else if (vehicleInUseState.lower[key]) {
+        assignedVehicle = vehicleInUseState.lower[key];
+        matchSource = 'lowercase match';
+        console.log('[VehicleInUse DEBUG]   ✅ Found via lowercase match: ' + assignedVehicle);
+      }
+      // Try team+beneficiary match
+      else if (teamKey && vehicleInUseState.teamPairs[teamKey + '|' + key]) {
+        assignedVehicle = vehicleInUseState.teamPairs[teamKey + '|' + key];
+        matchSource = 'team+beneficiary match';
+        console.log('[VehicleInUse DEBUG]   ✅ Found via team+beneficiary match: ' + assignedVehicle);
+      }
+      // Try project+beneficiary match
+      else if (projectKey && vehicleInUseState.projectPairs[projectKey + '|' + key]) {
+        assignedVehicle = vehicleInUseState.projectPairs[projectKey + '|' + key];
+        matchSource = 'project+beneficiary match';
+        console.log('[VehicleInUse DEBUG]   ✅ Found via project+beneficiary match: ' + assignedVehicle);
+      }
+      // Try array search
+      else if (Array.isArray(window.vehicleInUseRecords)) {
+        console.log('[VehicleInUse DEBUG]   🔍 Searching in records array (' + window.vehicleInUseRecords.length + ' records)...');
         const match = window.vehicleInUseRecords.find(function(rec){
           if (!rec) return false;
-          if (rec.key !== key) return false;
+
+          const keyMatch = rec.key === key;
+          console.log('[VehicleInUse DEBUG]     - Record: ' + rec.beneficiary + ' (key: ' + rec.key + ') = ' + rec.vehicleNumber);
+          console.log('[VehicleInUse DEBUG]       Key match: ' + keyMatch + ' (' + rec.key + ' === ' + key + ')');
+
+          if (!keyMatch) return false;
+
           if (teamKey) {
             const recTeamKey = teamNameKey(rec.team);
-            if (recTeamKey && recTeamKey !== teamKey) return false;
+            console.log('[VehicleInUse DEBUG]       Team check: recTeamKey="' + recTeamKey + '" vs rowTeamKey="' + teamKey + '"');
+            if (recTeamKey && recTeamKey !== teamKey) {
+              console.log('[VehicleInUse DEBUG]       ❌ Team mismatch, skipping');
+              return false;
+            }
           }
+
           if (!teamKey && projectKey) {
             const recProjectKey = projectNameKey(rec.project);
-            if (recProjectKey && recProjectKey !== projectKey) return false;
+            console.log('[VehicleInUse DEBUG]       Project check: recProjectKey="' + recProjectKey + '" vs rowProjectKey="' + projectKey + '"');
+            if (recProjectKey && recProjectKey !== projectKey) {
+              console.log('[VehicleInUse DEBUG]       ❌ Project mismatch, skipping');
+              return false;
+            }
           }
+
+          console.log('[VehicleInUse DEBUG]       ✅ MATCH FOUND!');
           return true;
         });
-        assignedVehicle = match ? match.vehicleNumber : '';
+
+        if (match) {
+          assignedVehicle = match.vehicleNumber;
+          matchSource = 'array search';
+          console.log('[VehicleInUse DEBUG]   ✅ Found via array search: ' + assignedVehicle);
+        } else {
+          console.log('[VehicleInUse DEBUG]   ❌ No match found in array search');
+        }
       }
+
       const currentValue = String(carInput.value || '').trim();
       const dataset = carInput.dataset;
       const isPrefilled = dataset && dataset.prefillSource === 'Vehicle_InUse';
 
+      console.log('[VehicleInUse DEBUG]   Current value: "' + currentValue + '", isPrefilled: ' + isPrefilled);
+
       if (!assignedVehicle) {
+        console.log('[VehicleInUse DEBUG]   ❌ No vehicle assigned for this beneficiary');
         if ((isPrefilled || force) && currentValue) {
+          console.log('[VehicleInUse DEBUG]   🧹 Clearing previously prefilled value');
           carInput.value = '';
           try { if (dataset) { delete dataset.prefillSource; } } catch(_){ /* ignore */ }
           try { carInput.removeAttribute('data-prefill-source'); } catch(_){ /* ignore */ }
           try { carInput.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){ /* ignore */ }
+        } else {
+          console.log('[VehicleInUse DEBUG]   ⏭️ Skipping (not prefilled and no vehicle found)');
         }
+        skippedCount++;
         return;
       }
 
-      if (force || !currentValue || isPrefilled) {
+      const shouldUpdate = force || !currentValue || isPrefilled;
+      console.log('[VehicleInUse DEBUG]   Should update? ' + shouldUpdate + ' (force=' + force + ', !currentValue=' + !currentValue + ', isPrefilled=' + isPrefilled + ')');
+
+      if (shouldUpdate) {
         if (currentValue !== assignedVehicle) {
+          console.log('[VehicleInUse DEBUG]   ✅ ASSIGNING vehicle "' + assignedVehicle + '" via ' + matchSource);
           carInput.value = assignedVehicle;
           try { if (dataset) { dataset.prefillSource = 'Vehicle_InUse'; } } catch(_){ /* ignore */ }
           try { carInput.setAttribute('data-prefill-source', 'Vehicle_InUse'); } catch(_){ /* ignore */ }
           try { carInput.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){ /* ignore */ }
-        } else if (!isPrefilled) {
-          try { if (dataset) { dataset.prefillSource = 'Vehicle_InUse'; } } catch(_){ /* ignore */ }
-          try { carInput.setAttribute('data-prefill-source', 'Vehicle_InUse'); } catch(_){ /* ignore */ }
+          assignedCount++;
+        } else {
+          console.log('[VehicleInUse DEBUG]   ℹ️ Vehicle already set correctly, marking as prefilled');
+          if (!isPrefilled) {
+            try { if (dataset) { dataset.prefillSource = 'Vehicle_InUse'; } } catch(_){ /* ignore */ }
+            try { carInput.setAttribute('data-prefill-source', 'Vehicle_InUse'); } catch(_){ /* ignore */ }
+          }
+          assignedCount++;
         }
+      } else {
+        console.log('[VehicleInUse DEBUG]   ⏭️ Skipping (field has manual value: "' + currentValue + '")');
+        skippedCount++;
       }
     });
+
+    console.log('[VehicleInUse DEBUG] ✅ SUMMARY:');
+    console.log('[VehicleInUse DEBUG]   Total rows: ' + rows.length);
+    console.log('[VehicleInUse DEBUG]   Processed: ' + processedCount);
+    console.log('[VehicleInUse DEBUG]   Assigned: ' + assignedCount);
+    console.log('[VehicleInUse DEBUG]   Skipped: ' + skippedCount);
   }
   window.applyVehicleInUseAssignmentsToRows = applyVehicleInUseAssignmentsToRows;
 
   function storeVehicleInUseRecords(records, meta){
+    console.log('[VehicleInUse DEBUG] 📥 storeVehicleInUseRecords called with ' + (Array.isArray(records) ? records.length : 0) + ' records');
+
     const byKey = new Map();
-    (Array.isArray(records) ? records : []).forEach(function(rec){
-      if (!rec) return;
+    (Array.isArray(records) ? records : []).forEach(function(rec, idx){
+      if (!rec) {
+        console.log('[VehicleInUse DEBUG]   Record ' + idx + ': null/undefined, skipping');
+        return;
+      }
+
       const beneficiary = String(rec.beneficiary || rec.responsibleBeneficiary || rec.member || rec.name || rec['R.Beneficiary'] || '').trim();
       const vehicleNumber = String(rec.vehicleNumber || rec.carNumber || rec['Vehicle Number'] || '').trim();
-      if (!beneficiary || !vehicleNumber) return;
+
+      if (!beneficiary || !vehicleNumber) {
+        console.log('[VehicleInUse DEBUG]   Record ' + idx + ': Missing beneficiary or vehicle, skipping', rec);
+        return;
+      }
+
       let status = String(rec.status || rec.Status || rec['In Use/Release'] || '').trim().toUpperCase();
       if (!status) status = 'IN USE';
-      if (status && status !== 'IN USE') return;
+
+      if (status && status !== 'IN USE') {
+        console.log('[VehicleInUse DEBUG]   Record ' + idx + ': Status is "' + status + '" (not IN USE), skipping');
+        return;
+      }
+
       const key = vehicleNameKey(beneficiary);
+      console.log('[VehicleInUse DEBUG]   Record ' + idx + ': "' + beneficiary + '" (key: "' + key + '") → ' + vehicleNumber + ' [Team: ' + (rec.team || rec.teamName || 'N/A') + ', Project: ' + (rec.project || rec.projectName || 'N/A') + ']');
       const ts = parseVehicleDate(rec.entryTimestamp || rec.entryDate || rec.timestamp);
       const existing = byKey.get(key);
       if (!existing || ts >= existing.entryTimestamp) {
@@ -160,6 +281,8 @@
       }
     });
 
+    console.log('[VehicleInUse DEBUG] 🔄 Clearing existing state and building new maps...');
+
     clearObject(vehicleInUseState.exact);
     clearObject(vehicleInUseState.lower);
     vehicleInUseState.records = [];
@@ -174,9 +297,11 @@
         const projectKey = projectNameKey(info.project);
         if (teamKey) {
           vehicleInUseState.teamPairs[teamKey + '|' + info.key] = info.vehicleNumber;
+          console.log('[VehicleInUse DEBUG]   📌 Team pair: "' + teamKey + '|' + info.key + '" → ' + info.vehicleNumber);
         }
         if (projectKey) {
           vehicleInUseState.projectPairs[projectKey + '|' + info.key] = info.vehicleNumber;
+          console.log('[VehicleInUse DEBUG]   📌 Project pair: "' + projectKey + '|' + info.key + '" → ' + info.vehicleNumber);
         }
       }
       vehicleInUseState.records.push(info);
@@ -186,6 +311,14 @@
     if (meta && meta.updatedAt) {
       vehicleInUseState.updatedAt = meta.updatedAt;
     }
+
+    console.log('[VehicleInUse DEBUG] ✅ State built successfully:');
+    console.log('[VehicleInUse DEBUG]   Exact matches: ' + Object.keys(vehicleInUseState.exact).length);
+    console.log('[VehicleInUse DEBUG]   Lower matches: ' + Object.keys(vehicleInUseState.lower).length);
+    console.log('[VehicleInUse DEBUG]   Team pairs: ' + Object.keys(vehicleInUseState.teamPairs).length);
+    console.log('[VehicleInUse DEBUG]   Project pairs: ' + Object.keys(vehicleInUseState.projectPairs).length);
+    console.log('[VehicleInUse DEBUG]   Records: ' + vehicleInUseState.records.length);
+    console.log('[VehicleInUse DEBUG] 🚀 Calling applyVehicleInUseAssignmentsToRows(false)...');
 
     applyVehicleInUseAssignmentsToRows(false);
   }
@@ -214,18 +347,24 @@
   }
 
   function fetchVehicleInUseAssignments(){
-    if (vehicleInUseState.fetching) return;
-    if (!(window.google && google.script && google.script.run)) {
-      console.warn('[VehicleInUse] google.script.run not available, skipping fetch');
+    if (vehicleInUseState.fetching) {
+      console.log('[VehicleInUse DEBUG] ⏸️ Already fetching, skipping duplicate request');
       return;
     }
+    if (!(window.google && google.script && google.script.run)) {
+      console.warn('[VehicleInUse DEBUG] ⚠️ google.script.run not available, skipping fetch');
+      return;
+    }
+    console.log('[VehicleInUse DEBUG] 🌐 Starting fetch from Vehicle_InUse sheet...');
     vehicleInUseState.fetching = true;
     google.script.run
       .withSuccessHandler(function(res){
+        console.log('[VehicleInUse DEBUG] ✅ Fetch successful, response:', res);
         vehicleInUseState.fetching = false;
         processVehicleInUseResponse(res);
       })
       .withFailureHandler(function(err){
+        console.error('[VehicleInUse DEBUG] ❌ Fetch failed:', err);
         vehicleInUseState.fetching = false;
         vehicleInUseState.lastError = err;
         console.error('[VehicleInUse] Failed to load assignments', err);
@@ -234,6 +373,68 @@
   }
 
   window.refreshVehicleInUseData = fetchVehicleInUseAssignments;
+
+  // Debug helper function - call this from console to see current state
+  window.debugVehicleInUseState = function() {
+    console.log('═══════════════════════════════════════════════════');
+    console.log('🔍 VEHICLE IN USE STATE DEBUG');
+    console.log('═══════════════════════════════════════════════════');
+    console.log('📊 Statistics:');
+    console.log('  • Fetching:', vehicleInUseState.fetching);
+    console.log('  • Updated at:', vehicleInUseState.updatedAt || 'Never');
+    console.log('  • Last error:', vehicleInUseState.lastError || 'None');
+    console.log('  • Records count:', vehicleInUseState.records.length);
+    console.log('  • Exact matches:', Object.keys(vehicleInUseState.exact).length);
+    console.log('  • Lower matches:', Object.keys(vehicleInUseState.lower).length);
+    console.log('  • Team pairs:', Object.keys(vehicleInUseState.teamPairs).length);
+    console.log('  • Project pairs:', Object.keys(vehicleInUseState.projectPairs).length);
+    console.log('');
+    console.log('🗂️ Exact Matches (beneficiary → vehicle):');
+    Object.keys(vehicleInUseState.exact).forEach(function(key) {
+      console.log('  • "' + key + '" → ' + vehicleInUseState.exact[key]);
+    });
+    console.log('');
+    console.log('🗂️ Lower Matches (normalized → vehicle):');
+    Object.keys(vehicleInUseState.lower).forEach(function(key) {
+      console.log('  • "' + key + '" → ' + vehicleInUseState.lower[key]);
+    });
+    console.log('');
+    console.log('🗂️ Team Pairs (team|beneficiary → vehicle):');
+    Object.keys(vehicleInUseState.teamPairs).forEach(function(key) {
+      console.log('  • "' + key + '" → ' + vehicleInUseState.teamPairs[key]);
+    });
+    console.log('');
+    console.log('🗂️ Project Pairs (project|beneficiary → vehicle):');
+    Object.keys(vehicleInUseState.projectPairs).forEach(function(key) {
+      console.log('  • "' + key + '" → ' + vehicleInUseState.projectPairs[key]);
+    });
+    console.log('');
+    console.log('📋 All Records:');
+    vehicleInUseState.records.forEach(function(rec, idx) {
+      console.log('  ' + (idx + 1) + '. ' + rec.beneficiary + ' → ' + rec.vehicleNumber);
+      console.log('     Team: "' + rec.team + '", Project: "' + rec.project + '"');
+      console.log('     Status: ' + rec.status + ', Date: ' + rec.entryDate);
+    });
+    console.log('');
+    console.log('📊 Current Rows in Table:');
+    const rows = document.querySelectorAll('.tbody .row-data');
+    rows.forEach(function(row, idx) {
+      const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+      const carInput = row.querySelector('input.car-number-input');
+      if (benInput && carInput) {
+        console.log('  Row ' + (idx + 1) + ':');
+        console.log('    Beneficiary: "' + benInput.value + '"');
+        console.log('    Vehicle: "' + carInput.value + '"');
+        console.log('    Team: "' + (row.dataset.team || '') + '"');
+        console.log('    Project: "' + (row.dataset.project || '') + '"');
+        console.log('    Prefilled: ' + (carInput.dataset.prefillSource === 'Vehicle_InUse'));
+      }
+    });
+    console.log('═══════════════════════════════════════════════════');
+    console.log('💡 To manually refresh data: window.refreshVehicleInUseData()');
+    console.log('💡 To manually apply assignments: window.applyVehicleInUseAssignmentsToRows(true)');
+    console.log('═══════════════════════════════════════════════════');
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', fetchVehicleInUseAssignments);
@@ -475,25 +676,61 @@
     if (designationInput) designationInput.value = it.designation || '';
     // Show vehicle number for beneficiaries present in Vehicle_InUse assignments
     if (carNumberInput) {
+      console.log('[VehicleInUse DEBUG] 🔧 fillRowFromItem - Processing vehicle assignment for beneficiary');
       const beneficiaryName = String(it.beneficiary || '').trim();
       const rowTeam = String(it.teamName || it.team || row.dataset.team || row.getAttribute('data-team') || '').trim();
       const rowProject = String(it.projectName || it.project || row.dataset.project || row.getAttribute('data-project') || '').trim();
       const teamKey = teamNameKey(rowTeam);
       const projectKey = projectNameKey(rowProject);
+
+      console.log('[VehicleInUse DEBUG]   Beneficiary: "' + beneficiaryName + '"');
+      console.log('[VehicleInUse DEBUG]   Team: "' + rowTeam + '" (key: "' + teamKey + '")');
+      console.log('[VehicleInUse DEBUG]   Project: "' + rowProject + '" (key: "' + projectKey + '")');
+
       let assignedVehicle = '';
+      let matchSource = '';
+
       if (beneficiaryName) {
         const beneficiaryKey = vehicleNameKey(beneficiaryName);
+        console.log('[VehicleInUse DEBUG]   Beneficiary key: "' + beneficiaryKey + '"');
+        console.log('[VehicleInUse DEBUG]   Available maps:', {
+          hasVehicleInUseMap: !!window.vehicleInUseMap,
+          hasVehicleInUseLowerMap: !!window.vehicleInUseLowerMap,
+          hasVehicleInUseTeamMap: !!window.vehicleInUseTeamMap,
+          hasVehicleInUseProjectMap: !!window.vehicleInUseProjectMap,
+          hasVehicleInUseRecords: Array.isArray(window.vehicleInUseRecords),
+          recordsCount: Array.isArray(window.vehicleInUseRecords) ? window.vehicleInUseRecords.length : 0
+        });
+
         if (window.vehicleInUseMap && window.vehicleInUseMap[beneficiaryName]) {
           assignedVehicle = window.vehicleInUseMap[beneficiaryName];
+          matchSource = 'exact map';
+          console.log('[VehicleInUse DEBUG]   ✅ Found via exact map: ' + assignedVehicle);
         } else if (window.vehicleInUseLowerMap) {
           assignedVehicle = window.vehicleInUseLowerMap[beneficiaryKey] || '';
+          if (assignedVehicle) {
+            matchSource = 'lower map';
+            console.log('[VehicleInUse DEBUG]   ✅ Found via lower map: ' + assignedVehicle);
+          }
+
           if (!assignedVehicle && window.vehicleInUseTeamMap && teamKey) {
             assignedVehicle = window.vehicleInUseTeamMap[teamKey + '|' + beneficiaryKey] || '';
+            if (assignedVehicle) {
+              matchSource = 'team map';
+              console.log('[VehicleInUse DEBUG]   ✅ Found via team map: ' + assignedVehicle);
+            }
           }
+
           if (!assignedVehicle && window.vehicleInUseProjectMap && projectKey) {
             assignedVehicle = window.vehicleInUseProjectMap[projectKey + '|' + beneficiaryKey] || '';
+            if (assignedVehicle) {
+              matchSource = 'project map';
+              console.log('[VehicleInUse DEBUG]   ✅ Found via project map: ' + assignedVehicle);
+            }
           }
+
           if (!assignedVehicle && Array.isArray(window.vehicleInUseRecords)) {
+            console.log('[VehicleInUse DEBUG]   🔍 Searching in records array...');
             const match = window.vehicleInUseRecords.find(function(rec){
               if (!rec) return false;
               if (rec.key !== beneficiaryKey) return false;
@@ -501,18 +738,31 @@
               if (!teamKey && projectKey && projectNameKey(rec.project) && projectNameKey(rec.project) !== projectKey) return false;
               return true;
             });
-            assignedVehicle = match ? match.vehicleNumber : '';
+            if (match) {
+              assignedVehicle = match.vehicleNumber;
+              matchSource = 'records array';
+              console.log('[VehicleInUse DEBUG]   ✅ Found via records array: ' + assignedVehicle);
+            }
           }
+        }
+
+        if (!assignedVehicle) {
+          console.log('[VehicleInUse DEBUG]   ❌ No vehicle found for this beneficiary');
+          console.log('[VehicleInUse DEBUG]   💡 This is likely because data hasn\'t loaded yet from Vehicle_InUse sheet');
         }
       }
 
       if (assignedVehicle) {
+        console.log('[VehicleInUse DEBUG]   ✅ ASSIGNING vehicle "' + assignedVehicle + '" via ' + matchSource);
         carNumberInput.value = assignedVehicle;
         try { carNumberInput.dataset.prefillSource = 'Vehicle_InUse'; } catch(_){ /* ignore */ }
         try { carNumberInput.setAttribute('data-prefill-source', 'Vehicle_InUse'); } catch(_){ /* ignore */ }
-      } else if (carNumberInput.dataset && carNumberInput.dataset.prefillSource === 'Vehicle_InUse') {
-        try { delete carNumberInput.dataset.prefillSource; } catch(_){ /* ignore */ }
-        try { carNumberInput.removeAttribute('data-prefill-source'); } catch(_){ /* ignore */ }
+      } else {
+        console.log('[VehicleInUse DEBUG]   ⏭️ Leaving vehicle field empty (will be filled when data loads)');
+        if (carNumberInput.dataset && carNumberInput.dataset.prefillSource === 'Vehicle_InUse') {
+          try { delete carNumberInput.dataset.prefillSource; } catch(_){ /* ignore */ }
+          try { carNumberInput.removeAttribute('data-prefill-source'); } catch(_){ /* ignore */ }
+        }
       }
     }
 
