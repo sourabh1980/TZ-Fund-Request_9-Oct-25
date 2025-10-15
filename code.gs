@@ -940,6 +940,57 @@ function _vehicleSheetReleaseVehicles(){
   }
 }
 
+function getVehicleReleaseSnapshots(limitPerVehicle) {
+  try {
+    const maxPerVehicle = Math.max(1, Math.min(10, Number(limitPerVehicle) || 3));
+    const rows = _readCarTP_objects_();
+    if (!rows.length) {
+      return { ok: true, limit: maxPerVehicle, vehicles: {} };
+    }
+    const grouped = new Map();
+    rows.forEach(function(row) {
+      if (!row) return;
+      const status = _normStatus_(row.Status || row.status || row['In Use/Release'] || '');
+      if (status !== 'RELEASE') return;
+      const rawVehicleNumber = String(row['Vehicle Number'] || row.vehicleNumber || '').trim();
+      if (!rawVehicleNumber) return;
+      const canonicalKey = _vehicleKey_(rawVehicleNumber);
+      if (!canonicalKey) return;
+      const aliasKey = rawVehicleNumber.toUpperCase();
+      const targetKeys = canonicalKey === aliasKey ? [canonicalKey] : [canonicalKey, aliasKey];
+      const entry = {
+        vehicleNumber: rawVehicleNumber,
+        rating: row.Ratings || row.rating || row.Stars || row.stars || '',
+        remark: row['Last Users remarks'] || row.Remarks || row.remarks || '',
+        timestamp: (typeof row._ts === 'number' && !isNaN(row._ts)) ? row._ts : _parseTs_(row['Date and time of entry'] || row.Timestamp || row.Date || ''),
+        date: row['Date and time of entry'] || row.Timestamp || row.Date || ''
+      };
+      targetKeys.forEach(function(key){
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(entry);
+      });
+    });
+    const vehicles = {};
+    grouped.forEach(function(list, key) {
+      list.sort(function(a, b) {
+        return (b.timestamp || 0) - (a.timestamp || 0);
+      });
+      vehicles[key] = list.slice(0, maxPerVehicle).map(function(entry) {
+        return {
+          rating: entry.rating,
+          remark: entry.remark,
+          timestamp: entry.timestamp || null,
+          date: entry.date || ''
+        };
+      });
+    });
+    return { ok: true, limit: maxPerVehicle, vehicles: vehicles };
+  } catch (err) {
+    console.error('getVehicleReleaseSnapshots failed:', err);
+    return { ok: false, error: String(err) };
+  }
+}
+
 /**
  * Helper function to filter vehicle history data by car number
  */
@@ -7041,6 +7092,13 @@ function _normStatus_(s){
   if (/IN\s*USE/.test(raw)) return 'IN USE';
   if (/RELEAS/.test(raw)) return 'RELEASE';
   return compact;
+}
+
+function _vehicleKey_(value){
+  const raw = String(value || '').trim().toUpperCase();
+  if (!raw) return '';
+  const stripped = raw.replace(/[^A-Z0-9]/g, '');
+  return stripped || raw;
 }
 
 function _splitBeneficiaryNames_(value) {

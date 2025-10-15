@@ -32,6 +32,10 @@
   if (!Array.isArray(window.vehicleInUseRecords)) {
     window.vehicleInUseRecords = vehicleInUseState.records;
   }
+  if (!window.vehicleReleaseSnapshots || typeof window.vehicleReleaseSnapshots !== 'object') {
+    window.vehicleReleaseSnapshots = {};
+  }
+  window.vehicleReleaseSnapshotsReady = window.vehicleReleaseSnapshotsReady === true;
 
   function normalizeName(value) {
     return String(value == null ? '' : value)
@@ -278,6 +282,15 @@
     const rows = document.querySelectorAll('.tbody .row-data');
     if (!rows || !rows.length) return [];
     const seen = new Set();
+    const recordByKey = new Map();
+    const recordList = Array.isArray(vehicleInUseState.records) ? vehicleInUseState.records : [];
+    recordList.forEach(function(rec){
+      if (!rec) return;
+      const vehicleNumber = normalizeVehicleNumber(rec.vehicleNumber || rec.carNumber || '');
+      const beneficiary = String(rec.responsibleBeneficiary || rec.beneficiary || rec.member || '').trim().toLowerCase();
+      if (!vehicleNumber || !beneficiary) return;
+      recordByKey.set(beneficiary + '|' + vehicleNumber, rec);
+    });
     const matches = [];
     rows.forEach(function(row){
       if (!row) return;
@@ -295,9 +308,171 @@
       const key = [beneficiary.toLowerCase(), team.toLowerCase(), project.toLowerCase(), vehicle.toLowerCase()].join('|');
       if (seen.has(key)) return;
       seen.add(key);
-      matches.push({ beneficiary, team, project, vehicle });
+      const recKey = beneficiary.toLowerCase() + '|' + vehicle.toUpperCase();
+      const record = recordByKey.get(recKey) || null;
+      let daysInUse = null;
+      let entryDateDisplay = '';
+      if (record) {
+        const ts = typeof record.entryTimestamp === 'number' ? record.entryTimestamp : parseVehicleDate(record.entryDate);
+        if (ts && !isNaN(ts) && ts > 0) {
+          const diff = Date.now() - ts;
+          if (diff >= 0) {
+            daysInUse = Math.floor(diff / 86400000) + 1;
+          }
+        }
+        entryDateDisplay = formatEntryDateDisplay(
+          typeof record.entryTimestamp === 'number' ? record.entryTimestamp : parseVehicleDate(record.entryDate),
+          record.entryDate || record.entryTimestamp
+        );
+      }
+      const meta = getVehicleMetaSummary(vehicle);
+      matches.push({
+        beneficiary,
+        team,
+        project,
+        vehicle,
+        daysInUse: daysInUse,
+        entryDateDisplay: entryDateDisplay,
+        ratings: meta && Array.isArray(meta.ratings) ? meta.ratings : [],
+        remarks: meta && Array.isArray(meta.remarks) ? meta.remarks : []
+      });
     });
     return matches;
+  }
+
+  function createVehicleTableTextCell(value){
+    const td = document.createElement('td');
+    const text = value == null ? '' : String(value).trim();
+    if (text) {
+      td.textContent = text;
+    } else {
+      td.classList.add('vehicle-empty-cell');
+      td.textContent = '—';
+    }
+    return td;
+  }
+
+  function createVehicleDaysCell(match){
+    const td = document.createElement('td');
+    td.className = 'vehicle-days-cell';
+    const days = typeof match.daysInUse === 'number' && match.daysInUse >= 0 ? match.daysInUse : null;
+    const sinceLabel = match.entryDateDisplay ? String(match.entryDateDisplay).trim() : '';
+    if (days == null && !sinceLabel) {
+      td.classList.add('vehicle-empty-cell');
+      td.textContent = '—';
+      return td;
+    }
+    if (days != null) {
+      const main = document.createElement('div');
+      main.className = 'vehicle-days-primary';
+      if (days === 0) {
+        main.textContent = 'Today';
+      } else if (days === 1) {
+        main.textContent = '1 day';
+      } else {
+        main.textContent = `${days} days`;
+      }
+      td.appendChild(main);
+    }
+    if (sinceLabel) {
+      const sub = document.createElement('div');
+      sub.className = 'vehicle-days-secondary';
+      sub.textContent = `since ${sinceLabel}`;
+      td.appendChild(sub);
+    }
+    if (!td.childNodes.length) {
+      td.classList.add('vehicle-empty-cell');
+      td.textContent = '—';
+    }
+    return td;
+  }
+
+  function createStarElement(state){
+    const span = document.createElement('span');
+    span.className = 'vehicle-star';
+    span.textContent = '★';
+    if (state === 'filled') {
+      span.classList.add('filled');
+    } else if (state === 'half') {
+      span.classList.add('half');
+    }
+    return span;
+  }
+
+  function createRatingRow(value){
+    const row = document.createElement('div');
+    row.className = 'vehicle-rating-row';
+    if (value == null) {
+      return row;
+    }
+    const numeric = parseFloat(value);
+    if (!isNaN(numeric) && isFinite(numeric)) {
+      const clamped = Math.max(0, Math.min(5, numeric));
+      const full = Math.floor(clamped);
+      const fraction = clamped - full;
+      const starsWrap = document.createElement('span');
+      starsWrap.className = 'vehicle-rating-stars';
+      for (let i = 0; i < 5; i++) {
+        if (i < full) {
+          starsWrap.appendChild(createStarElement('filled'));
+        } else if (i === full && fraction >= 0.75) {
+          starsWrap.appendChild(createStarElement('filled'));
+        } else if (i === full && fraction >= 0.25) {
+          starsWrap.appendChild(createStarElement('half'));
+        } else {
+          starsWrap.appendChild(createStarElement('empty'));
+        }
+      }
+      row.appendChild(starsWrap);
+      const label = document.createElement('span');
+      label.className = 'vehicle-rating-value';
+      label.textContent = fraction ? clamped.toFixed(1) : clamped.toFixed(0);
+      row.appendChild(label);
+      row.title = `${clamped.toFixed(1)} / 5`;
+    } else {
+      row.textContent = String(value).trim();
+    }
+    return row;
+  }
+
+  function createVehicleRatingsCell(ratings){
+    const td = document.createElement('td');
+    td.className = 'vehicle-ratings-cell';
+    const list = Array.isArray(ratings) ? ratings.filter(Boolean) : [];
+    if (!list.length) {
+      td.classList.add('vehicle-empty-cell');
+      td.textContent = '—';
+      return td;
+    }
+    list.forEach(function(value){
+      const row = createRatingRow(value);
+      if (row.textContent || row.childNodes.length) {
+        td.appendChild(row);
+      }
+    });
+    if (!td.childNodes.length) {
+      td.classList.add('vehicle-empty-cell');
+      td.textContent = '—';
+    }
+    return td;
+  }
+
+  function createVehicleRemarksCell(remarks){
+    const td = document.createElement('td');
+    td.className = 'vehicle-remarks-cell';
+    const list = Array.isArray(remarks) ? remarks.filter(Boolean) : [];
+    if (!list.length) {
+      td.classList.add('vehicle-empty-cell');
+      td.textContent = '—';
+      return td;
+    }
+    list.forEach(function(text){
+      const line = document.createElement('div');
+      line.className = 'vehicle-remark-line';
+      line.textContent = text;
+      td.appendChild(line);
+    });
+    return td;
   }
 
   function populateVehicleMatchPopup(matches, summaryOverride){
@@ -309,17 +484,13 @@
       tbody.innerHTML = '';
       matches.forEach(function(match){
         const tr = document.createElement('tr');
-        const cells = [
-          match.beneficiary || '—',
-          match.vehicle || '—',
-          match.team || '—',
-          match.project || '—'
-        ];
-        cells.forEach(function(text){
-          const td = document.createElement('td');
-          td.textContent = text || '—';
-          tr.appendChild(td);
-        });
+        tr.appendChild(createVehicleTableTextCell(match.beneficiary || '—'));
+        tr.appendChild(createVehicleTableTextCell(match.vehicle || '—'));
+        tr.appendChild(createVehicleTableTextCell(match.team || '—'));
+        tr.appendChild(createVehicleTableTextCell(match.project || '—'));
+        tr.appendChild(createVehicleDaysCell(match));
+        tr.appendChild(createVehicleRatingsCell(match.ratings));
+        tr.appendChild(createVehicleRemarksCell(match.remarks));
         tbody.appendChild(tr);
       });
     }
@@ -349,7 +520,11 @@
     const matches = collectVisibleVehicleMatches();
     if (!matches.length) return;
     vehicleMatchPopupState.shown = true;
-    openVehicleMatchPopup(matches);
+    ensureVehicleMetaCache(function(){
+      const hydrated = collectVisibleVehicleMatches();
+      const list = hydrated && hydrated.length ? hydrated : matches;
+      openVehicleMatchPopup(list);
+    });
   }
   window.maybeShowInitialVehicleMatchPopup = maybeShowInitialVehicleMatchPopup;
 
@@ -378,6 +553,134 @@
     return [source].filter(Boolean);
   }
 
+  function coerceMetaList(value){
+    if (value == null) return [];
+    if (Array.isArray(value)) {
+      return value.map(function(entry){
+        if (entry == null) return '';
+        if (typeof entry === 'string') return entry.trim();
+        if (typeof entry === 'number') return Number.isFinite(entry) ? String(entry) : '';
+        if (typeof entry === 'object' && Object.prototype.hasOwnProperty.call(entry, 'text')) {
+          return String(entry.text || '').trim();
+        }
+        return String(entry || '').trim();
+      }).filter(Boolean);
+    }
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? [String(value)] : [];
+    }
+    if (typeof value === 'object') {
+      if (Object.prototype.hasOwnProperty.call(value, 'text')) {
+        return coerceMetaList(value.text);
+      }
+      return [];
+    }
+    const text = String(value || '').trim();
+    if (!text) return [];
+    if (text.indexOf('\n') >= 0 || text.indexOf(';') >= 0 || text.indexOf('|') >= 0 || text.indexOf('•') >= 0) {
+      return text.split(/[\r\n•;|]+/).map(function(part){ return part.trim(); }).filter(Boolean);
+    }
+    return [text];
+  }
+
+  function uniqueList(list){
+    const seen = new Set();
+    return list.filter(function(item){
+      const key = item.toLowerCase ? item.toLowerCase() : item;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  function normalizeVehicleNumber(value){
+    const raw = String(value || '').trim();
+    if (!raw) return '';
+    const upper = raw.toUpperCase();
+    const stripped = upper.replace(/[^A-Z0-9]/g, '');
+    return stripped || upper;
+  }
+
+  function getVehicleMetaSummary(vehicleNumber){
+    const rawValue = String(vehicleNumber || '').trim();
+    const target = normalizeVehicleNumber(rawValue);
+    if (!target) return null;
+    const releaseMap = window.vehicleReleaseSnapshots || {};
+    let releaseEntries = Array.isArray(releaseMap[target]) ? releaseMap[target] : [];
+    if (!releaseEntries.length && rawValue) {
+      const rawKey = rawValue.toUpperCase();
+      if (rawKey && Array.isArray(releaseMap[rawKey])) {
+        releaseEntries = releaseMap[rawKey];
+      } else {
+        const stripped = rawKey.replace(/[^A-Z0-9]/g, '');
+        if (stripped && Array.isArray(releaseMap[stripped])) {
+          releaseEntries = releaseMap[stripped];
+        }
+      }
+    }
+    const releaseRatings = releaseEntries
+      .map(function(entry){ return entry && entry.rating != null ? String(entry.rating).trim() : ''; })
+      .filter(Boolean)
+      .slice(0, 3);
+    const releaseRemarks = releaseEntries
+      .map(function(entry){ return entry && entry.remark != null ? String(entry.remark).trim() : ''; })
+      .filter(Boolean)
+      .slice(0, 3);
+    if (releaseRatings.length || releaseRemarks.length) {
+      return {
+        ratings: releaseRatings,
+        remarks: releaseRemarks
+      };
+    }
+    const candidateLists = [];
+    if (Array.isArray(window.availableCarsData)) candidateLists.push(window.availableCarsData);
+    if (Array.isArray(window.availableCarsRaw)) candidateLists.push(window.availableCarsRaw);
+    let meta = null;
+    for (let i = 0; i < candidateLists.length && !meta; i++) {
+      const list = candidateLists[i];
+      if (!Array.isArray(list)) continue;
+      meta = list.find(function(car){
+        if (!car) return false;
+        const number = normalizeVehicleNumber(car.carNumber || car.vehicleNumber || car.car);
+        return number === target;
+      }) || null;
+    }
+    if (!meta) return null;
+    const fallbackRatings = uniqueList(
+      [].concat(
+        coerceMetaList(meta.lastRatings || meta.latestRatings || meta.ratings || meta.rating || meta.stars)
+      )
+    ).filter(Boolean).slice(0, 3);
+    const fallbackRemarks = uniqueList(
+      [].concat(
+        coerceMetaList(meta.lastUsersRemark || meta.lastUsersRemarks),
+        coerceMetaList(meta.remarks),
+        coerceMetaList(meta.lastRemarks),
+        coerceMetaList(meta.remark),
+        coerceMetaList(meta.notes)
+      )
+    ).filter(Boolean).slice(0, 3);
+    return {
+      ratings: fallbackRatings,
+      remarks: fallbackRemarks
+    };
+  }
+
+  function formatEntryDateDisplay(timestamp, fallback){
+    if (typeof timestamp === 'number' && timestamp > 0) {
+      try {
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+      } catch(_){ /* ignore */ }
+    }
+    if (fallback) {
+      return String(fallback).trim();
+    }
+    return '';
+  }
+
   function findAssignmentsForSelection(projectName, teamNames){
     const records = Array.isArray(vehicleInUseState.records) ? vehicleInUseState.records : [];
     if (!records.length) return [];
@@ -402,14 +705,125 @@
       const key = beneficiary.toLowerCase() + '|' + vehicleNumber.toUpperCase();
       if (seen.has(key)) return;
       seen.add(key);
+      const ts = typeof rec.entryTimestamp === 'number' ? rec.entryTimestamp : parseVehicleDate(rec.entryDate);
+      let daysInUse = null;
+      if (ts && !isNaN(ts) && ts > 0) {
+        const diff = Date.now() - ts;
+        if (diff >= 0) {
+          const wholeDays = Math.floor(diff / 86400000);
+          daysInUse = wholeDays + 1; // inclusive of current day
+        }
+      }
+      const meta = getVehicleMetaSummary(vehicleNumber);
       matches.push({
         beneficiary: beneficiary,
         vehicle: vehicleNumber,
         team: rec.team || '',
-        project: rec.project || ''
+        project: rec.project || '',
+        daysInUse: daysInUse,
+        entryDateDisplay: formatEntryDateDisplay(ts, rec.entryDate || rec.entryTimestamp),
+        ratings: meta && Array.isArray(meta.ratings) ? meta.ratings : [],
+        remarks: meta && Array.isArray(meta.remarks) ? meta.remarks : []
       });
     });
     return matches;
+  }
+
+  const vehicleMetaCacheState = {
+    pending: false,
+    queue: []
+  };
+
+  function flushVehicleMetaQueue(){
+    const queued = vehicleMetaCacheState.queue.splice(0);
+    queued.forEach(function(fn){
+      try { if (typeof fn === 'function') fn(); } catch(_){ /* ignore */ }
+    });
+  }
+
+  function ensureVehicleMetaCache(callback){
+    const hasVehicleMeta = Array.isArray(window.availableCarsData) && window.availableCarsData.length > 0;
+    const releaseReady = window.vehicleReleaseSnapshotsReady === true;
+    if (hasVehicleMeta && releaseReady) {
+      if (typeof callback === 'function') {
+        try { callback(); } catch(_){ /* ignore */ }
+      }
+      return;
+    }
+    if (typeof callback === 'function') {
+      vehicleMetaCacheState.queue.push(callback);
+    }
+    if (vehicleMetaCacheState.pending) return;
+    if (!(window.google && google.script && google.script.run)) {
+      window.vehicleReleaseSnapshots = window.vehicleReleaseSnapshots || {};
+      window.vehicleReleaseSnapshotsReady = true;
+      flushVehicleMetaQueue();
+      return;
+    }
+    vehicleMetaCacheState.pending = true;
+    window.vehicleReleaseSnapshots = window.vehicleReleaseSnapshots || {};
+    window.vehicleReleaseSnapshotsReady = false;
+
+    function finishMetaFetch(){
+      vehicleMetaCacheState.pending = false;
+      window.vehicleReleaseSnapshotsReady = true;
+      flushVehicleMetaQueue();
+    }
+
+    function fetchReleaseSnapshots(){
+      google.script.run
+        .withSuccessHandler(function(res){
+          try {
+            if (res && res.ok !== false && res.vehicles && typeof res.vehicles === 'object') {
+              window.vehicleReleaseSnapshots = res.vehicles;
+            } else {
+              window.vehicleReleaseSnapshots = {};
+            }
+          } catch (releaseErr) {
+            console.warn('[VehicleInUse] Failed to hydrate release history cache', releaseErr);
+            window.vehicleReleaseSnapshots = {};
+          }
+          finishMetaFetch();
+        })
+        .withFailureHandler(function(err){
+          console.warn('[VehicleInUse] Unable to fetch release history metadata', err);
+          window.vehicleReleaseSnapshots = {};
+          finishMetaFetch();
+        })
+        .getVehicleReleaseSnapshots(3);
+    }
+
+    google.script.run
+      .withSuccessHandler(function(res){
+        try {
+          if (res && Array.isArray(res.vehicles)) {
+            window.availableCarsRaw = res.vehicles.slice();
+            window.availableCarsData = res.vehicles.slice();
+          } else if (Array.isArray(res)) {
+            window.availableCarsRaw = res.slice();
+            window.availableCarsData = res.slice();
+          } else if (!Array.isArray(window.availableCarsData)) {
+            window.availableCarsRaw = [];
+            window.availableCarsData = [];
+          }
+        } catch (metaErr) {
+          console.warn('[VehicleInUse] Failed to hydrate vehicle meta cache', metaErr);
+          if (!Array.isArray(window.availableCarsData)) {
+            window.availableCarsRaw = [];
+            window.availableCarsData = [];
+          }
+        }
+        fetchReleaseSnapshots();
+      })
+      .withFailureHandler(function(err){
+        console.warn('[VehicleInUse] Unable to fetch vehicle metadata', err);
+        if (!Array.isArray(window.availableCarsData)) {
+          window.availableCarsRaw = [];
+          window.availableCarsData = [];
+        }
+        fetchReleaseSnapshots();
+      })
+      .getVehiclePickerData();
   }
 
   function ensureVehicleInUseDataReady(callback, attempt){
@@ -441,18 +855,20 @@
     if (!opts.force && selectionKey === vehicleMatchPopupState.lastSelectionKey) return;
     vehicleMatchPopupState.lastSelectionKey = selectionKey;
     ensureVehicleInUseDataReady(function(){
-      const matches = findAssignmentsForSelection(projectLabel, normalizedTeams);
-      if (!matches.length) return;
-      setupVehicleMatchPopup();
-      const summaryParts = [];
-      if (projectLabel) summaryParts.push('Project: ' + projectLabel);
-      if (normalizedTeams.length) {
-        summaryParts.push('Team' + (normalizedTeams.length > 1 ? 's' : '') + ': ' + normalizedTeams.join(', '));
-      }
-      const summaryText = summaryParts.length
-        ? `Found ${matches.length} active vehicle assignment${matches.length === 1 ? '' : 's'} for ${summaryParts.join(' • ')}.`
-        : `Found ${matches.length} active vehicle assignment${matches.length === 1 ? '' : 's'}.`;
-      openVehicleMatchPopup(matches, summaryText);
+      ensureVehicleMetaCache(function(){
+        const matches = findAssignmentsForSelection(projectLabel, normalizedTeams);
+        if (!matches.length) return;
+        setupVehicleMatchPopup();
+        const summaryParts = [];
+        if (projectLabel) summaryParts.push('Project: ' + projectLabel);
+        if (normalizedTeams.length) {
+          summaryParts.push('Team' + (normalizedTeams.length > 1 ? 's' : '') + ': ' + normalizedTeams.join(', '));
+        }
+        const summaryText = summaryParts.length
+          ? `Found ${matches.length} active vehicle assignment${matches.length === 1 ? '' : 's'} for ${summaryParts.join(' • ')}.`
+          : `Found ${matches.length} active vehicle assignment${matches.length === 1 ? '' : 's'}.`;
+        openVehicleMatchPopup(matches, summaryText);
+      });
     });
   }
 
@@ -1155,7 +1571,7 @@
 <!-- Vehicle match popup -->
 <style>
   #vehicleMatchModal{position:fixed;inset:0;display:none;place-items:center;background:rgba(15,23,42,.45);backdrop-filter:blur(3px);z-index:10000;}
-  .vehicle-match-card{width:min(520px,92vw);max-height:80vh;background:#ffffff;border-radius:18px;box-shadow:0 20px 40px rgba(15,23,42,.25);overflow:hidden;display:flex;flex-direction:column;}
+  .vehicle-match-card{width:min(860px,96vw);max-height:82vh;background:#ffffff;border-radius:18px;box-shadow:0 24px 48px rgba(15,23,42,.28);overflow:hidden;display:flex;flex-direction:column;}
   .vehicle-match-header{padding:16px 18px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:space-between;}
   .vehicle-match-header h3{margin:0;font-size:16px;font-weight:800;}
   .vehicle-match-close{appearance:none;border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:10px;padding:6px 12px;font-weight:600;cursor:pointer;}
@@ -1163,8 +1579,23 @@
   .vehicle-match-body{padding:18px;overflow:auto;}
   .vehicle-match-summary{margin:0 0 12px 0;font-size:14px;color:#1f2937;}
   .vehicle-match-table{width:100%;border-collapse:collapse;font-size:13px;}
-  .vehicle-match-table th,.vehicle-match-table td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left;white-space:nowrap;}
+  .vehicle-match-table th,.vehicle-match-table td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left;white-space:normal;vertical-align:top;}
   .vehicle-match-table th{background:#f8fafc;font-weight:700;color:#0f172a;position:sticky;top:0;z-index:1;}
+  .vehicle-days-cell{min-width:120px;}
+  .vehicle-days-cell .vehicle-days-primary{font-weight:600;color:#0f172a;margin-bottom:2px;}
+  .vehicle-days-cell .vehicle-days-secondary{font-size:12px;color:#64748b;}
+  .vehicle-ratings-cell{min-width:140px;}
+  .vehicle-rating-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;}
+  .vehicle-rating-row:last-child{margin-bottom:0;}
+  .vehicle-rating-stars{display:inline-flex;gap:2px;}
+  .vehicle-star{font-size:13px;color:#d1d5db;position:relative;display:inline-block;line-height:1;}
+  .vehicle-star.filled{color:#fbbf24;}
+  .vehicle-star.half::before{content:'★';position:absolute;left:0;width:50%;overflow:hidden;color:#fbbf24;}
+  .vehicle-rating-value{font-size:12px;color:#475569;font-weight:600;}
+  .vehicle-remarks-cell{min-width:180px;}
+  .vehicle-remark-line{font-size:12px;color:#334155;margin-bottom:4px;white-space:pre-wrap;}
+  .vehicle-remark-line:last-child{margin-bottom:0;}
+  .vehicle-empty-cell{color:#94a3b8;font-style:italic;}
   .vehicle-match-note{margin:14px 0 0 0;font-size:12px;color:#64748b;}
 </style>
 
@@ -1183,11 +1614,14 @@
             <th>Vehicle</th>
             <th>Team</th>
             <th>Project</th>
+            <th>Vehicle Used Since</th>
+            <th>Last 3 Ratings</th>
+            <th>Last 3 User Remarks</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
-      <p class="vehicle-match-note">Vehicle numbers are sourced from the Vehicle_InUse sheet and reflect the latest assignments for the selected team and project.</p>
+      <p class="vehicle-match-note">Vehicle details combine Vehicle_InUse assignments with CarT_P history (ratings and user remarks) for the selected project and team.</p>
     </div>
   </div>
 </div>
