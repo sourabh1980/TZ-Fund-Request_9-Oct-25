@@ -943,33 +943,55 @@ function _vehicleSheetReleaseVehicles(){
 function getVehicleReleaseSnapshots(limitPerVehicle) {
   try {
     const maxPerVehicle = Math.max(1, Math.min(10, Number(limitPerVehicle) || 3));
-    const rows = _readCarTP_objects_();
-    if (!rows.length) {
+    const summary = getVehicleSummaryRows('Vehicle_History');
+    if (!summary.rows || !summary.rows.length) {
       return { ok: true, limit: maxPerVehicle, vehicles: {} };
     }
+
+    const IX = summary.headerIndex;
+    const idx = function(labels, required) {
+      if (!IX) return required ? -1 : -1;
+      try { return IX.get(labels); } catch (_err) { return required ? -1 : -1; }
+    };
+
+    const vehicleIdx = idx(['Vehicle Number', 'Car Number', 'Vehicle No', 'Car No', 'Car #', 'Car'], true);
+    if (vehicleIdx < 0) {
+      console.warn('getVehicleReleaseSnapshots: Vehicle number column missing in Vehicle_History summary');
+      return { ok: true, limit: maxPerVehicle, vehicles: {} };
+    }
+    const statusIdx = idx(['Status', 'In Use/Release', 'In Use / release', 'In Use'], false);
+    const ratingIdx = idx(['Ratings', 'Stars', 'Rating'], false);
+    const remarkIdx = idx(['Last Users remarks', 'Remarks', 'Feedback'], false);
+    const dateIdx = idx(['Date and time of entry', 'Date and time', 'Timestamp', 'Date'], false);
+
     const grouped = new Map();
-    rows.forEach(function(row) {
+    summary.rows.forEach(function(row) {
       if (!row) return;
-      const status = _normStatus_(row.Status || row.status || row['In Use/Release'] || '');
-      if (status !== 'RELEASE') return;
-      const rawVehicleNumber = String(row['Vehicle Number'] || row.vehicleNumber || '').trim();
+      const rawVehicleNumber = String(row[vehicleIdx] || '').trim();
       if (!rawVehicleNumber) return;
+      const status = statusIdx >= 0 ? _normStatus_(row[statusIdx]) : '';
+      if (status && status !== 'RELEASE') return;
       const canonicalKey = _vehicleKey_(rawVehicleNumber);
       if (!canonicalKey) return;
       const aliasKey = rawVehicleNumber.toUpperCase();
       const targetKeys = canonicalKey === aliasKey ? [canonicalKey] : [canonicalKey, aliasKey];
+
+      const dateValue = dateIdx >= 0 ? row[dateIdx] : '';
+      const timestamp = dateIdx >= 0 ? _parseTs_(dateValue) : 0;
       const entry = {
         vehicleNumber: rawVehicleNumber,
-        rating: row.Ratings || row.rating || row.Stars || row.stars || '',
-        remark: row['Last Users remarks'] || row.Remarks || row.remarks || '',
-        timestamp: (typeof row._ts === 'number' && !isNaN(row._ts)) ? row._ts : _parseTs_(row['Date and time of entry'] || row.Timestamp || row.Date || ''),
-        date: row['Date and time of entry'] || row.Timestamp || row.Date || ''
+        rating: ratingIdx >= 0 ? row[ratingIdx] || '' : '',
+        remark: remarkIdx >= 0 ? row[remarkIdx] || '' : '',
+        timestamp: timestamp || 0,
+        date: dateValue || ''
       };
+
       targetKeys.forEach(function(key){
         if (!grouped.has(key)) grouped.set(key, []);
         grouped.get(key).push(entry);
       });
     });
+
     const vehicles = {};
     grouped.forEach(function(list, key) {
       list.sort(function(a, b) {

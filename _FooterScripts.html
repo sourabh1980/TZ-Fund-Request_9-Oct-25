@@ -253,7 +253,13 @@
   const vehicleMatchPopupState = {
     shown: false,
     setup: false,
-    lastSelectionKey: ''
+    lastSelectionKey: '',
+    matches: [],
+    lastSummary: ''
+  };
+
+  const vehicleRatingsPopupState = {
+    setup: false
   };
 
   function setupVehicleMatchPopup(){
@@ -262,6 +268,7 @@
     if (!modal) return;
     vehicleMatchPopupState.setup = true;
     const closeBtn = modal.querySelector('.vehicle-match-close');
+    const ratingsBtn = modal.querySelector('.vehicle-match-ratings');
     const close = function(){
       modal.style.display = 'none';
       modal.setAttribute('aria-hidden', 'true');
@@ -275,7 +282,43 @@
         close();
       }
     });
+    if (ratingsBtn) {
+      ratingsBtn.addEventListener('click', function(){
+        openVehicleRatingsPopup(vehicleMatchPopupState.matches || []);
+      });
+    }
     window.closeVehicleMatchPopup = close;
+  }
+
+  function setupVehicleRatingsPopup(){
+    if (vehicleRatingsPopupState.setup) return;
+    const modal = document.getElementById('vehicleRatingsModal');
+    if (!modal) return;
+    vehicleRatingsPopupState.setup = true;
+    const closeBtn = modal.querySelector('.vehicle-ratings-close');
+    const close = function(){
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+    };
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    modal.addEventListener('click', function(event){
+      if (event.target === modal) close();
+    });
+    document.addEventListener('keydown', function(event){
+      if (event.key === 'Escape' && modal.style.display === 'grid') {
+        close();
+      }
+    });
+    window.closeVehicleRatingsPopup = close;
+  }
+
+  function openVehicleRatingsPopup(matches){
+    setupVehicleRatingsPopup();
+    const modal = document.getElementById('vehicleRatingsModal');
+    if (!modal) return;
+    populateVehicleRatingsPopup(Array.isArray(matches) ? matches : []);
+    modal.style.display = 'grid';
+    modal.setAttribute('aria-hidden', 'false');
   }
 
   function collectVisibleVehicleMatches(){
@@ -478,11 +521,14 @@
   function populateVehicleMatchPopup(matches, summaryOverride){
     const modal = document.getElementById('vehicleMatchModal');
     if (!modal) return;
+    const sourceMatches = Array.isArray(matches) ? matches : [];
+    const hydratedMatches = enrichMatchesWithMeta(sourceMatches);
+    const finalMatches = Array.isArray(hydratedMatches) ? hydratedMatches : sourceMatches;
     const tbody = modal.querySelector('.vehicle-match-body tbody');
     const summary = modal.querySelector('.vehicle-match-summary');
     if (tbody) {
       tbody.innerHTML = '';
-      matches.forEach(function(match){
+      finalMatches.forEach(function(match){
         const tr = document.createElement('tr');
         tr.appendChild(createVehicleTableTextCell(match.beneficiary || '—'));
         tr.appendChild(createVehicleTableTextCell(match.vehicle || '—'));
@@ -498,12 +544,14 @@
       if (summaryOverride) {
         summary.textContent = summaryOverride;
       } else {
-        const count = matches.length;
+        const count = finalMatches.length;
         summary.textContent = count === 1
           ? 'Found 1 active vehicle assignment matching your current selection.'
           : `Found ${count} active vehicle assignments matching your current selection.`;
       }
+      vehicleMatchPopupState.lastSummary = summary.textContent;
     }
+    vehicleMatchPopupState.matches = finalMatches.slice();
   }
 
   function openVehicleMatchPopup(matches, summaryOverride){
@@ -512,6 +560,62 @@
     populateVehicleMatchPopup(matches, summaryOverride);
     modal.style.display = 'grid';
     modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function populateVehicleRatingsPopup(matches){
+    const modal = document.getElementById('vehicleRatingsModal');
+    if (!modal) return;
+    const summary = modal.querySelector('.vehicle-ratings-summary');
+    const tbody = modal.querySelector('.vehicle-ratings-table tbody');
+    if (summary) {
+      summary.textContent = vehicleMatchPopupState.lastSummary || 'Selected team assignments';
+    }
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    const seen = new Set();
+    const rows = [];
+    matches.forEach(function(match){
+      if (!match) return;
+      const team = String(match.team || '').trim();
+      const vehicle = String(match.vehicle || match.vehicleNumber || '').trim();
+      const vehicleKey = normalizeVehicleNumber(vehicle);
+      const key = [team.toLowerCase(), vehicleKey].join('|');
+      if (seen.has(key)) return;
+      seen.add(key);
+      rows.push({
+        team: team,
+        vehicle: vehicle,
+        ratings: Array.isArray(match.ratings) ? match.ratings.slice(0, 3) : [],
+        remarks: Array.isArray(match.remarks) ? match.remarks.slice(0, 3) : []
+      });
+    });
+
+    rows.sort(function(a, b){
+      const teamCompare = String(a.team || '').localeCompare(String(b.team || ''), undefined, { sensitivity: 'base' });
+      if (teamCompare !== 0) return teamCompare;
+      return String(a.vehicle || '').localeCompare(String(b.vehicle || ''), undefined, { sensitivity: 'base' });
+    });
+
+    if (!rows.length) {
+      const emptyRow = document.createElement('tr');
+      const emptyCell = document.createElement('td');
+      emptyCell.colSpan = 4;
+      emptyCell.className = 'vehicle-ratings-empty';
+      emptyCell.textContent = 'No ratings or remarks available for the selected teams.';
+      emptyRow.appendChild(emptyCell);
+      tbody.appendChild(emptyRow);
+      return;
+    }
+
+    rows.forEach(function(record){
+      const tr = document.createElement('tr');
+      tr.appendChild(createVehicleTableTextCell(record.team || '—'));
+      tr.appendChild(createVehicleTableTextCell(record.vehicle || '—'));
+      tr.appendChild(createVehicleRatingsCell(record.ratings));
+      tr.appendChild(createVehicleRemarksCell(record.remarks));
+      tbody.appendChild(tr);
+    });
   }
 
   function maybeShowInitialVehicleMatchPopup(){
@@ -618,6 +722,21 @@
         }
       }
     }
+    if (!releaseEntries.length && releaseMap) {
+      try {
+        const keys = Object.keys(releaseMap);
+        for (let i = 0; i < keys.length; i++) {
+          const candidateKey = keys[i];
+          if (normalizeVehicleNumber(candidateKey) === target) {
+            releaseEntries = Array.isArray(releaseMap[candidateKey]) ? releaseMap[candidateKey] : [];
+            if (releaseEntries.length) break;
+          }
+        }
+      } catch(_fallbackErr) {
+        // best-effort fallback; ignore errors
+      }
+    }
+
     const releaseRatings = releaseEntries
       .map(function(entry){ return entry && entry.rating != null ? String(entry.rating).trim() : ''; })
       .filter(Boolean)
@@ -664,6 +783,30 @@
       ratings: fallbackRatings,
       remarks: fallbackRemarks
     };
+  }
+
+  function enrichMatchesWithMeta(matches){
+    if (!Array.isArray(matches) || !matches.length) {
+      return Array.isArray(matches) ? matches : [];
+    }
+    return matches.map(function(match){
+      if (!match) return match;
+      const hasRatings = Array.isArray(match.ratings) && match.ratings.length;
+      const hasRemarks = Array.isArray(match.remarks) && match.remarks.length;
+      if (hasRatings && hasRemarks) return match;
+      const vehicleId = match.vehicle || match.vehicleNumber || match.carNumber || '';
+      if (!vehicleId) return match;
+      const meta = getVehicleMetaSummary(vehicleId);
+      if (!meta) return match;
+      const next = Object.assign({}, match);
+      if (!hasRatings && Array.isArray(meta.ratings) && meta.ratings.length) {
+        next.ratings = meta.ratings.slice(0, 3);
+      }
+      if (!hasRemarks && Array.isArray(meta.remarks) && meta.remarks.length) {
+        next.remarks = meta.remarks.slice(0, 3);
+      }
+      return next;
+    });
   }
 
   function formatEntryDateDisplay(timestamp, fallback){
@@ -1572,9 +1715,13 @@
 <style>
   #vehicleMatchModal{position:fixed;inset:0;display:none;place-items:center;background:rgba(15,23,42,.45);backdrop-filter:blur(3px);z-index:10000;}
   .vehicle-match-card{width:min(860px,96vw);max-height:82vh;background:#ffffff;border-radius:18px;box-shadow:0 24px 48px rgba(15,23,42,.28);overflow:hidden;display:flex;flex-direction:column;}
-  .vehicle-match-header{padding:16px 18px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:space-between;}
+  .vehicle-match-header{padding:16px 18px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;}
   .vehicle-match-header h3{margin:0;font-size:16px;font-weight:800;}
-  .vehicle-match-close{appearance:none;border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:10px;padding:6px 12px;font-weight:600;cursor:pointer;}
+  .vehicle-match-actions{display:flex;align-items:center;gap:8px;}
+  .vehicle-match-actions button{appearance:none;border:0;border-radius:10px;padding:6px 12px;font-weight:600;cursor:pointer;}
+  .vehicle-match-ratings{background:#ffffff;color:#1d4ed8;}
+  .vehicle-match-ratings:hover{background:#e2e8f0;}
+  .vehicle-match-close{background:rgba(255,255,255,.18);color:#fff;}
   .vehicle-match-close:hover{background:rgba(255,255,255,.3);}
   .vehicle-match-body{padding:18px;overflow:auto;}
   .vehicle-match-summary{margin:0 0 12px 0;font-size:14px;color:#1f2937;}
@@ -1597,13 +1744,29 @@
   .vehicle-remark-line:last-child{margin-bottom:0;}
   .vehicle-empty-cell{color:#94a3b8;font-style:italic;}
   .vehicle-match-note{margin:14px 0 0 0;font-size:12px;color:#64748b;}
+  #vehicleRatingsModal{position:fixed;inset:0;display:none;place-items:center;background:rgba(15,23,42,.45);backdrop-filter:blur(3px);z-index:10001;}
+  .vehicle-ratings-card{width:min(720px,94vw);max-height:78vh;background:#ffffff;border-radius:16px;box-shadow:0 20px 40px rgba(15,23,42,.25);overflow:hidden;display:flex;flex-direction:column;}
+  .vehicle-ratings-header{padding:14px 16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .vehicle-ratings-header h3{margin:0;font-size:15px;font-weight:800;}
+  .vehicle-ratings-close{appearance:none;border:0;background:rgba(255,255,255,.18);color:#fff;border-radius:10px;padding:6px 12px;font-weight:600;cursor:pointer;}
+  .vehicle-ratings-close:hover{background:rgba(255,255,255,.3);}
+  .vehicle-ratings-body{padding:16px;overflow:auto;}
+  .vehicle-ratings-summary{margin:0 0 10px 0;font-size:13px;color:#1f2937;}
+  .vehicle-ratings-table{width:100%;border-collapse:collapse;font-size:13px;}
+  .vehicle-ratings-table th,.vehicle-ratings-table td{border:1px solid #e5e7eb;padding:8px 10px;text-align:left;vertical-align:top;}
+  .vehicle-ratings-table th{background:#f8fafc;font-weight:700;color:#0f172a;}
+  .vehicle-ratings-empty{text-align:center;color:#94a3b8;font-style:italic;padding:18px 10px;}
+  .vehicle-ratings-note{margin:12px 0 0;font-size:12px;color:#64748b;}
 </style>
 
 <div id="vehicleMatchModal" aria-hidden="true" role="dialog" aria-labelledby="vehicleMatchTitle">
   <div class="vehicle-match-card">
     <div class="vehicle-match-header">
       <h3 id="vehicleMatchTitle">Assigned Vehicles Found</h3>
-      <button type="button" class="vehicle-match-close">Close</button>
+      <div class="vehicle-match-actions">
+        <button type="button" class="vehicle-match-ratings">View Ratings</button>
+        <button type="button" class="vehicle-match-close">Close</button>
+      </div>
     </div>
     <div class="vehicle-match-body">
       <p class="vehicle-match-summary">Loading assignments…</p>
@@ -1622,6 +1785,30 @@
         <tbody></tbody>
       </table>
       <p class="vehicle-match-note">Vehicle details combine Vehicle_InUse assignments with CarT_P history (ratings and user remarks) for the selected project and team.</p>
+    </div>
+  </div>
+</div>
+
+<div id="vehicleRatingsModal" aria-hidden="true" role="dialog" aria-labelledby="vehicleRatingsTitle">
+  <div class="vehicle-ratings-card">
+    <div class="vehicle-ratings-header">
+      <h3 id="vehicleRatingsTitle">Team Ratings &amp; Remarks</h3>
+      <button type="button" class="vehicle-ratings-close">Close</button>
+    </div>
+    <div class="vehicle-ratings-body">
+      <p class="vehicle-ratings-summary">Loading ratings…</p>
+      <table class="vehicle-ratings-table">
+        <thead>
+          <tr>
+            <th>Team</th>
+            <th>Vehicle</th>
+            <th>Last 3 Ratings</th>
+            <th>Last 3 User Remarks</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <p class="vehicle-ratings-note">Ratings and remarks are sourced from the Vehicle_History snapshot for the selected teams.</p>
     </div>
   </div>
 </div>
