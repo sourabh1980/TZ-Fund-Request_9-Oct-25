@@ -969,8 +969,8 @@ function getVehicleReleaseSnapshots(limitPerVehicle) {
       if (!row) return;
       const rawVehicleNumber = String(row[vehicleIdx] || '').trim();
       if (!rawVehicleNumber) return;
-      const status = statusIdx >= 0 ? _normStatus_(row[statusIdx]) : '';
-      if (status && status !== 'RELEASE') return;
+  const status = statusIdx >= 0 ? _normStatus_(row[statusIdx]) : '';
+  if (status && status !== 'RELEASE' && status !== 'IN USE') return;
       const canonicalKey = _vehicleKey_(rawVehicleNumber);
       if (!canonicalKey) return;
       const aliasKey = rawVehicleNumber.toUpperCase();
@@ -980,8 +980,9 @@ function getVehicleReleaseSnapshots(limitPerVehicle) {
       const timestamp = dateIdx >= 0 ? _parseTs_(dateValue) : 0;
       const entry = {
         vehicleNumber: rawVehicleNumber,
-        rating: ratingIdx >= 0 ? row[ratingIdx] || '' : '',
-        remark: remarkIdx >= 0 ? row[remarkIdx] || '' : '',
+  status: status || '',
+  rating: ratingIdx >= 0 ? row[ratingIdx] || '' : '',
+  remark: remarkIdx >= 0 ? row[remarkIdx] || '' : '',
         timestamp: timestamp || 0,
         date: dateValue || ''
       };
@@ -999,6 +1000,7 @@ function getVehicleReleaseSnapshots(limitPerVehicle) {
       });
       vehicles[key] = list.slice(0, maxPerVehicle).map(function(entry) {
         return {
+          status: entry.status || '',
           rating: entry.rating,
           remark: entry.remark,
           timestamp: entry.timestamp || null,
@@ -1010,6 +1012,122 @@ function getVehicleReleaseSnapshots(limitPerVehicle) {
   } catch (err) {
     console.error('getVehicleReleaseSnapshots failed:', err);
     return { ok: false, error: String(err) };
+  }
+}
+
+function getCarTPVehicleMeta(limitPerVehicle) {
+  try {
+    const maxPerVehicle = Math.max(1, Math.min(10, Number(limitPerVehicle) || 3));
+    const summary = getVehicleSummaryRows('CarT_P');
+    if (summary.error) {
+      return { ok: false, source: 'CarT_P', error: summary.error };
+    }
+    if (!summary.rows.length) {
+      return {
+        ok: true,
+        source: 'CarT_P',
+        vehicles: {},
+        limit: maxPerVehicle,
+        updatedAt: summary.updatedAt || ''
+      };
+    }
+
+    const IX = summary.headerIndex;
+    const idx = function(labels, fallbackIndex) {
+      if (IX) {
+        try {
+          const found = IX.get(labels);
+          if (typeof found === 'number' && found >= 0) {
+            return found;
+          }
+        } catch (_err) {
+          // fall through
+        }
+      }
+      return typeof fallbackIndex === 'number' ? fallbackIndex : -1;
+    };
+
+    const vehicleIdx = idx(['Vehicle Number', 'Car Number', 'Vehicle No', 'Car No', 'Car #', 'Car', 'Vehicle'], 5);
+    if (vehicleIdx < 0) {
+      console.warn('getCarTPVehicleMeta: Vehicle number column missing in CarT_P summary');
+      return {
+        ok: true,
+        source: 'CarT_P',
+        vehicles: {},
+        limit: maxPerVehicle,
+        updatedAt: summary.updatedAt || '',
+        message: 'Vehicle number column missing in CarT_P summary'
+      };
+    }
+    const remarksIdx = idx(['Last 3 User Remarks', 'Last Users remarks', 'Remarks', 'User Remarks', 'Last 3 Remarks'], 12);
+    const ratingsIdx = idx(['Last 3 Ratings', 'Ratings', 'Stars', 'Rating'], 13);
+
+    const vehicles = {};
+
+    function metaList(value) {
+      if (value == null) return [];
+      if (Array.isArray(value)) {
+        return value.map(function(entry){ return String(entry || '').trim(); }).filter(Boolean);
+      }
+      const text = String(value || '').trim();
+      if (!text) return [];
+      return text
+        .split(/[\r\n•;\|]+/)
+        .map(function(part){ return String(part || '').trim(); })
+        .filter(Boolean);
+    }
+
+    function appendUniqueLimited(target, entries) {
+      if (!entries || !entries.length) return;
+      entries.forEach(function(entry){
+        const value = String(entry || '').trim();
+        if (!value) return;
+        const lower = value.toLowerCase();
+        const exists = target.some(function(existing){
+          return String(existing || '').trim().toLowerCase() === lower;
+        });
+        if (!exists) {
+          target.push(value);
+        }
+      });
+      if (target.length > maxPerVehicle) {
+        target.length = maxPerVehicle;
+      }
+    }
+
+    summary.rows.forEach(function(row){
+      if (!row) return;
+      const rawVehicle = String(row[vehicleIdx] || '').trim();
+      if (!rawVehicle) return;
+      const canonicalKey = _vehicleKey_(rawVehicle);
+      if (!canonicalKey) return;
+      const aliasKey = rawVehicle.toUpperCase();
+      let bucket = vehicles[canonicalKey];
+      if (!bucket) {
+        bucket = { ratings: [], remarks: [] };
+        vehicles[canonicalKey] = bucket;
+      }
+      if (aliasKey && !vehicles[aliasKey]) {
+        vehicles[aliasKey] = bucket;
+      }
+      if (remarksIdx >= 0) {
+        appendUniqueLimited(bucket.remarks, metaList(row[remarksIdx]));
+      }
+      if (ratingsIdx >= 0) {
+        appendUniqueLimited(bucket.ratings, metaList(row[ratingsIdx]));
+      }
+    });
+
+    return {
+      ok: true,
+      source: 'CarT_P',
+      limit: maxPerVehicle,
+      vehicles: vehicles,
+      updatedAt: summary.updatedAt || ''
+    };
+  } catch (err) {
+    console.error('getCarTPVehicleMeta failed:', err);
+    return { ok: false, source: 'CarT_P', error: String(err) };
   }
 }
 

@@ -37,6 +37,11 @@
   }
   window.vehicleReleaseSnapshotsReady = window.vehicleReleaseSnapshotsReady === true;
 
+  if (!window.carTPVehicleMeta || typeof window.carTPVehicleMeta !== 'object') {
+    window.carTPVehicleMeta = {};
+  }
+  window.carTPVehicleMetaReady = window.carTPVehicleMetaReady === true;
+
   function normalizeName(value) {
     return String(value == null ? '' : value)
       .replace(/\u00A0/g, ' ')
@@ -368,7 +373,8 @@
           record.entryDate || record.entryTimestamp
         );
       }
-      const meta = getVehicleMetaSummary(vehicle);
+    const releaseMeta = getVehicleMetaSummary(vehicle);
+    const mergedMeta = mergeVehicleMetaSources(vehicle, releaseMeta, record);
       matches.push({
         beneficiary,
         team,
@@ -376,8 +382,8 @@
         vehicle,
         daysInUse: daysInUse,
         entryDateDisplay: entryDateDisplay,
-        ratings: meta && Array.isArray(meta.ratings) ? meta.ratings : [],
-        remarks: meta && Array.isArray(meta.remarks) ? meta.remarks : []
+        ratings: mergedMeta.ratings,
+        remarks: mergedMeta.remarks
       });
     });
     return matches;
@@ -697,6 +703,98 @@
     });
   }
 
+  function normalizeVehiclePickerRow(car){
+    if (!car || typeof car !== 'object') return null;
+    const out = Object.assign({}, car);
+    const pickString = function(){
+      for (let i = 0; i < arguments.length; i++) {
+        const key = arguments[i];
+        if (!key) continue;
+        if (!Object.prototype.hasOwnProperty.call(car, key)) continue;
+        const value = car[key];
+        if (value == null) continue;
+        if (Array.isArray(value)) {
+          const first = value.find(function(entry){ return entry != null && String(entry).trim(); });
+          if (first != null) return String(first).trim();
+          continue;
+        }
+        const text = String(value).trim();
+        if (text) return text;
+      }
+      return '';
+    };
+
+    const carNumber = pickString('carNumber','car_number','car','vehicleNumber','vehicle_number');
+    if (carNumber) {
+      out.carNumber = carNumber;
+      out.vehicleNumber = carNumber;
+    } else {
+      const fallbackNumber = pickString('vehicle','Vehicle');
+      if (fallbackNumber) {
+        out.carNumber = fallbackNumber;
+        out.vehicleNumber = fallbackNumber;
+      }
+    }
+
+    const make = pickString('make','Make','brand','Brand');
+    if (make) out.make = make;
+    const model = pickString('model','Model');
+    if (model) out.model = model;
+    const category = pickString('category','Category');
+    if (category) out.category = category;
+    const usageType = pickString('usageType','usage_type','Usage Type','usage','Usage');
+    if (usageType) out.usageType = usageType;
+    const contractType = pickString('contractType','contract_type','Contract Type','contract','Contract','agreementType','Agreement Type');
+    if (contractType) out.contractType = contractType;
+    const owner = pickString('owner','Owner','ownerName','Owner Name');
+    if (owner) out.owner = owner;
+    const status = pickString('status','Status','inUseRelease','In Use/Release');
+    if (status) out.status = status;
+    const responsible = pickString('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','beneficiary','assignedTo');
+    if (responsible) out.responsibleBeneficiary = responsible;
+    const team = pickString('team','Team','teamName','Team Name');
+    if (team) out.team = team;
+    const project = pickString('project','Project','projectName','Project Name');
+    if (project) out.project = project;
+
+    const remarksList = uniqueList(
+      coerceMetaList(car.lastRemarks)
+        .concat(coerceMetaList(car.remarks))
+        .concat(coerceMetaList(car.notes))
+        .concat(coerceMetaList(car.lastUsersRemark || car.lastUsersRemarks))
+    ).slice(0, 3);
+    if (remarksList.length) {
+      out.lastRemarks = remarksList;
+    } else if (!Array.isArray(out.lastRemarks)) {
+      out.lastRemarks = [];
+    }
+
+    const ratingList = uniqueList(
+      coerceMetaList(car.lastRatings || car.latestRatings)
+        .concat(coerceMetaList(car.ratings))
+        .concat(coerceMetaList(car.rating))
+        .concat(coerceMetaList(car.stars))
+    ).slice(0, 3);
+    if (ratingList.length) {
+      out.lastRatings = ratingList;
+    } else if (!Array.isArray(out.lastRatings)) {
+      out.lastRatings = [];
+    }
+
+    let lastUsers = [];
+    if (Array.isArray(car.lastUsers)) {
+      lastUsers = car.lastUsers.map(function(entry){ return String(entry || '').trim(); }).filter(Boolean);
+    } else {
+      const usersText = pickString('lastUsers','Last Users','users','Users','Last Used By');
+      if (usersText) {
+        lastUsers = usersText.split(/[,;|\n]+/).map(function(part){ return part.trim(); }).filter(Boolean);
+      }
+    }
+    out.lastUsers = Array.isArray(lastUsers) ? lastUsers.slice(0, 5) : [];
+
+    return out;
+  }
+
   function normalizeVehicleNumber(value){
     const raw = String(value || '').trim();
     if (!raw) return '';
@@ -785,6 +883,61 @@
     };
   }
 
+  function getCarTPMetaForVehicle(vehicleNumber){
+    if (!vehicleNumber) return null;
+    const map = (window.carTPVehicleMeta && typeof window.carTPVehicleMeta === 'object') ? window.carTPVehicleMeta : null;
+    if (!map) return null;
+    const raw = String(vehicleNumber || '').trim();
+    const primaryKey = normalizeVehicleNumber(raw);
+    if (primaryKey && Object.prototype.hasOwnProperty.call(map, primaryKey)) {
+      return map[primaryKey];
+    }
+    const upperKey = raw.toUpperCase();
+    if (upperKey && Object.prototype.hasOwnProperty.call(map, upperKey)) {
+      return map[upperKey];
+    }
+    if (!primaryKey) return null;
+    try {
+      for (const key in map) {
+        if (!Object.prototype.hasOwnProperty.call(map, key)) continue;
+        if (normalizeVehicleNumber(key) === primaryKey) {
+          return map[key];
+        }
+      }
+    } catch(_scanErr) {
+      // fall through to null on lookup failure
+    }
+    return null;
+  }
+
+  function mergeVehicleMetaSources(vehicleNumber, releaseMeta, record){
+    const releaseRatings = releaseMeta && Array.isArray(releaseMeta.ratings) ? releaseMeta.ratings : [];
+    const releaseRemarks = releaseMeta && Array.isArray(releaseMeta.remarks) ? releaseMeta.remarks : [];
+    let recordRatings = [];
+    let recordRemarks = [];
+    if (record && typeof record === 'object') {
+      recordRatings = uniqueList([].concat(
+        coerceMetaList(record.lastRatings || record.latestRatings),
+        coerceMetaList(record.ratings || record.rating || record.stars),
+        coerceMetaList(record.vehicleRatings)
+      )).slice(0, 3);
+      recordRemarks = uniqueList([].concat(
+        coerceMetaList(record.lastUsersRemarks || record.lastUsersRemark),
+        coerceMetaList(record.remarks || record.remark || record.notes || record.feedback),
+        coerceMetaList(record.lastRemarks)
+      )).slice(0, 3);
+    }
+    const carTPMeta = getCarTPMetaForVehicle(vehicleNumber || (record && (record.vehicle || record.vehicleNumber || record.carNumber || '')));
+    const carTPRatings = carTPMeta && Array.isArray(carTPMeta.ratings) ? carTPMeta.ratings : [];
+    const carTPRemarks = carTPMeta && Array.isArray(carTPMeta.remarks) ? carTPMeta.remarks : [];
+    const ratings = uniqueList([].concat(recordRatings, releaseRatings, carTPRatings)).slice(0, 3);
+    const remarks = uniqueList([].concat(recordRemarks, releaseRemarks, carTPRemarks)).slice(0, 3);
+    return {
+      ratings: ratings,
+      remarks: remarks
+    };
+  }
+
   function enrichMatchesWithMeta(matches){
     if (!Array.isArray(matches) || !matches.length) {
       return Array.isArray(matches) ? matches : [];
@@ -796,14 +949,17 @@
       if (hasRatings && hasRemarks) return match;
       const vehicleId = match.vehicle || match.vehicleNumber || match.carNumber || '';
       if (!vehicleId) return match;
-      const meta = getVehicleMetaSummary(vehicleId);
-      if (!meta) return match;
-      const next = Object.assign({}, match);
-      if (!hasRatings && Array.isArray(meta.ratings) && meta.ratings.length) {
-        next.ratings = meta.ratings.slice(0, 3);
+      const releaseMeta = getVehicleMetaSummary(vehicleId);
+      const merged = mergeVehicleMetaSources(vehicleId, releaseMeta, match);
+      if (!merged || (!Array.isArray(merged.ratings) || !merged.ratings.length) && (!Array.isArray(merged.remarks) || !merged.remarks.length)) {
+        return match;
       }
-      if (!hasRemarks && Array.isArray(meta.remarks) && meta.remarks.length) {
-        next.remarks = meta.remarks.slice(0, 3);
+      const next = Object.assign({}, match);
+      if (!hasRatings && Array.isArray(merged.ratings) && merged.ratings.length) {
+        next.ratings = merged.ratings.slice(0, 3);
+      }
+      if (!hasRemarks && Array.isArray(merged.remarks) && merged.remarks.length) {
+        next.remarks = merged.remarks.slice(0, 3);
       }
       return next;
     });
@@ -857,7 +1013,8 @@
           daysInUse = wholeDays + 1; // inclusive of current day
         }
       }
-      const meta = getVehicleMetaSummary(vehicleNumber);
+  const releaseMeta = getVehicleMetaSummary(vehicleNumber);
+  const mergedMeta = mergeVehicleMetaSources(vehicleNumber, releaseMeta, rec);
       matches.push({
         beneficiary: beneficiary,
         vehicle: vehicleNumber,
@@ -865,8 +1022,8 @@
         project: rec.project || '',
         daysInUse: daysInUse,
         entryDateDisplay: formatEntryDateDisplay(ts, rec.entryDate || rec.entryTimestamp),
-        ratings: meta && Array.isArray(meta.ratings) ? meta.ratings : [],
-        remarks: meta && Array.isArray(meta.remarks) ? meta.remarks : []
+        ratings: mergedMeta.ratings,
+        remarks: mergedMeta.remarks
       });
     });
     return matches;
@@ -874,8 +1031,24 @@
 
   const vehicleMetaCacheState = {
     pending: false,
-    queue: []
+    queue: [],
+    releaseReady: false,
+    carTPReady: false
   };
+
+  const beneficiaryVehicleCacheState = {
+    building: false,
+    ready: false,
+    startedAt: 0,
+    finishedAt: 0,
+    data: Object.create(null),
+    queue: [],
+    timerId: null,
+    statusEl: null,
+    styleInjected: false,
+    retryTimer: null
+  };
+  window.beneficiaryVehicleCache = beneficiaryVehicleCacheState;
 
   function flushVehicleMetaQueue(){
     const queued = vehicleMetaCacheState.queue.splice(0);
@@ -884,10 +1057,234 @@
     });
   }
 
+  function ensureBeneficiaryLoaderStyles(){
+    if (beneficiaryVehicleCacheState.styleInjected) return;
+    beneficiaryVehicleCacheState.styleInjected = true;
+    try {
+      const style = document.createElement('style');
+      style.textContent = '.vehicle-meta-loader{position:fixed;right:18px;bottom:18px;z-index:9999;min-width:220px;padding:10px 16px;border-radius:8px;background:rgba(17,24,39,0.92);color:#f9fafb;font-size:13px;line-height:1.3;display:none;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,0.35);backdrop-filter:blur(6px);}';
+      document.head.appendChild(style);
+    } catch(_){ /* ignore */ }
+  }
+
+  function updateBeneficiaryLoader(){
+    if (!beneficiaryVehicleCacheState.statusEl) return;
+    const stopAt = beneficiaryVehicleCacheState.finishedAt || Date.now();
+    const elapsed = beneficiaryVehicleCacheState.startedAt ? Math.max(0, Math.floor((stopAt - beneficiaryVehicleCacheState.startedAt) / 1000)) : 0;
+    beneficiaryVehicleCacheState.statusEl.textContent = beneficiaryVehicleCacheState.ready
+      ? `Vehicle insights ready (${elapsed}s)`
+      : `Building vehicle insights… ${elapsed}s`;
+  }
+
+  function startBeneficiaryLoader(){
+    if (beneficiaryVehicleCacheState.ready) return;
+    ensureBeneficiaryLoaderStyles();
+    if (!beneficiaryVehicleCacheState.statusEl) {
+      try {
+        const node = document.createElement('div');
+        node.id = 'vehicleMetaLoader';
+        node.className = 'vehicle-meta-loader';
+        document.body.appendChild(node);
+        beneficiaryVehicleCacheState.statusEl = node;
+      } catch(_){ /* ignore */ }
+    }
+    if (!beneficiaryVehicleCacheState.startedAt) {
+      beneficiaryVehicleCacheState.startedAt = Date.now();
+    }
+    updateBeneficiaryLoader();
+    if (beneficiaryVehicleCacheState.statusEl) {
+      beneficiaryVehicleCacheState.statusEl.style.display = 'flex';
+    }
+    if (!beneficiaryVehicleCacheState.timerId) {
+      beneficiaryVehicleCacheState.timerId = setInterval(updateBeneficiaryLoader, 1000);
+    }
+  }
+
+  function finishBeneficiaryLoader(){
+    beneficiaryVehicleCacheState.finishedAt = beneficiaryVehicleCacheState.finishedAt || Date.now();
+    if (beneficiaryVehicleCacheState.timerId) {
+      clearInterval(beneficiaryVehicleCacheState.timerId);
+      beneficiaryVehicleCacheState.timerId = null;
+    }
+    updateBeneficiaryLoader();
+    if (beneficiaryVehicleCacheState.statusEl) {
+      const node = beneficiaryVehicleCacheState.statusEl;
+      setTimeout(function(){ node.style.display = 'none'; }, 1600);
+    }
+  }
+
+  function flushBeneficiaryVehicleQueue(){
+    const queued = beneficiaryVehicleCacheState.queue.splice(0);
+    queued.forEach(function(fn){
+      try {
+        if (typeof fn === 'function') fn(beneficiaryVehicleCacheState.data);
+      } catch(_){ /* ignore */ }
+    });
+  }
+
+  function beneficiaryCacheKey(name){
+    return String(name || '').trim().toLowerCase();
+  }
+
+  function splitBeneficiaryList(value){
+    if (!value) return [];
+    if (Array.isArray(value)) {
+      return value.map(function(entry){ return String(entry || '').trim(); }).filter(Boolean);
+    }
+    return String(value || '')
+      .split(/[,;/\n\|]+/)
+      .map(function(part){ return part.trim(); })
+      .filter(Boolean);
+  }
+
+  function addBeneficiaryVehicleEntry(map, beneficiary, entry){
+    const key = beneficiaryCacheKey(beneficiary);
+    if (!key) return;
+    let bucket = map[key];
+    if (!bucket) {
+      bucket = {
+        beneficiary: beneficiary,
+        entries: []
+      };
+      map[key] = bucket;
+    }
+    const exists = bucket.entries.some(function(prev){
+      return prev && prev.carNumber === entry.carNumber && prev.source === entry.source;
+    });
+    if (!exists) {
+      bucket.entries.push(entry);
+    }
+  }
+
+  function finalizeBeneficiaryVehicleCache(map){
+    beneficiaryVehicleCacheState.building = false;
+    beneficiaryVehicleCacheState.data = map;
+    beneficiaryVehicleCacheState.ready = true;
+    beneficiaryVehicleCacheState.finishedAt = Date.now();
+    finishBeneficiaryLoader();
+    flushBeneficiaryVehicleQueue();
+  }
+
+  function buildBeneficiaryVehicleCache(){
+    if (beneficiaryVehicleCacheState.ready) return;
+  const metaReady = Array.isArray(window.availableCarsData);
+  const releaseReady = window.vehicleReleaseSnapshotsReady === true;
+  const carTPReady = window.carTPVehicleMetaReady === true;
+  if (!metaReady || !releaseReady || !carTPReady) {
+      if (!beneficiaryVehicleCacheState.retryTimer) {
+        beneficiaryVehicleCacheState.retryTimer = setTimeout(function(){
+          beneficiaryVehicleCacheState.retryTimer = null;
+          buildBeneficiaryVehicleCache();
+        }, 220);
+      }
+      return;
+    }
+
+    if (beneficiaryVehicleCacheState.retryTimer) {
+      clearTimeout(beneficiaryVehicleCacheState.retryTimer);
+      beneficiaryVehicleCacheState.retryTimer = null;
+    }
+
+    const map = Object.create(null);
+
+    const inUseRecords = Array.isArray(vehicleInUseState.records) ? vehicleInUseState.records : [];
+    inUseRecords.forEach(function(rec){
+      if (!rec) return;
+      const vehicleNumber = String(rec.vehicleNumber || rec.carNumber || '').trim();
+      if (!vehicleNumber) return;
+  const releaseMeta = getVehicleMetaSummary(vehicleNumber) || { ratings: [], remarks: [] };
+  const mergedMeta = mergeVehicleMetaSources(vehicleNumber, releaseMeta, rec);
+      const payload = {
+        carNumber: vehicleNumber,
+        status: String(rec.status || 'IN USE').trim() || 'IN USE',
+        project: rec.project || '',
+        team: rec.team || '',
+        ratings: mergedMeta.ratings,
+        remarks: mergedMeta.remarks,
+        source: 'IN_USE',
+        entryTimestamp: rec.entryTimestamp || null
+      };
+      const beneficiaries = splitBeneficiaryList(rec.responsibleBeneficiary || rec.beneficiary || rec.member);
+      if (!beneficiaries.length) {
+        const fallbackName = rec.beneficiary || rec.responsibleBeneficiary || rec.member || rec.key;
+        if (fallbackName) beneficiaries.push(fallbackName);
+      }
+      beneficiaries.forEach(function(name){
+        if (name) addBeneficiaryVehicleEntry(map, name, payload);
+      });
+    });
+
+    const releaseVehicles = Array.isArray(window.availableCarsData) ? window.availableCarsData : [];
+    releaseVehicles.forEach(function(car){
+      if (!car) return;
+      const vehicleNumber = String(car.carNumber || car.vehicleNumber || '').trim();
+      if (!vehicleNumber) return;
+      const responsible = car.responsibleBeneficiary || car['R.Beneficiary'] || car.responsible || '';
+      const beneficiaries = splitBeneficiaryList(responsible);
+      if (!beneficiaries.length) return;
+  const releaseMeta = getVehicleMetaSummary(vehicleNumber) || { ratings: [], remarks: [] };
+  const mergedMeta = mergeVehicleMetaSources(vehicleNumber, releaseMeta, car);
+      const payload = {
+        carNumber: vehicleNumber,
+        status: String(car.status || 'RELEASE').trim() || 'RELEASE',
+        project: car.project || '',
+        team: car.team || '',
+        ratings: mergedMeta.ratings,
+        remarks: mergedMeta.remarks,
+        source: 'RELEASE',
+        entryTimestamp: car.entryTimestamp || null
+      };
+      beneficiaries.forEach(function(name){
+        if (name) addBeneficiaryVehicleEntry(map, name, payload);
+      });
+    });
+
+    finalizeBeneficiaryVehicleCache(map);
+  }
+
+  function ensureBeneficiaryVehicleCache(callback){
+    if (typeof callback === 'function') {
+      if (beneficiaryVehicleCacheState.ready) {
+        try { callback(beneficiaryVehicleCacheState.data); } catch(_){ /* ignore */ }
+      } else {
+        beneficiaryVehicleCacheState.queue.push(callback);
+      }
+    }
+    if (beneficiaryVehicleCacheState.ready || beneficiaryVehicleCacheState.building) return;
+    beneficiaryVehicleCacheState.building = true;
+    startBeneficiaryLoader();
+    ensureVehicleMetaCache(function(){
+      ensureVehicleInUseDataReady(function(){
+        buildBeneficiaryVehicleCache();
+      });
+    });
+  }
+
+  function invalidateBeneficiaryVehicleCache(){
+    if (beneficiaryVehicleCacheState.retryTimer) {
+      clearTimeout(beneficiaryVehicleCacheState.retryTimer);
+      beneficiaryVehicleCacheState.retryTimer = null;
+    }
+    beneficiaryVehicleCacheState.building = false;
+    beneficiaryVehicleCacheState.ready = false;
+    beneficiaryVehicleCacheState.startedAt = Date.now();
+    beneficiaryVehicleCacheState.finishedAt = 0;
+    beneficiaryVehicleCacheState.data = Object.create(null);
+    startBeneficiaryLoader();
+    ensureBeneficiaryVehicleCache();
+  }
+
+  window.ensureBeneficiaryVehicleCache = ensureBeneficiaryVehicleCache;
+  window.invalidateBeneficiaryVehicleCache = invalidateBeneficiaryVehicleCache;
+  window.getBeneficiaryVehicleCache = function(){
+    return beneficiaryVehicleCacheState.data;
+  };
+
   function ensureVehicleMetaCache(callback){
     const hasVehicleMeta = Array.isArray(window.availableCarsData) && window.availableCarsData.length > 0;
     const releaseReady = window.vehicleReleaseSnapshotsReady === true;
-    if (hasVehicleMeta && releaseReady) {
+    const carTPReady = window.carTPVehicleMetaReady === true;
+    if (hasVehicleMeta && releaseReady && carTPReady) {
       if (typeof callback === 'function') {
         try { callback(); } catch(_){ /* ignore */ }
       }
@@ -900,16 +1297,29 @@
     if (!(window.google && google.script && google.script.run)) {
       window.vehicleReleaseSnapshots = window.vehicleReleaseSnapshots || {};
       window.vehicleReleaseSnapshotsReady = true;
+      window.carTPVehicleMeta = window.carTPVehicleMeta || {};
+      window.carTPVehicleMetaReady = true;
       flushVehicleMetaQueue();
       return;
     }
     vehicleMetaCacheState.pending = true;
+    vehicleMetaCacheState.releaseReady = false;
+    vehicleMetaCacheState.carTPReady = false;
     window.vehicleReleaseSnapshots = window.vehicleReleaseSnapshots || {};
     window.vehicleReleaseSnapshotsReady = false;
+    window.carTPVehicleMeta = window.carTPVehicleMeta || {};
+    window.carTPVehicleMetaReady = false;
 
-    function finishMetaFetch(){
+    function finalizeIfComplete(){
+      if (!vehicleMetaCacheState.releaseReady || !vehicleMetaCacheState.carTPReady) {
+        return;
+      }
       vehicleMetaCacheState.pending = false;
       window.vehicleReleaseSnapshotsReady = true;
+      window.carTPVehicleMetaReady = true;
+      if (beneficiaryVehicleCacheState.building) {
+        buildBeneficiaryVehicleCache();
+      }
       flushVehicleMetaQueue();
     }
 
@@ -926,14 +1336,41 @@
             console.warn('[VehicleInUse] Failed to hydrate release history cache', releaseErr);
             window.vehicleReleaseSnapshots = {};
           }
-          finishMetaFetch();
+          vehicleMetaCacheState.releaseReady = true;
+          finalizeIfComplete();
         })
         .withFailureHandler(function(err){
           console.warn('[VehicleInUse] Unable to fetch release history metadata', err);
           window.vehicleReleaseSnapshots = {};
-          finishMetaFetch();
+          vehicleMetaCacheState.releaseReady = true;
+          finalizeIfComplete();
         })
         .getVehicleReleaseSnapshots(3);
+    }
+
+    function fetchCarTPMeta(){
+      google.script.run
+        .withSuccessHandler(function(res){
+          try {
+            if (res && res.ok !== false && res.vehicles && typeof res.vehicles === 'object') {
+              window.carTPVehicleMeta = res.vehicles;
+            } else {
+              window.carTPVehicleMeta = {};
+            }
+          } catch (carTpErr) {
+            console.warn('[VehicleInUse] Failed to hydrate CarT_P metadata', carTpErr);
+            window.carTPVehicleMeta = {};
+          }
+          vehicleMetaCacheState.carTPReady = true;
+          finalizeIfComplete();
+        })
+        .withFailureHandler(function(err){
+          console.warn('[VehicleInUse] Unable to fetch CarT_P metadata', err);
+          window.carTPVehicleMeta = {};
+          vehicleMetaCacheState.carTPReady = true;
+          finalizeIfComplete();
+        })
+        .getCarTPVehicleMeta(3);
     }
 
     google.script.run
@@ -941,10 +1378,10 @@
         try {
           if (res && Array.isArray(res.vehicles)) {
             window.availableCarsRaw = res.vehicles.slice();
-            window.availableCarsData = res.vehicles.slice();
+            window.availableCarsData = res.vehicles.map(normalizeVehiclePickerRow).filter(Boolean);
           } else if (Array.isArray(res)) {
             window.availableCarsRaw = res.slice();
-            window.availableCarsData = res.slice();
+            window.availableCarsData = res.map(normalizeVehiclePickerRow).filter(Boolean);
           } else if (!Array.isArray(window.availableCarsData)) {
             window.availableCarsRaw = [];
             window.availableCarsData = [];
@@ -957,6 +1394,7 @@
           }
         }
         fetchReleaseSnapshots();
+        fetchCarTPMeta();
       })
       .withFailureHandler(function(err){
         console.warn('[VehicleInUse] Unable to fetch vehicle metadata', err);
@@ -965,6 +1403,7 @@
           window.availableCarsData = [];
         }
         fetchReleaseSnapshots();
+        fetchCarTPMeta();
       })
       .getVehiclePickerData();
   }
@@ -998,6 +1437,7 @@
     if (!opts.force && selectionKey === vehicleMatchPopupState.lastSelectionKey) return;
     vehicleMatchPopupState.lastSelectionKey = selectionKey;
     ensureVehicleInUseDataReady(function(){
+      ensureBeneficiaryVehicleCache();
       ensureVehicleMetaCache(function(){
         const matches = findAssignmentsForSelection(projectLabel, normalizedTeams);
         if (!matches.length) return;
@@ -1214,6 +1654,8 @@
       vehicleInUseState.updatedAt = meta.updatedAt;
     }
 
+    invalidateBeneficiaryVehicleCache();
+
     if (opts.skipPersistence !== true) {
       persistVehicleInUseCache({
         updatedAt: vehicleInUseState.updatedAt,
@@ -1303,6 +1745,8 @@
     fetchVehicleInUseAssignments();
     scheduleVehicleInUseReapply({ reason: 'immediate-load', attempts: 6, delay: 300 });
   }
+
+  ensureBeneficiaryVehicleCache();
 
   if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
     window.addEventListener('pageshow', function(){
