@@ -2169,10 +2169,11 @@ function getProjectFromBeneficiary(beneficiaryName) {
                 }
               };
 
-              const mergeAndOpen = (extraData) => {
-                const normalized = extraData ? normalizeCarRecord(extraData) : null;
-                const merged = { ...baseCarData, ...(normalized || {}) };
-                // Ensure the current row's project/team context always wins
+              const applySupplemental = (extraData) => {
+                if (!extraData) return;
+                const normalized = normalizeCarRecord(extraData);
+                if (!normalized) return;
+                const merged = { ...normalized };
                 merged.project = baseCarData.project || merged.project || merged.Project || '';
                 merged.projectName = baseCarData.projectName || merged.projectName || merged.Project || merged.project || '';
                 merged.team = baseCarData.team || merged.team || merged.Team || '';
@@ -2184,12 +2185,15 @@ function getProjectFromBeneficiary(beneficiaryName) {
                 if (merged.responsibleBeneficiary && !merged['R.Beneficiary']) {
                   merged['R.Beneficiary'] = merged.responsibleBeneficiary;
                 }
-                // Normalise lastUsers into array if backend returns string
                 if (merged.lastUsers && !Array.isArray(merged.lastUsers)) {
                   const users = String(merged.lastUsers || '').split(',').map(u => u.trim()).filter(Boolean);
                   merged.lastUsers = users.length ? users : baseCarData.lastUsers;
                 }
-                openModalWith(merged);
+                if (typeof window.applyCarModalSupplementalData === 'function') {
+                  window.applyCarModalSupplementalData(merged);
+                } else {
+                  openModalWith({ ...baseCarData, ...merged });
+                }
               };
 
               const matchFromCached = () => {
@@ -2198,9 +2202,11 @@ function getProjectFromBeneficiary(beneficiaryName) {
                 return window.availableCarsData.find(car => String(car.carNumber || '').trim().toUpperCase() === target) || null;
               };
 
+              openModalWith(baseCarData);
+
               const cached = matchFromCached();
               if (cached) {
-                mergeAndOpen(cached);
+                applySupplemental(cached);
                 return;
               }
 
@@ -2211,18 +2217,18 @@ function getProjectFromBeneficiary(beneficiaryName) {
                       const normalizedList = list.map(normalizeCarRecord);
                       try { window.availableCarsData = normalizedList; } catch(_){ window.availableCarsData = normalizedList; }
                       const freshMatch = matchFromCached();
-                      mergeAndOpen(freshMatch || null);
+                      applySupplemental(freshMatch || null);
                     } else {
-                      mergeAndOpen(null);
+                      applySupplemental(null);
                     }
                   })
                   .withFailureHandler(function(err){
                     console.error('Failed to fetch vehicle metadata', err);
-                    mergeAndOpen(null);
+                    applySupplemental(null);
                   })
                   .getAllUniqueCars();
               } else {
-                mergeAndOpen(null);
+                applySupplemental(null);
               }
             }
             else {

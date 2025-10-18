@@ -42,12 +42,38 @@
   }
   window.carTPVehicleMetaReady = window.carTPVehicleMetaReady === true;
 
+  const hasOwn = Object.prototype.hasOwnProperty;
+  const NORMALIZE_CACHE_LIMIT = 4000;
+  const NAME_NORMALIZE_CACHE = { map: Object.create(null), keys: [] };
+  const VEHICLE_NORMALIZE_CACHE = { map: Object.create(null), keys: [] };
+
+  function resetNormalizationCache(cacheState){
+    cacheState.map = Object.create(null);
+    cacheState.keys.length = 0;
+  }
+
+  function invalidateVehicleNormalizationCache(){
+    resetNormalizationCache(VEHICLE_NORMALIZE_CACHE);
+  }
+
   function normalizeName(value) {
-    return String(value == null ? '' : value)
+    const raw = value == null ? '' : String(value);
+    if (!raw) return '';
+    const cache = NAME_NORMALIZE_CACHE.map;
+    if (hasOwn.call(cache, raw)) {
+      return cache[raw];
+    }
+    const normalized = raw
       .replace(/\u00A0/g, ' ')
       .replace(/\s+/g, ' ')
       .trim()
       .toLowerCase();
+    if (NAME_NORMALIZE_CACHE.keys.length >= NORMALIZE_CACHE_LIMIT) {
+      resetNormalizationCache(NAME_NORMALIZE_CACHE);
+    }
+    NAME_NORMALIZE_CACHE.map[raw] = normalized;
+    NAME_NORMALIZE_CACHE.keys.push(raw);
+    return normalized;
   }
 
   function vehicleNameKey(name){
@@ -265,6 +291,338 @@
 
   const vehicleRatingsPopupState = {
     setup: false
+  };
+
+  const vehicleReleasePrefetchState = {
+    entries: Object.create(null),
+    maxAgeMs: 600000
+  };
+
+  function vehicleReleasePrefetchKey(value){
+    const normalized = normalizeVehicleNumber(value);
+    return normalized ? normalized.toUpperCase() : '';
+  }
+
+  function vehicleReleaseTeamKey(value){
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function flushPrefetchListeners(list, type, payload){
+    if (!Array.isArray(list) || !list.length) return;
+    const listeners = list.splice(0);
+    listeners.forEach(function(listener){
+      if (!listener || typeof listener !== 'object') return;
+      try {
+        if (type === 'success' && typeof listener.onSuccess === 'function') {
+          listener.onSuccess(payload);
+        } else if (type === 'failure' && typeof listener.onFailure === 'function') {
+          listener.onFailure(payload);
+        }
+      } catch(_){ /* ignore */ }
+    });
+  }
+
+  function getVehicleReleaseEntry(carNumber){
+    const key = vehicleReleasePrefetchKey(carNumber);
+    if (!key) return null;
+    const entry = vehicleReleasePrefetchState.entries[key] || null;
+    if (entry) entry.lastTouched = Date.now();
+    return entry;
+  }
+
+  function ensureVehicleReleaseEntry(carNumber){
+    const key = vehicleReleasePrefetchKey(carNumber);
+    if (!key) return null;
+    let entry = vehicleReleasePrefetchState.entries[key];
+    if (!entry) {
+      entry = {
+        carNumber: key,
+        detailsReady: false,
+        detailsPending: false,
+        details: null,
+        detailsError: null,
+        detailListeners: [],
+        releaseReady: false,
+        releasePending: false,
+        releaseRows: null,
+        releaseError: null,
+        releaseListeners: [],
+        inUseByTeam: Object.create(null),
+        lastTouched: Date.now()
+      };
+      vehicleReleasePrefetchState.entries[key] = entry;
+    } else {
+      entry.lastTouched = Date.now();
+    }
+    return entry;
+  }
+
+  function ensureInUseBucket(entry, teamName){
+    if (!entry) return null;
+    const key = vehicleReleaseTeamKey(teamName);
+    let bucket = entry.inUseByTeam[key];
+    if (!bucket) {
+      bucket = {
+        teamKey: key,
+        teamName: teamName || '',
+        ready: false,
+        pending: false,
+        rows: null,
+        error: null,
+        listeners: [],
+        lastTouched: Date.now()
+      };
+      entry.inUseByTeam[key] = bucket;
+    } else {
+      bucket.lastTouched = Date.now();
+      if (!bucket.teamName && teamName) bucket.teamName = teamName;
+    }
+    return bucket;
+  }
+
+  function resolveDetailSuccess(entry, payload){
+    if (!entry) return;
+    entry.details = payload;
+    entry.detailsReady = true;
+    entry.detailsPending = false;
+    entry.detailsError = null;
+    flushPrefetchListeners(entry.detailListeners, 'success', payload);
+  }
+
+  function resolveDetailFailure(entry, error){
+    if (!entry) return;
+    entry.detailsReady = false;
+    entry.detailsPending = false;
+    entry.detailsError = error || null;
+    flushPrefetchListeners(entry.detailListeners, 'failure', error);
+  }
+
+  function resolveReleaseHistorySuccess(entry, rows){
+    if (!entry) return;
+    entry.releaseRows = rows;
+    entry.releaseReady = true;
+    entry.releasePending = false;
+    entry.releaseError = null;
+    flushPrefetchListeners(entry.releaseListeners, 'success', rows);
+  }
+
+  function resolveReleaseHistoryFailure(entry, error){
+    if (!entry) return;
+    entry.releaseReady = false;
+    entry.releasePending = false;
+    entry.releaseError = error || null;
+    flushPrefetchListeners(entry.releaseListeners, 'failure', error);
+  }
+
+  function resolveInUseHistorySuccess(bucket, rows){
+    if (!bucket) return;
+    bucket.rows = rows;
+    bucket.ready = true;
+    bucket.pending = false;
+    bucket.error = null;
+    flushPrefetchListeners(bucket.listeners, 'success', rows);
+  }
+
+  function resolveInUseHistoryFailure(bucket, error){
+    if (!bucket) return;
+    bucket.ready = false;
+    bucket.pending = false;
+    bucket.error = error || null;
+    flushPrefetchListeners(bucket.listeners, 'failure', error);
+  }
+
+  function requestVehicleReleaseDetails(carNumber, hooks){
+    const entry = ensureVehicleReleaseEntry(carNumber);
+    if (!entry) return null;
+    if (hooks && typeof hooks === 'object') {
+      if (entry.detailsReady) {
+        try { if (typeof hooks.onSuccess === 'function') hooks.onSuccess(entry.details); } catch(_){ /* ignore */ }
+      } else if (entry.detailsError) {
+        try { if (typeof hooks.onFailure === 'function') hooks.onFailure(entry.detailsError); } catch(_){ /* ignore */ }
+      } else {
+        entry.detailListeners.push(hooks);
+      }
+    }
+    if (entry.detailsReady || entry.detailsPending) return entry;
+    if (!(window.google && google.script && google.script.run)) return entry;
+
+    entry.detailsPending = true;
+    google.script.run
+      .withSuccessHandler(function(res){
+        resolveDetailSuccess(entry, res);
+      })
+      .withFailureHandler(function(err){
+        resolveDetailFailure(entry, err);
+      })
+      .getCarReleaseDetails(carNumber);
+    return entry;
+  }
+
+  function requestVehicleReleaseHistory(carNumber, hooks){
+    const entry = ensureVehicleReleaseEntry(carNumber);
+    if (!entry) return null;
+    if (hooks && typeof hooks === 'object') {
+      if (entry.releaseReady) {
+        try { if (typeof hooks.onSuccess === 'function') hooks.onSuccess(entry.releaseRows); } catch(_){ /* ignore */ }
+      } else if (entry.releaseError) {
+        try { if (typeof hooks.onFailure === 'function') hooks.onFailure(entry.releaseError); } catch(_){ /* ignore */ }
+      } else {
+        entry.releaseListeners.push(hooks);
+      }
+    }
+    if (entry.releaseReady || entry.releasePending) return entry;
+    if (!(window.google && google.script && google.script.run)) return entry;
+
+    entry.releasePending = true;
+    google.script.run
+      .withSuccessHandler(function(rows){
+        resolveReleaseHistorySuccess(entry, rows);
+      })
+      .withFailureHandler(function(err){
+        resolveReleaseHistoryFailure(entry, err);
+      })
+      .getReleaseHistoryForcedWorking(carNumber);
+    return entry;
+  }
+
+  function requestVehicleInUseHistory(carNumber, teamName, hooks){
+    const entry = ensureVehicleReleaseEntry(carNumber);
+    if (!entry) return null;
+    const bucket = ensureInUseBucket(entry, teamName);
+    if (!bucket) return entry;
+    if (hooks && typeof hooks === 'object') {
+      if (bucket.ready) {
+        try { if (typeof hooks.onSuccess === 'function') hooks.onSuccess(bucket.rows); } catch(_){ /* ignore */ }
+      } else if (bucket.error) {
+        try { if (typeof hooks.onFailure === 'function') hooks.onFailure(bucket.error); } catch(_){ /* ignore */ }
+      } else {
+        bucket.listeners.push(hooks);
+      }
+    }
+    if (bucket.ready || bucket.pending) return entry;
+    if (!(window.google && google.script && google.script.run)) return entry;
+
+    bucket.pending = true;
+    const teamLabel = bucket.teamName || teamName || '';
+    google.script.run
+      .withSuccessHandler(function(rows){
+        resolveInUseHistorySuccess(bucket, rows);
+      })
+      .withFailureHandler(function(err){
+        resolveInUseHistoryFailure(bucket, err);
+      })
+      .getInUseHistoryForcedWorking(carNumber, teamLabel);
+    return entry;
+  }
+
+  function pruneVehicleReleasePrefetch(){
+    const maxAge = vehicleReleasePrefetchState.maxAgeMs;
+    if (!Number.isFinite(maxAge) || maxAge <= 0) return;
+    const keys = Object.keys(vehicleReleasePrefetchState.entries);
+    if (keys.length <= 40) return;
+    const now = Date.now();
+    keys.forEach(function(key){
+      const entry = vehicleReleasePrefetchState.entries[key];
+      if (!entry || entry.detailsPending || entry.releasePending) return;
+      let teamPending = false;
+      for (const teamKey in entry.inUseByTeam) {
+        if (!Object.prototype.hasOwnProperty.call(entry.inUseByTeam, teamKey)) continue;
+        const bucket = entry.inUseByTeam[teamKey];
+        if (bucket && bucket.pending) {
+          teamPending = true;
+          break;
+        }
+      }
+      if (teamPending) return;
+      if (now - (entry.lastTouched || 0) > maxAge) {
+        delete vehicleReleasePrefetchState.entries[key];
+      }
+    });
+  }
+
+  function invalidateVehicleReleaseEntry(carNumber){
+    const key = vehicleReleasePrefetchKey(carNumber);
+    if (!key) return;
+    if (vehicleReleasePrefetchState.entries[key]) {
+      delete vehicleReleasePrefetchState.entries[key];
+    }
+  }
+
+  function invalidateVehicleReleaseTeam(carNumber, teamName){
+    const entry = getVehicleReleaseEntry(carNumber);
+    if (!entry) return;
+    if (!teamName) {
+      entry.inUseByTeam = Object.create(null);
+      return;
+    }
+    const teamKey = vehicleReleaseTeamKey(teamName);
+    if (teamKey && entry.inUseByTeam && entry.inUseByTeam[teamKey]) {
+      delete entry.inUseByTeam[teamKey];
+    }
+  }
+
+  function prefetchVehicleReleaseData(matches){
+    if (!Array.isArray(matches) || !matches.length) return;
+    const seen = new Set();
+    matches.forEach(function(match){
+      if (!match) return;
+      const vehicleNumber = match.vehicle || match.vehicleNumber || match.carNumber || '';
+      const key = vehicleReleasePrefetchKey(vehicleNumber);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      const teamLabel = match.teamName || match.team || '';
+      requestVehicleReleaseDetails(vehicleNumber);
+      requestVehicleReleaseHistory(vehicleNumber);
+      requestVehicleInUseHistory(vehicleNumber, teamLabel);
+    });
+    pruneVehicleReleasePrefetch();
+  }
+
+  window.vehicleReleasePrefetch = {
+    state: vehicleReleasePrefetchState,
+    primeMatches: prefetchVehicleReleaseData,
+    requestDetails: requestVehicleReleaseDetails,
+    requestReleaseHistory: requestVehicleReleaseHistory,
+    requestInUseHistory: requestVehicleInUseHistory,
+    getDetails: function(carNumber){
+      const entry = getVehicleReleaseEntry(carNumber);
+      return entry && entry.detailsReady ? entry.details : null;
+    },
+    getReleaseHistory: function(carNumber){
+      const entry = getVehicleReleaseEntry(carNumber);
+      return entry && entry.releaseReady ? entry.releaseRows : null;
+    },
+    getInUseHistory: function(carNumber, teamName){
+      const entry = getVehicleReleaseEntry(carNumber);
+      if (!entry) return null;
+      const bucket = entry.inUseByTeam[vehicleReleaseTeamKey(teamName)];
+      return bucket && bucket.ready ? bucket.rows : null;
+    },
+    clear: function(){
+      vehicleReleasePrefetchState.entries = Object.create(null);
+    },
+    invalidate: invalidateVehicleReleaseEntry,
+    invalidateTeam: invalidateVehicleReleaseTeam,
+    storeDetails: function(carNumber, payload){
+      resolveDetailSuccess(ensureVehicleReleaseEntry(carNumber), payload);
+    },
+    storeDetailsError: function(carNumber, error){
+      resolveDetailFailure(ensureVehicleReleaseEntry(carNumber), error);
+    },
+    storeReleaseHistory: function(carNumber, rows){
+      resolveReleaseHistorySuccess(ensureVehicleReleaseEntry(carNumber), rows);
+    },
+    storeReleaseHistoryError: function(carNumber, error){
+      resolveReleaseHistoryFailure(ensureVehicleReleaseEntry(carNumber), error);
+    },
+    storeInUseHistory: function(carNumber, teamName, rows){
+      const entry = ensureVehicleReleaseEntry(carNumber);
+      resolveInUseHistorySuccess(ensureInUseBucket(entry, teamName), rows);
+    },
+    storeInUseHistoryError: function(carNumber, teamName, error){
+      const entry = ensureVehicleReleaseEntry(carNumber);
+      resolveInUseHistoryFailure(ensureInUseBucket(entry, teamName), error);
+    }
   };
 
   function setupVehicleMatchPopup(){
@@ -558,6 +916,7 @@
       vehicleMatchPopupState.lastSummary = summary.textContent;
     }
     vehicleMatchPopupState.matches = finalMatches.slice();
+    prefetchVehicleReleaseData(vehicleMatchPopupState.matches);
   }
 
   function openVehicleMatchPopup(matches, summaryOverride){
@@ -624,16 +983,26 @@
     });
   }
 
-  function maybeShowInitialVehicleMatchPopup(){
+  function maybeShowInitialVehicleMatchPopup(options){
     if (vehicleMatchPopupState.shown) return;
+    const opts = options && typeof options === 'object' ? options : {};
+    const attempt = Number.isFinite(opts.attempt) ? opts.attempt : 0;
     setupVehicleMatchPopup();
     const matches = collectVisibleVehicleMatches();
-    if (!matches.length) return;
+    if (!matches.length) {
+      if (attempt < 6) {
+        setTimeout(function(){ maybeShowInitialVehicleMatchPopup({ attempt: attempt + 1 }); }, 180);
+      }
+      return;
+    }
+    prefetchVehicleReleaseData(matches);
     vehicleMatchPopupState.shown = true;
+    openVehicleMatchPopup(matches);
     ensureVehicleMetaCache(function(){
       const hydrated = collectVisibleVehicleMatches();
-      const list = hydrated && hydrated.length ? hydrated : matches;
-      openVehicleMatchPopup(list);
+      const list = Array.isArray(hydrated) && hydrated.length ? hydrated : matches;
+      populateVehicleMatchPopup(list, vehicleMatchPopupState.lastSummary);
+      prefetchVehicleReleaseData(list);
     });
   }
   window.maybeShowInitialVehicleMatchPopup = maybeShowInitialVehicleMatchPopup;
@@ -798,10 +1167,22 @@
   function normalizeVehicleNumber(value){
     const raw = String(value || '').trim();
     if (!raw) return '';
+    const cache = VEHICLE_NORMALIZE_CACHE.map;
+    if (hasOwn.call(cache, raw)) {
+      return cache[raw];
+    }
     const upper = raw.toUpperCase();
     const stripped = upper.replace(/[^A-Z0-9]/g, '');
-    return stripped || upper;
+    const normalized = stripped || upper;
+    if (VEHICLE_NORMALIZE_CACHE.keys.length >= NORMALIZE_CACHE_LIMIT) {
+      resetNormalizationCache(VEHICLE_NORMALIZE_CACHE);
+    }
+    VEHICLE_NORMALIZE_CACHE.map[raw] = normalized;
+    VEHICLE_NORMALIZE_CACHE.keys.push(raw);
+    return normalized;
   }
+
+  window.invalidateVehicleNormalizationCache = invalidateVehicleNormalizationCache;
 
   function getVehicleMetaSummary(vehicleNumber){
     const rawValue = String(vehicleNumber || '').trim();
@@ -1046,7 +1427,8 @@
     timerId: null,
     statusEl: null,
     styleInjected: false,
-    retryTimer: null
+    retryTimer: null,
+    hasShownLoader: false
   };
   window.beneficiaryVehicleCache = beneficiaryVehicleCacheState;
 
@@ -1077,7 +1459,7 @@
   }
 
   function startBeneficiaryLoader(){
-    if (beneficiaryVehicleCacheState.ready) return;
+    if (beneficiaryVehicleCacheState.ready || beneficiaryVehicleCacheState.hasShownLoader) return;
     ensureBeneficiaryLoaderStyles();
     if (!beneficiaryVehicleCacheState.statusEl) {
       try {
@@ -1098,6 +1480,7 @@
     if (!beneficiaryVehicleCacheState.timerId) {
       beneficiaryVehicleCacheState.timerId = setInterval(updateBeneficiaryLoader, 1000);
     }
+    beneficiaryVehicleCacheState.hasShownLoader = true;
   }
 
   function finishBeneficiaryLoader(){
@@ -1437,20 +1820,26 @@
     if (!opts.force && selectionKey === vehicleMatchPopupState.lastSelectionKey) return;
     vehicleMatchPopupState.lastSelectionKey = selectionKey;
     ensureVehicleInUseDataReady(function(){
-      ensureBeneficiaryVehicleCache();
+      const initialMatches = findAssignmentsForSelection(projectLabel, normalizedTeams);
+      if (!initialMatches.length) return;
+      setupVehicleMatchPopup();
+      prefetchVehicleReleaseData(initialMatches);
+      const summaryParts = [];
+      if (projectLabel) summaryParts.push('Project: ' + projectLabel);
+      if (normalizedTeams.length) {
+        summaryParts.push('Team' + (normalizedTeams.length > 1 ? 's' : '') + ': ' + normalizedTeams.join(', '));
+      }
+      const summaryText = summaryParts.length
+        ? `Found ${initialMatches.length} active vehicle assignment${initialMatches.length === 1 ? '' : 's'} for ${summaryParts.join(' • ')}.`
+        : `Found ${initialMatches.length} active vehicle assignment${initialMatches.length === 1 ? '' : 's'}.`;
+      openVehicleMatchPopup(initialMatches, summaryText);
+
+      try { ensureBeneficiaryVehicleCache(); } catch(_){ /* ignore */ }
       ensureVehicleMetaCache(function(){
-        const matches = findAssignmentsForSelection(projectLabel, normalizedTeams);
-        if (!matches.length) return;
-        setupVehicleMatchPopup();
-        const summaryParts = [];
-        if (projectLabel) summaryParts.push('Project: ' + projectLabel);
-        if (normalizedTeams.length) {
-          summaryParts.push('Team' + (normalizedTeams.length > 1 ? 's' : '') + ': ' + normalizedTeams.join(', '));
-        }
-        const summaryText = summaryParts.length
-          ? `Found ${matches.length} active vehicle assignment${matches.length === 1 ? '' : 's'} for ${summaryParts.join(' • ')}.`
-          : `Found ${matches.length} active vehicle assignment${matches.length === 1 ? '' : 's'}.`;
-        openVehicleMatchPopup(matches, summaryText);
+        const enrichedMatches = findAssignmentsForSelection(projectLabel, normalizedTeams);
+        if (!Array.isArray(enrichedMatches) || !enrichedMatches.length) return;
+        populateVehicleMatchPopup(enrichedMatches, summaryText);
+        prefetchVehicleReleaseData(enrichedMatches);
       });
     });
   }

@@ -2964,6 +2964,18 @@
 
           applyVehicleToSelectedBeneficiaries(carNumber, finalBeneficiaries, benFromContext);
 
+          try {
+            window.invalidateVehicleNormalizationCache?.();
+          } catch (normErr) {
+            console.warn('[VP] Failed to reset vehicle normalization cache after selection', normErr);
+          }
+
+          try {
+            window.applyVehicleInUseAssignmentsToRows?.(true);
+          } catch (applyErr) {
+            console.warn('[VP] Failed to reapply vehicle assignments after selection', applyErr);
+          }
+
           if (window.google && google.script && google.script.run) {
             console.log('[VP] Google Apps Script available - submitting to backend');
             

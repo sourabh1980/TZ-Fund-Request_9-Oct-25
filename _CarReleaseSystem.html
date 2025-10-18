@@ -73,8 +73,11 @@
             <div class="label">Name of Responsible Beneficiary</div>
             <div class="value" id="car-responsible-beneficiary"></div>
 
-            <div class="label">Other Team Members</div>
-            <div class="value" id="car-other-team-members"></div>
+            <div class="label">Other Team Members Using Vehicle</div>
+            <div class="value team-member-list" id="car-team-members-using"></div>
+
+            <div class="label">Other Team Members NOT Using Vehicle</div>
+            <div class="value team-member-list" id="car-team-members-not-using"></div>
         </div>
 
         <!-- History Section -->
@@ -119,6 +122,13 @@
               <select id="release-user-select" class="form-select"></select>
               <div id="release-user-help" class="field-help"></div>
               <div id="release-user-error" class="field-error"></div>
+            </div>
+
+            <div id="user-release-selection" class="user-release-selection" style="display: none;">
+              <div id="userReleaseTableContainer" class="user-release-table"></div>
+              <div id="userReleaseEmptyState" class="user-release-empty" style="display: none;">
+                <p>No active beneficiaries available for release.</p>
+              </div>
             </div>
 
             <div id="release-feedback-fields">
@@ -223,7 +233,7 @@
     }
 
     .modal{
-      width: min(680px, 92vw);
+      width: min(960px, 92vw);
       max-height: 88vh;
       display: flex;
       flex-direction: column;
@@ -346,6 +356,40 @@
       font-weight: 600;
       color: var(--mac-ink-primary);
     }
+    .team-member-list{
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .team-member-pill{
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      background: #e2e8f0;
+      color: #475569;
+      border: 1px solid transparent;
+    }
+    .team-member-pill--using{
+      background: #bbf7d0;
+      color: #166534;
+      border-color: rgba(22,101,52,0.18);
+    }
+    .team-member-pill--not-using{
+      background: #ffe4e6;
+      color: #9f1239;
+      border-color: rgba(244,114,182,0.4);
+    }
+    .team-member-pill--empty{
+      background: transparent;
+      color: #94a3b8;
+      border: 1px dashed rgba(148,163,184,0.5);
+      font-weight: 500;
+      padding: 4px 8px;
+    }
 
     .status-chip{
       display: inline-flex;
@@ -447,7 +491,10 @@
     }
     .rating-display{ display: flex; align-items: center; gap: 12px; }
     .rating-value{ font-size: 24px; font-weight: 700; color: var(--mac-ink-primary); }
-    .stars-display{ display: flex; gap: 4px; color: #f7b500; font-size: 18px; }
+  .stars-display{ display: flex; gap: 4px; font-size: 18px; color: #fbbf24; }
+  .stars-display .star{ color: rgba(250,204,21,0.35); transition: color .2s ease; }
+  .stars-display .star.filled{ color: #f59e0b; }
+  .stars-display--compact{ font-size: 16px; gap: 2px; }
 
     .car-release-section{
       border-radius: 16px;
@@ -461,6 +508,60 @@
     .form-group{ display: flex; flex-direction: column; gap: 10px; }
     .form-label{ font-size: 14px; font-weight: 600; color: var(--mac-ink-primary); }
     .required{ color: var(--mac-red); }
+
+    .user-release-selection{
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 12px 0;
+    }
+    .user-release-table{
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      background: rgba(255,255,255,0.78);
+      max-height: 320px;
+      overflow-y: auto;
+    }
+    .user-release-table table{
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .user-release-table thead th{
+      position: sticky;
+      top: 0;
+      background: #f8fafc;
+      border-bottom: 1px solid #d0d7de;
+      padding: 8px 10px;
+      text-align: left;
+      font-weight: 600;
+      color: #0f172a;
+      z-index: 1;
+    }
+    .user-release-table tbody td{
+      border-bottom: 1px solid #e2e8f0;
+      padding: 8px 10px;
+      color: #1e293b;
+      vertical-align: top;
+    }
+    .user-release-table tbody tr:last-child td{
+      border-bottom: none;
+    }
+    .user-release-beneficiary{
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .user-release-empty{
+      padding: 16px;
+      border-radius: 12px;
+      border: 1px dashed #cbd5f5;
+      background: rgba(148,163,184,0.08);
+      color: #475569;
+      font-size: 13px;
+      text-align: center;
+    }
 
     .form-textarea{
       min-height: 110px;
@@ -505,11 +606,13 @@
     .char-counter{ align-self: flex-end; font-size: 12px; color: var(--mac-ink-muted); }
     .field-error{ font-size: 12px; color: var(--mac-red); min-height: 16px; }
 
-    .stars-input{ display: flex; gap: 8px; font-size: 22px; color: rgba(10,132,255,0.35); cursor: pointer; }
-    .star-input{ transition: transform .18s ease, color .18s ease; }
-    .star-input.active,
-    .star-input:hover,
-    .star-input:hover ~ .star-input{ color: rgba(10,132,255,0.8); }
+  .stars-input{ display: flex; gap: 8px; font-size: 22px; color: rgba(250,204,21,0.32); cursor: pointer; }
+  .star-input{ color: inherit; transition: transform .18s ease, color .18s ease; }
+  .star-input.active,
+  .star-input.filled,
+  .star-input.hover,
+  .star-input:hover,
+  .star-input:hover ~ .star-input{ color: #f59e0b; }
     .star-input:hover{ transform: translateY(-1px); }
     .rating-labels{ display: flex; justify-content: space-between; font-size: 11px; letter-spacing: .3px; text-transform: uppercase; color: var(--mac-ink-muted); }
 
@@ -559,7 +662,7 @@
 
     @media (max-width: 720px){
       .details-grid{ grid-template-columns: 1fr; }
-      .modal{ width: min(600px, 96vw); }
+      .modal{ width: min(640px, 96vw); }
       .footer-actions, .release-actions{ flex-direction: column; align-items: stretch; }
       .window-controls{ left: 16px; top: 16px; }
     }
@@ -626,7 +729,21 @@
         this.releaseMode = 'vehicle'; // 'vehicle' | 'user'
         this.isRemarksRequired = true;
         this.userReleaseHasOtherUsers = false;
-        
+  this.userReleaseFeedbackPending = false;
+        this.historyView = 'summary'; // 'summary' | 'release' | 'in-use'
+        this.lastHistoryData = {
+          summary: null,
+          release: null,
+          inUse: null
+        };
+        this.userReleaseSelection = {
+          rows: [],
+          selected: new Map(),
+          activeUsers: new Map(),
+          listenerAttached: false
+        };
+        this.handleUserReleaseCheckboxChange = this.handleUserReleaseCheckboxChange.bind(this);
+
         this.init();
       }
 
@@ -716,38 +833,104 @@
         this.resetModalState();
         this.populateCarDetails();
         this.showModal();
-        
-          // Fetch responsible beneficiary and other team members from backend
-          const carNumber = this.currentCarData.carNumber || this.currentCarData.car_number || '';
-          if (carNumber) {
+
+        const carNumber = this.currentCarData.carNumber || this.currentCarData.car_number || '';
+        const teamLabel = this.currentCarData.teamName || this.currentCarData.team || '';
+        const prefetch = (typeof window !== 'undefined' && window.vehicleReleasePrefetch)
+          ? window.vehicleReleasePrefetch
+          : null;
+
+        if (this.historyView === 'summary') {
+          this.populateHistoryData();
+        }
+
+        const hydrateFromResult = (result) => {
+          const previousView = this.historyView;
+          if (result && result.ok) {
+            const usingMembers = Array.isArray(result.teamMembersUsing)
+              ? result.teamMembersUsing
+              : (Array.isArray(result.teamMembers) ? result.teamMembers : []);
+            const notUsingMembers = Array.isArray(result.teamMembersNotUsing)
+              ? result.teamMembersNotUsing
+              : [];
+            const mergedData = {
+              ...this.currentCarData,
+              responsibleBeneficiary: result.responsible || '',
+              otherTeamMembers: Array.isArray(result.teamMembers)
+                ? result.teamMembers
+                : usingMembers.slice(),
+              otherTeamMembersUsing: usingMembers,
+              otherTeamMembersNotUsing: notUsingMembers
+            };
+            const candidateData = result.carData ? { ...mergedData, ...result.carData } : mergedData;
+            this.currentCarData = this.normalizeCarData(candidateData);
+          } else {
+            this.currentCarData = this.normalizeCarData({
+              ...this.currentCarData,
+              responsibleBeneficiary: '',
+              otherTeamMembers: [],
+              otherTeamMembersUsing: [],
+              otherTeamMembersNotUsing: []
+            });
+          }
+          this.populateCarDetails();
+          if (previousView !== 'summary') {
+            this.historyView = previousView;
+          }
+        };
+
+        const handleDetailFailure = (error) => {
+          const previousView = this.historyView;
+          this.currentCarData = this.normalizeCarData({
+            ...this.currentCarData,
+            responsibleBeneficiary: '',
+            otherTeamMembers: [],
+            otherTeamMembersUsing: [],
+            otherTeamMembersNotUsing: []
+          });
+          this.populateCarDetails();
+          if (previousView !== 'summary') {
+            this.historyView = previousView;
+          }
+          if (error) {
+            console.error('Failed to retrieve vehicle details for modal:', error);
+          }
+        };
+
+        if (carNumber) {
+          if (prefetch && typeof prefetch.requestDetails === 'function') {
+            const cachedDetails = prefetch.getDetails(carNumber);
+            if (cachedDetails) {
+              hydrateFromResult(cachedDetails);
+            }
+            prefetch.requestDetails(carNumber, {
+              onSuccess: hydrateFromResult,
+              onFailure: handleDetailFailure
+            });
+          } else if (window.google && google.script && google.script.run) {
             google.script.run
               .withSuccessHandler((result) => {
-                if (result && result.ok) {
-                  // Populate new fields
-                  document.getElementById('car-responsible-beneficiary').textContent = result.responsible || 'N/A';
-                  document.getElementById('car-other-team-members').textContent = Array.isArray(result.teamMembers) && result.teamMembers.length > 0 ? result.teamMembers.join(', ') : 'None';
-                  // Also store in currentCarData for release
-                  this.currentCarData.responsibleBeneficiary = result.responsible || '';
-                  this.currentCarData.otherTeamMembers = result.teamMembers || [];
-                } else {
-                  document.getElementById('car-responsible-beneficiary').textContent = 'N/A';
-                  document.getElementById('car-other-team-members').textContent = 'None';
-                }
-                if (result && result.ok && result.carData) {
-                  this.currentCarData = this.normalizeCarData({ ...this.currentCarData, ...result.carData });
-                }
-                this.populateCarDetails();
+                hydrateFromResult(result);
+                try { window.vehicleReleasePrefetch && window.vehicleReleasePrefetch.storeDetails(carNumber, result); } catch(_){ /* ignore */ }
               })
               .withFailureHandler((err) => {
-                document.getElementById('car-responsible-beneficiary').textContent = 'N/A';
-                document.getElementById('car-other-team-members').textContent = 'None';
-                console.error('Failed to retrieve vehicle details for modal:', err);
+                handleDetailFailure(err);
+                try { window.vehicleReleasePrefetch && window.vehicleReleasePrefetch.storeDetailsError(carNumber, err); } catch(_){ /* ignore */ }
               })
               .getCarReleaseDetails(carNumber);
           } else {
-            document.getElementById('car-responsible-beneficiary').textContent = 'N/A';
-            document.getElementById('car-other-team-members').textContent = 'None';
+            handleDetailFailure(null);
           }
+
+          if (prefetch && typeof prefetch.requestReleaseHistory === 'function') {
+            prefetch.requestReleaseHistory(carNumber);
+          }
+          if (prefetch && typeof prefetch.requestInUseHistory === 'function') {
+            prefetch.requestInUseHistory(carNumber, teamLabel);
+          }
+        } else {
+          handleDetailFailure(null);
+        }
       }
 
       closeModal() {
@@ -776,11 +959,43 @@
           stars: data.stars || 0,
           submitter: data.submitter || 'Current User',
           responsibleBeneficiary: data.responsibleBeneficiary || data['R.Beneficiary'] || '',
+          otherTeamMembers: Array.isArray(data.otherTeamMembers) ? data.otherTeamMembers : [],
+          otherTeamMembersUsing: Array.isArray(data.otherTeamMembersUsing)
+            ? data.otherTeamMembersUsing
+            : (Array.isArray(data.otherTeamMembers) ? data.otherTeamMembers : []),
+          otherTeamMembersNotUsing: Array.isArray(data.otherTeamMembersNotUsing)
+            ? data.otherTeamMembersNotUsing
+            : [],
           history: data.history || {
             remarks: [],
             averageRating: 0
           }
         };
+      }
+
+      applySupplementalCarData(extraData) {
+        if (!extraData || typeof extraData !== 'object') return;
+        const current = this.currentCarData ? { ...this.currentCarData } : null;
+        if (!current) {
+          this.currentCarData = this.normalizeCarData(extraData);
+          this.populateCarDetails();
+          return;
+        }
+        const merged = { ...current };
+        const keys = Object.keys(extraData);
+        keys.forEach((key) => {
+          if (!Object.prototype.hasOwnProperty.call(extraData, key)) return;
+          const value = extraData[key];
+          if (value === undefined) return;
+          const primary = key === 'project' || key === 'projectName' || key === 'team' || key === 'teamName' || key === 'carNumber';
+          if (primary) {
+            if (value) merged[key] = value;
+            return;
+          }
+          merged[key] = value;
+        });
+        this.currentCarData = this.normalizeCarData(merged);
+        this.populateCarDetails();
       }
 
       getCurrentUsers() {
@@ -796,13 +1011,32 @@
           users.push(trimmed);
         };
         addUser(this.currentCarData.responsibleBeneficiary);
-        if (Array.isArray(this.currentCarData.otherTeamMembers)) {
+        if (Array.isArray(this.currentCarData.otherTeamMembersUsing) && this.currentCarData.otherTeamMembersUsing.length) {
+          this.currentCarData.otherTeamMembersUsing.forEach(addUser);
+        } else if (Array.isArray(this.currentCarData.otherTeamMembers)) {
           this.currentCarData.otherTeamMembers.forEach(addUser);
         }
         if (!users.length && Array.isArray(this.currentCarData.lastUsers)) {
           this.currentCarData.lastUsers.forEach(addUser);
         }
         return users;
+      }
+
+      renderTeamMemberPills(containerId, members, variant) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        const list = Array.isArray(members)
+          ? members.map(name => String(name || '').trim()).filter(Boolean)
+          : [];
+        if (!list.length) {
+          container.innerHTML = '<span class="team-member-pill team-member-pill--empty">None</span>';
+          return;
+        }
+        const pillClass = variant === 'using' ? 'team-member-pill--using' : 'team-member-pill--not-using';
+        const html = list
+          .map(name => `<span class="team-member-pill ${pillClass}">${this.escapeHtml(name)}</span>`)
+          .join('');
+        container.innerHTML = html;
       }
 
       populateCarDetails() {
@@ -821,11 +1055,8 @@
         if (responsibleEl) {
           responsibleEl.textContent = data.responsibleBeneficiary || 'N/A';
         }
-        const otherMembersEl = document.getElementById('car-other-team-members');
-        if (otherMembersEl) {
-          const others = Array.isArray(data.otherTeamMembers) ? data.otherTeamMembers.filter(Boolean) : [];
-          otherMembersEl.textContent = others.length ? others.join(', ') : 'None';
-        }
+        this.renderTeamMemberPills('car-team-members-using', data.otherTeamMembersUsing, 'using');
+        this.renderTeamMemberPills('car-team-members-not-using', data.otherTeamMembersNotUsing, 'not-using');
         
         // Status
         const statusEl = document.getElementById('car-status');
@@ -833,7 +1064,13 @@
         statusEl.className = `status-chip status--${(data.status || 'IN USE').toLowerCase().replace(' ', '-')}`;
         
         // History data
-        this.populateHistoryData();
+        if (this.historyView === 'summary') {
+          this.populateHistoryData();
+        } else if (this.historyView === 'in-use' && Array.isArray(this.lastHistoryData.inUse)) {
+          this.renderHistoryTable(this.lastHistoryData.inUse, 'IN USE History');
+        } else if (this.historyView === 'release' && Array.isArray(this.lastHistoryData.release)) {
+          this.renderHistoryTable(this.lastHistoryData.release, 'RELEASE History');
+        }
       }
 
       populateHistoryData() {
@@ -875,6 +1112,14 @@
         this.releaseMode = 'vehicle';
         this.isRemarksRequired = true;
         this.userReleaseHasOtherUsers = false;
+  this.userReleaseFeedbackPending = false;
+        this.historyView = 'summary';
+        this.lastHistoryData = {
+          summary: null,
+          release: null,
+          inUse: null
+        };
+        this.resetUserReleaseSelection();
         this.restoreHistoryContent();
         
         // Hide sections
@@ -905,6 +1150,12 @@
           confirmBtn.textContent = 'Confirm Release';
           confirmBtn.disabled = true;
         }
+        const responsibleEl = document.getElementById('car-responsible-beneficiary');
+        if (responsibleEl) {
+          responsibleEl.textContent = 'N/A';
+        }
+        this.renderTeamMemberPills('car-team-members-using', [], 'using');
+        this.renderTeamMemberPills('car-team-members-not-using', [], 'not-using');
       }
 
       showModal() {
@@ -991,13 +1242,20 @@
         const userRequiredBadge = document.getElementById('release-user-required');
         const sectionTitle = document.querySelector('#carReleaseSection .section-header h3');
         const confirmBtn = document.getElementById('confirmReleaseBtn');
+        const userSelectionBlock = document.getElementById('user-release-selection');
+        const userSelectElement = document.getElementById('release-user-select');
 
         if (hasUserSelector) {
           this.userReleaseHasOtherUsers = this.getCurrentUsers().length > 1;
-          this.isRemarksRequired = !this.userReleaseHasOtherUsers;
+          this.isRemarksRequired = false;
+          this.userReleaseFeedbackPending = false;
+          this.resetUserReleaseSelection();
+          this.prepareUserReleaseSelection();
         } else {
           this.userReleaseHasOtherUsers = false;
           this.isRemarksRequired = true;
+          this.userReleaseFeedbackPending = false;
+          this.resetUserReleaseSelection();
         }
 
         if (sectionTitle) {
@@ -1008,21 +1266,22 @@
         }
 
         if (userSelector) {
-          userSelector.style.display = hasUserSelector ? 'flex' : 'none';
+          userSelector.style.display = (hasUserSelector && userSelectElement) ? 'none' : 'flex';
         }
         const userHelp = document.getElementById('release-user-help');
         if (userHelp) {
           userHelp.textContent = hasUserSelector
-            ? (this.userReleaseHasOtherUsers
-                ? 'Select the team member to release. Remarks and rating are optional while other users remain.'
-                : 'This is the last user on this vehicle. Please provide remarks and a rating to complete the release.')
+            ? 'Select the beneficiaries to release from the vehicle.'
             : '';
         }
         if (userRequiredBadge) {
-          userRequiredBadge.style.display = hasUserSelector && !this.userReleaseHasOtherUsers ? 'inline' : 'none';
+          userRequiredBadge.style.display = 'none';
         }
         if (feedbackFields) {
           feedbackFields.style.display = this.isRemarksRequired ? 'block' : 'none';
+        }
+        if (userSelectionBlock) {
+          userSelectionBlock.style.display = hasUserSelector ? 'flex' : 'none';
         }
         if (!this.isRemarksRequired) {
           this.selectedRating = 0;
@@ -1057,19 +1316,327 @@
           return;
         }
 
-        const select = document.getElementById('release-user-select');
-        if (select) {
-          select.innerHTML = '';
-          users.forEach(user => {
-            const option = document.createElement('option');
-            option.value = user;
-            option.textContent = user;
-            select.appendChild(option);
-          });
-          select.selectedIndex = 0;
+        this.showReleaseForm('user');
+      }
+
+      resetUserReleaseSelection() {
+        if (!this.userReleaseSelection) {
+          this.userReleaseSelection = {
+            rows: [],
+            selected: new Map(),
+            activeUsers: new Map(),
+            listenerAttached: false
+          };
+        }
+        this.userReleaseSelection.rows = [];
+        this.userReleaseSelection.selected = new Map();
+        this.userReleaseSelection.activeUsers = new Map();
+        this.userReleaseFeedbackPending = false;
+        const container = document.getElementById('userReleaseTableContainer');
+        if (container) {
+          container.innerHTML = '';
+        }
+        const emptyState = document.getElementById('userReleaseEmptyState');
+        if (emptyState) {
+          emptyState.style.display = 'none';
+        }
+        this.updateUserReleaseConfirmState();
+      }
+
+      prepareUserReleaseSelection() {
+        const container = document.getElementById('userReleaseTableContainer');
+        const emptyState = document.getElementById('userReleaseEmptyState');
+        if (emptyState) {
+          emptyState.style.display = 'none';
+        }
+        if (container) {
+          container.innerHTML = '<div style="padding:16px;color:#475569;">Loading current beneficiaries...</div>';
         }
 
-        this.showReleaseForm('user');
+        const cachedRows = Array.isArray(this.lastHistoryData.inUse) ? this.lastHistoryData.inUse : null;
+        if (cachedRows && cachedRows.length >= 2) {
+          this.renderUserReleaseSelectionTable(cachedRows);
+          return;
+        }
+        this.fetchInUseHistoryForSelection();
+      }
+
+      fetchInUseHistoryForSelection() {
+        const carNumber = this.currentCarData?.carNumber || this.currentCarData?.car_number || '';
+        const teamName = this.currentCarData?.teamName || this.currentCarData?.team || '';
+        const container = document.getElementById('userReleaseTableContainer');
+        const emptyState = document.getElementById('userReleaseEmptyState');
+        const prefetch = (typeof window !== 'undefined' && window.vehicleReleasePrefetch)
+          ? window.vehicleReleasePrefetch
+          : null;
+
+        const handleSuccess = (rows) => {
+          if (Array.isArray(rows)) {
+            this.lastHistoryData.inUse = rows;
+            this.renderUserReleaseSelectionTable(rows);
+          } else {
+            if (container) {
+              container.innerHTML = '<div style="padding:16px;color:#dc2626;">Unexpected data returned for IN USE history.</div>';
+            }
+          }
+        };
+
+        const handleFailure = (error) => {
+          console.error('Failed to load IN USE history for selection:', error);
+          if (container) {
+            const message = error && error.message ? error.message : (error ? String(error) : 'Unknown error');
+            container.innerHTML = `<div style="padding:16px;color:#dc2626;">Failed to load history: ${this.escapeHtml(message)}</div>`;
+          }
+          if (emptyState) {
+            emptyState.style.display = 'block';
+          }
+        };
+
+        if (!carNumber) {
+          if (container) {
+            container.innerHTML = '<div style="padding:16px;color:#475569;">No car selected.</div>';
+          }
+          return;
+        }
+
+        if (prefetch && typeof prefetch.requestInUseHistory === 'function') {
+          const cached = prefetch.getInUseHistory(carNumber, teamName);
+          if (Array.isArray(cached)) {
+            handleSuccess(cached);
+            return;
+          }
+          prefetch.requestInUseHistory(carNumber, teamName, {
+            onSuccess: handleSuccess,
+            onFailure: handleFailure
+          });
+          return;
+        }
+
+        google.script.run
+          .withSuccessHandler((data) => {
+            try { window.vehicleReleasePrefetch && window.vehicleReleasePrefetch.storeInUseHistory(carNumber, teamName, data); } catch(_){ /* ignore */ }
+            handleSuccess(data);
+          })
+          .withFailureHandler((error) => {
+            try { window.vehicleReleasePrefetch && window.vehicleReleasePrefetch.storeInUseHistoryError(carNumber, teamName, error); } catch(_){ /* ignore */ }
+            handleFailure(error);
+          })
+          .getInUseHistoryForcedWorking(carNumber, teamName);
+      }
+
+      renderUserReleaseSelectionTable(rows) {
+        const container = document.getElementById('userReleaseTableContainer');
+        const emptyState = document.getElementById('userReleaseEmptyState');
+        if (!container) return;
+
+        if (!Array.isArray(rows) || rows.length < 2) {
+          container.innerHTML = '<div style="padding:16px;color:#475569;">No IN USE history available.</div>';
+          if (emptyState) {
+            emptyState.style.display = 'block';
+          }
+          this.updateUserReleaseConfirmState();
+          return;
+        }
+
+        const headerRow = Array.isArray(rows[0]) ? rows[0] : [];
+        const beneficiaryIndex = this.findColumnIndex(headerRow, [
+          'R.Beneficiary',
+          'Responsible beneficiary',
+          'Name of responsible beneficiary',
+          'Beneficiary',
+          'Member'
+        ]);
+
+        if (beneficiaryIndex === -1) {
+          container.innerHTML = '<div style="padding:16px;color:#dc2626;">Unable to locate beneficiary column in history data.</div>';
+          if (emptyState) {
+            emptyState.style.display = 'block';
+          }
+          this.updateUserReleaseConfirmState();
+          return;
+        }
+
+        const activeUsersList = this.getCurrentUsers();
+        const activeUsersMap = new Map();
+        activeUsersList.forEach((name) => {
+          const trimmed = String(name || '').trim();
+          if (!trimmed) return;
+          const key = trimmed.toLowerCase();
+          if (!activeUsersMap.has(key)) {
+            activeUsersMap.set(key, trimmed);
+          }
+        });
+        this.userReleaseSelection.activeUsers = activeUsersMap;
+
+        const processedRows = rows.map(row => Array.isArray(row) ? [...row] : row);
+        const headerCopy = processedRows[0];
+        const inUseDateColumnIndex = this.findColumnIndex(headerCopy, [
+          'Date and time of entry',
+          'Date of entry',
+          'Date'
+        ]);
+        const daysColumnIndex = this.findColumnIndex(headerCopy, ['Days in Use']);
+        if (inUseDateColumnIndex !== -1) {
+          for (let i = 1; i < processedRows.length; i++) {
+            const row = processedRows[i];
+            if (!Array.isArray(row)) continue;
+            row[inUseDateColumnIndex] = this.formatDateForDisplay(row[inUseDateColumnIndex]);
+          }
+        }
+
+        if (emptyState) {
+          emptyState.style.display = activeUsersMap.size ? 'none' : 'block';
+        }
+        if (!activeUsersMap.size) {
+          container.innerHTML = '<div style="padding:16px;color:#475569;">No active beneficiaries found for this vehicle.</div>';
+          this.updateUserReleaseConfirmState();
+          return;
+        }
+
+        const columnsToRemove = ['Vehicle Number', 'Make', 'Model', 'Category', 'Usage Type', 'Owner'];
+        const columnsToKeep = [];
+        headerCopy.forEach((header, index) => {
+          if (!columnsToRemove.includes(header)) {
+            columnsToKeep.push(index);
+          }
+        });
+        const beneficiaryFilteredIndex = columnsToKeep.indexOf(beneficiaryIndex);
+        if (beneficiaryFilteredIndex === -1) {
+          container.innerHTML = '<div style="padding:16px;color:#dc2626;">Unable to prepare selection table.</div>';
+          if (emptyState) {
+            emptyState.style.display = 'block';
+          }
+          this.updateUserReleaseConfirmState();
+          return;
+        }
+
+        const filteredRows = processedRows.map(row => {
+          return Array.isArray(row) ? columnsToKeep.map(index => row[index]) : row;
+        });
+
+        const headerCells = filteredRows[0].map(h => `<th>${this.escapeHtml(String(h || ''))}</th>`);
+        const renderedKeys = new Set();
+        let primaryDaysDisplay = '';
+        if (daysColumnIndex !== -1 && rows.length > 1) {
+          const originalDays = rows[1][daysColumnIndex];
+          if (originalDays) primaryDaysDisplay = originalDays;
+        }
+
+        const detailItems = [];
+        if (this.currentCarData) {
+          const makeModel = `${this.currentCarData.make || ''} ${this.currentCarData.model || ''}`.trim();
+          let daysLabel = 'N/A';
+          if (primaryDaysDisplay) {
+            const numericValue = parseInt(String(primaryDaysDisplay).replace(/[^0-9]/g, ''), 10);
+            if (Number.isFinite(numericValue) && numericValue > 0) {
+              daysLabel = `${numericValue} day${numericValue === 1 ? '' : 's'}`;
+            } else {
+              daysLabel = String(primaryDaysDisplay).trim();
+            }
+          }
+          detailItems.push(`Vehicle: ${this.escapeHtml(this.currentCarData.carNumber || 'N/A')}`);
+          detailItems.push(`Make & Model: ${this.escapeHtml(makeModel || 'N/A')}`);
+          detailItems.push(`Category: ${this.escapeHtml(this.currentCarData.category || 'N/A')}`);
+          detailItems.push(`Usage Type: ${this.escapeHtml(this.currentCarData.usageType || 'N/A')}`);
+          detailItems.push(`Owner: ${this.escapeHtml(this.currentCarData.owner || 'N/A')}`);
+          detailItems.push(`Days in Use: ${this.escapeHtml(daysLabel)}`);
+        }
+
+        const detailHtml = detailItems.length
+          ? `<div style="background-color:#f8f9fa;padding:10px 12px;margin-bottom:12px;border-radius:6px;border-left:3px solid #0ea5e9;font-size:12px;color:#334155;display:flex;flex-wrap:wrap;gap:10px;">${detailItems.join(' <span style="opacity:0.45;">&bull;</span> ')}</div>`
+          : '';
+
+        const rowsHtml = [];
+        const headerRowHtml = `<tr>${headerCells.join('')}</tr>`;
+        rowsHtml.push(headerRowHtml);
+
+        const summaryHeaderNormalized = filteredRows[0].map(header => String(header || '').toLowerCase());
+        const statusColumnIndex = summaryHeaderNormalized.findIndex(header => header.includes('status'));
+        const ratingColumnIndex = summaryHeaderNormalized.findIndex(header => header.includes('rating'));
+
+        for (let i = 1; i < filteredRows.length; i++) {
+          const row = filteredRows[i];
+          if (!Array.isArray(row)) continue;
+          let rowHtml = '';
+          for (let c = 0; c < row.length; c++) {
+            const cellValue = row[c];
+            const rawText = cellValue == null ? '' : String(cellValue);
+            let cellContent = this.escapeHtml(rawText);
+
+            if (c === statusColumnIndex && rawText.trim().toUpperCase() === 'IN USE') {
+              cellContent = `<span class="status-pill status-pill--in-use">${cellContent}</span>`;
+            } else if (c === ratingColumnIndex) {
+              cellContent = this.renderRatingStars(rawText);
+            }
+
+            if (c === beneficiaryFilteredIndex) {
+              const beneficiaryName = rawText.trim();
+              const key = beneficiaryName.toLowerCase();
+              const isActive = beneficiaryName && activeUsersMap.has(key);
+              if (isActive && !renderedKeys.has(key)) {
+                renderedKeys.add(key);
+                const checkboxId = `user-release-${key.replace(/[^a-z0-9]+/g, '-') || 'beneficiary'}-${i}`;
+                cellContent = `
+                  <label class="user-release-beneficiary" for="${checkboxId}">
+                    <input
+                      type="checkbox"
+                      id="${checkboxId}"
+                      class="user-release-checkbox"
+                      data-beneficiary-key="${this.escapeHtml(key)}"
+                      data-beneficiary-name="${this.escapeHtml(activeUsersMap.get(key))}"
+                    />
+                    <span>${this.escapeHtml(activeUsersMap.get(key) || beneficiaryName)}</span>
+                  </label>
+                `;
+              } else if (isActive) {
+                cellContent = `<span>${this.escapeHtml(activeUsersMap.get(key) || beneficiaryName)}</span>`;
+              }
+            }
+
+            rowHtml += `<td>${cellContent}</td>`;
+          }
+          rowsHtml.push(`<tr>${rowHtml}</tr>`);
+        }
+
+        container.innerHTML = `${detailHtml}<table><thead>${rowsHtml[0]}</thead><tbody>${rowsHtml.slice(1).join('')}</tbody></table>`;
+        this.userReleaseSelection.rows = rows;
+        this.userReleaseSelection.selected = new Map();
+        this.updateUserReleaseConfirmState();
+
+        if (!this.userReleaseSelection.listenerAttached) {
+          container.addEventListener('change', this.handleUserReleaseCheckboxChange);
+          this.userReleaseSelection.listenerAttached = true;
+        }
+      }
+
+      handleUserReleaseCheckboxChange(event) {
+        const target = event.target;
+        if (!target || !target.classList.contains('user-release-checkbox')) {
+          return;
+        }
+        const key = target.getAttribute('data-beneficiary-key');
+        const name = target.getAttribute('data-beneficiary-name') || '';
+        if (!key) return;
+        if (target.checked) {
+          this.userReleaseSelection.selected.set(key, name || key);
+        } else {
+          this.userReleaseSelection.selected.delete(key);
+        }
+        this.updateUserReleaseConfirmState();
+      }
+
+      updateUserReleaseConfirmState() {
+        const confirmBtn = document.getElementById('confirmReleaseBtn');
+        if (!confirmBtn) return;
+        if (this.releaseMode === 'user') {
+          if (this.isRemarksRequired) {
+            this.validateForm();
+          } else {
+            const hasSelection = this.userReleaseSelection.selected.size > 0;
+            confirmBtn.disabled = !hasSelection;
+            this.showError('release-user-error', hasSelection ? '' : 'Please select at least one beneficiary.');
+          }
+        }
       }
 
       hideReleaseForm() {
@@ -1077,6 +1644,7 @@
         this.releaseMode = 'vehicle';
         this.isRemarksRequired = true;
         this.userReleaseHasOtherUsers = false;
+        this.userReleaseFeedbackPending = false;
         
         // Hide release section
         document.getElementById('carReleaseSection').style.display = 'none';
@@ -1107,6 +1675,11 @@
         if (feedbackFields) {
           feedbackFields.style.display = 'block';
         }
+        const userSelectionBlock = document.getElementById('user-release-selection');
+        if (userSelectionBlock) {
+          userSelectionBlock.style.display = 'none';
+        }
+        this.resetUserReleaseSelection();
         const sectionTitle = document.querySelector('#carReleaseSection .section-header h3');
         if (sectionTitle) {
           sectionTitle.textContent = 'Release Vehicle';
@@ -1138,16 +1711,18 @@
 
       validateForm() {
         const confirmBtn = document.getElementById('confirmReleaseBtn');
-        const userSelect = document.getElementById('release-user-select');
-
-        if (this.releaseMode === 'user' && !this.isRemarksRequired) {
-          const selectedUser = userSelect ? String(userSelect.value || '').trim() : '';
-          const isValid = !!selectedUser;
-          this.showError('release-user-error', isValid ? '' : 'Please select a user');
+        if (this.releaseMode === 'user') {
+          const selectedCount = this.userReleaseSelection && this.userReleaseSelection.selected
+            ? this.userReleaseSelection.selected.size
+            : 0;
+          const hasSelection = selectedCount > 0;
+          this.showError('release-user-error', hasSelection ? '' : 'Please select at least one beneficiary');
           if (confirmBtn) {
-            confirmBtn.disabled = !isValid;
+            confirmBtn.disabled = !hasSelection;
           }
-          return isValid;
+          if (!this.isRemarksRequired) {
+            return hasSelection;
+          }
         }
 
         const remarksEl = document.getElementById('release-remarks');
@@ -1157,9 +1732,11 @@
         let isValid = remarksValid && ratingValid;
 
         if (this.releaseMode === 'user') {
-          const selectedUser = userSelect ? String(userSelect.value || '').trim() : '';
-          const userValid = !!selectedUser;
-          this.showError('release-user-error', userValid ? '' : 'Please select a user');
+          const selectedCount = this.userReleaseSelection && this.userReleaseSelection.selected
+            ? this.userReleaseSelection.selected.size
+            : 0;
+          const userValid = selectedCount > 0;
+          this.showError('release-user-error', userValid ? '' : 'Please select at least one beneficiary');
           isValid = isValid && userValid;
         } else {
           this.showError('release-user-error', '');
@@ -1229,13 +1806,28 @@
         });
       }
 
-      handlePostReleaseRefresh(carNumber) {
+      handlePostReleaseRefresh(carNumber, teamName = '') {
         const carValue = String(carNumber || '').trim();
         if (!carValue) {
           return;
         }
 
         this.pruneVehicleInUseLocalState(carValue);
+
+        try {
+          window.invalidateVehicleNormalizationCache?.();
+        } catch (normErr) {
+          console.warn('Failed to reset vehicle normalization cache', normErr);
+        }
+
+        try {
+          window.vehicleReleasePrefetch?.invalidate?.(carValue);
+          if (teamName) {
+            window.vehicleReleasePrefetch?.invalidateTeam?.(carValue, teamName);
+          }
+        } catch (prefetchErr) {
+          console.warn('Failed to invalidate vehicle release prefetch cache', prefetchErr);
+        }
 
         try {
           window.vehicleAssignmentManager?.clear(carValue);
@@ -1320,12 +1912,12 @@
             const refSuffix = result.refNumber ? ` Reference: ${result.refNumber}` : '';
             this.showSuccessMessage(`Vehicle released successfully!${refSuffix}`);
 
-            this.handlePostReleaseRefresh(releaseData.carNumber);
+            this.handlePostReleaseRefresh(
+              releaseData.carNumber,
+              releaseData.teamName || releaseData.team || ''
+            );
 
-            // Close modal after delay
-            setTimeout(() => {
-              this.closeModal();
-            }, 2000);
+            this.closeModal();
           } else {
             throw new Error(result.error || 'Unknown error occurred');
           }
@@ -1340,21 +1932,55 @@
       }
 
       async confirmUserRelease() {
-        const select = document.getElementById('release-user-select');
-        const selectedUser = select ? String(select.value || '').trim() : '';
-        if (!selectedUser) {
-          this.showError('release-user-error', 'Please select a user');
+        const selectedUsers = this.userReleaseSelection && this.userReleaseSelection.selected
+          ? Array.from(this.userReleaseSelection.selected.values())
+          : [];
+        if (!selectedUsers.length) {
+          this.showError('release-user-error', 'Please select at least one beneficiary');
           this.validateForm();
           return;
         }
 
-        if (this.isRemarksRequired && !this.validateForm()) {
+        const confirmBtn = document.getElementById('confirmReleaseBtn');
+        const originalText = confirmBtn ? confirmBtn.textContent : '';
+
+        if (!this.userReleaseFeedbackPending) {
+          const confirmMessage = selectedUsers.length === 1
+            ? `Release ${selectedUsers[0]} from vehicle ${this.currentCarData.carNumber}?`
+            : `Release ${selectedUsers.length} beneficiaries from vehicle ${this.currentCarData.carNumber}?`;
+          if (!window.confirm(confirmMessage)) {
+            return;
+          }
+
+          this.userReleaseFeedbackPending = true;
+          this.isRemarksRequired = true;
+          const feedbackFields = document.getElementById('release-feedback-fields');
+          if (feedbackFields) {
+            feedbackFields.style.display = 'block';
+          }
+          const userHelp = document.getElementById('release-user-help');
+          if (userHelp) {
+            userHelp.textContent = 'Please provide remarks (min 10 characters) and a rating to complete the release.';
+          }
+          if (confirmBtn) {
+            confirmBtn.textContent = 'Submit Release';
+            confirmBtn.disabled = true;
+          }
+          const remarksEl = document.getElementById('release-remarks');
+          if (remarksEl) {
+            remarksEl.focus({ preventScroll: false });
+          }
+          alert('Please provide remarks and a rating to complete this release.');
+          this.validateForm();
           return;
         }
 
-        const confirmBtn = document.getElementById('confirmReleaseBtn');
-        const originalText = confirmBtn.textContent;
-        const remarksValue = this.isRemarksRequired ? document.getElementById('release-remarks').value.trim() : '';
+        if (!this.validateForm()) {
+          return;
+        }
+
+  const remarksField = document.getElementById('release-remarks');
+  const remarksValue = remarksField ? remarksField.value.trim() : '';
         const payload = {
           scope: 'user',
           carNumber: this.currentCarData.carNumber,
@@ -1367,49 +1993,65 @@
           model: this.currentCarData.model,
           usageType: this.currentCarData.usageType,
           owner: this.currentCarData.owner,
-          user: selectedUser,
+          users: selectedUsers,
           remarks: remarksValue,
           stars: this.isRemarksRequired ? this.selectedRating : 0,
           requireFeedback: this.isRemarksRequired,
           submitter: this.currentCarData.submitter,
           responsibleBeneficiary: this.currentCarData.responsibleBeneficiary || '',
-          otherTeamMembers: this.currentCarData.otherTeamMembers || [],
+          teamMembers: Array.isArray(this.currentCarData.otherTeamMembers) ? this.currentCarData.otherTeamMembers : [],
+          otherTeamMembers: Array.isArray(this.currentCarData.otherTeamMembers) ? this.currentCarData.otherTeamMembers : [],
+          otherTeamMembersUsing: Array.isArray(this.currentCarData.otherTeamMembersUsing) ? this.currentCarData.otherTeamMembersUsing : [],
+          otherTeamMembersNotUsing: Array.isArray(this.currentCarData.otherTeamMembersNotUsing) ? this.currentCarData.otherTeamMembersNotUsing : [],
           lastUsers: this.currentCarData.lastUsers || []
         };
 
         try {
-          confirmBtn.classList.add('loading');
-          confirmBtn.disabled = true;
+          if (confirmBtn) {
+            confirmBtn.classList.add('loading');
+            confirmBtn.disabled = true;
+          }
 
           const result = await this.submitUserRelease(payload);
-          if (result.ok) {
-            if (result.partial) {
-              this.showSuccessMessage(`Released ${selectedUser} from vehicle ${this.currentCarData.carNumber}.`);
-              this.removeUserFromCurrentData(selectedUser);
-              this.hideReleaseForm();
-              this.populateCarDetails();
-              this.handlePostReleaseRefresh(payload.carNumber);
-            } else {
+          if (result && result.ok) {
+            const releasedList = Array.isArray(result.releasedUsers) && result.releasedUsers.length
+              ? result.releasedUsers
+              : selectedUsers;
+            releasedList.forEach((name) => this.removeUserFromCurrentData(name));
+            this.populateCarDetails();
+            this.handlePostReleaseRefresh(
+              payload.carNumber,
+              payload.teamName || payload.team || ''
+            );
+            const message = releasedList.length === 1
+              ? `Released ${releasedList[0]} from vehicle ${this.currentCarData.carNumber}.`
+              : `Released ${releasedList.length} beneficiaries from vehicle ${this.currentCarData.carNumber}.`;
+            this.showSuccessMessage(message);
+            if (Array.isArray(result.missingUsers) && result.missingUsers.length) {
+              alert(`The following beneficiaries were skipped because they were not assigned: ${result.missingUsers.join(', ')}`);
+            }
+
+            if (result.partial === false) {
               if (this.originalCarInput) {
                 this.originalCarInput.value = '';
                 try { delete this.originalCarInput.dataset.responsibleBeneficiary; } catch(_){ }
               }
-              const refSuffix = result.refNumber ? ` Reference: ${result.refNumber}` : '';
-              this.showSuccessMessage(`Vehicle released successfully!${refSuffix}`);
-              this.handlePostReleaseRefresh(payload.carNumber);
-              setTimeout(() => {
-                this.closeModal();
-              }, 2000);
+              this.closeModal();
+            } else {
+              this.resetUserReleaseSelection();
+              this.hideReleaseForm();
             }
           } else {
-            throw new Error(result.error || 'Unknown error occurred');
+            throw new Error((result && result.error) || 'Unknown error occurred');
           }
         } catch (error) {
           this.showErrorMessage(`User release failed: ${error.message}`);
         } finally {
-          confirmBtn.classList.remove('loading');
-          confirmBtn.disabled = false;
-          confirmBtn.textContent = originalText;
+          if (confirmBtn) {
+            confirmBtn.classList.remove('loading');
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = originalText;
+          }
         }
       }
 
@@ -1472,15 +2114,60 @@
           alert('No car selected');
           return;
         }
-        
+        this.historyView = 'release';
+        const prefetch = (typeof window !== 'undefined' && window.vehicleReleasePrefetch)
+          ? window.vehicleReleasePrefetch
+          : null;
+
+        const showLoadingState = () => {
+          const section = document.getElementById('carHistorySection');
+          const content = document.getElementById('historyContent');
+          if (!section || !content) return;
+          section.style.display = 'block';
+          section.querySelector('.section-header h3').textContent = 'RELEASE History';
+          content.innerHTML = '<div style="padding:16px;color:#475569;">Loading release history...</div>';
+        };
+
+        const handleSuccess = (rows) => {
+          console.log('RELEASE history data received:', rows);
+          this.lastHistoryData.release = Array.isArray(rows) ? rows : null;
+          if (this.historyView === 'release') {
+            this.renderHistoryTable(rows, 'RELEASE History');
+          }
+        };
+
+        const handleFailure = (error) => {
+          console.error('Failed to load RELEASE history:', error);
+          this.lastHistoryData.release = null;
+          const message = error && error.message ? error.message : (error ? String(error) : 'Unknown error');
+          if (this.historyView === 'release') {
+            alert('Failed to load RELEASE history: ' + message);
+          }
+        };
+
+        if (prefetch && typeof prefetch.requestReleaseHistory === 'function') {
+          const cached = prefetch.getReleaseHistory(carNumber);
+          if (Array.isArray(cached)) {
+            handleSuccess(cached);
+            return;
+          }
+          showLoadingState();
+          prefetch.requestReleaseHistory(carNumber, {
+            onSuccess: handleSuccess,
+            onFailure: handleFailure
+          });
+          return;
+        }
+
+        showLoadingState();
         google.script.run
           .withSuccessHandler((data) => {
-            console.log('RELEASE history data received:', data);
-            this.renderHistoryTable(data, 'RELEASE History');
+            try { window.vehicleReleasePrefetch && window.vehicleReleasePrefetch.storeReleaseHistory(carNumber, data); } catch(_){ /* ignore */ }
+            handleSuccess(data);
           })
           .withFailureHandler((error) => {
-            console.error('Failed to load RELEASE history:', error);
-            alert('Failed to load RELEASE history: ' + error.message);
+            try { window.vehicleReleasePrefetch && window.vehicleReleasePrefetch.storeReleaseHistoryError(carNumber, error); } catch(_){ /* ignore */ }
+            handleFailure(error);
           })
           .getReleaseHistoryForcedWorking(carNumber);
       }
@@ -1495,18 +2182,63 @@
           alert('No car selected');
           return;
         }
-        
+        this.historyView = 'in-use';
+        const prefetch = (typeof window !== 'undefined' && window.vehicleReleasePrefetch)
+          ? window.vehicleReleasePrefetch
+          : null;
+
+        const showLoadingState = () => {
+          const section = document.getElementById('carHistorySection');
+          const content = document.getElementById('historyContent');
+          if (!section || !content) return;
+          section.style.display = 'block';
+          section.querySelector('.section-header h3').textContent = 'IN USE History';
+          content.innerHTML = '<div style="padding:16px;color:#475569;">Loading in-use history...</div>';
+        };
+
+        const handleSuccess = (data) => {
+          console.log('IN USE history data received:', data);
+          console.log('Data type:', typeof data);
+          console.log('Is array?:', Array.isArray(data));
+          console.log('Data content:', JSON.stringify(data));
+          this.lastHistoryData.inUse = Array.isArray(data) ? data : null;
+          if (this.historyView === 'in-use') {
+            this.renderHistoryTable(data, 'IN USE History');
+          }
+        };
+
+        const handleFailure = (error) => {
+          console.error('Failed to load IN USE history:', error);
+          this.lastHistoryData.inUse = null;
+          const message = error && error.message ? error.message : (error ? String(error) : 'Unknown error');
+          if (this.historyView === 'in-use') {
+            alert('Failed to load IN USE history: ' + message);
+          }
+        };
+
+        if (prefetch && typeof prefetch.requestInUseHistory === 'function') {
+          const cached = prefetch.getInUseHistory(carNumber, teamName);
+          if (Array.isArray(cached)) {
+            handleSuccess(cached);
+            return;
+          }
+          showLoadingState();
+          prefetch.requestInUseHistory(carNumber, teamName, {
+            onSuccess: handleSuccess,
+            onFailure: handleFailure
+          });
+          return;
+        }
+
+        showLoadingState();
         google.script.run
           .withSuccessHandler((data) => {
-            console.log('IN USE history data received:', data);
-            console.log('Data type:', typeof data);
-            console.log('Is array?:', Array.isArray(data));
-            console.log('Data content:', JSON.stringify(data));
-            this.renderHistoryTable(data, 'IN USE History');
+            try { window.vehicleReleasePrefetch && window.vehicleReleasePrefetch.storeInUseHistory(carNumber, teamName, data); } catch(_){ /* ignore */ }
+            handleSuccess(data);
           })
           .withFailureHandler((error) => {
-            console.error('Failed to load IN USE history:', error);
-            alert('Failed to load IN USE history: ' + error.message);
+            try { window.vehicleReleasePrefetch && window.vehicleReleasePrefetch.storeInUseHistoryError(carNumber, teamName, error); } catch(_){ /* ignore */ }
+            handleFailure(error);
           })
           .getInUseHistoryForcedWorking(carNumber, teamName);
       }
@@ -1638,6 +2370,12 @@
           alert(`Invalid history data received. Expected array, got ${typeof rows}: ${JSON.stringify(rows)}`);
           return;
         }
+
+        if (title === 'IN USE History') {
+          this.lastHistoryData.inUse = rows;
+        } else if (title === 'RELEASE History') {
+          this.lastHistoryData.release = rows;
+        }
         
         if (rows.length === 0) {
           console.log('Empty array received');
@@ -1673,8 +2411,9 @@
         let html = '';
 
         const processedRows = rows.map(row => Array.isArray(row) ? [...row] : row);
-        let daysInUse = null;
         let inUseDateColumnIndex = -1;
+        let daysColumnIndex = -1;
+        let primaryDaysDisplay = '';
 
         if (title === 'IN USE History') {
           const headerRow = Array.isArray(rows[0]) ? rows[0] : [];
@@ -1683,7 +2422,10 @@
             'Date of entry',
             'Date'
           ]);
-          daysInUse = this.calculateDaysInUse(rows, inUseDateColumnIndex);
+          daysColumnIndex = this.findColumnIndex(headerRow, ['Days in Use']);
+          if (daysColumnIndex !== -1 && rows.length > 1) {
+            primaryDaysDisplay = rows[1][daysColumnIndex] || '';
+          }
 
           if (inUseDateColumnIndex !== -1) {
             for (let i = 1; i < processedRows.length; i++) {
@@ -1697,21 +2439,32 @@
         // Add vehicle details for IN USE History
         if (title === 'IN USE History' && this.currentCarData) {
           const makeModel = `${this.currentCarData.make || ''} ${this.currentCarData.model || ''}`.trim();
-          const daysLabel = daysInUse !== null && daysInUse !== undefined
-            ? `${daysInUse} day${daysInUse === 1 ? '' : 's'}`
-            : 'N/A';
+          let daysLabel = 'N/A';
+          if (primaryDaysDisplay) {
+            const numericValue = parseInt(String(primaryDaysDisplay).replace(/[^0-9]/g, ''), 10);
+            if (Number.isFinite(numericValue) && numericValue > 0) {
+              daysLabel = `${numericValue} day${numericValue === 1 ? '' : 's'}`;
+            } else {
+              daysLabel = String(primaryDaysDisplay).trim();
+            }
+          }
+
+          const detailItems = [
+            `Vehicle: ${this.currentCarData.carNumber || 'N/A'}`,
+            `Make & Model: ${makeModel || 'N/A'}`,
+            `Category: ${this.currentCarData.category || 'N/A'}`,
+            `Usage Type: ${this.currentCarData.usageType || 'N/A'}`,
+            `Owner: ${this.currentCarData.owner || 'N/A'}`,
+            `Days in Use: ${daysLabel}`
+          ];
+
+          const detailText = detailItems
+            .map(item => this.escapeHtml(item))
+            .join(' <span style="opacity:0.45;">&bull;</span> ');
 
           html += `
-            <div style="background-color: #f8f9fa; padding: 15px; margin-bottom: 15px; border-radius: 5px; border-left: 4px solid #007bff;">
-              <h4 style="margin: 0 0 10px 0; color: #333;">Vehicle Details</h4>
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
-                <div><strong>Vehicle Number:</strong> ${this.escapeHtml(this.currentCarData.carNumber || 'N/A')}</div>
-                <div><strong>Make & Model:</strong> ${this.escapeHtml(makeModel || 'N/A')}</div>
-                <div><strong>Category:</strong> ${this.escapeHtml(this.currentCarData.category || 'N/A')}</div>
-                <div><strong>Usage Type:</strong> ${this.escapeHtml(this.currentCarData.usageType || 'N/A')}</div>
-                <div><strong>Days in Use:</strong> ${this.escapeHtml(daysLabel)}</div>
-                <div><strong>Owner:</strong> ${this.escapeHtml(this.currentCarData.owner || 'N/A')}</div>
-              </div>
+            <div style="background-color:#f8f9fa;padding:10px 12px;margin-bottom:12px;border-radius:6px;border-left:3px solid #0ea5e9;font-size:12px;color:#334155;display:flex;flex-wrap:wrap;gap:10px;">
+              ${detailText}
             </div>
           `;
         }
@@ -1734,12 +2487,15 @@
           });
         }
 
-        html += `<table style="width:100%;border-collapse:collapse;">`;
-        html += '<tr>' + filteredRows[0].map(h => `<th style="border:1px solid #ccc;padding:4px;">${this.escapeHtml(String(h))}</th>`).join('') + '</tr>';
+        html += `<table style="width:100%;border-collapse:collapse;font-size:13px;line-height:1.45;">`;
+        const headerCells = filteredRows[0].map(h => `<th style="border:1px solid #d0d7de;padding:6px 8px;background:#f8fafc;text-align:left;color:#0f172a;font-size:13px;font-weight:600;">${this.escapeHtml(String(h))}</th>`);
+        html += `<tr>${headerCells.join('')}</tr>`;
 
-        const statusColumnIndex = Array.isArray(filteredRows[0])
-          ? filteredRows[0].findIndex(header => String(header || '').toLowerCase().includes('status'))
-          : -1;
+        const headerRowNormalized = Array.isArray(filteredRows[0])
+          ? filteredRows[0].map(header => String(header || '').toLowerCase())
+          : [];
+        const statusColumnIndex = headerRowNormalized.findIndex(header => header.includes('status'));
+        const ratingColumnIndex = headerRowNormalized.findIndex(header => header.includes('rating'));
 
         for (let i = 1; i < filteredRows.length; i++) {
           const row = filteredRows[i];
@@ -1756,7 +2512,11 @@
               cellContent = `<span class="status-pill status-pill--in-use">${cellContent}</span>`;
             }
 
-            return `<td style="border:1px solid #ccc;padding:4px;">${cellContent}</td>`;
+            if (cellIndex === ratingColumnIndex) {
+              cellContent = this.renderRatingStars(rawText);
+            }
+
+            return `<td style="border:1px solid #e2e8f0;padding:6px 8px;color:#1e293b;">${cellContent}</td>`;
           }).join('');
 
           html += `<tr>${rowHtml}</tr>`;
@@ -1775,6 +2535,25 @@
         div.textContent = text;
         return div.innerHTML;
       }
+
+      renderRatingStars(value) {
+        const normalizedValue = String(value || '').replace(',', '.');
+        const numeric = Number(normalizedValue.replace(/[^0-9.]/g, ''));
+        if (!isFinite(numeric) || numeric <= 0) {
+          const fallback = String(value || '').trim();
+          return fallback ? this.escapeHtml(fallback) : '';
+        }
+        const clamped = Math.max(0, Math.min(5, numeric));
+        const rounded = Math.round(clamped * 10) / 10;
+        const fullStars = Math.floor(clamped);
+        const hasPartial = (clamped - fullStars) >= 0.5 ? 1 : 0;
+        let starsHtml = '';
+        for (let i = 0; i < 5; i++) {
+          const filled = i < fullStars || (hasPartial && i === fullStars);
+          starsHtml += `<span class="star${filled ? ' filled' : ''}">★</span>`;
+        }
+        return `<span class="stars-display stars-display--compact" title="${this.escapeHtml(rounded.toFixed(1))}">${starsHtml}</span>`;
+      }
     }
 
     // Initialize the system
@@ -1783,6 +2562,7 @@
     // Expose global functions for backward compatibility
     window.openCarModal = (data, options) => carReleaseSystem.openModal(data, options);
     window.closeCarModal = () => carReleaseSystem.closeModal();
+  window.applyCarModalSupplementalData = (data) => carReleaseSystem.applySupplementalCarData(data);
     
     // Legacy support for historical modal (redirect to main modal)
     window.openHistoricalModal = (carData, historicalData) => {
