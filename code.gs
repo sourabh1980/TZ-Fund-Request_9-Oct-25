@@ -2023,6 +2023,39 @@ function getCarReleaseDetails(carNumber) {
     return { ok: false, error: 'Required columns missing in CarT_P' };
   }
 
+  const normalizeHeader = function(value){
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+  };
+
+  const normalizedHead = header.map(normalizeHeader);
+
+  const findIndex = function(labels){
+    const list = (Array.isArray(labels) ? labels : [labels])
+      .map(normalizeHeader)
+      .filter(Boolean);
+    if (!list.length) return -1;
+    for (let i = 0; i < normalizedHead.length; i++) {
+      if (!normalizedHead[i]) continue;
+      if (list.indexOf(normalizedHead[i]) !== -1) {
+        return i;
+      }
+    }
+    return -1;
+  };
+
+  const projectIdx = findIndex(['Project', 'Project Name']);
+  const makeIdx = findIndex(['Make', 'Car Make', 'Brand']);
+  const modelIdx = findIndex(['Model', 'Car Model']);
+  const categoryIdx = findIndex(['Category', 'Vehicle Category', 'Category Name', 'Cat']);
+  const usageIdx = findIndex(['Usage Type', 'Usage', 'Use Type']);
+  const ownerIdx = findIndex(['Owner', 'Owner Name', 'Owner Info']);
+  const remarksIdx = findIndex(['Last Users remarks', 'Remarks', 'Feedback']);
+  const starsIdx = findIndex(['Stars', 'Ratings', 'Rating']);
+  const submitIdx = findIndex(['Submitter username', 'Submitter', 'User']);
+
   const splitNames = function(value) {
     if (!value) return [];
     return String(value)
@@ -2036,6 +2069,10 @@ function getCarReleaseDetails(carNumber) {
   let teamName = '';
   let teamKey = '';
   let latestInUseTs = -1;
+  let detailRow = null;
+  let detailRowTs = -1;
+  let fallbackRow = null;
+  let fallbackTs = -1;
 
   for (let i = 1; i < data.length; i++) {
     const row = data[i];
@@ -2043,15 +2080,26 @@ function getCarReleaseDetails(carNumber) {
     rowsForCar.push(row);
     const status = _normStatus_(row[statusIdx]);
     const ts = _parseTs_(row[dateIdx]);
+    if (ts >= fallbackTs) {
+      fallbackTs = ts;
+      fallbackRow = row;
+    }
     const names = splitNames(row[rbenIdx]);
     const candidateTeam = String(row[teamIdx] || '').trim();
     if (status === 'IN USE' && names.length) {
       if (ts >= latestInUseTs) {
         latestInUseTs = ts;
         responsible = names[0];
-  teamName = candidateTeam;
-  teamKey = _normTeamKey(candidateTeam);
+        teamName = candidateTeam;
+        teamKey = _normTeamKey(candidateTeam);
       }
+      if (ts >= detailRowTs) {
+        detailRow = row;
+        detailRowTs = ts;
+      }
+    } else if (!detailRow || ts >= detailRowTs) {
+      detailRow = row;
+      detailRowTs = ts;
     }
   }
 
@@ -2059,12 +2107,16 @@ function getCarReleaseDetails(carNumber) {
     return { ok: true, responsible: '', teamMembersUsing: [], teamMembersNotUsing: [], teamMembers: [] };
   }
 
+  if (!detailRow) {
+    detailRow = fallbackRow;
+  }
+
   if (!teamName) {
-  const fallbackTeam = String(rowsForCar[0][teamIdx] || '').trim();
-  teamName = fallbackTeam;
-  teamKey = _normTeamKey(fallbackTeam);
+    const fallbackTeam = detailRow ? String(detailRow[teamIdx] || '').trim() : String(rowsForCar[0][teamIdx] || '').trim();
+    teamName = fallbackTeam;
+    teamKey = _normTeamKey(fallbackTeam);
     if (!responsible) {
-      const fallbackNames = splitNames(rowsForCar[0][rbenIdx]);
+      const fallbackNames = splitNames(detailRow ? detailRow[rbenIdx] : rowsForCar[0][rbenIdx]);
       if (fallbackNames.length) {
         responsible = fallbackNames[0];
       }
@@ -2159,13 +2211,52 @@ function getCarReleaseDetails(carNumber) {
   sortNames(teamMembersUsing);
   sortNames(teamMembersNotUsing);
 
+  const readString = function(idx){
+    if (idx < 0 || !detailRow) return '';
+    const value = detailRow[idx];
+    if (value == null) return '';
+    if (value instanceof Date) return Utilities.formatDate(value, TZ(), 'yyyy-MM-dd HH:mm');
+    return String(value).trim();
+  };
+
+  const starValue = function(idx){
+    if (idx < 0 || !detailRow) return 0;
+    const raw = detailRow[idx];
+    const num = Number(raw);
+    return Number.isFinite(num) ? num : 0;
+  };
+
+  const projectValue = readString(projectIdx);
+  const teamValue = teamName || readString(teamIdx);
+  const statusValue = detailRow && statusIdx >= 0 ? _normStatus_(detailRow[statusIdx]) || '' : '';
+
+  const carData = {
+    project: projectValue,
+    projectName: projectValue,
+    team: teamValue,
+    teamName: teamValue,
+    carNumber: targetCar,
+    category: readString(categoryIdx),
+    usageType: readString(usageIdx),
+    owner: readString(ownerIdx),
+    make: readString(makeIdx),
+    model: readString(modelIdx),
+    status: statusValue,
+    lastUsers: readString(rbenIdx),
+    remarks: readString(remarksIdx),
+    stars: starValue(starsIdx),
+    submitter: readString(submitIdx)
+  };
+
   return {
     ok: true,
     responsible: responsible || '',
-    team: teamName || '',
+    team: teamValue || '',
+    project: projectValue || '',
     teamMembersUsing: teamMembersUsing,
     teamMembersNotUsing: teamMembersNotUsing,
-    teamMembers: teamMembersUsing.slice()
+    teamMembers: teamMembersUsing.slice(),
+    carData: carData
   };
 }
 /** 
@@ -2980,23 +3071,26 @@ function submitCarRelease(releaseData) {
     };
 
     addTeamMember(releaseData.responsibleBeneficiary);
-    if (Array.isArray(releaseData.teamMembers) && releaseData.teamMembers.length) {
+    if (Array.isArray(releaseData.teamMembersUsing) && releaseData.teamMembersUsing.length) {
+      releaseData.teamMembersUsing.forEach(addTeamMember);
+    } else if (Array.isArray(releaseData.teamMembers) && releaseData.teamMembers.length) {
       releaseData.teamMembers.forEach(addTeamMember);
     } else if (Array.isArray(releaseData.lastUsers) && releaseData.lastUsers.length) {
       releaseData.lastUsers.forEach(addTeamMember);
     } else if (typeof releaseData.lastUsers === 'string' && releaseData.lastUsers) {
       releaseData.lastUsers.split(/[,;\n]+/).forEach(addTeamMember);
     }
-    if (Array.isArray(releaseData.otherTeamMembers) && releaseData.otherTeamMembers.length) {
-      releaseData.otherTeamMembers.forEach(addTeamMember);
-    }
 
     const teamMembersString = teamMembersList.join(', ');
-    const responsibleBeneficiary = teamMembersList.length
+    const primaryBeneficiary = teamMembersList.length
       ? teamMembersList[0]
       : String(releaseData.responsibleBeneficiary || '').trim();
-    releaseData.responsibleBeneficiary = responsibleBeneficiary;
-    releaseData.teamMembers = teamMembersList;
+    const beneficiaryRows = teamMembersList.length
+      ? teamMembersList.slice()
+      : (primaryBeneficiary ? [primaryBeneficiary] : []);
+    const defaultBeneficiaryText = primaryBeneficiary || teamMembersString;
+    releaseData.responsibleBeneficiary = primaryBeneficiary;
+    releaseData.teamMembers = beneficiaryRows;
 
     // Ensure Responsible Beneficiary column exists even on legacy layouts
     (function ensureResponsibleColumn(){
@@ -3073,7 +3167,6 @@ function submitCarRelease(releaseData) {
     const finalTeamLower = finalTeam ? finalTeam.toLowerCase() : '';
 
     const remarksValue = (releaseData.remarks || '').toString().trim();
-    const rBeneficiaryValue = teamMembersString || responsibleBeneficiary;
 
     function assign(labels, value, required) {
       try {
@@ -3089,7 +3182,7 @@ function submitCarRelease(releaseData) {
     assign(['Date and time of entry','Date and time','Timestamp','Date'], tanzaniaTime, true);
     assign(['Project'], finalProject, false);
     assign(['Team','Team Name'], finalTeam, false);
-    assign(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible'], rBeneficiaryValue, false);
+    assign(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible'], defaultBeneficiaryText, false);
     assign(['Vehicle Number','Car Number','Vehicle No','Car No','Car #','Car'], (releaseData.carNumber || '').toString().trim().toUpperCase(), true);
     assign(['Make','Car Make','Brand'], (releaseData.make || '').toString().trim(), false);
     assign(['Model','Car Model'], (releaseData.model || '').toString().trim(), false);
@@ -3103,6 +3196,7 @@ function submitCarRelease(releaseData) {
     assign(['Submitter username','Submitter','User'], submitter.toString().trim(), false);
 
     // Update existing IN USE rows for this vehicle/team to mark all team members as released
+    const idxRefCol = safeIdx(['Reference Number','Ref','Ref Number']);
     const idxVehicleCol = safeIdx(['Vehicle Number','Car Number','Vehicle No','Car No','Car #','Car']);
     const idxStatusCol = safeIdx(['In Use/Release','In Use / release','In Use','Status']);
     const idxTeamCol = safeIdx(['Team','Team Name']);
@@ -3135,9 +3229,12 @@ function submitCarRelease(releaseData) {
         }
 
         const updated = rowValue.slice();
-        updated[idxStatusCol] = 'RELEASE_USER';
-        if (idxRBCol >= 0 && rBeneficiaryValue) {
-          updated[idxRBCol] = rBeneficiaryValue;
+        updated[idxStatusCol] = 'RELEASE';
+        if (idxRBCol >= 0 && defaultBeneficiaryText) {
+          const existingRB = String(rowValue[idxRBCol] || displayValue[idxRBCol] || '').trim();
+          if (!existingRB) {
+            updated[idxRBCol] = defaultBeneficiaryText;
+          }
         }
         if (idxRemarksCol >= 0 && remarksValue) {
           updated[idxRemarksCol] = remarksValue;
@@ -3157,13 +3254,31 @@ function submitCarRelease(releaseData) {
       }
     }
 
+    const beneficiaryTargets = beneficiaryRows.length
+      ? beneficiaryRows
+      : (defaultBeneficiaryText ? [defaultBeneficiaryText] : []);
+    const rowsToInsert = beneficiaryTargets.map(function(name, index){
+      const rowCopy = rowValues.slice();
+      if (idxRBCol >= 0) {
+        rowCopy[idxRBCol] = name || defaultBeneficiaryText || '';
+      }
+      if (idxRefCol >= 0 && index > 0) {
+        rowCopy[idxRefCol] = refNumber + '-' + (index + 1);
+      }
+      return rowCopy;
+    });
+    if (!rowsToInsert.length) {
+      rowsToInsert.push(rowValues.slice());
+    }
+
     const startRow = sh.getLastRow() + 1;
-    sh.getRange(startRow, 1, 1, rowValues.length).setValues([rowValues]);
+    sh.getRange(startRow, 1, rowsToInsert.length, rowValues.length).setValues(rowsToInsert);
 
     try {
+      const summarySource = rowsToInsert[0] || rowValues;
       const summaryObj = {};
       for (let i = 0; i < VEHICLE_SUMMARY_HEADER.length; i++) {
-        summaryObj[VEHICLE_SUMMARY_HEADER[i]] = rowValues[i] || '';
+        summaryObj[VEHICLE_SUMMARY_HEADER[i]] = summarySource[i] || '';
       }
       summaryObj.status = summaryObj.Status || 'RELEASE';
       upsertVehicleSummaryRow('Vehicle_Released', summaryObj, 'vehicle');
@@ -3193,7 +3308,7 @@ function submitCarRelease(releaseData) {
     return {
       ok: true,
       refNumber: refNumber,
-      submitted: 1,
+      submitted: rowsToInsert.length,
       lastRow: startRow,
       timestamp: tanzaniaTime.toISOString()
     };
@@ -3394,7 +3509,7 @@ function releaseCarUser(payload) {
         : `Released ${target.displayName || target.requestedName} on ${Utilities.formatDate(releaseDate, TZ(), 'dd-MMM-yyyy HH:mm')}`;
 
       const updatedRow = currentRow.slice();
-      if (iStatus >= 0) updatedRow[iStatus] = 'RELEASE_USER';
+  if (iStatus >= 0) updatedRow[iStatus] = 'RELEASE';
       if (iRemarks >= 0 && releaseNote) updatedRow[iRemarks] = releaseNote;
       if (iStars >= 0 && starsValue) updatedRow[iStars] = starsValue;
       if (iSubmit >= 0 && submitter) updatedRow[iSubmit] = submitter;
@@ -3471,6 +3586,24 @@ function releaseCarUser(payload) {
       lock.releaseLock();
     }
   }
+}
+
+function assignCarToTeamWithReturn(payload) {
+  const result = assignCarToTeam(payload);
+  if (!result || result.ok === false) {
+    return result;
+  }
+  const beneficiaries = Array.isArray(payload?.beneficiaries)
+    ? payload.beneficiaries.map((name) => String(name || '').trim()).filter(Boolean)
+    : [];
+  let primary = beneficiaries.length ? beneficiaries[0] : String(payload?.responsibleBeneficiary || '').trim();
+  if (!primary && typeof payload?.responsibleBeneficiary === 'string') {
+    primary = payload.responsibleBeneficiary.trim();
+  }
+  return Object.assign({}, result, {
+    assignedBeneficiaries: beneficiaries,
+    responsibleBeneficiary: primary || ''
+  });
 }
 
 /**

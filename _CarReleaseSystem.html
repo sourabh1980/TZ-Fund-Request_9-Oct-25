@@ -112,7 +112,7 @@
         <!-- Release Form Section -->
         <div id="carReleaseSection" class="car-release-section" style="display: none;">
           <div class="section-header">
-            <h3>Release Vehicle</h3>
+            <h3>Release User</h3>
           </div>
           <div class="release-form">
             <div class="form-group" id="release-user-selector" style="display: none;">
@@ -177,13 +177,12 @@
           <button class="btn btn--secondary" id="btnReleaseHistory">RELEASE History</button>
           <button class="btn btn--secondary" id="btnInUseHistory">IN USE History</button>
           <button class="btn btn--secondary" id="releaseUserBtn">Release User</button>
-          <button class="btn btn--danger" id="releaseCarBtn">Release Vehicle</button>
           <button class="btn btn--primary" id="closeModalBtn">Close</button>
         </div>
         
         <div id="releaseActions" class="release-actions" style="display: none;">
           <button class="btn btn--secondary" id="cancelReleaseBtn">Cancel</button>
-          <button class="btn btn--danger" id="confirmReleaseBtn" disabled>Confirm Release</button>
+          <button class="btn btn--danger" id="confirmReleaseBtn" disabled>Release User</button>
         </div>
       </div>
     </div>
@@ -389,6 +388,48 @@
       border: 1px dashed rgba(148,163,184,0.5);
       font-weight: 500;
       padding: 4px 8px;
+    }
+    .team-member-pill--assignable{
+      background: #fee2e2;
+      color: #991b1b;
+      border-color: rgba(220,38,38,0.35);
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+    .team-member-pill--assignable:hover{
+      transform: translateY(-1px);
+      box-shadow: 0 6px 14px rgba(248,113,113,0.26);
+    }
+    .team-member-pill--assignable[aria-disabled="true"]{
+      cursor: not-allowed;
+      opacity: .6;
+      box-shadow: none;
+      transform: none;
+    }
+    .team-member-pill--blocked{
+      background: #bbf7d0;
+      color: #166534;
+      border-color: rgba(22,101,52,0.28);
+      cursor: default;
+    }
+    .team-member-pill--loading{
+      position: relative;
+      pointer-events: none;
+      opacity: .72;
+    }
+    .team-member-pill--loading::after{
+      content: "";
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid rgba(148,163,184,0.55);
+      border-top-color: rgba(79,70,229,0.75);
+      margin-left: 6px;
+      animation: pill-spin .6s linear infinite;
+    }
+    @keyframes pill-spin{
+      from{ transform: rotate(0deg); }
+      to{ transform: rotate(360deg); }
     }
 
     .status-chip{
@@ -726,7 +767,7 @@
         this.originalCarInput = null;
         this.hideTimer = null;
         this.historyContentTemplate = '';
-        this.releaseMode = 'vehicle'; // 'vehicle' | 'user'
+  this.releaseMode = 'user';
         this.isRemarksRequired = true;
         this.userReleaseHasOtherUsers = false;
   this.userReleaseFeedbackPending = false;
@@ -742,6 +783,10 @@
           activeUsers: new Map(),
           listenerAttached: false
         };
+        this.beneficiaryVehicleCache = null;
+        this.beneficiaryInsightsPromise = null;
+        this.beneficiaryInsightsReady = false;
+        this.assigningBeneficiary = null;
         this.handleUserReleaseCheckboxChange = this.handleUserReleaseCheckboxChange.bind(this);
 
         this.init();
@@ -765,10 +810,9 @@
         
         // Footer action buttons
         document.getElementById('btnReleaseHistory')?.addEventListener('click', () => this.showReleaseHistory());
-        document.getElementById('btnInUseHistory')?.addEventListener('click', () => this.showInUseHistory());
-        document.getElementById('viewHistoryBtn')?.addEventListener('click', () => this.toggleHistorySection());
-        document.getElementById('releaseUserBtn')?.addEventListener('click', () => this.showUserReleaseForm());
-        document.getElementById('releaseCarBtn')?.addEventListener('click', () => this.showReleaseForm('vehicle'));
+  document.getElementById('btnInUseHistory')?.addEventListener('click', () => this.showInUseHistory());
+  document.getElementById('viewHistoryBtn')?.addEventListener('click', () => this.toggleHistorySection());
+  document.getElementById('releaseUserBtn')?.addEventListener('click', () => this.showUserReleaseForm());
         document.getElementById('release-user-select')?.addEventListener('change', () => this.validateForm());
         
         // Release form actions
@@ -833,6 +877,18 @@
         this.resetModalState();
         this.populateCarDetails();
         this.showModal();
+
+        const currentCarNumber = this.currentCarData.carNumber || this.currentCarData.car_number || '';
+        this.ensureBeneficiaryVehicleInsights().then(() => {
+          if (!this.isModalOpen()) return;
+          const latestCar = this.currentCarData?.carNumber || this.currentCarData?.car_number || '';
+          if (currentCarNumber && latestCar && currentCarNumber !== latestCar) {
+            return;
+          }
+          this.refreshNotUsingPills();
+        }).catch((err) => {
+          console.warn('Unable to prepare beneficiary vehicle insights', err);
+        });
 
         const carNumber = this.currentCarData.carNumber || this.currentCarData.car_number || '';
         const teamLabel = this.currentCarData.teamName || this.currentCarData.team || '';
@@ -998,6 +1054,21 @@
         this.populateCarDetails();
       }
 
+      normalizeBeneficiaryKey(name) {
+        if (!name && name !== 0) return '';
+        const baseString = String(name);
+        let normalized = baseString;
+        try {
+          normalized = normalized.normalize('NFKD');
+        } catch (_) {
+          // normalize not supported, keep original string
+        }
+        normalized = normalized.replace(/[\u0300-\u036f]/g, '');
+        normalized = normalized.replace(/[\u2018\u2019\u201C\u201D]/g, '');
+        normalized = normalized.replace(/[^a-zA-Z0-9]+/g, ' ');
+        return normalized.trim().replace(/\s+/g, ' ').toLowerCase();
+      }
+
       getCurrentUsers() {
         if (!this.currentCarData) return [];
         const users = [];
@@ -1005,19 +1076,35 @@
         const addUser = (name) => {
           const trimmed = String(name || '').trim();
           if (!trimmed) return;
-          const key = trimmed.toLowerCase();
+          const key = this.normalizeBeneficiaryKey(trimmed);
           if (seen.has(key)) return;
           seen.add(key);
           users.push(trimmed);
         };
-        addUser(this.currentCarData.responsibleBeneficiary);
-        if (Array.isArray(this.currentCarData.otherTeamMembersUsing) && this.currentCarData.otherTeamMembersUsing.length) {
-          this.currentCarData.otherTeamMembersUsing.forEach(addUser);
-        } else if (Array.isArray(this.currentCarData.otherTeamMembers)) {
-          this.currentCarData.otherTeamMembers.forEach(addUser);
+        const addFromValue = (value) => {
+          if (Array.isArray(value)) {
+            value.forEach(addFromValue);
+            return;
+          }
+          if (value == null) return;
+          const stringValue = String(value);
+          if (!stringValue.trim()) return;
+          const separators = /[\n,;]+/;
+          if (separators.test(stringValue)) {
+            stringValue.split(separators).forEach(addUser);
+          } else {
+            addUser(stringValue);
+          }
+        };
+
+        addFromValue(this.currentCarData.responsibleBeneficiary);
+        if (this.currentCarData.otherTeamMembersUsing && this.currentCarData.otherTeamMembersUsing.length) {
+          addFromValue(this.currentCarData.otherTeamMembersUsing);
+        } else if (this.currentCarData.otherTeamMembers) {
+          addFromValue(this.currentCarData.otherTeamMembers);
         }
-        if (!users.length && Array.isArray(this.currentCarData.lastUsers)) {
-          this.currentCarData.lastUsers.forEach(addUser);
+        if (!users.length) {
+          addFromValue(this.currentCarData.lastUsers);
         }
         return users;
       }
@@ -1032,11 +1119,357 @@
           container.innerHTML = '<span class="team-member-pill team-member-pill--empty">None</span>';
           return;
         }
-        const pillClass = variant === 'using' ? 'team-member-pill--using' : 'team-member-pill--not-using';
-        const html = list
-          .map(name => `<span class="team-member-pill ${pillClass}">${this.escapeHtml(name)}</span>`)
-          .join('');
+        if (variant === 'not-using' && !this.beneficiaryInsightsReady) {
+          this.ensureBeneficiaryVehicleInsights().then(() => {
+            if (this.isModalOpen()) {
+              this.refreshNotUsingPills();
+            }
+          }).catch((err) => {
+            console.warn('Beneficiary vehicle insights unavailable', err);
+          });
+        }
+
+        const html = list.map((name) => {
+          const safeName = this.escapeHtml(name);
+          if (variant === 'not-using') {
+            const insight = this.getBeneficiaryAssignmentInfo(name);
+            const classes = ['team-member-pill', 'team-member-pill--not-using'];
+            let attrs = '';
+            if (insight && insight.activeElsewhere) {
+              classes.push('team-member-pill--blocked');
+              const activeList = Array.isArray(insight.activeVehicles) && insight.activeVehicles.length
+                ? `Already using ${insight.activeVehicles.join(', ')}`
+                : 'Already assigned to another vehicle';
+              attrs = ` title="${this.escapeHtml(activeList)}" aria-disabled="true"`;
+            } else {
+              classes.push('team-member-pill--assignable');
+              const descriptor = `Click to assign this vehicle to ${name}`;
+              attrs = ` title="${this.escapeHtml(descriptor)}" data-beneficiary-name="${this.escapeHtml(name)}" data-beneficiary-key="${this.escapeHtml(this.getBeneficiaryCacheKey(name))}"`;
+            }
+            return `<span class="${classes.join(' ')}"${attrs}>${safeName}</span>`;
+          }
+          const pillClass = variant === 'using'
+            ? 'team-member-pill team-member-pill--using'
+            : 'team-member-pill team-member-pill--not-using';
+          return `<span class="${pillClass}">${safeName}</span>`;
+        }).join('');
+
         container.innerHTML = html;
+        if (variant === 'not-using') {
+          this.attachNotUsingPillEvents(container);
+        }
+      }
+
+      refreshNotUsingPills() {
+        if (!this.currentCarData) return;
+        this.renderTeamMemberPills(
+          'car-team-members-not-using',
+          this.currentCarData.otherTeamMembersNotUsing,
+          'not-using'
+        );
+      }
+
+      getBeneficiaryCacheKey(name) {
+        return String(name || '').trim().toLowerCase();
+      }
+
+      ensureBeneficiaryVehicleInsights(forceRefresh = false) {
+        if (forceRefresh) {
+          this.beneficiaryVehicleCache = null;
+          this.beneficiaryInsightsPromise = null;
+          this.beneficiaryInsightsReady = false;
+        }
+        if (this.beneficiaryInsightsPromise) {
+          return this.beneficiaryInsightsPromise;
+        }
+        const ensureFn = (typeof window !== 'undefined' && typeof window.ensureBeneficiaryVehicleCache === 'function')
+          ? window.ensureBeneficiaryVehicleCache
+          : null;
+        const getFn = (typeof window !== 'undefined' && typeof window.getBeneficiaryVehicleCache === 'function')
+          ? window.getBeneficiaryVehicleCache
+          : null;
+        if (!ensureFn) {
+          this.beneficiaryInsightsReady = false;
+          this.beneficiaryInsightsPromise = Promise.resolve(null);
+          return this.beneficiaryInsightsPromise;
+        }
+        this.beneficiaryInsightsPromise = new Promise((resolve) => {
+          try {
+            ensureFn((data) => {
+              this.beneficiaryVehicleCache = data || (getFn ? getFn() : {}) || {};
+              this.beneficiaryInsightsReady = !!this.beneficiaryVehicleCache;
+              resolve(this.beneficiaryVehicleCache);
+            });
+          } catch (err) {
+            console.warn('ensureBeneficiaryVehicleCache failed', err);
+            this.beneficiaryVehicleCache = getFn ? getFn() : {};
+            this.beneficiaryInsightsReady = !!this.beneficiaryVehicleCache;
+            resolve(this.beneficiaryVehicleCache);
+          }
+        }).catch((error) => {
+          console.warn('Beneficiary insights promise rejected', error);
+          this.beneficiaryInsightsPromise = null;
+          return null;
+        });
+        return this.beneficiaryInsightsPromise;
+      }
+
+      getBeneficiaryAssignmentInfo(name) {
+        if (!name) {
+          return {
+            activeElsewhere: false,
+            activeVehicles: [],
+            entries: []
+          };
+        }
+        const cache = this.beneficiaryVehicleCache
+          || ((typeof window !== 'undefined' && typeof window.getBeneficiaryVehicleCache === 'function')
+            ? window.getBeneficiaryVehicleCache()
+            : null);
+        if (!cache || typeof cache !== 'object') {
+          return {
+            activeElsewhere: false,
+            activeVehicles: [],
+            entries: []
+          };
+        }
+        const baseKey = this.getBeneficiaryCacheKey(name);
+        let bucket = cache[baseKey];
+        if (!bucket) {
+          const altKey = this.normalizeBeneficiaryKey(name);
+          bucket = cache[altKey];
+        }
+        if (!bucket || !Array.isArray(bucket.entries)) {
+          return {
+            activeElsewhere: false,
+            activeVehicles: [],
+            entries: []
+          };
+        }
+        const entries = bucket.entries.slice();
+        const currentCar = (this.currentCarData?.carNumber || this.currentCarData?.car_number || '').trim().toUpperCase();
+        const activeEntries = entries.filter((entry) => {
+          if (!entry) return false;
+          const status = String(entry.status || '').trim().toUpperCase();
+          if (status !== 'IN USE') return false;
+          const entryCar = String(entry.carNumber || entry.vehicleNumber || '').trim();
+          if (!entryCar) return false;
+          if (currentCar && entryCar.trim().toUpperCase() === currentCar) return false;
+          return true;
+        });
+        const activeVehicles = activeEntries
+          .map(entry => String(entry.carNumber || entry.vehicleNumber || '').trim())
+          .filter(Boolean);
+        return {
+          activeElsewhere: activeVehicles.length > 0,
+          activeVehicles,
+          entries
+        };
+      }
+
+      attachNotUsingPillEvents(container) {
+        if (!container) return;
+        if (container.dataset.assignListenerAttached === 'true') return;
+        container.addEventListener('click', (event) => {
+          const target = event.target instanceof HTMLElement
+            ? event.target.closest('.team-member-pill--assignable')
+            : null;
+          if (!target || !(target instanceof HTMLElement)) return;
+          if (target.getAttribute('aria-disabled') === 'true') return;
+          const name = target.getAttribute('data-beneficiary-name') || target.textContent || '';
+          if (!name.trim()) return;
+          this.handleBeneficiaryAllocation(name.trim(), target);
+        });
+        container.dataset.assignListenerAttached = 'true';
+      }
+
+      async handleBeneficiaryAllocation(name, pillElement) {
+        if (!name || !this.currentCarData) return;
+        const normalized = this.normalizeBeneficiaryKey(name);
+        if (this.assigningBeneficiary && this.normalizeBeneficiaryKey(this.assigningBeneficiary) === normalized) {
+          return;
+        }
+        if (this.assigningBeneficiary) {
+          this.showErrorMessage('Another assignment is in progress. Please wait.');
+          return;
+        }
+        const insight = this.getBeneficiaryAssignmentInfo(name);
+        if (insight && insight.activeElsewhere) {
+          const vehicles = insight.activeVehicles.length ? insight.activeVehicles.join(', ') : 'another vehicle';
+          this.showErrorMessage(`${name} is already using ${vehicles}.`);
+          return;
+        }
+        const carNumber = this.currentCarData.carNumber || this.currentCarData.car_number || '';
+        if (!carNumber) {
+          alert('Vehicle details are missing. Unable to assign.');
+          return;
+        }
+        const currentUsers = this.getCurrentUsers();
+        const messageLines = [
+          `Assign vehicle ${carNumber} to ${name}?`
+        ];
+        if (currentUsers.length) {
+          messageLines.push(`Current users recorded: ${currentUsers.join(', ')}`);
+        }
+        if (!window.confirm(messageLines.join('\n'))) {
+          return;
+        }
+        this.assigningBeneficiary = name;
+        if (pillElement) {
+          pillElement.classList.add('team-member-pill--loading');
+          pillElement.setAttribute('aria-disabled', 'true');
+        }
+        try {
+          const payload = this.buildAssignmentPayload(name);
+          const result = await this.submitAssignmentPayload(payload);
+          if (!result || result.ok === false) {
+            throw new Error((result && result.error) || 'Assignment failed');
+          }
+          if (result && result.partial === false && Array.isArray(result.replacedUsers) && result.replacedUsers.length) {
+            this.currentCarData.otherTeamMembersUsing = result.replacedUsers
+              .filter((user) => user && this.normalizeBeneficiaryKey(user) !== this.normalizeBeneficiaryKey(name));
+          }
+          this.applyLocalAssignment(name);
+          this.recordAssignmentInCache(name);
+          this.populateCarDetails();
+          this.showSuccessMessage(`Assigned ${name} to vehicle ${carNumber}.`);
+          this.handlePostReleaseRefresh(
+            carNumber,
+            this.currentCarData.teamName || this.currentCarData.team || '',
+            { skipPrune: true }
+          );
+          this.registerVehicleInUseLocalState(name);
+          this.applyAssignmentToVisibleRow(name, carNumber);
+          try {
+            window.vehicleAssignmentManager?.assign?.(carNumber, name);
+          } catch (assignErr) {
+            console.warn('Failed to sync vehicleAssignmentManager after assignment', assignErr);
+          }
+          try {
+            window.applyVehicleInUseAssignmentsToRows?.(true);
+          } catch (assignRefreshErr) {
+            console.warn('Failed to refresh visible vehicle assignments', assignRefreshErr);
+          }
+          try {
+            window.invalidateBeneficiaryVehicleCache?.();
+          } catch (cacheErr) {
+            console.warn('Failed to invalidate beneficiary vehicle cache', cacheErr);
+          }
+          this.ensureBeneficiaryVehicleInsights(true).then(() => {
+            if (this.isModalOpen()) {
+              this.refreshNotUsingPills();
+            }
+          }).catch((err) => {
+            console.warn('Failed to refresh beneficiary insights after assignment', err);
+          });
+        } catch (error) {
+          console.error('Vehicle assignment failed', error);
+          this.showErrorMessage(`Assignment failed: ${error.message || error}`);
+        } finally {
+          if (pillElement) {
+            pillElement.classList.remove('team-member-pill--loading');
+            if (pillElement.classList.contains('team-member-pill--assignable')) {
+              pillElement.removeAttribute('aria-disabled');
+            }
+          }
+          this.assigningBeneficiary = null;
+        }
+      }
+
+      buildAssignmentPayload(beneficiaryName) {
+        const data = this.currentCarData || {};
+        const carNumber = String(data.carNumber || data.car_number || '').trim().toUpperCase();
+        return {
+          project: data.projectName || data.project || '',
+          team: data.teamName || data.team || '',
+          carNumber,
+          beneficiaries: [beneficiaryName],
+          responsibleBeneficiary: beneficiaryName,
+          car: {
+            make: data.make || '',
+            model: data.model || '',
+            category: data.category || '',
+            usageType: data.usageType || '',
+            owner: data.owner || ''
+          }
+        };
+      }
+
+      submitAssignmentPayload(payload) {
+        return new Promise((resolve, reject) => {
+          try {
+            if (!window.google || !google.script || !google.script.run || typeof google.script.run.assignCarToTeam !== 'function') {
+              reject(new Error('Assignment service unavailable'));
+              return;
+            }
+            google.script.run
+              .withSuccessHandler(resolve)
+              .withFailureHandler(reject)
+              .assignCarToTeamWithReturn(payload);
+          } catch (err) {
+            reject(err);
+          }
+        });
+      }
+
+      applyLocalAssignment(name) {
+        if (!this.currentCarData) return;
+        const normalized = this.normalizeBeneficiaryKey(name);
+        const notUsing = Array.isArray(this.currentCarData.otherTeamMembersNotUsing)
+          ? this.currentCarData.otherTeamMembersNotUsing.filter(member => this.normalizeBeneficiaryKey(member) !== normalized)
+          : [];
+        this.currentCarData.otherTeamMembersNotUsing = notUsing;
+        const usingList = Array.isArray(this.currentCarData.otherTeamMembersUsing)
+          ? this.currentCarData.otherTeamMembersUsing.filter(member => this.normalizeBeneficiaryKey(member) !== normalized)
+          : [];
+        this.currentCarData.otherTeamMembersUsing = usingList;
+        this.currentCarData.responsibleBeneficiary = name;
+        if (!Array.isArray(this.currentCarData.lastUsers)) {
+          this.currentCarData.lastUsers = [];
+        }
+        if (!this.currentCarData.lastUsers.some(user => this.normalizeBeneficiaryKey(user) === normalized)) {
+          this.currentCarData.lastUsers.push(name);
+        }
+        this.currentCarData.status = 'IN USE';
+      }
+
+      recordAssignmentInCache(name) {
+        if (!name) return;
+        if (!this.beneficiaryVehicleCache || typeof this.beneficiaryVehicleCache !== 'object') return;
+        const key = this.getBeneficiaryCacheKey(name);
+        if (!key) return;
+        const carNumber = String(this.currentCarData?.carNumber || this.currentCarData?.car_number || '').trim();
+        if (!carNumber) return;
+        let bucket = this.beneficiaryVehicleCache[key];
+        if (!bucket) {
+          bucket = { beneficiary: name, entries: [] };
+          this.beneficiaryVehicleCache[key] = bucket;
+        }
+        if (!Array.isArray(bucket.entries)) {
+          bucket.entries = [];
+        }
+        const upperCar = carNumber.toUpperCase();
+        let existing = bucket.entries.find(entry => {
+          const entryCar = String(entry && (entry.carNumber || entry.vehicleNumber) || '').trim().toUpperCase();
+          return entryCar === upperCar;
+        });
+        if (!existing) {
+          existing = {
+            carNumber,
+            status: 'IN USE',
+            project: this.currentCarData?.projectName || this.currentCarData?.project || '',
+            team: this.currentCarData?.teamName || this.currentCarData?.team || '',
+            source: 'IN_USE',
+            entryTimestamp: Date.now()
+          };
+          bucket.entries.push(existing);
+        } else {
+          existing.status = 'IN USE';
+          existing.project = this.currentCarData?.projectName || this.currentCarData?.project || existing.project || '';
+          existing.team = this.currentCarData?.teamName || this.currentCarData?.team || existing.team || '';
+          existing.entryTimestamp = Date.now();
+          existing.source = existing.source || 'IN_USE';
+        }
       }
 
       populateCarDetails() {
@@ -1109,7 +1542,7 @@
       resetModalState() {
         this.currentState = 'view';
         this.selectedRating = 0;
-        this.releaseMode = 'vehicle';
+  this.releaseMode = 'user';
         this.isRemarksRequired = true;
         this.userReleaseHasOtherUsers = false;
   this.userReleaseFeedbackPending = false;
@@ -1119,6 +1552,7 @@
           release: null,
           inUse: null
         };
+        this.assigningBeneficiary = null;
         this.resetUserReleaseSelection();
         this.restoreHistoryContent();
         
@@ -1144,10 +1578,10 @@
         const feedbackFields = document.getElementById('release-feedback-fields');
         if (feedbackFields) feedbackFields.style.display = 'block';
         const sectionTitle = document.querySelector('#carReleaseSection .section-header h3');
-        if (sectionTitle) sectionTitle.textContent = 'Release Vehicle';
+        if (sectionTitle) sectionTitle.textContent = 'Release User';
         const confirmBtn = document.getElementById('confirmReleaseBtn');
         if (confirmBtn) {
-          confirmBtn.textContent = 'Confirm Release';
+          confirmBtn.textContent = 'Release User';
           confirmBtn.disabled = true;
         }
         const responsibleEl = document.getElementById('car-responsible-beneficiary');
@@ -1232,79 +1666,61 @@
         }
       }
 
-      showReleaseForm(mode = 'vehicle') {
+      showReleaseForm() {
         this.currentState = 'release';
-        this.releaseMode = mode;
-        
-        const hasUserSelector = mode === 'user';
+        this.releaseMode = 'user';
+
         const feedbackFields = document.getElementById('release-feedback-fields');
         const userSelector = document.getElementById('release-user-selector');
         const userRequiredBadge = document.getElementById('release-user-required');
         const sectionTitle = document.querySelector('#carReleaseSection .section-header h3');
         const confirmBtn = document.getElementById('confirmReleaseBtn');
         const userSelectionBlock = document.getElementById('user-release-selection');
-        const userSelectElement = document.getElementById('release-user-select');
+        const userHelp = document.getElementById('release-user-help');
 
-        if (hasUserSelector) {
-          this.userReleaseHasOtherUsers = this.getCurrentUsers().length > 1;
-          this.isRemarksRequired = false;
-          this.userReleaseFeedbackPending = false;
-          this.resetUserReleaseSelection();
-          this.prepareUserReleaseSelection();
-        } else {
-          this.userReleaseHasOtherUsers = false;
-          this.isRemarksRequired = true;
-          this.userReleaseFeedbackPending = false;
-          this.resetUserReleaseSelection();
-        }
+        this.userReleaseHasOtherUsers = this.getCurrentUsers().length > 1;
+        this.isRemarksRequired = false;
+        this.userReleaseFeedbackPending = false;
+        this.resetUserReleaseSelection();
+        this.prepareUserReleaseSelection();
 
         if (sectionTitle) {
-          sectionTitle.textContent = hasUserSelector ? 'Release User' : 'Release Vehicle';
+          sectionTitle.textContent = 'Release User';
         }
         if (confirmBtn) {
-          confirmBtn.textContent = hasUserSelector ? 'Release User' : 'Confirm Release';
+          confirmBtn.textContent = 'Release User';
         }
-
         if (userSelector) {
-          userSelector.style.display = (hasUserSelector && userSelectElement) ? 'none' : 'flex';
+          userSelector.style.display = 'none';
         }
-        const userHelp = document.getElementById('release-user-help');
         if (userHelp) {
-          userHelp.textContent = hasUserSelector
-            ? 'Select the beneficiaries to release from the vehicle.'
-            : '';
+          userHelp.textContent = 'Select the beneficiaries to release from the vehicle.';
         }
         if (userRequiredBadge) {
           userRequiredBadge.style.display = 'none';
         }
         if (feedbackFields) {
-          feedbackFields.style.display = this.isRemarksRequired ? 'block' : 'none';
+          feedbackFields.style.display = 'none';
         }
         if (userSelectionBlock) {
-          userSelectionBlock.style.display = hasUserSelector ? 'flex' : 'none';
+          userSelectionBlock.style.display = 'flex';
         }
-        if (!this.isRemarksRequired) {
-          this.selectedRating = 0;
-          this.highlightStars(0);
-        }
+
+        this.selectedRating = 0;
+        this.highlightStars(0);
         this.showError('release-user-error', '');
         this.showError('remarks-error', '');
         this.showError('rating-error', '');
         this.validateForm();
 
-        // Show release section
         document.getElementById('carReleaseSection').style.display = 'block';
-        
-        // Switch footer
         document.querySelector('.footer-actions').style.display = 'none';
         document.getElementById('releaseActions').style.display = 'flex';
-        
-        // Focus on remarks
+
         setTimeout(() => {
-          if (hasUserSelector) {
-            document.getElementById('release-user-select')?.focus();
-          } else if (this.isRemarksRequired) {
-            document.getElementById('release-remarks')?.focus();
+          const firstCheckbox = document.querySelector('#userReleaseTableContainer .user-release-checkbox');
+          if (firstCheckbox) {
+            firstCheckbox.focus({ preventScroll: false });
           }
         }, 100);
       }
@@ -1316,7 +1732,7 @@
           return;
         }
 
-        this.showReleaseForm('user');
+  this.showReleaseForm();
       }
 
       resetUserReleaseSelection() {
@@ -1461,7 +1877,7 @@
         activeUsersList.forEach((name) => {
           const trimmed = String(name || '').trim();
           if (!trimmed) return;
-          const key = trimmed.toLowerCase();
+          const key = this.normalizeBeneficiaryKey(trimmed);
           if (!activeUsersMap.has(key)) {
             activeUsersMap.set(key, trimmed);
           }
@@ -1546,9 +1962,9 @@
           ? `<div style="background-color:#f8f9fa;padding:10px 12px;margin-bottom:12px;border-radius:6px;border-left:3px solid #0ea5e9;font-size:12px;color:#334155;display:flex;flex-wrap:wrap;gap:10px;">${detailItems.join(' <span style="opacity:0.45;">&bull;</span> ')}</div>`
           : '';
 
-        const rowsHtml = [];
-        const headerRowHtml = `<tr>${headerCells.join('')}</tr>`;
-        rowsHtml.push(headerRowHtml);
+  const rowsHtml = [];
+  const headerRowHtml = `<tr>${headerCells.join('')}</tr>`;
+  rowsHtml.push(headerRowHtml);
 
         const summaryHeaderNormalized = filteredRows[0].map(header => String(header || '').toLowerCase());
         const statusColumnIndex = summaryHeaderNormalized.findIndex(header => header.includes('status'));
@@ -1571,7 +1987,7 @@
 
             if (c === beneficiaryFilteredIndex) {
               const beneficiaryName = rawText.trim();
-              const key = beneficiaryName.toLowerCase();
+              const key = this.normalizeBeneficiaryKey(beneficiaryName);
               const isActive = beneficiaryName && activeUsersMap.has(key);
               if (isActive && !renderedKeys.has(key)) {
                 renderedKeys.add(key);
@@ -1598,10 +2014,55 @@
           rowsHtml.push(`<tr>${rowHtml}</tr>`);
         }
 
-        container.innerHTML = `${detailHtml}<table><thead>${rowsHtml[0]}</thead><tbody>${rowsHtml.slice(1).join('')}</tbody></table>`;
+        const missingBeneficiaries = [];
+        activeUsersMap.forEach((displayName, key) => {
+          if (!renderedKeys.has(key)) {
+            missingBeneficiaries.push({ key, displayName });
+            renderedKeys.add(key);
+          }
+        });
+
+        if (missingBeneficiaries.length) {
+          const columnCount = filteredRows[0].length;
+          missingBeneficiaries.forEach((entry, missingIndex) => {
+            const checkboxId = `user-release-${entry.key.replace(/[^a-z0-9]+/g, '-') || 'beneficiary'}-missing-${missingIndex}`;
+            const rowCells = [];
+            for (let col = 0; col < columnCount; col++) {
+              let cellContent = '<span style="color:#94a3b8;">No history</span>';
+              if (col === beneficiaryFilteredIndex) {
+                cellContent = `
+                  <label class="user-release-beneficiary" for="${checkboxId}">
+                    <input
+                      type="checkbox"
+                      id="${checkboxId}"
+                      class="user-release-checkbox"
+                      data-beneficiary-key="${this.escapeHtml(entry.key)}"
+                      data-beneficiary-name="${this.escapeHtml(entry.displayName)}"
+                    />
+                    <span>${this.escapeHtml(entry.displayName)}</span>
+                  </label>
+                `;
+              }
+              rowCells.push(`<td>${cellContent}</td>`);
+            }
+            rowsHtml.push(`<tr class="user-release-added-row">${rowCells.join('')}</tr>`);
+          });
+        }
+
+        const selectAllHtml = `
+          <div class="user-release-select-all" style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:2px 4px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#1e293b;">
+              <input type="checkbox" id="user-release-select-all" class="user-release-select-all-checkbox" />
+              <span>Select all beneficiaries</span>
+            </label>
+          </div>
+        `;
+
+        container.innerHTML = `${detailHtml}${selectAllHtml}<table><thead>${rowsHtml[0]}</thead><tbody>${rowsHtml.slice(1).join('')}</tbody></table>`;
         this.userReleaseSelection.rows = rows;
         this.userReleaseSelection.selected = new Map();
         this.updateUserReleaseConfirmState();
+        this.syncUserReleaseSelectAllState();
 
         if (!this.userReleaseSelection.listenerAttached) {
           container.addEventListener('change', this.handleUserReleaseCheckboxChange);
@@ -1611,7 +2072,28 @@
 
       handleUserReleaseCheckboxChange(event) {
         const target = event.target;
-        if (!target || !target.classList.contains('user-release-checkbox')) {
+        const container = document.getElementById('userReleaseTableContainer');
+        if (!target || !container) {
+          return;
+        }
+        if (target.classList.contains('user-release-select-all-checkbox')) {
+          const shouldCheck = target.checked;
+          const checkboxes = container.querySelectorAll('.user-release-checkbox');
+          this.userReleaseSelection.selected = new Map();
+          checkboxes.forEach((checkbox) => {
+            checkbox.checked = shouldCheck;
+            const key = checkbox.getAttribute('data-beneficiary-key');
+            const name = checkbox.getAttribute('data-beneficiary-name') || '';
+            if (shouldCheck && key) {
+              this.userReleaseSelection.selected.set(key, name || key);
+            }
+          });
+          this.updateUserReleaseConfirmState();
+          this.syncUserReleaseSelectAllState();
+          return;
+        }
+        if (!target.classList.contains('user-release-checkbox')) {
+          this.syncUserReleaseSelectAllState();
           return;
         }
         const key = target.getAttribute('data-beneficiary-key');
@@ -1623,6 +2105,7 @@
           this.userReleaseSelection.selected.delete(key);
         }
         this.updateUserReleaseConfirmState();
+        this.syncUserReleaseSelectAllState();
       }
 
       updateUserReleaseConfirmState() {
@@ -1639,9 +2122,33 @@
         }
       }
 
+      syncUserReleaseSelectAllState() {
+        const container = document.getElementById('userReleaseTableContainer');
+        if (!container) return;
+        const selectAllEl = container.querySelector('.user-release-select-all-checkbox');
+        if (!selectAllEl) return;
+        const checkboxes = container.querySelectorAll('.user-release-checkbox');
+        if (!checkboxes.length) {
+          selectAllEl.checked = false;
+          selectAllEl.indeterminate = false;
+          selectAllEl.disabled = true;
+          return;
+        }
+        const total = checkboxes.length;
+        let checkedCount = 0;
+        checkboxes.forEach((checkbox) => {
+          if (checkbox.checked) {
+            checkedCount += 1;
+          }
+        });
+        selectAllEl.disabled = false;
+        selectAllEl.checked = checkedCount === total;
+        selectAllEl.indeterminate = checkedCount > 0 && checkedCount < total;
+      }
+
       hideReleaseForm() {
         this.currentState = 'view';
-        this.releaseMode = 'vehicle';
+        this.releaseMode = 'user';
         this.isRemarksRequired = true;
         this.userReleaseHasOtherUsers = false;
         this.userReleaseFeedbackPending = false;
@@ -1682,11 +2189,11 @@
         this.resetUserReleaseSelection();
         const sectionTitle = document.querySelector('#carReleaseSection .section-header h3');
         if (sectionTitle) {
-          sectionTitle.textContent = 'Release Vehicle';
+          sectionTitle.textContent = 'Release User';
         }
         const confirmBtn = document.getElementById('confirmReleaseBtn');
         if (confirmBtn) {
-          confirmBtn.textContent = 'Confirm Release';
+          confirmBtn.textContent = 'Release User';
         }
       }
 
@@ -1774,11 +2281,14 @@
 
         try {
           if (Array.isArray(window.vehicleInUseRecords)) {
-            window.vehicleInUseRecords = window.vehicleInUseRecords.filter(rec => {
-              if (!rec) return false;
+            for (let i = window.vehicleInUseRecords.length - 1; i >= 0; i--) {
+              const rec = window.vehicleInUseRecords[i];
+              if (!rec) continue;
               const recVehicle = String(rec.vehicleNumber || rec.carNumber || rec.vehicle || '').trim().toUpperCase();
-              return recVehicle && recVehicle !== upper;
-            });
+              if (recVehicle && recVehicle === upper) {
+                window.vehicleInUseRecords.splice(i, 1);
+              }
+            }
           }
         } catch (err) {
           console.warn('Failed to prune vehicleInUseRecords cache', err);
@@ -1806,13 +2316,154 @@
         });
       }
 
-      handlePostReleaseRefresh(carNumber, teamName = '') {
+      normalizeTeamKey(value) {
+        return String(value || '')
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, ' ');
+      }
+
+      normalizeProjectKey(value) {
+        return this.normalizeTeamKey(value);
+      }
+
+      registerVehicleInUseLocalState(beneficiaryName) {
+        if (!beneficiaryName) {
+          return;
+        }
+
+        const carNumber = this.currentCarData?.carNumber || this.currentCarData?.car_number || '';
+        const upperCar = String(carNumber || '').trim().toUpperCase();
+        if (!upperCar) {
+          return;
+        }
+
+        const normalizedKey = this.normalizeBeneficiaryKey(beneficiaryName);
+
+        try {
+          const exactMap = typeof window !== 'undefined' && window.vehicleInUseMap && typeof window.vehicleInUseMap === 'object'
+            ? window.vehicleInUseMap
+            : null;
+          const lowerMap = typeof window !== 'undefined' && window.vehicleInUseLowerMap && typeof window.vehicleInUseLowerMap === 'object'
+            ? window.vehicleInUseLowerMap
+            : null;
+          const teamMap = typeof window !== 'undefined' && window.vehicleInUseTeamMap && typeof window.vehicleInUseTeamMap === 'object'
+            ? window.vehicleInUseTeamMap
+            : null;
+          const projectMap = typeof window !== 'undefined' && window.vehicleInUseProjectMap && typeof window.vehicleInUseProjectMap === 'object'
+            ? window.vehicleInUseProjectMap
+            : null;
+          const records = typeof window !== 'undefined' && Array.isArray(window.vehicleInUseRecords)
+            ? window.vehicleInUseRecords
+            : null;
+
+          if (exactMap) {
+            Object.keys(exactMap).forEach((key) => {
+              if (this.normalizeBeneficiaryKey(key) === normalizedKey) {
+                exactMap[key] = upperCar;
+              }
+            });
+            if (!Object.prototype.hasOwnProperty.call(exactMap, beneficiaryName)) {
+              exactMap[beneficiaryName] = upperCar;
+            }
+          }
+
+          if (lowerMap && normalizedKey) {
+            lowerMap[normalizedKey] = upperCar;
+          }
+
+          const teamValue = this.currentCarData?.teamName || this.currentCarData?.team || '';
+          const projectValue = this.currentCarData?.projectName || this.currentCarData?.project || '';
+          const teamKey = this.normalizeTeamKey(teamValue);
+          const projectKey = this.normalizeProjectKey(projectValue);
+
+          if (teamMap && normalizedKey) {
+            Object.keys(teamMap).forEach((key) => {
+              if (key.endsWith('|' + normalizedKey)) {
+                teamMap[key] = upperCar;
+              }
+            });
+            if (teamKey) {
+              teamMap[teamKey + '|' + normalizedKey] = upperCar;
+            }
+          }
+
+          if (projectMap && normalizedKey) {
+            Object.keys(projectMap).forEach((key) => {
+              if (key.endsWith('|' + normalizedKey)) {
+                projectMap[key] = upperCar;
+              }
+            });
+            if (projectKey) {
+              projectMap[projectKey + '|' + normalizedKey] = upperCar;
+            }
+          }
+
+          if (records) {
+            for (let i = records.length - 1; i >= 0; i--) {
+              const record = records[i];
+              if (!record) continue;
+              const recordKey = this.normalizeBeneficiaryKey(
+                record.beneficiary || record.responsibleBeneficiary || record.member || record.key
+              );
+              if (recordKey && recordKey === normalizedKey) {
+                records.splice(i, 1);
+              }
+            }
+            records.push({
+              beneficiary: beneficiaryName,
+              responsibleBeneficiary: beneficiaryName,
+              vehicleNumber: upperCar,
+              carNumber: upperCar,
+              team: teamValue,
+              project: projectValue,
+              status: 'IN USE',
+              key: normalizedKey,
+              entryTimestamp: Date.now(),
+              entryDate: new Date().toISOString()
+            });
+          }
+        } catch (cacheErr) {
+          console.warn('Failed to register vehicleInUse cache entry', cacheErr);
+        }
+      }
+
+      applyAssignmentToVisibleRow(beneficiaryName, carNumber) {
+        if (typeof document === 'undefined') return;
+        const normalizedName = this.normalizeBeneficiaryKey(beneficiaryName);
+        if (!normalizedName) return;
+        const upperCar = String(carNumber || '').trim().toUpperCase();
+        const rows = document.querySelectorAll('.tbody .row-data');
+        if (!rows || !rows.length) return;
+        rows.forEach((row) => {
+          if (!row) return;
+          const beneficiaryInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+          const vehicleInput = row.querySelector('input.car-number-input');
+          if (!beneficiaryInput || !vehicleInput) return;
+          const currentName = this.normalizeBeneficiaryKey(beneficiaryInput.value || '');
+          if (!currentName || currentName !== normalizedName) return;
+          if (upperCar) {
+            const trimmed = String(vehicleInput.value || '').trim().toUpperCase();
+            if (trimmed !== upperCar) {
+              vehicleInput.value = upperCar;
+              try { vehicleInput.dispatchEvent(new Event('input', { bubbles: true })); } catch (_) { /* noop */ }
+            }
+            try { vehicleInput.dataset.prefillSource = 'Vehicle_InUse'; } catch (_) { /* noop */ }
+            try { vehicleInput.setAttribute('data-prefill-source', 'Vehicle_InUse'); } catch (_) { /* noop */ }
+          }
+        });
+      }
+
+      handlePostReleaseRefresh(carNumber, teamName = '', options = {}) {
         const carValue = String(carNumber || '').trim();
         if (!carValue) {
           return;
         }
 
-        this.pruneVehicleInUseLocalState(carValue);
+        const opts = options && typeof options === 'object' ? options : {};
+        if (!opts.skipPrune) {
+          this.pruneVehicleInUseLocalState(carValue);
+        }
 
         try {
           window.invalidateVehicleNormalizationCache?.();
@@ -1821,9 +2472,11 @@
         }
 
         try {
-          window.vehicleReleasePrefetch?.invalidate?.(carValue);
-          if (teamName) {
-            window.vehicleReleasePrefetch?.invalidateTeam?.(carValue, teamName);
+          if (opts.skipPrefetch !== true) {
+            window.vehicleReleasePrefetch?.invalidate?.(carValue);
+            if (teamName) {
+              window.vehicleReleasePrefetch?.invalidateTeam?.(carValue, teamName);
+            }
           }
         } catch (prefetchErr) {
           console.warn('Failed to invalidate vehicle release prefetch cache', prefetchErr);
@@ -1860,75 +2513,7 @@
       }
 
       async confirmRelease() {
-        if (this.releaseMode === 'user') {
-          await this.confirmUserRelease();
-          return;
-        }
-
-        if (!this.validateForm()) return;
-        
-        const confirmBtn = document.getElementById('confirmReleaseBtn');
-        const originalText = confirmBtn.textContent;
-        
-        try {
-          // Show loading state
-          confirmBtn.classList.add('loading');
-          confirmBtn.disabled = true;
-          
-          const teamMembers = this.getCurrentUsers();
-          const teamMembersString = teamMembers.join(', ');
-
-          const releaseData = {
-            project: this.currentCarData.project,
-            projectName: this.currentCarData.projectName || this.currentCarData.project || '',
-            team: this.currentCarData.team,
-            teamName: this.currentCarData.teamName || this.currentCarData.team || '',
-            category: this.currentCarData.category,
-            carNumber: this.currentCarData.carNumber,
-            make: this.currentCarData.make,
-            model: this.currentCarData.model,
-            usageType: this.currentCarData.usageType,
-            owner: this.currentCarData.owner,
-            status: 'RELEASE',
-            lastUsers: teamMembersString,
-            remarks: document.getElementById('release-remarks').value.trim(),
-            stars: this.selectedRating,
-            submitter: this.currentCarData.submitter,
-            responsibleBeneficiary: this.currentCarData.responsibleBeneficiary || '',
-            teamMembers: teamMembers,
-            otherTeamMembers: this.currentCarData.otherTeamMembers || []
-          };
-          
-          const result = await this.submitCarRelease(releaseData);
-          
-          if (result.ok) {
-            // Clear original car input
-            if (this.originalCarInput) {
-              this.originalCarInput.value = '';
-              try { delete this.originalCarInput.dataset.responsibleBeneficiary; } catch(_){ }
-            }
-
-            // Show success message
-            const refSuffix = result.refNumber ? ` Reference: ${result.refNumber}` : '';
-            this.showSuccessMessage(`Vehicle released successfully!${refSuffix}`);
-
-            this.handlePostReleaseRefresh(
-              releaseData.carNumber,
-              releaseData.teamName || releaseData.team || ''
-            );
-
-            this.closeModal();
-          } else {
-            throw new Error(result.error || 'Unknown error occurred');
-          }
-        } catch (error) {
-          this.showErrorMessage(`Vehicle release failed: ${error.message}`);
-        } finally {
-          // Reset button state
-          confirmBtn.classList.remove('loading');
-          confirmBtn.disabled = false;
-          confirmBtn.textContent = originalText;
-        }
+        await this.confirmUserRelease();
       }
 
       async confirmUserRelease() {
@@ -2053,15 +2638,6 @@
             confirmBtn.textContent = originalText;
           }
         }
-      }
-
-      async submitCarRelease(releaseData) {
-        return new Promise((resolve, reject) => {
-          google.script.run
-            .withSuccessHandler(resolve)
-            .withFailureHandler(reject)
-            .submitCarRelease(releaseData);
-        });
       }
 
       async submitUserRelease(releaseData) {
