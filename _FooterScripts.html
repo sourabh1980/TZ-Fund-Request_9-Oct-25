@@ -974,6 +974,19 @@
     modal.setAttribute('aria-hidden', 'false');
   }
 
+  function refreshVehicleMatchPopup(summaryOverride){
+    setupVehicleMatchPopup();
+    const matches = collectVisibleVehicleMatches();
+    const list = Array.isArray(matches) ? matches : [];
+    vehicleMatchPopupState.matches = list.slice();
+    const modal = document.getElementById('vehicleMatchModal');
+    if (modal) {
+      populateVehicleMatchPopup(list, summaryOverride || vehicleMatchPopupState.lastSummary);
+    }
+    prefetchVehicleReleaseData(list);
+  }
+  window.refreshVehicleMatchPopup = refreshVehicleMatchPopup;
+
   function populateVehicleRatingsPopup(matches){
     const modal = document.getElementById('vehicleRatingsModal');
     if (!modal) return;

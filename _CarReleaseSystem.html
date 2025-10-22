@@ -212,6 +212,47 @@
       --modal-radius: 20px;
     }
 
+    #carReleasePreloadOverlay{
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10,13,27,0.62);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      z-index: 10000;
+      transition: opacity .25s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+    #carReleasePreloadOverlay[data-active="true"]{
+      display: flex;
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .car-release-preload{
+      background: rgba(255,255,255,0.94);
+      border-radius: 16px;
+      padding: 28px 36px;
+      box-shadow: 0 28px 60px rgba(15,23,42,0.32);
+      text-align: center;
+      min-width: 260px;
+    }
+    .car-release-preload__title{
+      font-size: 16px;
+      font-weight: 600;
+      color: #0f172a;
+      margin: 0 0 12px;
+      letter-spacing: 0.02em;
+    }
+    .car-release-preload__timer{
+      font-size: 34px;
+      font-weight: 700;
+      color: #2563eb;
+      letter-spacing: 0.12em;
+    }
+
     .modal-backdrop{
       position: fixed;
       inset: 0;
@@ -767,10 +808,10 @@
         this.originalCarInput = null;
         this.hideTimer = null;
         this.historyContentTemplate = '';
-  this.releaseMode = 'user';
+        this.releaseMode = 'user';
         this.isRemarksRequired = true;
         this.userReleaseHasOtherUsers = false;
-  this.userReleaseFeedbackPending = false;
+        this.userReleaseFeedbackPending = false;
         this.historyView = 'summary'; // 'summary' | 'release' | 'in-use'
         this.lastHistoryData = {
           summary: null,
@@ -787,6 +828,13 @@
         this.beneficiaryInsightsPromise = null;
         this.beneficiaryInsightsReady = false;
         this.assigningBeneficiary = null;
+        this.preloadOverlay = null;
+        this.preloadCountdownEl = null;
+        this.preloadTimeoutId = null;
+        this.preloadIntervalId = null;
+        this.preloadDelayMs = 3000;
+        this.preloadActive = false;
+        this.lastCachePrepareTs = 0;
         this.handleUserReleaseCheckboxChange = this.handleUserReleaseCheckboxChange.bind(this);
 
         this.init();
@@ -801,6 +849,15 @@
         if (historyContent) {
           this.historyContentTemplate = historyContent.innerHTML;
         }
+        this.setupPreloadOverlay();
+        this.prepareReleaseCaches({ source: 'init' });
+        setTimeout(() => {
+          try {
+            this.prepareReleaseCaches({ source: 'init-deferred' });
+          } catch (err) {
+            console.warn('Vehicle release preload: deferred cache refresh failed', err);
+          }
+        }, 600);
       }
 
       setupEventListeners() {
@@ -868,8 +925,142 @@
         });
       }
 
+      setupPreloadOverlay() {
+        if (this.preloadOverlay || typeof document === 'undefined') return;
+        if (!document.body) {
+          document.addEventListener('DOMContentLoaded', () => this.setupPreloadOverlay(), { once: true });
+          return;
+        }
+        let overlay = document.getElementById('carReleasePreloadOverlay');
+        if (overlay) {
+          this.preloadOverlay = overlay;
+          this.preloadCountdownEl = overlay.querySelector('.car-release-preload__timer');
+          return;
+        }
+
+        overlay = document.createElement('div');
+        overlay.id = 'carReleasePreloadOverlay';
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.innerHTML = `
+          <div class="car-release-preload">
+            <div class="car-release-preload__title">Refreshing vehicle data…</div>
+            <div class="car-release-preload__timer" role="status" aria-live="polite">3</div>
+          </div>
+        `;
+
+        document.body.appendChild(overlay);
+        this.preloadOverlay = overlay;
+        this.preloadCountdownEl = overlay.querySelector('.car-release-preload__timer');
+      }
+
+      updatePreloadCountdown(value) {
+        if (!this.preloadCountdownEl) return;
+        const numeric = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+        this.preloadCountdownEl.textContent = numeric;
+        if (this.preloadOverlay) {
+          this.preloadOverlay.setAttribute('data-remaining', String(numeric));
+        }
+      }
+
+      prepareReleaseCaches(options = {}) {
+        this.lastCachePrepareTs = Date.now();
+        try { window.invalidateVehicleNormalizationCache?.(); } catch (err) { console.warn('Vehicle release preload: failed to reset normalization cache', err); }
+        try {
+          const prefetch = window.vehicleReleasePrefetch;
+          if (prefetch) {
+            if (typeof prefetch.clear === 'function') {
+              prefetch.clear();
+            } else if (prefetch.state && typeof prefetch.state === 'object') {
+              prefetch.state.entries = Object.create(null);
+            }
+          }
+        } catch (err) {
+          console.warn('Vehicle release preload: failed to clear release prefetch cache', err);
+        }
+        try { window.invalidateBeneficiaryVehicleCache?.(); } catch (err) { console.warn('Vehicle release preload: failed to invalidate beneficiary cache', err); }
+        try { window.vehicleAssignmentManager?.clearAll?.({ suppressUI: true }); } catch (err) { /* non-fatal */ }
+        try { window.refreshVehicleInUseData?.(); } catch (err) { console.warn('Vehicle release preload: failed to refresh in-use data', err); }
+        if (typeof window.scheduleVehicleInUseReapply === 'function') {
+          try { window.scheduleVehicleInUseReapply({ reason: 'car-release-preload', attempts: 4, delay: 260 }); } catch (err) { console.warn('Vehicle release preload: failed to schedule prefill reapply', err); }
+        }
+        if (typeof window.refreshVehicleMatchPopup === 'function') {
+          try { window.refreshVehicleMatchPopup(); } catch (err) { console.warn('Vehicle release preload: failed to refresh assigned vehicle popup', err); }
+        }
+      }
+
+      runPreloadCountdown(callback, options = {}) {
+        const cb = typeof callback === 'function' ? callback : () => {};
+        const duration = Number.isFinite(options.durationMs) && options.durationMs >= 0
+          ? Math.floor(options.durationMs)
+          : this.preloadDelayMs;
+
+        this.prepareReleaseCaches({ source: options.source || 'preload' });
+
+        if (duration <= 0) {
+          cb();
+          return;
+        }
+
+        if (!this.preloadOverlay || !this.preloadCountdownEl) {
+          setTimeout(cb, duration);
+          return;
+        }
+
+        if (this.preloadIntervalId) {
+          clearInterval(this.preloadIntervalId);
+          this.preloadIntervalId = null;
+        }
+        if (this.preloadTimeoutId) {
+          clearTimeout(this.preloadTimeoutId);
+          this.preloadTimeoutId = null;
+        }
+
+        let remaining = Math.ceil(duration / 1000);
+        this.updatePreloadCountdown(remaining);
+        this.preloadOverlay.setAttribute('data-active', 'true');
+        this.preloadOverlay.setAttribute('aria-hidden', 'false');
+        this.preloadActive = true;
+
+        if (duration >= 1000) {
+          this.preloadIntervalId = setInterval(() => {
+            remaining -= 1;
+            if (remaining >= 0) {
+              this.updatePreloadCountdown(remaining);
+            }
+            if (remaining <= 0 && this.preloadIntervalId) {
+              clearInterval(this.preloadIntervalId);
+              this.preloadIntervalId = null;
+            }
+          }, 1000);
+        }
+
+        const finish = () => {
+          if (!this.preloadActive) return;
+          this.preloadActive = false;
+          if (this.preloadIntervalId) {
+            clearInterval(this.preloadIntervalId);
+            this.preloadIntervalId = null;
+          }
+          if (this.preloadTimeoutId) {
+            clearTimeout(this.preloadTimeoutId);
+            this.preloadTimeoutId = null;
+          }
+          this.updatePreloadCountdown(0);
+          this.preloadOverlay.setAttribute('data-active', 'false');
+          this.preloadOverlay.setAttribute('aria-hidden', 'true');
+          cb();
+        };
+
+        this.preloadTimeoutId = setTimeout(finish, duration);
+      }
+
       // Public API Methods
       openModal(carData, options = {}) {
+        console.log('Vehicle release modal requested:', carData, 'Options:', options);
+        this.runPreloadCountdown(() => this.executeOpenModal(carData, options), { source: 'openModal' });
+      }
+
+      executeOpenModal(carData, options = {}) {
         console.log('Opening car modal with data:', carData, 'Options:', options);
         
         this.currentCarData = this.normalizeCarData(carData);
@@ -2273,11 +2464,26 @@
         });
       }
 
-      pruneVehicleInUseLocalState(carNumber) {
+      pruneVehicleInUseLocalState(carNumber, beneficiaries = []) {
         const upper = String(carNumber || '').trim().toUpperCase();
         if (!upper) {
           return;
         }
+
+        const beneficiaryList = Array.isArray(beneficiaries) ? beneficiaries : (beneficiaries ? [beneficiaries] : []);
+        const normalizedTargets = new Set();
+        const rawTargets = new Set();
+        beneficiaryList.forEach((name) => {
+          if (!name || typeof name !== 'string') return;
+          const trimmed = name.trim();
+          if (!trimmed) return;
+          rawTargets.add(trimmed);
+          rawTargets.add(trimmed.toLowerCase());
+          const normalized = this.normalizeBeneficiaryKey(trimmed);
+          if (normalized) {
+            normalizedTargets.add(normalized);
+          }
+        });
 
         try {
           if (Array.isArray(window.vehicleInUseRecords)) {
@@ -2285,7 +2491,13 @@
               const rec = window.vehicleInUseRecords[i];
               if (!rec) continue;
               const recVehicle = String(rec.vehicleNumber || rec.carNumber || rec.vehicle || '').trim().toUpperCase();
-              if (recVehicle && recVehicle === upper) {
+              const recName = rec.beneficiary || rec.responsibleBeneficiary || rec.member || rec.name || '';
+              const recRaw = String(recName || '').trim();
+              const recNormalized = this.normalizeBeneficiaryKey(recName);
+              const matchesVehicle = recVehicle && recVehicle === upper;
+              const matchesNormalized = normalizedTargets.size && recNormalized && normalizedTargets.has(recNormalized);
+              const matchesRaw = rawTargets.size && recRaw && (rawTargets.has(recRaw) || rawTargets.has(recRaw.toLowerCase()));
+              if (matchesVehicle || matchesNormalized || matchesRaw) {
                 window.vehicleInUseRecords.splice(i, 1);
               }
             }
@@ -2301,12 +2513,23 @@
           window.vehicleInUseProjectMap
         ];
 
+        const normalizedSuffixes = normalizedTargets.size
+          ? Array.from(normalizedTargets).map((target) => `|${target}`)
+          : [];
+
         mapCandidates.forEach((map) => {
           if (!map || typeof map !== 'object') return;
           try {
             Object.keys(map).forEach((key) => {
               const value = String(map[key] || '').trim().toUpperCase();
-              if (value === upper) {
+              const keyTrimmed = String(key || '').trim();
+              const keyLower = keyTrimmed.toLowerCase();
+              const keyNormalized = this.normalizeBeneficiaryKey(keyTrimmed);
+              const matchesKey =
+                (rawTargets.size && (rawTargets.has(keyTrimmed) || rawTargets.has(keyLower))) ||
+                (normalizedTargets.size && keyNormalized && normalizedTargets.has(keyNormalized)) ||
+                (normalizedSuffixes.length && normalizedSuffixes.some((suffix) => keyLower.endsWith(suffix)));
+              if (value === upper || matchesKey) {
                 delete map[key];
               }
             });
@@ -2461,8 +2684,11 @@
         }
 
         const opts = options && typeof options === 'object' ? options : {};
+        const releasedBeneficiaries = Array.isArray(opts.releasedBeneficiaries)
+          ? opts.releasedBeneficiaries.filter(name => typeof name === 'string' && name.trim())
+          : [];
         if (!opts.skipPrune) {
-          this.pruneVehicleInUseLocalState(carValue);
+          this.pruneVehicleInUseLocalState(carValue, releasedBeneficiaries);
         }
 
         try {
@@ -2506,9 +2732,26 @@
             } catch (applyErr) {
               console.warn('Failed to force vehicle assignment application', applyErr);
             }
+            try {
+              window.refreshVehicleMatchPopup?.();
+            } catch (matchLaterErr) {
+              console.warn('Failed to refresh assigned vehicle popup after row update', matchLaterErr);
+            }
           }, 750);
         } catch (timerErr) {
           console.warn('Failed to schedule vehicle assignment refresh', timerErr);
+        }
+
+        try {
+          window.invalidateBeneficiaryVehicleCache?.();
+        } catch (beneficiaryErr) {
+          console.warn('Failed to invalidate beneficiary vehicle cache', beneficiaryErr);
+        }
+
+        try {
+          window.refreshVehicleMatchPopup?.();
+        } catch (matchErr) {
+          console.warn('Failed to refresh assigned vehicle popup', matchErr);
         }
       }
 
@@ -2606,7 +2849,8 @@
             this.populateCarDetails();
             this.handlePostReleaseRefresh(
               payload.carNumber,
-              payload.teamName || payload.team || ''
+              payload.teamName || payload.team || '',
+              { releasedBeneficiaries: releasedList }
             );
             const message = releasedList.length === 1
               ? `Released ${releasedList[0]} from vehicle ${this.currentCarData.carNumber}.`

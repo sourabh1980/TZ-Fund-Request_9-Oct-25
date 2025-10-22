@@ -3494,7 +3494,6 @@ function releaseCarUser(payload) {
       return `USR-${timestamp}-${randomSuffix}`;
     };
 
-    const updates = [];
     const newRows = [];
     const summaryEntries = [];
     const releasedUsers = [];
@@ -3507,13 +3506,6 @@ function releaseCarUser(payload) {
       const releaseNote = remarksValue
         ? remarksValue
         : `Released ${target.displayName || target.requestedName} on ${Utilities.formatDate(releaseDate, TZ(), 'dd-MMM-yyyy HH:mm')}`;
-
-      const updatedRow = currentRow.slice();
-  if (iStatus >= 0) updatedRow[iStatus] = 'RELEASE';
-      if (iRemarks >= 0 && releaseNote) updatedRow[iRemarks] = releaseNote;
-      if (iStars >= 0 && starsValue) updatedRow[iStars] = starsValue;
-      if (iSubmit >= 0 && submitter) updatedRow[iSubmit] = submitter;
-      updates.push({ rowNumber: rowIndex + 2, values: updatedRow });
 
       const releaseRow = currentRow.slice();
       if (iStatus >= 0) releaseRow[iStatus] = 'RELEASE';
@@ -3547,10 +3539,6 @@ function releaseCarUser(payload) {
       };
       summaryEntries.push(summaryObj);
       releasedUsers.push(target.displayName || target.requestedName);
-    });
-
-    updates.forEach((entry) => {
-      sh.getRange(entry.rowNumber, 1, 1, lastCol).setValues([entry.values]);
     });
 
     if (newRows.length) {
