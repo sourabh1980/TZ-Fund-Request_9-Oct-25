@@ -1714,10 +1714,38 @@ function writeVehicleSummarySheet(sheetName, rows) {
         row['Responsible Beneficiary'],
         row['Name of Responsible beneficiary']
       ];
+      function sanitize(value) {
+        if (!value && value !== 0) return '';
+        let text = String(value).trim();
+        if (!text) return '';
+        text = text.replace(/^name of (responsible )?beneficiary\s*:?/i, '');
+        text = text.replace(/^responsible beneficiary\s*:?/i, '');
+        text = text.replace(/^r\.?\s*ben\s*:?/i, '');
+        text = text.replace(/^r\.?\s*beneficiary\s*:?/i, '');
+        text = text.replace(/^beneficiary\s*:?/i, '');
+        text = text.replace(/^name\s*:?/i, '');
+        text = text.replace(/^[\s:,-]+/, '');
+        text = text.replace(/\s+/g, ' ').trim();
+        if (!text) return '';
+        if (/^(name of (responsible )?beneficiary|responsible beneficiary|beneficiary|name)$/i.test(text)) {
+          return '';
+        }
+        return text;
+      }
+      function pickFrom(source) {
+        const cleanedList = _splitBeneficiaryNames_(source)
+          .map(sanitize)
+          .filter(Boolean);
+        if (cleanedList.length) {
+          return cleanedList[0];
+        }
+        const single = sanitize(source);
+        return single || '';
+      }
       for (let i = 0; i < sources.length; i++) {
-        const names = _splitBeneficiaryNames_(sources[i]);
-        if (names.length) {
-          return names[0];
+        const candidate = pickFrom(sources[i]);
+        if (candidate) {
+          return candidate;
         }
       }
       return '';
