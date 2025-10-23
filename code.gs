@@ -1705,6 +1705,23 @@ function writeVehicleSummarySheet(sheetName, rows) {
   sh.getRange(1,1,1,VEHICLE_SUMMARY_HEADER.length).setValues([VEHICLE_SUMMARY_HEADER]);
   sh.setFrozenRows(1);
   if (rows.length) {
+    function selectResponsible(row) {
+      const sources = [
+        row['R. Ben'],
+        row.rBenShort,
+        row.responsibleBeneficiary,
+        row['R.Beneficiary'],
+        row['Responsible Beneficiary'],
+        row['Name of Responsible beneficiary']
+      ];
+      for (let i = 0; i < sources.length; i++) {
+        const names = _splitBeneficiaryNames_(sources[i]);
+        if (names.length) {
+          return names[0];
+        }
+      }
+      return '';
+    }
     const values = rows.map(r => [
       r.Ref || r['Reference Number'] || '',
       r['Date and time of entry'] || '',
@@ -1722,7 +1739,7 @@ function writeVehicleSummarySheet(sheetName, rows) {
       r.Ratings || '',
       r['Submitter username'] || '',
       r['R.Ben Time'] || r.rBenTime || r.responsibleBeneficiaryTime || '',
-      r['R. Ben'] || r.rBenShort || r.responsibleBeneficiary || ''
+      selectResponsible(r)
     ]);
     sh.getRange(2,1,values.length,VEHICLE_SUMMARY_HEADER.length).setValues(values);
   }
