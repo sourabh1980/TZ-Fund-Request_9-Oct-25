@@ -828,6 +828,8 @@
         let vehicleWarmRetryTimer=null;
         let vehicleVersionMonitorStartTimer=null;
         let lastWarmSelectionKey='';
+        let vehicleWarmInFlight=false;
+        let lastVehicleWarmTs=0;
         const VEHICLE_VERSION_POLL_INTERVAL = 10000;
         let manualRefreshInProgress = false;
 
@@ -2541,10 +2543,12 @@
           const teamIds = Array.isArray(detail && detail.teamIds) ? detail.teamIds.filter(Boolean) : [];
           if (!teamIds.length) return;
           const key = computeSelectionWarmKey(detail);
-          if (key && key === lastWarmSelectionKey) return;
+          const now = Date.now();
+          const cacheFresh = vehicleDataCache && (now - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
+          if (key && key === lastWarmSelectionKey && cacheFresh) return;
           lastWarmSelectionKey = key;
           try {
-            warmVehiclePickerCache(false);
+            warmVehiclePickerCache(!cacheFresh);
           } catch (prefetchErr) {
             console.warn('[VP] Prefetch warm failed', prefetchErr);
           }
@@ -3405,6 +3409,7 @@
           }
           clearVehicleStorage();
           storageHydrationAttempted = false;
+          lastWarmSelectionKey='';
         }
 
         // Expose cache controls so other modules (release modal) can force a reload
