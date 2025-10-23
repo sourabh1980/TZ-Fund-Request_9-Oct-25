@@ -1179,7 +1179,7 @@
     if (owner) out.owner = owner;
     const status = pickString('status','Status','inUseRelease','In Use/Release');
     if (status) out.status = status;
-    const responsible = pickString('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','beneficiary','assignedTo');
+    const responsible = pickString('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','R. Ben','beneficiary','assignedTo');
     if (responsible) out.responsibleBeneficiary = responsible;
     const team = pickString('team','Team','teamName','Team Name');
     if (team) out.team = team;
@@ -1662,7 +1662,7 @@
       if (!car) return;
       const vehicleNumber = String(car.carNumber || car.vehicleNumber || '').trim();
       if (!vehicleNumber) return;
-      const responsible = car.responsibleBeneficiary || car['R.Beneficiary'] || car.responsible || '';
+    const responsible = car.responsibleBeneficiary || car['R.Beneficiary'] || car['R. Ben'] || car.responsible || '';
       const beneficiaries = splitBeneficiaryList(responsible);
       if (!beneficiaries.length) return;
   const releaseMeta = getVehicleMetaSummary(vehicleNumber) || { ratings: [], remarks: [] };
@@ -2110,7 +2110,7 @@
     const byKey = new Map();
     (Array.isArray(records) ? records : []).forEach(function(rec){
       if (!rec) return;
-      const beneficiary = String(rec.beneficiary || rec.responsibleBeneficiary || rec.member || rec.name || rec['R.Beneficiary'] || '').trim();
+      const beneficiary = String(rec.beneficiary || rec.responsibleBeneficiary || rec.member || rec.name || rec['R.Beneficiary'] || rec['R. Ben'] || '').trim();
       const vehicleNumber = String(rec.vehicleNumber || rec.carNumber || rec['Vehicle Number'] || '').trim();
       if (!beneficiary || !vehicleNumber) return;
       let status = String(rec.status || rec.Status || rec['In Use/Release'] || '').trim();

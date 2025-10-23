@@ -1205,7 +1205,7 @@
           remarks: data.remarks || '',
           stars: data.stars || 0,
           submitter: data.submitter || 'Current User',
-          responsibleBeneficiary: data.responsibleBeneficiary || data['R.Beneficiary'] || '',
+          responsibleBeneficiary: data.responsibleBeneficiary || data['R.Beneficiary'] || data['R. Ben'] || '',
           otherTeamMembers: Array.isArray(data.otherTeamMembers) ? data.otherTeamMembers : [],
           otherTeamMembersUsing: Array.isArray(data.otherTeamMembersUsing)
             ? data.otherTeamMembersUsing

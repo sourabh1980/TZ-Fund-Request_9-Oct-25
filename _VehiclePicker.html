@@ -173,6 +173,7 @@
             row.member ||
             row.name ||
             row['R.Beneficiary'] ||
+            row['R. Ben'] ||
             ''
           ).trim();
           if (!vehicleNumber || !beneficiary) return;
@@ -2060,7 +2061,7 @@
           const usageType = get('usageType','usage_type','Usage Type','usage','Usage');
           const contractType = get('contractType','contract_type','Contract Type','contract','Contract','agreementType','Agreement Type');
           const owner = get('owner','Owner','ownerName','Owner Name');
-          const responsibleBeneficiary = get('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','responsible');
+          const responsibleBeneficiary = get('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','R. Ben','responsible');
           const status = get('status','Status','inUseRelease','In Use/Release');
           const remarksRaw = get('remarks','Remarks','feedback','Feedback');
           const stars = get('stars','rating','Rating');
@@ -2079,7 +2080,7 @@
             contractType,
             owner,
             responsibleBeneficiary,
-            'R.Beneficiary': car['R.Beneficiary'] || responsibleBeneficiary || '',
+            'R.Beneficiary': car['R.Beneficiary'] || car['R. Ben'] || responsibleBeneficiary || '',
             status,
             remarks: remarksRaw || car.remarks || '',
             stars: stars || car.stars || 0,
