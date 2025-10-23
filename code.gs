@@ -1594,6 +1594,50 @@ function forceRefreshAndTest() {
  * - Vehicle_History: full CarT_P history (unchanged)
  * Call this after any change (assignment, release, beneficiary change).
  */
+function _sanitizeResponsibleName(value) {
+  if (!value && value !== 0) return '';
+  let text = String(value).trim();
+  if (!text) return '';
+  text = text.replace(/^name of (responsible )?beneficiary\s*:?/i, '');
+  text = text.replace(/^responsible beneficiary\s*:?/i, '');
+  text = text.replace(/^r\.?\s*ben\s*:?/i, '');
+  text = text.replace(/^r\.?\s*beneficiary\s*:?/i, '');
+  text = text.replace(/^beneficiary\s*:?/i, '');
+  text = text.replace(/^name\s*:?/i, '');
+  text = text.replace(/^[\s:,-]+/, '');
+  text = text.replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  if (/^(name of (responsible )?beneficiary|responsible beneficiary|beneficiary|name)$/i.test(text)) {
+    return '';
+  }
+  return text;
+}
+
+function _extractResponsibleName(row) {
+  if (!row || typeof row !== 'object') return '';
+  const sources = [
+    row['R. Ben'],
+    row.rBenShort,
+    row.responsibleBeneficiary,
+    row['Responsible Beneficiary'],
+    row['Name of Responsible beneficiary'],
+    row['R.Beneficiary']
+  ];
+  for (let i = 0; i < sources.length; i++) {
+    const source = sources[i];
+    if (!source && source !== 0) continue;
+    const pieces = _splitBeneficiaryNames_(source)
+      .map(_sanitizeResponsibleName)
+      .filter(Boolean);
+    if (pieces.length) {
+      return pieces[0];
+    }
+    const single = _sanitizeResponsibleName(source);
+    if (single) return single;
+  }
+  return '';
+}
+
 function refreshVehicleStatusSheets() {
   const allCarRows = _readCarTP_objects_();
   if (!allCarRows.length) {
@@ -1613,33 +1657,50 @@ function refreshVehicleStatusSheets() {
     row._rowIndex = (typeof row._rowIndex === 'number') ? row._rowIndex : (idx + 2);
 
     const names = _beneficiaryNamesFromRow_(row);
+    const responsibleName = _extractResponsibleName(row);
+    const responsibleKey = _beneficiaryKey_(responsibleName);
     if (names.length) {
       names.forEach(function(name){
-        const key = name.toLowerCase();
+        const cleaned = _sanitizeResponsibleName(name) || _norm(name);
+        if (!cleaned) return;
+        const key = _beneficiaryKey_(cleaned);
+        if (!key) return;
         const prev = latestByBeneficiary.get(key);
         if (!prev || row._ts > prev._ts || (row._ts === prev._ts && row._rowIndex >= prev._rowIndex)) {
           const clone = Object.assign({}, row);
-          clone['R.Beneficiary'] = name;
-          clone['R. Ben'] = name;
-          clone.responsibleBeneficiary = name;
+          clone['R.Beneficiary'] = cleaned;
+          if (responsibleKey && responsibleKey === key) {
+            clone['R. Ben'] = responsibleName;
+          } else {
+            clone['R. Ben'] = '';
+          }
+          clone.responsibleBeneficiary = responsibleName;
           clone.__beneficiaryKey = key;
           latestByBeneficiary.set(key, clone);
         }
       });
     } else {
-      const beneficiary = String(
+      const beneficiary = _sanitizeResponsibleName(String(
         row['R.Beneficiary'] ||
         row['R. Ben'] ||
         row.responsibleBeneficiary ||
         row['Responsible Beneficiary'] ||
         row['Name of Responsible beneficiary'] ||
         ''
-      ).trim();
+      ));
       if (beneficiary) {
-        const key = beneficiary.toLowerCase();
+        const key = _beneficiaryKey_(beneficiary);
+        if (!key) {
+          continue;
+        }
         const prev = latestByBeneficiary.get(key);
         if (!prev || row._ts > prev._ts || (row._ts === prev._ts && row._rowIndex >= prev._rowIndex)) {
-          latestByBeneficiary.set(key, row);
+          const clone = Object.assign({}, row);
+          clone['R.Beneficiary'] = beneficiary;
+          clone['R. Ben'] = responsibleName;
+          clone.responsibleBeneficiary = responsibleName;
+          clone.__beneficiaryKey = key;
+          latestByBeneficiary.set(key, clone);
         }
       }
     }
@@ -1656,6 +1717,11 @@ function refreshVehicleStatusSheets() {
   const finalInUseSummaries = [];
   latestByBeneficiary.forEach(function(row){
     if (_normStatus_(row.Status) === 'IN USE') {
+      if (!row['R. Ben']) {
+        const responsible = _extractResponsibleName(row);
+        row['R. Ben'] = responsible;
+        row.responsibleBeneficiary = responsible;
+      }
       finalInUseSummaries.push(row);
     }
   });
@@ -1722,7 +1788,7 @@ function writeVehicleSummarySheet(sheetName, rows) {
       r.Ratings || '',
       r['Submitter username'] || '',
       r['R.Ben Time'] || r.rBenTime || r.responsibleBeneficiaryTime || '',
-      r['R. Ben'] || r.rBenShort || r.responsibleBeneficiary || ''
+      _extractResponsibleName(r)
     ]);
     sh.getRange(2,1,values.length,VEHICLE_SUMMARY_HEADER.length).setValues(values);
   }
