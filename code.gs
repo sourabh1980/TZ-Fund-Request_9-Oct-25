@@ -307,6 +307,7 @@ function getVehicleInUseData() {
   }
 }
 
+<<<<<<< Updated upstream
 // Read summary sheets that mirror Vehicle_InUse or Vehicle_Released snapshots.
 function getVehicleSummaryRows(sheetName) {
   const tried = [];
@@ -577,6 +578,16 @@ function getVehicleReleasedSummary() {
     vehicles: vehicles,
     updatedAt: summary.updatedAt || new Date().toISOString()
   };
+=======
+function _invalidateVehicleInUseCache_() {
+  try { CacheService.getScriptCache().remove('vehicle_in_use_payload_v3'); } catch (_err) { /* ignore */ }
+  try {
+    const props = PropertiesService.getScriptProperties();
+    if (props) props.deleteProperty('vehicle_in_use_payload_v3_json');
+  } catch (_err) {
+    /* ignore */
+  }
+>>>>>>> Stashed changes
 }
 
 /**
@@ -3387,8 +3398,12 @@ function submitCarRelease(releaseData) {
     }
 
     try { CacheService.getScriptCache().remove('VEH_PICKER_V1'); } catch (_cacheClearErr) { /* cache purge best-effort */ }
+<<<<<<< Updated upstream
     invalidateVehicleInUseCache();
     invalidateVehicleReleasedCache('Vehicle release persisted to CarT_P');
+=======
+    _invalidateVehicleInUseCache_();
+>>>>>>> Stashed changes
 
     return {
       ok: true,
@@ -3575,10 +3590,59 @@ function releaseCarUser(payload) {
       submitter = 'System';
     }
 
+<<<<<<< Updated upstream
     const generateRef = () => {
       const timestamp = Date.now();
       const randomSuffix = Math.random().toString(36).substr(2, 5).toUpperCase();
       return `USR-${timestamp}-${randomSuffix}`;
+=======
+    rowValues[iStatus] = 'RELEASE_USER';
+    if (iRemarks >= 0) {
+      rowValues[iRemarks] = remarksNote;
+    }
+    if (iStars >= 0) {
+      rowValues[iStars] = payload.stars ? Number(payload.stars) : rowValues[iStars];
+    }
+    if (iSubmit >= 0 && payload.submitter) {
+      rowValues[iSubmit] = payload.submitter;
+    }
+
+    // Preserve original assignment timestamp to maintain ordering
+    if (iDate >= 0 && !requireFeedback) {
+      // leave as-is for partial release; optional future enhancement could log release time separately
+    }
+
+    sh.getRange(targetIndex + 2, 1, 1, lastCol).setValues([rowValues]);
+
+    if (!requireFeedback) {
+      try { refreshVehicleStatusSheets(); } catch (err) { console.error('Partial user release refresh failed:', err); }
+      try { syncVehicleSheetFromCarTP(); } catch (err) { console.error('Partial user release sync failed:', err); }
+      try { CacheService.getScriptCache().remove('VEH_PICKER_V1'); } catch (_e) { /* ignore */ }
+      _invalidateVehicleInUseCache_();
+      return { ok: true, partial: true, releasedUser: userName };
+    }
+
+    // Last user released – perform full vehicle release using existing workflow
+    const fullReleasePayload = {
+      project: payload.project || '',
+      projectName: payload.projectName || payload.project || '',
+      team: payload.team || '',
+      teamName: payload.teamName || payload.team || '',
+      category: payload.category || '',
+      carNumber: carNumber,
+      make: payload.make || '',
+      model: payload.model || '',
+      usageType: payload.usageType || '',
+      owner: payload.owner || '',
+      status: 'RELEASE',
+      lastUsers: Array.isArray(payload.lastUsers) && payload.lastUsers.length
+        ? payload.lastUsers.join(', ')
+        : userName,
+      remarks: remarksNote,
+      stars: Number(payload.stars || 0),
+      submitter: payload.submitter || '',
+      responsibleBeneficiary: payload.responsibleBeneficiary || userName
+>>>>>>> Stashed changes
     };
 
     const newRows = [];

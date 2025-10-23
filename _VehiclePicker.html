@@ -318,6 +318,37 @@
         });
       },
 
+      hydrateFromSummary: function(summaryRows, options) {
+        const rows = Array.isArray(summaryRows) ? summaryRows : [];
+        assignments.clear();
+        const seenVehicles = new Set();
+        rows.forEach(row => {
+          if (!row) return;
+          const vehicle = String(
+            row.vehicleNumber ||
+            row.carNumber ||
+            row['Vehicle Number'] ||
+            ''
+          ).toUpperCase().trim();
+          const ben = String(
+            row.responsibleBeneficiary ||
+            row.beneficiary ||
+            row.member ||
+            row.name ||
+            row['R.Beneficiary'] ||
+            ''
+          ).trim();
+          if (!vehicle || !ben) return;
+          if (seenVehicles.has(vehicle)) return;
+          seenVehicles.add(vehicle);
+          assignments.set(vehicle, ben);
+        });
+        const shouldSync = !options || options.sync !== false;
+        if (shouldSync) {
+          this.syncUIAddOnly();
+        }
+      },
+
       // ❌ DEPRECATED: The aggressive syncUI function that was clearing vehicles
       syncUI: function() {
         console.warn('[VAM] syncUI called - using syncUIAddOnly instead to prevent data loss');
