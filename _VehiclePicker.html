@@ -825,10 +825,11 @@
         let vehicleVersionMonitorTimer=null;
         let lastKnownVehicleServerVersion=null;
         let vehicleVersionRefreshPending=false;
-        let vehicleWarmInitiated=false;
         let vehicleWarmRetryTimer=null;
         let vehicleVersionMonitorStartTimer=null;
         let lastWarmSelectionKey='';
+        let vehicleWarmInFlight=false;
+        let lastVehicleWarmTs=0;
         const VEHICLE_VERSION_POLL_INTERVAL = 10000;
         let manualRefreshInProgress = false;
 
@@ -2232,6 +2233,8 @@
           master=[]; vehicles=[];
           resetPickerUI();
           try{ populateContextFromRow(targetInput); }catch(_){ }
+          bootstrapVehicleCacheFromStorage();
+          const statusEl = document.getElementById('vpStatus');
           const hadCache = Array.isArray(vehicleDataCache) && vehicleDataCache.length;
           if (hadCache) {
             try {
@@ -2239,11 +2242,23 @@
             } catch (cacheRenderErr) {
               console.warn('[VP] Failed to render cached vehicles on open', cacheRenderErr);
             }
+            const isFresh = (Date.now() - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
+            if (statusEl) {
+              statusEl.textContent = isFresh
+                ? 'Vehicles loaded from cache.'
+                : 'Vehicles loaded from cache. Re-apply project & team to refresh.';
+            }
+          } else {
+            const warmPending = vehicleFetchPending || vehicleWarmInFlight;
+            if (warmPending) {
+              setDropdownLoading(true, 'Loading vehicles…');
+              if (statusEl) statusEl.textContent = 'Loading vehicles…';
+            } else {
+              setDropdownLoading(true, 'Waiting for vehicle cache…');
+              if (statusEl) statusEl.textContent = 'Select a project & team, then click Apply to load vehicles.';
+            }
           }
           setMode('existing', { autoFetch: false });
-          const cacheIsFresh = hadCache && (Date.now() - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
-          const shouldForce = !hadCache || !cacheIsFresh;
-          fetchVehicles({ force: shouldForce, skipCache: false });
         }
 
         function close(){
@@ -2327,6 +2342,7 @@
             .withFailureHandler(function(err){
               vehicleFetchPending = false;
               vehicleVersionRefreshPending = false;
+              vehicleWarmInFlight = false;
               console.error('Vehicle picker load failed', err);
               window.vehiclePickerLastResponse = {
                 timestamp: new Date().toISOString(),
@@ -2343,6 +2359,7 @@
 
         function handleVehicleFetchSuccess(res, startTs, opts){
           vehicleFetchPending = false;
+          vehicleWarmInFlight = false;
           let list = [];
           let source = '';
           let cachedFlag = false;
@@ -2480,7 +2497,16 @@
         }
 
         function warmVehiclePickerCache(forceRefresh = false){
-          if (!forceRefresh && vehicleWarmInitiated) return;
+          const now = Date.now();
+          const cacheFresh = vehicleDataCache && (now - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
+          if (!forceRefresh) {
+            if (cacheFresh) return;
+            if (vehicleFetchPending || vehicleWarmInFlight) return;
+            if (lastVehicleWarmTs && (now - lastVehicleWarmTs) < 750) return;
+          }
+          if (vehicleFetchPending || vehicleWarmInFlight) {
+            return;
+          }
           if (!window.google || !google.script || !google.script.run) {
             if (!vehicleWarmRetryTimer) {
               vehicleWarmRetryTimer = setTimeout(function(){
@@ -2494,10 +2520,12 @@
             clearTimeout(vehicleWarmRetryTimer);
             vehicleWarmRetryTimer = null;
           }
-          vehicleWarmInitiated = true;
+          vehicleWarmInFlight = true;
+          lastVehicleWarmTs = now;
           try {
             fetchVehicles({ force: true, skipCache: false, silent: true });
           } catch (warmErr) {
+            vehicleWarmInFlight = false;
             console.warn('[VP] Warm cache fetch failed', warmErr);
           }
         }
@@ -2515,10 +2543,12 @@
           const teamIds = Array.isArray(detail && detail.teamIds) ? detail.teamIds.filter(Boolean) : [];
           if (!teamIds.length) return;
           const key = computeSelectionWarmKey(detail);
-          if (key && key === lastWarmSelectionKey) return;
+          const now = Date.now();
+          const cacheFresh = vehicleDataCache && (now - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
+          if (key && key === lastWarmSelectionKey && cacheFresh) return;
           lastWarmSelectionKey = key;
           try {
-            warmVehiclePickerCache(false);
+            warmVehiclePickerCache(!cacheFresh);
           } catch (prefetchErr) {
             console.warn('[VP] Prefetch warm failed', prefetchErr);
           }
@@ -3366,7 +3396,8 @@
           vehicleCacheSource = '';
           vehicleDataCacheVersion = null;
           vehicleVersionRefreshPending = false;
-          vehicleWarmInitiated = false;
+          vehicleWarmInFlight = false;
+          lastVehicleWarmTs = 0;
           if (vehicleWarmRetryTimer) {
             clearTimeout(vehicleWarmRetryTimer);
             vehicleWarmRetryTimer = null;
@@ -3378,6 +3409,7 @@
           }
           clearVehicleStorage();
           storageHydrationAttempted = false;
+          lastWarmSelectionKey='';
         }
 
         // Expose cache controls so other modules (release modal) can force a reload
