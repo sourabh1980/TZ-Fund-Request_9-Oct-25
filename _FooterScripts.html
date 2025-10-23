@@ -1244,6 +1244,127 @@
 
   window.invalidateVehicleNormalizationCache = invalidateVehicleNormalizationCache;
 
+  const vehicleCacheRefreshState = {
+    timer: null,
+    retries: 0,
+    maxRetries: 5
+  };
+
+  function refreshAllVehicleCaches(reason) {
+    const label = reason ? String(reason) : 'unspecified';
+    try {
+      console.log('[VehicleCache] Refresh requested', { reason: label });
+    } catch (_err) { /* best-effort logging */ }
+
+    const missing = [];
+
+    try {
+      invalidateVehicleNormalizationCache();
+    } catch (err) {
+      console.warn('[VehicleCache] normalize cache reset failed', err);
+    }
+
+    if (typeof window.clearVehiclePickerCache === 'function') {
+      try {
+        window.clearVehiclePickerCache();
+      } catch (err) {
+        console.warn('[VehicleCache] clearVehiclePickerCache failed', err);
+      }
+    } else {
+      missing.push('clearVehiclePickerCache');
+    }
+
+    if (typeof window.forceVehiclePickerWarm === 'function') {
+      try {
+        window.forceVehiclePickerWarm(true);
+      } catch (err) {
+        console.warn('[VehicleCache] forceVehiclePickerWarm failed', err);
+      }
+    } else {
+      missing.push('forceVehiclePickerWarm');
+    }
+
+    if (typeof invalidateBeneficiaryVehicleCache === 'function') {
+      try {
+        invalidateBeneficiaryVehicleCache();
+      } catch (err) {
+        console.warn('[VehicleCache] invalidateBeneficiaryVehicleCache failed', err);
+      }
+    } else {
+      missing.push('invalidateBeneficiaryVehicleCache');
+    }
+
+    if (typeof window.refreshVehicleInUseData === 'function') {
+      try {
+        window.refreshVehicleInUseData();
+      } catch (err) {
+        console.warn('[VehicleCache] refreshVehicleInUseData failed', err);
+      }
+    } else {
+      missing.push('refreshVehicleInUseData');
+    }
+
+    if (typeof ensureBeneficiaryVehicleCache === 'function') {
+      try {
+        ensureBeneficiaryVehicleCache();
+      } catch (err) {
+        console.warn('[VehicleCache] ensureBeneficiaryVehicleCache failed', err);
+      }
+    } else {
+      missing.push('ensureBeneficiaryVehicleCache');
+    }
+
+    if (typeof window.invalidateVehicleInUseCache === 'function') {
+      try {
+        window.invalidateVehicleInUseCache();
+      } catch (err) {
+        console.warn('[VehicleCache] invalidateVehicleInUseCache failed', err);
+      }
+    }
+
+    const needsRetry = missing.some(function(name){
+      return name === 'clearVehiclePickerCache' || name === 'forceVehiclePickerWarm';
+    });
+
+    if (needsRetry && vehicleCacheRefreshState.retries < vehicleCacheRefreshState.maxRetries) {
+      vehicleCacheRefreshState.retries++;
+      if (vehicleCacheRefreshState.timer) {
+        clearTimeout(vehicleCacheRefreshState.timer);
+      }
+      vehicleCacheRefreshState.timer = setTimeout(function(){
+        refreshAllVehicleCaches(label + ':retry');
+      }, 300);
+      return;
+    }
+
+    vehicleCacheRefreshState.retries = 0;
+    if (vehicleCacheRefreshState.timer) {
+      clearTimeout(vehicleCacheRefreshState.timer);
+      vehicleCacheRefreshState.timer = null;
+    }
+  }
+
+  function scheduleVehicleCacheRefresh(reason) {
+    const label = reason ? String(reason) : 'unspecified';
+    setTimeout(function(){
+      refreshAllVehicleCaches(label);
+    }, 0);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){
+      scheduleVehicleCacheRefresh('page-load');
+    }, { once: true });
+  } else {
+    scheduleVehicleCacheRefresh('page-load');
+  }
+
+  document.addEventListener('pp:applied', function(){
+    refreshAllVehicleCaches('project-apply');
+  });
+
+  window.refreshAllVehicleCaches = refreshAllVehicleCaches;
+
   function getVehicleMetaSummary(vehicleNumber){
     const rawValue = String(vehicleNumber || '').trim();
     const target = normalizeVehicleNumber(rawValue);
