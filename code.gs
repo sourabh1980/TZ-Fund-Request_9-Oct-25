@@ -6,7 +6,7 @@ const VEHICLE_RELEASED_VERSION_PROP_KEY = 'vehicle_released_dropdown_payload_v1_
 const VEHICLE_RELEASED_CACHE_TTL_SECONDS = 120;
 const VEHICLE_SUMMARY_HEADER = [
   'Ref','Date and time of entry','Project','Team','R.Beneficiary','Vehicle Number',
-  'Make','Model','Category','Usage Type','Owner','Status','Last Users remarks','Ratings','Submitter username'
+  'Make','Model','Category','Usage Type','Owner','Status','Last Users remarks','Ratings','Submitter username','R.Ben Time','R. Ben'
 ];
 
 function upsertVehicleSummaryRow(sheetName, rowData, keyType) {
@@ -34,6 +34,7 @@ function upsertVehicleSummaryRow(sheetName, rowData, keyType) {
         ).trim().toUpperCase()
       : String(
           rowData['R.Beneficiary'] ||
+          rowData['R. Ben'] ||
           rowData.responsibleBeneficiary ||
           ''
         ).trim().toLowerCase();
@@ -64,7 +65,7 @@ function upsertVehicleSummaryRow(sheetName, rowData, keyType) {
       rowData['Date and time of entry'] || rowData.Timestamp || '',
       rowData.Project || '',
       rowData.Team || '',
-      rowData['R.Beneficiary'] || rowData.responsibleBeneficiary || '',
+      rowData['R.Beneficiary'] || rowData['R. Ben'] || rowData.responsibleBeneficiary || '',
       rowData['Vehicle Number'] || rowData.carNumber || '',
       rowData.Make || rowData.make || '',
       rowData.Model || rowData.model || '',
@@ -74,7 +75,9 @@ function upsertVehicleSummaryRow(sheetName, rowData, keyType) {
       rowData.Status || rowData.status || '',
       rowData['Last Users remarks'] || rowData.remarks || '',
       rowData.Ratings || rowData.rating || rowData.stars || '',
-      rowData['Submitter username'] || rowData.submitter || rowData.Submitter || ''
+      rowData['Submitter username'] || rowData.submitter || rowData.Submitter || '',
+      rowData['R.Ben Time'] || rowData.rBenTime || rowData.responsibleBeneficiaryTime || rowData.responsibleTime || '',
+      rowData['R. Ben'] || rowData.rBenShort || rowData.responsibleBeneficiary || ''
     ];
 
     if (targetRow > 0) {
@@ -429,7 +432,7 @@ function getVehicleInUseSummary() {
     if (!IX) return -1;
     try { return IX.get(labels); } catch (_err) { return -1; }
   };
-  const beneficiaryIdx = idx(['R.Beneficiary', 'Beneficiary', 'Responsible Beneficiary']);
+  const beneficiaryIdx = idx(['R.Beneficiary', 'Beneficiary', 'Responsible Beneficiary','R. Ben','R Ben']);
   let vehicleIdx = idx(['Vehicle Number', 'Car Number', 'Vehicle No', 'Car No', 'Car #', 'Car', 'Vehicle']);
   if (vehicleIdx < 0 && Array.isArray(summary.headerRow)) {
     vehicleIdx = _findCarNumberColumn_(summary.headerRow, summary.rows);
@@ -466,6 +469,7 @@ function getVehicleInUseSummary() {
   const makeIdx = idx(['Make']);
   const modelIdx = idx(['Model']);
   const starsIdx = idx(['Ratings', 'Stars', 'Rating']);
+  const rBenTimeIdx = idx(['R.Ben Time','R.Ben timestamp','Responsible Beneficiary Time'], false);
 
   const assignments = summary.rows.map(function(row) {
     return {
@@ -483,7 +487,8 @@ function getVehicleInUseSummary() {
       make: makeIdx >= 0 ? row[makeIdx] : '',
       model: modelIdx >= 0 ? row[modelIdx] : '',
       stars: starsIdx >= 0 ? Number(row[starsIdx] || 0) || 0 : 0,
-      rowNumber: rowNumberIdx >= 0 ? row[rowNumberIdx] : ''
+      rowNumber: rowNumberIdx >= 0 ? row[rowNumberIdx] : '',
+      rBenTime: rBenTimeIdx >= 0 ? row[rBenTimeIdx] : ''
     };
   }).filter(function(entry) {
     return String(entry.vehicleNumber || '').trim() !== '';
@@ -533,8 +538,9 @@ function getVehicleReleasedSummary() {
   const usageIdx = idx(['Usage Type']);
   const makeIdx = idx(['Make']);
   const modelIdx = idx(['Model']);
-  const beneficiaryIdx = idx(['R.Beneficiary', 'Responsible Beneficiary']);
+  const beneficiaryIdx = idx(['R.Beneficiary', 'Responsible Beneficiary', 'R. Ben', 'R Ben']);
   const starsIdx = idx(['Ratings', 'Stars', 'Rating']);
+  const rBenTimeIdx = idx(['R.Ben Time','R.Ben timestamp','Responsible Beneficiary Time'], false);
 
   var vehicles = summary.rows.map(function(row) {
     return {
@@ -550,7 +556,9 @@ function getVehicleReleasedSummary() {
       make: makeIdx >= 0 ? row[makeIdx] : '',
       model: modelIdx >= 0 ? row[modelIdx] : '',
       responsibleBeneficiary: beneficiaryIdx >= 0 ? row[beneficiaryIdx] : '',
-      stars: starsIdx >= 0 ? Number(row[starsIdx] || 0) || 0 : 0
+      'R. Ben': beneficiaryIdx >= 0 ? row[beneficiaryIdx] : '',
+      stars: starsIdx >= 0 ? Number(row[starsIdx] || 0) || 0 : 0,
+      rBenTime: rBenTimeIdx >= 0 ? row[rBenTimeIdx] : ''
     };
   }).filter(function(entry) {
     return String(entry.vehicleNumber || '').trim() !== '';
@@ -733,33 +741,170 @@ function getInUseHistoryForcedWorking(carNumber, teamName) {
       return [['Info', 'Vehicle_InUse sheet missing required columns']];
     }
 
-    const values = sh.getRange(1, 2, lastRow, columnCount).getDisplayValues();
+    const range = sh.getRange(1, 2, lastRow, columnCount);
+    const values = range.getDisplayValues();
+    const rawValues = range.getValues();
     const header = values[0];
     const dataRows = values.slice(1);
+    const rawRows = rawValues.slice(1);
 
-    const CAR_INDEX = 4;   // Column F (Vehicle Number) relative to range starting at B
-    const TEAM_INDEX = 2;  // Column D (Team)
-    const STATUS_INDEX = 10; // Column L (Status)
+    const loweredHeader = header.map(function(cell){ return String(cell || '').trim().toLowerCase(); });
+
+    function findIndex(aliases, fallback){
+      const list = Array.isArray(aliases) ? aliases : [];
+      for (let col = 0; col < loweredHeader.length; col++) {
+        const headerCell = loweredHeader[col];
+        if (!headerCell) continue;
+        for (let i = 0; i < list.length; i++) {
+          const needle = String(list[i] || '').trim().toLowerCase();
+          if (!needle) continue;
+          if (headerCell === needle) return col;
+          if (headerCell.indexOf(needle) !== -1) return col;
+          if (needle.indexOf(headerCell) !== -1 && headerCell.length > 2) return col;
+        }
+      }
+      const fallbackIndex = typeof fallback === 'number' ? fallback : -1;
+      return fallbackIndex >= 0 && fallbackIndex < loweredHeader.length ? fallbackIndex : -1;
+    }
+
+    const CAR_INDEX = findIndex(['vehicle number', 'car number', 'vehicle no', 'car no', 'car #', 'car'], 4);
+    const TEAM_INDEX = findIndex(['team', 'team name'], 2);
+    const STATUS_INDEX = findIndex(['status', 'in use/ release', 'in use', 'in use / release'], 10);
+    const DATE_INDEX = findIndex(['date and time of entry', 'date and time', 'timestamp', 'date'], 5);
+    const BENEFICIARY_INDEX = findIndex(['r.beneficiary', 'responsible beneficiary', 'name of responsible beneficiary', 'member', 'beneficiary'], -1);
+
+    if (CAR_INDEX < 0 || STATUS_INDEX < 0 || DATE_INDEX < 0) {
+      console.log('Required columns missing in Vehicle_InUse history extract');
+      return [['Info', 'Vehicle_InUse sheet missing required columns for history view']];
+    }
+
+    function pickCell(displayRow, rawRow, index){
+      if (!displayRow || index < 0 || index >= displayRow.length) return '';
+      if (rawRow && index < rawRow.length) {
+        const raw = rawRow[index];
+        if (raw instanceof Date) return raw;
+        if (raw !== null && raw !== '' && raw !== undefined) return raw;
+      }
+      return displayRow[index];
+    }
+
+    function splitNames(value){
+      if (!value && value !== 0) return [];
+      if (Array.isArray(value)) {
+        return value
+          .map(function(entry){ return String(entry || '').trim(); })
+          .filter(Boolean);
+      }
+      const text = String(value || '').trim();
+      if (!text) return [];
+      return text
+        .split(/[,;\n\|]+/)
+        .map(function(part){ return String(part || '').trim(); })
+        .filter(Boolean);
+    }
 
     const targetCar = normalizedCar.toLowerCase();
-    const filteredRows = dataRows.filter(row => {
-      const carValue = String(row[CAR_INDEX] || '').trim().toLowerCase();
-      const teamValue = String(row[TEAM_INDEX] || '').trim().toLowerCase();
-      const statusValue = String(row[STATUS_INDEX] || '').trim().toUpperCase();
-      const carMatch = carValue === targetCar;
-      const teamMatch = normalizedTeam ? teamValue === normalizedTeam : true;
-      const statusMatch = statusValue === 'IN USE';
-      return carMatch && teamMatch && statusMatch;
-    });
+    const entries = [];
 
-    console.log(`Filtered ${filteredRows.length} rows for car ${normalizedCar} and team ${normalizedTeam || '(any)'}`);
+    for (let i = 0; i < dataRows.length; i++) {
+      const displayRow = dataRows[i];
+      const rawRow = rawRows[i];
+      const carValue = String(pickCell(displayRow, rawRow, CAR_INDEX) || '').trim().toLowerCase();
+      if (!carValue || carValue !== targetCar) continue;
 
-    if (filteredRows.length === 0) {
+      const teamValue = TEAM_INDEX >= 0
+        ? String(pickCell(displayRow, rawRow, TEAM_INDEX) || '').trim().toLowerCase()
+        : '';
+      if (normalizedTeam && teamValue !== normalizedTeam) continue;
+
+      const statusValue = String(pickCell(displayRow, rawRow, STATUS_INDEX) || '').trim();
+      if (!statusValue) continue;
+      const normalizedStatus = typeof _normStatus_ === 'function'
+        ? _normStatus_(statusValue)
+        : statusValue.toUpperCase();
+      if (normalizedStatus !== 'IN USE') continue;
+
+      const dateValue = pickCell(displayRow, rawRow, DATE_INDEX);
+      const timestamp = typeof _parseDateTimeFlexible_ === 'function'
+        ? (_parseDateTimeFlexible_(dateValue) || _parseDateTimeFlexible_(displayRow[DATE_INDEX]))
+        : new Date(dateValue).getTime();
+      const displayDate = displayRow[DATE_INDEX];
+
+      const beneficiarySource = BENEFICIARY_INDEX >= 0 ? pickCell(displayRow, rawRow, BENEFICIARY_INDEX) : '';
+      const names = typeof _splitBeneficiaryNames_ === 'function'
+        ? _splitBeneficiaryNames_(beneficiarySource)
+        : splitNames(beneficiarySource);
+
+      entries.push({
+        displayRow: displayRow.slice(),
+        rawRow: rawRow,
+        timestamp: timestamp || 0,
+        displayDate: displayDate,
+        names: Array.isArray(names) && names.length ? names : [''],
+        rowIndex: i
+      });
+    }
+
+    console.log(`Filtered ${entries.length} rows for car ${normalizedCar} and team ${normalizedTeam || '(any)'}`);
+
+    if (!entries.length) {
       const teamMessage = normalizedTeam ? ` and team: ${teamName}` : '';
       return [['Info', `No IN USE history found for vehicle: ${normalizedCar}${teamMessage}`]];
     }
 
-    const result = [header].concat(filteredRows);
+    const insertIndex = STATUS_INDEX + 1;
+    const headerWithDays = header.slice();
+    headerWithDays.splice(insertIndex, 0, 'Days in Use');
+
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const msPerDay = 24 * 60 * 60 * 1000;
+
+    function computeDaySpan(ts){
+      if (!ts || !isFinite(ts)) return '';
+      const date = new Date(ts);
+      if (isNaN(date.getTime())) return '';
+      const start = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+      const diff = todayStart.getTime() - start.getTime();
+      if (diff < 0) return '0';
+      return String(Math.floor(diff / msPerDay) + 1);
+    }
+
+    const latestByBeneficiary = new Map();
+
+    entries.forEach(function(entry){
+      const ts = entry.timestamp || 0;
+      entry.names.forEach(function(name, idx){
+        const trimmed = String(name || '').trim();
+        const key = trimmed ? trimmed.toLowerCase() : `__row_${entry.rowIndex}_${idx}`;
+        const existing = latestByBeneficiary.get(key);
+        if (!existing || ts > (existing.timestamp || 0)) {
+          latestByBeneficiary.set(key, {
+            name: trimmed,
+            timestamp: ts,
+            displayRow: entry.displayRow.slice()
+          });
+        }
+      });
+    });
+
+    const rowsWithDays = [];
+    latestByBeneficiary.forEach(function(entry){
+      const row = entry.displayRow.slice();
+      if (BENEFICIARY_INDEX >= 0 && entry.name) {
+        row[BENEFICIARY_INDEX] = entry.name;
+      }
+      const daysValue = computeDaySpan(entry.timestamp);
+      row.splice(insertIndex, 0, daysValue);
+      rowsWithDays.push({ row: row, timestamp: entry.timestamp || 0 });
+    });
+
+    rowsWithDays.sort(function(a, b){
+      return (b.timestamp || 0) - (a.timestamp || 0);
+    });
+
+    const finalRows = rowsWithDays.map(function(entry){ return entry.row; });
+    const result = [headerWithDays].concat(finalRows);
     console.log('Returning IN USE history result with', result.length, 'rows');
     return result;
 
@@ -775,63 +920,217 @@ function getInUseHistoryForcedWorking(carNumber, teamName) {
 function getReleaseHistoryForcedWorking(carNumber) {
   try {
     console.log('getReleaseHistoryForcedWorking called with car:', carNumber);
-    
-    if (!carNumber) {
-      console.log('No car number provided');
-      return [['Error', 'No car number provided']];
+
+    const inputNumber = String(carNumber || '').trim();
+    const targetKey = _vehicleKey_(inputNumber);
+    if (!targetKey) {
+      return [['Error', 'Vehicle number required']];
     }
-    
-    // Try to access CarT_P sheet
+
     const sh = _openCarTP_();
     if (!sh) {
       console.log('CarT_P sheet not found - returning info message');
       return [['Info', 'CarT_P sheet not accessible - please check sheet permissions']];
     }
-    
+
     const lastRow = sh.getLastRow();
-    if (lastRow <= 1) {
+    const lastCol = sh.getLastColumn();
+    if (lastRow <= 1 || lastCol <= 0) {
       console.log('CarT_P sheet has no data');
       return [['Info', 'CarT_P sheet contains no data']];
     }
-    
-    const lastCol = sh.getLastColumn();
-    const data = sh.getRange(1, 1, lastRow, lastCol).getValues();
-    const header = data[0];
-    
-    // Find column indices
-    const carIdx = header.findIndex(h => 
-      String(h || '').toLowerCase().includes('vehicle') || 
-      String(h || '').toLowerCase().includes('car')
-    );
-    const statusIdx = header.findIndex(h => 
-      String(h || '').toLowerCase().includes('status') ||
-      String(h || '').toLowerCase().includes('release') ||
-      String(h || '').toLowerCase().includes('use')
-    );
-    
-    if (carIdx === -1) {
-      console.log('Vehicle column not found in CarT_P sheet');
-      return [['Error', 'Vehicle Number column not found in CarT_P sheet']];
+
+    const headerDisplay = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    let IX;
+    try {
+      IX = _headerIndex_(headerDisplay);
+    } catch (err) {
+      console.error('getReleaseHistoryForcedWorking header error:', err);
+      return [['Error', 'Required columns missing in CarT_P: ' + err.message]];
     }
-    
-    // Filter for RELEASE status and matching car number
-    const filteredRows = data.slice(1).filter(row => {
-      const rowCarNumber = String(row[carIdx] || '').trim();
-      const rowStatus = String(row[statusIdx] || '').trim().toUpperCase();
-      return rowCarNumber === carNumber && rowStatus === 'RELEASE';
+
+    const idxVehicle = IX.get(['Vehicle Number', 'Car Number', 'Vehicle', 'Vehicle No', 'Car No', 'Car']);
+    const idxStatus = IX.get(['Status', 'In Use / release', 'In Use', 'Release Status']);
+    const idxDate = IX.get(['Date and time of entry', 'Date and time', 'Timestamp', 'Date']);
+  const idxProject = IX.get(['Project']);
+  const idxTeam = IX.get(['Team', 'Team Name']);
+  const idxBeneficiary = IX.get(['R.Beneficiary', 'Responsible Beneficiary', 'Responsible beneficiary', 'Name of Responsible beneficiary','R. Ben','R Ben']);
+  const idxRemarks = IX.get(['Last Users remarks', 'Remarks', 'User Remarks', 'Last 3 Remarks', 'Last Users remark']);
+  const idxRatings = IX.get(['Ratings', 'Stars', 'Rating']);
+
+    const valuesRange = sh.getRange(2, 1, lastRow - 1, lastCol);
+    const sheetValues = valuesRange.getValues();
+    const sheetDisplay = valuesRange.getDisplayValues();
+
+    const inUseTimestamps = new Map();
+    const releaseEntries = [];
+
+    for (let r = 0; r < sheetValues.length; r++) {
+      const rowValues = sheetValues[r];
+      const rowDisplay = sheetDisplay[r];
+
+      const rawCarValue = (rowValues[idxVehicle] != null && rowValues[idxVehicle] !== '')
+        ? rowValues[idxVehicle]
+        : rowDisplay[idxVehicle];
+      const rowKey = _vehicleKey_(rawCarValue);
+      if (!rowKey || rowKey !== targetKey) {
+        continue;
+      }
+
+      const rawStatusValue = (rowValues[idxStatus] != null && rowValues[idxStatus] !== '')
+        ? rowValues[idxStatus]
+        : rowDisplay[idxStatus];
+      const status = _normStatus_(rawStatusValue);
+      if (!status) {
+        continue;
+      }
+
+  const rawDateValue = rowValues[idxDate];
+  const displayDateValue = rowDisplay[idxDate];
+  const timestamp = _parseDateTimeFlexible_(rawDateValue) || _parseDateTimeFlexible_(displayDateValue);
+
+      const rawBeneficiary = rowValues[idxBeneficiary];
+      const displayBeneficiary = String(rowDisplay[idxBeneficiary] || rawBeneficiary || '').trim();
+      const beneficiaryNames = _splitBeneficiaryNames_(rawBeneficiary || displayBeneficiary);
+      const beneficiaryKeys = beneficiaryNames.map(function(name){ return _beneficiaryKey_(name); }).filter(Boolean);
+
+      if (status === 'IN USE') {
+        if (beneficiaryKeys.length && timestamp) {
+          beneficiaryKeys.forEach(function(key){
+            if (!inUseTimestamps.has(key)) inUseTimestamps.set(key, []);
+            inUseTimestamps.get(key).push(timestamp);
+          });
+        }
+        continue;
+      }
+
+      if (status !== 'RELEASE') {
+        continue;
+      }
+
+  const projectValue = String(rowDisplay[idxProject] || rowValues[idxProject] || '').trim();
+  const teamValue = String(rowDisplay[idxTeam] || rowValues[idxTeam] || '').trim();
+
+      const remarksRaw = idxRemarks >= 0 ? (rowValues[idxRemarks] != null && rowValues[idxRemarks] !== '' ? rowValues[idxRemarks] : rowDisplay[idxRemarks]) : '';
+      const ratingsRaw = idxRatings >= 0 ? (rowValues[idxRatings] != null && rowValues[idxRatings] !== '' ? rowValues[idxRatings] : rowDisplay[idxRatings]) : '';
+
+      releaseEntries.push({
+        ts: timestamp,
+        rawDate: rawDateValue,
+  displayDate: displayDateValue || (timestamp ? Utilities.formatDate(new Date(timestamp), TZ(), 'dd-MMM-yyyy HH:mm') : ''),
+        project: projectValue,
+        team: teamValue,
+        beneficiaryDisplay: displayBeneficiary,
+        beneficiaryKeys: beneficiaryKeys,
+        status: status,
+        remarks: String(remarksRaw || '').trim(),
+        ratings: String(ratingsRaw || '').trim()
+      });
+    }
+
+    if (!releaseEntries.length) {
+      return [['Info', `No RELEASE history found for vehicle: ${inputNumber || carNumber}`]];
+    }
+
+    inUseTimestamps.forEach(function(list, key){
+      list.sort(function(a, b){ return (a || 0) - (b || 0); });
+      inUseTimestamps.set(key, list);
     });
-    
-    console.log(`Found ${filteredRows.length} RELEASE entries for car ${carNumber}`);
-    
-    if (filteredRows.length === 0) {
-      return [['Info', `No RELEASE history found for vehicle: ${carNumber}`]];
+
+    releaseEntries.sort(function(a, b){
+      const tsA = a.ts || 0;
+      const tsB = b.ts || 0;
+      if (tsA === tsB) {
+        return 0;
+      }
+      return tsB - tsA;
+    });
+
+    const limit = 10;
+    const limitedEntries = releaseEntries.slice(0, limit);
+
+    function formatDateValue(entry) {
+      if (entry.displayDate) {
+        return entry.displayDate;
+      }
+      if (entry.ts) {
+        try {
+          return Utilities.formatDate(new Date(entry.ts), TZ(), 'dd-MMM-yyyy HH:mm');
+        } catch (_formatErr) {
+          /* ignore */
+        }
+      }
+      if (entry.rawDate instanceof Date) {
+        try {
+          return Utilities.formatDate(entry.rawDate, TZ(), 'dd-MMM-yyyy HH:mm');
+        } catch (_dateErr) {
+          /* ignore */
+        }
+      }
+      return '';
     }
-    
-    // Return header + filtered rows
-    const result = [header].concat(filteredRows);
-    console.log('Returning real RELEASE history result with', result.length, 'rows');
-    return result;
-    
+
+    function computeDaysUsed(entry) {
+      if (!entry || !entry.beneficiaryKeys || !entry.beneficiaryKeys.length) {
+        return '0';
+      }
+      const releaseTs = entry.ts;
+      if (!releaseTs) {
+        return '0';
+      }
+
+      const dayMs = 24 * 60 * 60 * 1000;
+      let bestDiff = null;
+
+      entry.beneficiaryKeys.forEach(function(key){
+        const tsList = inUseTimestamps.get(key);
+        if (!tsList || !tsList.length) return;
+        for (let i = tsList.length - 1; i >= 0; i--) {
+          const candidateTs = tsList[i];
+          if (!candidateTs || candidateTs > releaseTs) {
+            continue;
+          }
+          const diff = releaseTs - candidateTs;
+          if (diff < 0) {
+            continue;
+          }
+          if (bestDiff === null || diff < bestDiff) {
+            bestDiff = diff;
+          }
+          break; // nearest previous entry found
+        }
+      });
+
+      if (bestDiff === null) {
+        return '0';
+      }
+
+      const diffDays = bestDiff / dayMs;
+      if (!isFinite(diffDays) || diffDays < 0) {
+        return '0';
+      }
+      if (diffDays < 1) {
+        return diffDays.toFixed(2);
+      }
+      return String(Math.round(diffDays));
+    }
+
+    const header = ['Date and time of entry', 'Project', 'Team', 'R.Beneficiary', 'Status', 'Days used', 'Ratings', 'Last users remarks'];
+    const rows = limitedEntries.map(function(entry){
+      return [
+        formatDateValue(entry) || '',
+        entry.project || '',
+        entry.team || '',
+        entry.beneficiaryDisplay || '',
+        entry.status || 'RELEASE',
+        computeDaysUsed(entry),
+        entry.ratings || '',
+        entry.remarks || ''
+      ];
+    });
+
+    console.log('Returning computed RELEASE history rows:', rows.length);
+    return [header].concat(rows);
   } catch (error) {
     console.error('Error in getReleaseHistoryForcedWorking:', error);
     return [['Error', 'Error retrieving RELEASE history: ' + error.toString()]];
@@ -1321,6 +1620,7 @@ function refreshVehicleStatusSheets() {
         if (!prev || row._ts > prev._ts || (row._ts === prev._ts && row._rowIndex >= prev._rowIndex)) {
           const clone = Object.assign({}, row);
           clone['R.Beneficiary'] = name;
+          clone['R. Ben'] = name;
           clone.responsibleBeneficiary = name;
           clone.__beneficiaryKey = key;
           latestByBeneficiary.set(key, clone);
@@ -1329,6 +1629,7 @@ function refreshVehicleStatusSheets() {
     } else {
       const beneficiary = String(
         row['R.Beneficiary'] ||
+        row['R. Ben'] ||
         row.responsibleBeneficiary ||
         row['Responsible Beneficiary'] ||
         row['Name of Responsible beneficiary'] ||
@@ -1409,7 +1710,7 @@ function writeVehicleSummarySheet(sheetName, rows) {
       r['Date and time of entry'] || '',
       r.Project || '',
       r.Team || '',
-      r['R.Beneficiary'] || r.responsibleBeneficiary || '',
+      r['R.Beneficiary'] || r['R. Ben'] || r.responsibleBeneficiary || '',
       r['Vehicle Number'] || '',
       r.Make || '',
       r.Model || '',
@@ -1419,7 +1720,9 @@ function writeVehicleSummarySheet(sheetName, rows) {
       _normStatus_(r.Status) || (r.Status || ''),
       r['Last Users remarks'] || '',
       r.Ratings || '',
-      r['Submitter username'] || ''
+      r['Submitter username'] || '',
+      r['R.Ben Time'] || r.rBenTime || r.responsibleBeneficiaryTime || '',
+      r['R. Ben'] || r.rBenShort || r.responsibleBeneficiary || ''
     ]);
     sh.getRange(2,1,values.length,VEHICLE_SUMMARY_HEADER.length).setValues(values);
   }
@@ -1704,62 +2007,272 @@ function removeCarTPOnChangeTrigger() {
   }
 }
 /**
- * Get Responsible Beneficiary and other team members for a car from CarT_P
+ * Get responsible beneficiary and teammate usage breakdown for a car from CarT_P.
  */
 function getCarReleaseDetails(carNumber) {
+  const targetCar = String(carNumber || '').trim();
+  if (!targetCar) {
+    return { ok: false, error: 'Car number required' };
+  }
+
   const ss = SpreadsheetApp.openById(CAR_SHEET_ID);
   const sheet = ss.getSheetByName('CarT_P');
-  if (!sheet) return { ok:false, error:'CarT_P sheet not found' };
+  if (!sheet) return { ok: false, error: 'CarT_P sheet not found' };
+
   const data = sheet.getDataRange().getValues();
+  if (!data || data.length < 2) {
+    return { ok: true, responsible: '', teamMembersUsing: [], teamMembersNotUsing: [], teamMembers: [] };
+  }
+
   const header = data[0];
   const carIdx = header.indexOf('Vehicle Number');
   const teamIdx = header.indexOf('Team');
   const statusIdx = header.indexOf('Status');
-  const rbenIdx = header.indexOf('R.Beneficiary');
-  if (carIdx < 0 || teamIdx < 0 || statusIdx < 0 || rbenIdx < 0) return { ok:false, error:'Required columns missing' };
-
-  // Find all IN USE rows for this car
+  let rbenIdx = header.indexOf('R.Beneficiary');
+  if (rbenIdx < 0) {
+    rbenIdx = header.indexOf('R. Ben');
+  }
   const dateIdx = header.indexOf('Date and time of entry');
-  if (dateIdx < 0) return { ok:false, error:'Date and time of entry column missing' };
 
-  // Gather all IN USE rows for this car
-  let inUseRows = [];
+  if (carIdx < 0 || teamIdx < 0 || statusIdx < 0 || rbenIdx < 0 || dateIdx < 0) {
+    return { ok: false, error: 'Required columns missing in CarT_P' };
+  }
+
+  const normalizeHeader = function(value){
+    return String(value || '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '');
+  };
+
+  const normalizedHead = header.map(normalizeHeader);
+
+  const findIndex = function(labels){
+    const list = (Array.isArray(labels) ? labels : [labels])
+      .map(normalizeHeader)
+      .filter(Boolean);
+    if (!list.length) return -1;
+    for (let i = 0; i < normalizedHead.length; i++) {
+      if (!normalizedHead[i]) continue;
+      if (list.indexOf(normalizedHead[i]) !== -1) {
+        return i;
+      }
+    }
+    return -1;
+  };
+
+  const projectIdx = findIndex(['Project', 'Project Name']);
+  const makeIdx = findIndex(['Make', 'Car Make', 'Brand']);
+  const modelIdx = findIndex(['Model', 'Car Model']);
+  const categoryIdx = findIndex(['Category', 'Vehicle Category', 'Category Name', 'Cat']);
+  const usageIdx = findIndex(['Usage Type', 'Usage', 'Use Type']);
+  const ownerIdx = findIndex(['Owner', 'Owner Name', 'Owner Info']);
+  const remarksIdx = findIndex(['Last Users remarks', 'Remarks', 'Feedback']);
+  const starsIdx = findIndex(['Stars', 'Ratings', 'Rating']);
+  const submitIdx = findIndex(['Submitter username', 'Submitter', 'User']);
+
+  const splitNames = function(value) {
+    if (!value) return [];
+    return String(value)
+      .split(/[,;\n]+/)
+      .map(function(name){ return String(name || '').trim(); })
+      .filter(Boolean);
+  };
+
+  const rowsForCar = [];
+  let responsible = '';
+  let teamName = '';
+  let teamKey = '';
+  let latestInUseTs = -1;
+  let detailRow = null;
+  let detailRowTs = -1;
+  let fallbackRow = null;
+  let fallbackTs = -1;
+
   for (let i = 1; i < data.length; i++) {
-    if (String(data[i][carIdx]).trim() === carNumber && String(data[i][statusIdx]).trim().toUpperCase() === 'IN USE') {
-      inUseRows.push(data[i]);
+    const row = data[i];
+    if (String(row[carIdx]).trim() !== targetCar) continue;
+    rowsForCar.push(row);
+    const status = _normStatus_(row[statusIdx]);
+    const ts = _parseTs_(row[dateIdx]);
+    if (ts >= fallbackTs) {
+      fallbackTs = ts;
+      fallbackRow = row;
+    }
+    const names = splitNames(row[rbenIdx]);
+    const candidateTeam = String(row[teamIdx] || '').trim();
+    if (status === 'IN USE' && names.length) {
+      if (ts >= latestInUseTs) {
+        latestInUseTs = ts;
+        responsible = names[0];
+        teamName = candidateTeam;
+        teamKey = _normTeamKey(candidateTeam);
+      }
+      if (ts >= detailRowTs) {
+        detailRow = row;
+        detailRowTs = ts;
+      }
+    } else if (!detailRow || ts >= detailRowTs) {
+      detailRow = row;
+      detailRowTs = ts;
     }
   }
-  if (inUseRows.length === 0) return { ok:false, error:'No IN USE row found for this car' };
 
-  // Find the most recent date/time
-  let maxDate = null;
-  inUseRows.forEach(row => {
-    let dt = new Date(row[dateIdx]);
-    if (!maxDate || dt > maxDate) maxDate = dt;
-  });
-  // Filter to only rows with the most recent date/time
-  let recentRows = inUseRows.filter(row => {
-    let dt = new Date(row[dateIdx]);
-    return dt.getTime() === maxDate.getTime();
+  if (!rowsForCar.length) {
+    return { ok: true, responsible: '', teamMembersUsing: [], teamMembersNotUsing: [], teamMembers: [] };
+  }
+
+  if (!detailRow) {
+    detailRow = fallbackRow;
+  }
+
+  if (!teamName) {
+    const fallbackTeam = detailRow ? String(detailRow[teamIdx] || '').trim() : String(rowsForCar[0][teamIdx] || '').trim();
+    teamName = fallbackTeam;
+    teamKey = _normTeamKey(fallbackTeam);
+    if (!responsible) {
+      const fallbackNames = splitNames(detailRow ? detailRow[rbenIdx] : rowsForCar[0][rbenIdx]);
+      if (fallbackNames.length) {
+        responsible = fallbackNames[0];
+      }
+    }
+  }
+
+  const memberStatusMap = new Map();
+  rowsForCar.forEach(function(row) {
+    const rowTeam = String(row[teamIdx] || '').trim();
+    if (teamKey && _normTeamKey(rowTeam) !== teamKey) return;
+    const status = _normStatus_(row[statusIdx]);
+    const ts = _parseTs_(row[dateIdx]);
+    const names = splitNames(row[rbenIdx]);
+    names.forEach(function(name){
+      if (!name) return;
+      const key = _beneficiaryKey_(name);
+      const existing = memberStatusMap.get(key);
+      if (!existing || ts >= existing.ts) {
+        memberStatusMap.set(key, {
+          name: name,
+          status: status || '',
+          ts: ts || 0
+        });
+      }
+    });
   });
 
-  // Gather all names from R.Beneficiary in recent rows
-  let allNames = [];
-  recentRows.forEach(row => {
-    const rbenCell = String(row[rbenIdx]).trim();
-    const names = rbenCell.split(/[,;\n]+/).map(n => n.trim()).filter(n => n);
-    if (names.length > 0) {
-      allNames.push(...names);
+  const responsibleKey = _beneficiaryKey_(responsible);
+  const teamMembersUsing = [];
+  const teamMembersNotUsing = [];
+  const usingKeySet = new Set();
+  const notUsingKeySet = new Set();
+  if (responsibleKey) {
+    usingKeySet.add(responsibleKey);
+  }
+
+  memberStatusMap.forEach(function(entry, key){
+    if (responsibleKey && key === responsibleKey) return;
+    if (entry.status === 'IN USE') {
+      if (!usingKeySet.has(key)) {
+        usingKeySet.add(key);
+        teamMembersUsing.push(entry.name);
+      }
+    } else if (key) {
+      if (!notUsingKeySet.has(key)) {
+        notUsingKeySet.add(key);
+        teamMembersNotUsing.push(entry.name);
+      }
     }
   });
-  if (allNames.length === 0) return { ok:false, error:'No beneficiary names found' };
 
-  // The FIRST name from the first recent row is the responsible beneficiary
-  const responsible = recentRows.length > 0 ? String(recentRows[0][rbenIdx]).trim().split(/[,;\n]+/).map(n => n.trim()).filter(n => n)[0] : allNames[0];
-  // All other names except responsible, deduplicated
-  let teamMembersSet = new Set(allNames.filter(n => n !== responsible));
-  const teamMembers = Array.from(teamMembersSet);
-  return { ok:true, responsible, teamMembers };
+  if (teamKey) {
+    try {
+      const ddRows = _readDD_compact_();
+      if (Array.isArray(ddRows) && ddRows.length) {
+        const latestByMember = new Map();
+        ddRows.forEach(function(row){
+          if (!row || row.teamKey !== teamKey) return;
+          const benKey = row.beneficiaryKey;
+          if (!benKey) return;
+          const composite = row.teamKey + '|' + benKey;
+          const ts = Number(row.timestamp || 0);
+          const existing = latestByMember.get(composite);
+          if (!existing || ts >= existing.ts) {
+            latestByMember.set(composite, {
+              name: row.beneficiary,
+              key: benKey,
+              ts: ts
+            });
+          }
+        });
+        latestByMember.forEach(function(info){
+          const key = info && info.key;
+          if (!key) return;
+          if (usingKeySet.has(key)) return;
+          if (notUsingKeySet.has(key)) return;
+          notUsingKeySet.add(key);
+          teamMembersNotUsing.push(info.name);
+        });
+      }
+    } catch (ddErr) {
+      console.warn('getCarReleaseDetails: DD reconciliation failed for team', teamName, ddErr);
+    }
+  }
+
+  const sortNames = function(list) {
+    return list.sort(function(a, b){
+      return a.localeCompare(b, undefined, { sensitivity: 'base' });
+    });
+  };
+
+  sortNames(teamMembersUsing);
+  sortNames(teamMembersNotUsing);
+
+  const readString = function(idx){
+    if (idx < 0 || !detailRow) return '';
+    const value = detailRow[idx];
+    if (value == null) return '';
+    if (value instanceof Date) return Utilities.formatDate(value, TZ(), 'yyyy-MM-dd HH:mm');
+    return String(value).trim();
+  };
+
+  const starValue = function(idx){
+    if (idx < 0 || !detailRow) return 0;
+    const raw = detailRow[idx];
+    const num = Number(raw);
+    return Number.isFinite(num) ? num : 0;
+  };
+
+  const projectValue = readString(projectIdx);
+  const teamValue = teamName || readString(teamIdx);
+  const statusValue = detailRow && statusIdx >= 0 ? _normStatus_(detailRow[statusIdx]) || '' : '';
+
+  const carData = {
+    project: projectValue,
+    projectName: projectValue,
+    team: teamValue,
+    teamName: teamValue,
+    carNumber: targetCar,
+    category: readString(categoryIdx),
+    usageType: readString(usageIdx),
+    owner: readString(ownerIdx),
+    make: readString(makeIdx),
+    model: readString(modelIdx),
+    status: statusValue,
+    lastUsers: readString(rbenIdx),
+    remarks: readString(remarksIdx),
+    stars: starValue(starsIdx),
+    submitter: readString(submitIdx)
+  };
+
+  return {
+    ok: true,
+    responsible: responsible || '',
+    team: teamValue || '',
+    project: projectValue || '',
+    teamMembersUsing: teamMembersUsing,
+    teamMembersNotUsing: teamMembersNotUsing,
+    teamMembers: teamMembersUsing.slice(),
+    carData: carData
+  };
 }
 /** 
  * Web App backend for "test fund req"
@@ -2529,7 +3042,8 @@ function submitCarRelease(releaseData) {
         'Status',
         'Last Users remarks',
         'Ratings',
-        'Submitter username'
+        'Submitter username',
+        'R.Ben Time'
       ];
       sh.getRange(1, 1, 1, header.length).setValues([header]);
       sh.setFrozenRows(1);
@@ -2573,23 +3087,29 @@ function submitCarRelease(releaseData) {
     };
 
     addTeamMember(releaseData.responsibleBeneficiary);
-    if (Array.isArray(releaseData.teamMembers) && releaseData.teamMembers.length) {
+    if (Array.isArray(releaseData.teamMembersUsing) && releaseData.teamMembersUsing.length) {
+      releaseData.teamMembersUsing.forEach(addTeamMember);
+    } else if (Array.isArray(releaseData.teamMembers) && releaseData.teamMembers.length) {
       releaseData.teamMembers.forEach(addTeamMember);
     } else if (Array.isArray(releaseData.lastUsers) && releaseData.lastUsers.length) {
       releaseData.lastUsers.forEach(addTeamMember);
     } else if (typeof releaseData.lastUsers === 'string' && releaseData.lastUsers) {
       releaseData.lastUsers.split(/[,;\n]+/).forEach(addTeamMember);
     }
-    if (Array.isArray(releaseData.otherTeamMembers) && releaseData.otherTeamMembers.length) {
-      releaseData.otherTeamMembers.forEach(addTeamMember);
-    }
 
     const teamMembersString = teamMembersList.join(', ');
-    const responsibleBeneficiary = teamMembersList.length
+    const primaryBeneficiary = teamMembersList.length
       ? teamMembersList[0]
       : String(releaseData.responsibleBeneficiary || '').trim();
-    releaseData.responsibleBeneficiary = responsibleBeneficiary;
-    releaseData.teamMembers = teamMembersList;
+    const shortBeneficiaryValue = primaryBeneficiary ? primaryBeneficiary : '';
+    const beneficiaryRows = teamMembersList.length
+      ? teamMembersList.slice()
+      : (primaryBeneficiary ? [primaryBeneficiary] : []);
+    const defaultBeneficiaryText = teamMembersList.length
+      ? teamMembersString
+      : primaryBeneficiary;
+    releaseData.responsibleBeneficiary = primaryBeneficiary;
+    releaseData.teamMembers = beneficiaryRows;
 
     // Ensure Responsible Beneficiary column exists even on legacy layouts
     (function ensureResponsibleColumn(){
@@ -2614,6 +3134,35 @@ function submitCarRelease(releaseData) {
         }
       } catch (err) {
         console.warn('submitCarRelease: ensure R.Beneficiary column failed', err);
+      }
+    })();
+
+    (function ensureShortResponsibleColumn(){
+      try {
+        const existingHead = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
+        const normalized = existingHead.map(function(h){
+          return String(h || '').trim().toLowerCase().replace(/[^a-z]/g, '');
+        });
+        if (normalized.indexOf('rben') >= 0) {
+          return;
+        }
+        const timeIdx = normalized.indexOf('rbentime');
+        if (timeIdx >= 0) {
+          sh.insertColumnAfter(timeIdx + 1);
+          sh.getRange(1, timeIdx + 2).setValue('R. Ben');
+          return;
+        }
+        const respIdx = normalized.indexOf('rbeneficiary');
+        if (respIdx >= 0) {
+          sh.insertColumnAfter(respIdx + 1);
+          sh.getRange(1, respIdx + 2).setValue('R. Ben');
+          return;
+        }
+        const lastCol = sh.getLastColumn();
+        sh.insertColumnAfter(lastCol);
+        sh.getRange(1, lastCol + 1).setValue('R. Ben');
+      } catch (err) {
+        console.warn('submitCarRelease: ensure R. Ben column failed', err);
       }
     })();
 
@@ -2666,7 +3215,6 @@ function submitCarRelease(releaseData) {
     const finalTeamLower = finalTeam ? finalTeam.toLowerCase() : '';
 
     const remarksValue = (releaseData.remarks || '').toString().trim();
-    const rBeneficiaryValue = teamMembersString || responsibleBeneficiary;
 
     function assign(labels, value, required) {
       try {
@@ -2682,7 +3230,8 @@ function submitCarRelease(releaseData) {
     assign(['Date and time of entry','Date and time','Timestamp','Date'], tanzaniaTime, true);
     assign(['Project'], finalProject, false);
     assign(['Team','Team Name'], finalTeam, false);
-    assign(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible'], rBeneficiaryValue, false);
+    assign(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible'], defaultBeneficiaryText, false);
+    assign(['R. Ben','R Ben'], shortBeneficiaryValue, false);
     assign(['Vehicle Number','Car Number','Vehicle No','Car No','Car #','Car'], (releaseData.carNumber || '').toString().trim().toUpperCase(), true);
     assign(['Make','Car Make','Brand'], (releaseData.make || '').toString().trim(), false);
     assign(['Model','Car Model'], (releaseData.model || '').toString().trim(), false);
@@ -2694,15 +3243,20 @@ function submitCarRelease(releaseData) {
     assign(['Last Users remarks','Remarks','Feedback'], remarksValue, false);
     assign(['Stars','Ratings','Rating'], stars, false);
     assign(['Submitter username','Submitter','User'], submitter.toString().trim(), false);
+    assign(['R.Ben Time','R.Ben timestamp','Responsible Beneficiary Time'], tanzaniaTime, false);
 
     // Update existing IN USE rows for this vehicle/team to mark all team members as released
+    const idxRefCol = safeIdx(['Reference Number','Ref','Ref Number']);
     const idxVehicleCol = safeIdx(['Vehicle Number','Car Number','Vehicle No','Car No','Car #','Car']);
     const idxStatusCol = safeIdx(['In Use/Release','In Use / release','In Use','Status']);
     const idxTeamCol = safeIdx(['Team','Team Name']);
     const idxRemarksCol = safeIdx(['Last Users remarks','Remarks','Feedback']);
     const idxStarsCol = safeIdx(['Stars','Ratings','Rating']);
     const idxSubmitCol = safeIdx(['Submitter username','Submitter','User']);
+    const idxRespTimeCol = safeIdx(['R.Ben Time','R.Ben timestamp','Responsible Beneficiary Time']);
     const idxRBCol = safeIdx(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible']);
+    const idxRBenShortCol = safeIdx(['R. Ben','R Ben']);
+    const shortBeneficiaryLower = shortBeneficiaryValue ? shortBeneficiaryValue.toLowerCase() : '';
 
     const lastRowExisting = sh.getLastRow();
     if (lastRowExisting > 1 && idxVehicleCol >= 0 && idxStatusCol >= 0) {
@@ -2727,10 +3281,32 @@ function submitCarRelease(releaseData) {
           if (rowTeam && rowTeam !== finalTeamLower) continue;
         }
 
+        const existingRB = idxRBCol >= 0
+          ? String(rowValue[idxRBCol] || displayValue[idxRBCol] || '').trim()
+          : '';
+        const existingShort = idxRBenShortCol >= 0
+          ? String(rowValue[idxRBenShortCol] || displayValue[idxRBenShortCol] || '').trim()
+          : '';
+        const isResponsibleRow = !!shortBeneficiaryLower && (
+          (existingRB && existingRB.toLowerCase() === shortBeneficiaryLower) ||
+          (existingShort && existingShort.toLowerCase() === shortBeneficiaryLower)
+        );
+
         const updated = rowValue.slice();
-        updated[idxStatusCol] = 'RELEASE_USER';
-        if (idxRBCol >= 0 && rBeneficiaryValue) {
-          updated[idxRBCol] = rBeneficiaryValue;
+        updated[idxStatusCol] = 'RELEASE';
+        if (idxRBCol >= 0 && defaultBeneficiaryText) {
+          if (!existingRB) {
+            updated[idxRBCol] = defaultBeneficiaryText;
+          }
+        }
+        if (idxRBenShortCol >= 0) {
+          if (isResponsibleRow) {
+            if (!existingShort && shortBeneficiaryValue) {
+              updated[idxRBenShortCol] = shortBeneficiaryValue;
+            }
+          } else if (shortBeneficiaryLower) {
+            updated[idxRBenShortCol] = '';
+          }
         }
         if (idxRemarksCol >= 0 && remarksValue) {
           updated[idxRemarksCol] = remarksValue;
@@ -2741,6 +3317,9 @@ function submitCarRelease(releaseData) {
         if (idxSubmitCol >= 0 && submitter) {
           updated[idxSubmitCol] = submitter;
         }
+        if (idxRespTimeCol >= 0) {
+          updated[idxRespTimeCol] = tanzaniaTime;
+        }
         updates.push({ rowNumber: r + 2, values: updated });
       }
 
@@ -2750,13 +3329,41 @@ function submitCarRelease(releaseData) {
       }
     }
 
+    const beneficiaryTargets = beneficiaryRows.length
+      ? beneficiaryRows
+      : (defaultBeneficiaryText ? [defaultBeneficiaryText] : []);
+    const rowsToInsert = beneficiaryTargets.map(function(name, index) {
+      const rowCopy = rowValues.slice();
+      if (idxRBCol >= 0) {
+        if (index === 0) {
+          rowCopy[idxRBCol] = defaultBeneficiaryText || name || '';
+        } else {
+          rowCopy[idxRBCol] = name || defaultBeneficiaryText || '';
+        }
+      }
+      if (idxRBenShortCol >= 0) {
+        rowCopy[idxRBenShortCol] = index === 0 ? (shortBeneficiaryValue || defaultBeneficiaryText || '') : '';
+      }
+      if (idxRefCol >= 0 && index > 0) {
+        rowCopy[idxRefCol] = refNumber + '-' + (index + 1);
+      }
+      if (idxRespTimeCol >= 0 && index > 0) {
+        rowCopy[idxRespTimeCol] = '';
+      }
+      return rowCopy;
+    });
+    if (!rowsToInsert.length) {
+      rowsToInsert.push(rowValues.slice());
+    }
+
     const startRow = sh.getLastRow() + 1;
-    sh.getRange(startRow, 1, 1, rowValues.length).setValues([rowValues]);
+    sh.getRange(startRow, 1, rowsToInsert.length, rowValues.length).setValues(rowsToInsert);
 
     try {
+      const summarySource = rowsToInsert[0] || rowValues;
       const summaryObj = {};
       for (let i = 0; i < VEHICLE_SUMMARY_HEADER.length; i++) {
-        summaryObj[VEHICLE_SUMMARY_HEADER[i]] = rowValues[i] || '';
+        summaryObj[VEHICLE_SUMMARY_HEADER[i]] = summarySource[i] || '';
       }
       summaryObj.status = summaryObj.Status || 'RELEASE';
       upsertVehicleSummaryRow('Vehicle_Released', summaryObj, 'vehicle');
@@ -2786,7 +3393,7 @@ function submitCarRelease(releaseData) {
     return {
       ok: true,
       refNumber: refNumber,
-      submitted: 1,
+      submitted: rowsToInsert.length,
       lastRow: startRow,
       timestamp: tanzaniaTime.toISOString()
     };
@@ -2815,12 +3422,36 @@ function releaseCarUser(payload) {
   }
 
   const carNumber = String(payload.carNumber || '').trim().toUpperCase();
-  const userName = String(payload.user || payload.releasedUser || '').trim();
-
   if (!carNumber) {
     return { ok: false, error: 'Missing car number' };
   }
-  if (!userName) {
+
+  const requestedUsersRaw = [];
+  if (Array.isArray(payload.users)) {
+    payload.users.forEach((user) => requestedUsersRaw.push(user));
+  }
+  if (payload.user || payload.releasedUser) {
+    requestedUsersRaw.push(payload.user || payload.releasedUser);
+  }
+
+  const requestedUsers = requestedUsersRaw
+    .map((name) => String(name || '').trim())
+    .filter(Boolean);
+
+  if (!requestedUsers.length) {
+    return { ok: false, error: 'Missing user to release' };
+  }
+
+  const uniqueTargets = new Map();
+  requestedUsers.forEach((name) => {
+    const key = name.toLowerCase();
+    if (!key) return;
+    if (!uniqueTargets.has(key)) {
+      uniqueTargets.set(key, name);
+    }
+  });
+
+  if (!uniqueTargets.size) {
     return { ok: false, error: 'Missing user to release' };
   }
 
@@ -2857,52 +3488,70 @@ function releaseCarUser(payload) {
     const iCar = idx(['Vehicle Number','Car Number','Car No','Vehicle No','Car #','Car'], true);
     const iStatus = idx(['In Use/Release','In Use / release','In Use','Status'], true);
     const iBeneficiary = idx(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible'], true);
+    const iBeneficiaryShort = idx(['R. Ben','R Ben'], false);
     const iDate = idx(['Date and time of entry','Date and time','Timestamp','Date'], false);
     const iRemarks = idx(['Last Users remarks','Remarks','Feedback'], false);
     const iStars = idx(['Ratings','Stars','Rating'], false);
     const iSubmit = idx(['Submitter username','Submitter','User'], false);
+    const iRespTime = idx(['R.Ben Time','R.Ben timestamp','Responsible Beneficiary Time'], false);
+    const iRef = idx(['Reference Number','Ref','Ref Number'], false);
+    const iProject = idx(['Project'], false);
+    const iTeam = idx(['Team','Team Name'], false);
+    const iMake = idx(['Make','Car Make','Brand'], false);
+    const iModel = idx(['Model','Car Model'], false);
+    const iCategory = idx(['Category','Vehicle Category','Cat','Category Name'], false);
+    const iUsage = idx(['Usage Type','Usage','Use Type'], false);
+    const iOwner = idx(['Owner','Owner Name','Owner Info'], false);
 
     const dataRange = sh.getRange(2, 1, lastRow - 1, lastCol);
     const rows = dataRange.getValues();
     const display = dataRange.getDisplayValues();
 
-    const carKey = carNumber;
-    const userKey = userName.toLowerCase();
-    let targetIndex = -1;
     const activeUsers = new Map();
-
     for (let r = rows.length - 1; r >= 0; r--) {
       const row = rows[r];
       const carValue = String(row[iCar] || display[r][iCar] || '').trim().toUpperCase();
-      if (carValue !== carKey) continue;
+      if (!carValue || carValue !== carNumber) continue;
 
       const statusValue = String(row[iStatus] || display[r][iStatus] || '').trim().toUpperCase();
       const beneficiaryRaw = row[iBeneficiary] || display[r][iBeneficiary] || '';
-      const beneficiary = String(beneficiaryRaw).trim();
+      const beneficiary = String(beneficiaryRaw || '').trim();
       const beneficiaryKey = beneficiary.toLowerCase();
+      if (!beneficiaryKey) continue;
 
       if (statusValue === 'IN USE') {
         if (!activeUsers.has(beneficiaryKey)) {
-          activeUsers.set(beneficiaryKey, { name: beneficiary, indices: [] });
+          activeUsers.set(beneficiaryKey, { name: beneficiary || uniqueTargets.get(beneficiaryKey) || '', indices: [] });
         }
         activeUsers.get(beneficiaryKey).indices.push(r);
-        if (beneficiaryKey === userKey && targetIndex === -1) {
-          targetIndex = r;
-        }
       }
     }
 
-    if (targetIndex === -1) {
-      return { ok: false, error: 'The selected user is not currently assigned to this vehicle' };
+    const releaseTargets = [];
+    const missingUsers = [];
+    uniqueTargets.forEach((name, key) => {
+      const info = activeUsers.get(key);
+      if (info && Array.isArray(info.indices) && info.indices.length) {
+        releaseTargets.push({
+          key,
+          requestedName: name,
+          displayName: info.name || name,
+          indices: info.indices
+        });
+      } else {
+        missingUsers.push(name);
+      }
+    });
+
+    if (!releaseTargets.length) {
+      return { ok: false, error: 'The selected user(s) are not currently assigned to this vehicle' };
     }
 
-    const remainingUsers = Array.from(activeUsers.keys()).filter(key => key !== userKey);
-    const hasOtherUsers = remainingUsers.length > 0;
-    const requireFeedback = !!payload.requireFeedback || !hasOtherUsers;
-
+    const remainingUsersKeys = Array.from(activeUsers.keys()).filter((key) => !uniqueTargets.has(key));
+    const requireFeedback = !!payload.requireFeedback;
+    const remarksValue = String(payload.remarks || '').trim();
     if (requireFeedback) {
-      const remarks = String(payload.remarks || '').trim();
-      if (remarks.length < 10) {
+      if (remarksValue.length < 10) {
         return { ok: false, error: 'Please provide at least 10 characters of remarks' };
       }
       const rating = Number(payload.stars);
@@ -2910,67 +3559,104 @@ function releaseCarUser(payload) {
         return { ok: false, error: 'Stars rating must be between 1 and 5' };
       }
     }
+    const starsValue = Number(payload.stars || 0);
 
-    const rowValues = rows[targetIndex].slice();
-    const releaseTimestamp = new Date();
-    let remarksNote = String(payload.remarks || '').trim();
-    if (!remarksNote) {
-      remarksNote = `Released on ${Utilities.formatDate(releaseTimestamp, TZ(), 'dd-MMM-yyyy HH:mm')}`;
+    const operationTimestamp = new Date();
+    let submitter = String(payload.submitter || '').trim();
+    try {
+      const userEmail = Session.getActiveUser().getEmail();
+      if (userEmail) {
+        submitter = userEmail;
+      }
+    } catch (_e) {
+      // ignore
+    }
+    if (!submitter) {
+      submitter = 'System';
     }
 
-    rowValues[iStatus] = 'RELEASE_USER';
-    if (iRemarks >= 0) {
-      rowValues[iRemarks] = remarksNote;
-    }
-    if (iStars >= 0) {
-      rowValues[iStars] = payload.stars ? Number(payload.stars) : rowValues[iStars];
-    }
-    if (iSubmit >= 0 && payload.submitter) {
-      rowValues[iSubmit] = payload.submitter;
-    }
-
-    // Preserve original assignment timestamp to maintain ordering
-    if (iDate >= 0 && !requireFeedback) {
-      // leave as-is for partial release; optional future enhancement could log release time separately
-    }
-
-    sh.getRange(targetIndex + 2, 1, 1, lastCol).setValues([rowValues]);
-
-    if (!requireFeedback) {
-      try { refreshVehicleStatusSheets(); } catch (err) { console.error('Partial user release refresh failed:', err); }
-      try { syncVehicleSheetFromCarTP(); } catch (err) { console.error('Partial user release sync failed:', err); }
-      try { CacheService.getScriptCache().remove('VEH_PICKER_V1'); } catch (_e) { /* ignore */ }
-      invalidateVehicleInUseCache();
-      invalidateVehicleReleasedCache('Partial user release updated assignments');
-      return { ok: true, partial: true, releasedUser: userName };
-    }
-
-    // Last user released – perform full vehicle release using existing workflow
-    const fullReleasePayload = {
-      project: payload.project || '',
-      projectName: payload.projectName || payload.project || '',
-      team: payload.team || '',
-      teamName: payload.teamName || payload.team || '',
-      category: payload.category || '',
-      carNumber: carNumber,
-      make: payload.make || '',
-      model: payload.model || '',
-      usageType: payload.usageType || '',
-      owner: payload.owner || '',
-      status: 'RELEASE',
-      lastUsers: Array.isArray(payload.lastUsers) && payload.lastUsers.length
-        ? payload.lastUsers.join(', ')
-        : userName,
-      remarks: remarksNote,
-      stars: Number(payload.stars || 0),
-      submitter: payload.submitter || '',
-      responsibleBeneficiary: payload.responsibleBeneficiary || userName
+    const generateRef = () => {
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substr(2, 5).toUpperCase();
+      return `USR-${timestamp}-${randomSuffix}`;
     };
 
-    lock.releaseLock();
-    lockHeld = false;
-    const releaseResult = submitCarRelease(fullReleasePayload);
-    return { ...releaseResult, partial: false, releasedUser: userName };
+    const newRows = [];
+    const summaryEntries = [];
+    const releasedUsers = [];
+
+    releaseTargets.forEach((target) => {
+      const rowIndex = target.indices[target.indices.length - 1];
+      const currentRow = rows[rowIndex].slice();
+      const currentDisplay = display[rowIndex];
+      const releaseDate = new Date(operationTimestamp.getTime());
+      const releaseNote = remarksValue
+        ? remarksValue
+        : `Released ${target.displayName || target.requestedName} on ${Utilities.formatDate(releaseDate, TZ(), 'dd-MMM-yyyy HH:mm')}`;
+
+      const releaseRow = currentRow.slice();
+      if (iStatus >= 0) releaseRow[iStatus] = 'RELEASE';
+      if (iBeneficiary >= 0) releaseRow[iBeneficiary] = target.displayName || target.requestedName;
+      if (iBeneficiaryShort >= 0) releaseRow[iBeneficiaryShort] = target.displayName || target.requestedName;
+      if (iDate >= 0) releaseRow[iDate] = releaseDate;
+      if (iRemarks >= 0) releaseRow[iRemarks] = releaseNote;
+      if (iStars >= 0) releaseRow[iStars] = starsValue;
+      if (iSubmit >= 0) releaseRow[iSubmit] = submitter;
+      if (iRespTime >= 0) releaseRow[iRespTime] = releaseDate;
+      const referenceNumber = generateRef();
+      if (iRef >= 0) {
+        releaseRow[iRef] = referenceNumber;
+      }
+      newRows.push(releaseRow);
+
+      const summaryObj = {
+        Ref: referenceNumber,
+        'Date and time of entry': releaseDate,
+        Project: iProject >= 0 ? (releaseRow[iProject] || currentDisplay[iProject] || '') : '',
+        Team: iTeam >= 0 ? (releaseRow[iTeam] || currentDisplay[iTeam] || '') : '',
+        'R.Beneficiary': target.displayName || target.requestedName,
+        'R. Ben': target.displayName || target.requestedName,
+        'Vehicle Number': releaseRow[iCar] || currentDisplay[iCar] || carNumber,
+        Make: iMake >= 0 ? (releaseRow[iMake] || currentDisplay[iMake] || '') : '',
+        Model: iModel >= 0 ? (releaseRow[iModel] || currentDisplay[iModel] || '') : '',
+        Category: iCategory >= 0 ? (releaseRow[iCategory] || currentDisplay[iCategory] || '') : '',
+        'Usage Type': iUsage >= 0 ? (releaseRow[iUsage] || currentDisplay[iUsage] || '') : '',
+        Owner: iOwner >= 0 ? (releaseRow[iOwner] || currentDisplay[iOwner] || '') : '',
+        Status: 'RELEASE',
+        'Last Users remarks': releaseNote,
+        Ratings: iStars >= 0 ? (releaseRow[iStars] || '') : '',
+        'Submitter username': submitter,
+        'R.Ben Time': iRespTime >= 0 ? (releaseRow[iRespTime] || '') : ''
+      };
+      summaryEntries.push(summaryObj);
+      releasedUsers.push(target.displayName || target.requestedName);
+    });
+
+    if (newRows.length) {
+      const appendStart = sh.getLastRow() + 1;
+      sh.getRange(appendStart, 1, newRows.length, lastCol).setValues(newRows);
+    }
+
+    summaryEntries.forEach((entry) => {
+      try {
+        upsertVehicleSummaryRow('Vehicle_Released', entry, 'vehicle');
+      } catch (summaryErr) {
+        console.warn('Failed to append Vehicle_Released summary for user release', summaryErr);
+      }
+    });
+
+    try { refreshVehicleStatusSheets(); } catch (refreshErr) { console.error('Partial user release refresh failed:', refreshErr); }
+    try { syncVehicleSheetFromCarTP(); } catch (syncErr) { console.error('Partial user release sync failed:', syncErr); }
+    try { CacheService.getScriptCache().remove('VEH_PICKER_V1'); } catch (_cacheErr) { /* ignore */ }
+    invalidateVehicleInUseCache();
+    invalidateVehicleReleasedCache('User release updated assignments');
+
+    return {
+      ok: true,
+      partial: remainingUsersKeys.length > 0,
+      releasedUsers: releasedUsers,
+      missingUsers: missingUsers
+    };
   } catch (error) {
     console.error('releaseCarUser error:', error);
     return { ok: false, error: String(error) };
@@ -2979,6 +3665,24 @@ function releaseCarUser(payload) {
       lock.releaseLock();
     }
   }
+}
+
+function assignCarToTeamWithReturn(payload) {
+  const result = assignCarToTeam(payload);
+  if (!result || result.ok === false) {
+    return result;
+  }
+  const beneficiaries = Array.isArray(payload?.beneficiaries)
+    ? payload.beneficiaries.map((name) => String(name || '').trim()).filter(Boolean)
+    : [];
+  let primary = beneficiaries.length ? beneficiaries[0] : String(payload?.responsibleBeneficiary || '').trim();
+  if (!primary && typeof payload?.responsibleBeneficiary === 'string') {
+    primary = payload.responsibleBeneficiary.trim();
+  }
+  return Object.assign({}, result, {
+    assignedBeneficiaries: beneficiaries,
+    responsibleBeneficiary: primary || ''
+  });
 }
 
 /**
@@ -3027,7 +3731,7 @@ function getAvailableCars(includeOnlyRelease) {
     const iUsage    = idx(['Usage Type','Usage','Use Type'], false);
     const iContract = idx(['Contract Type','Contract','Agreement Type'], false);
     const iOwner    = idx(['Owner','Owner Name','Owner Info'], false);
-    const iResp     = idx(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible'], false);
+    const iResp     = idx(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible','R. Ben','R Ben'], false);
     // Status optional to avoid hard dependency on header naming
     const iStatus   = idx(['In Use/Release','In Use / release','In Use','Status'], false);
     const iRemarks  = idx(['Last Users remarks','Remarks','Feedback'], false);
@@ -3069,6 +3773,7 @@ function getAvailableCars(includeOnlyRelease) {
         owner: iOwner>=0 ? row[iOwner] : (iOwner>=0 ? disp[index][iOwner] : ''),
         responsibleBeneficiary: iResp>=0 ? (row[iResp] || disp[index][iResp] || '') : '',
         'R.Beneficiary': iResp>=0 ? (row[iResp] || disp[index][iResp] || '') : '',
+        'R. Ben': iResp>=0 ? (row[iResp] || disp[index][iResp] || '') : '',
         status: status,
         remarks: iRemarks>=0 ? row[iRemarks] : '',
         stars: iStars>=0 ? row[iStars] : 0,
@@ -3455,7 +4160,8 @@ function forceClearAndAddSampleData() {
       'Status',
       'Last Users remarks',
       'Ratings',
-      'Submitter username'
+      'Submitter username',
+      'R.Ben Time'
     ];
     sh.getRange(1, 1, 1, header.length).setValues([header]);
     sh.setFrozenRows(1);
@@ -3463,12 +4169,12 @@ function forceClearAndAddSampleData() {
     
     // Add sample car data - mix of RELEASE and IN USE entries (anonymized vehicle numbers)
     const sampleData = [
-      ['REF-001', new Date(), 'Project Falcon', 'Alpha Ops', 'John Doe', 'TEST-VEHICLE-A', 'Toyota', 'Corolla', 'Sedan', 'Rental', 'John Doe', 'RELEASE', 'This car was good for city driving', 4, 'Jane Smith'],
-      ['REF-002', new Date(), 'Project Falcon', 'Beta Team', 'Jane Smith', 'TEST-VEHICLE-B', 'Honda', 'Civic', 'Sedan', 'Rental', 'Jane Smith', 'IN USE', 'Currently assigned to team', 5, 'John Doe'],
-      ['REF-003', new Date(), 'Project Eagle', 'Gamma Squad', 'Mike Johnson', 'TEST-VEHICLE-C', 'Nissan', 'Sentra', 'Sedan', 'Rental', 'Mike Johnson', 'RELEASE', 'Excellent vehicle for long trips', 5, 'Sarah Wilson'],
-      ['REF-004', new Date(), 'Project Falcon', 'Delta Force', 'Sarah Wilson', 'TEST-VEHICLE-D', 'Toyota', 'Camry', 'Sedan', 'Rental', 'Sarah Wilson', 'IN USE', 'Comfortable and reliable vehicle', 4, 'Mike Johnson'],
-      ['REF-005', new Date(), 'Project Eagle', 'Echo Team', 'Alex Brown', 'TEST-VEHICLE-E', 'Honda', 'Accord', 'Sedan', 'Rental', 'Alex Brown', 'RELEASE', 'Great car for team transportation', 5, 'Lisa Davis'],
-      ['REF-006', new Date(), 'Project Falcon', 'Alpha Ops', 'John Doe', 'TEST-VEHICLE-A', 'Toyota', 'Corolla', 'Sedan', 'Rental', 'John Doe', 'IN USE', 'Reassigned to same team', 4, 'Jane Smith']
+      ['REF-001', new Date(), 'Project Falcon', 'Alpha Ops', 'John Doe', 'TEST-VEHICLE-A', 'Toyota', 'Corolla', 'Sedan', 'Rental', 'John Doe', 'RELEASE', 'This car was good for city driving', 4, 'Jane Smith', new Date()],
+      ['REF-002', new Date(), 'Project Falcon', 'Beta Team', 'Jane Smith', 'TEST-VEHICLE-B', 'Honda', 'Civic', 'Sedan', 'Rental', 'Jane Smith', 'IN USE', 'Currently assigned to team', 5, 'John Doe', new Date()],
+      ['REF-003', new Date(), 'Project Eagle', 'Gamma Squad', 'Mike Johnson', 'TEST-VEHICLE-C', 'Nissan', 'Sentra', 'Sedan', 'Rental', 'Mike Johnson', 'RELEASE', 'Excellent vehicle for long trips', 5, 'Sarah Wilson', new Date()],
+      ['REF-004', new Date(), 'Project Falcon', 'Delta Force', 'Sarah Wilson', 'TEST-VEHICLE-D', 'Toyota', 'Camry', 'Sedan', 'Rental', 'Sarah Wilson', 'IN USE', 'Comfortable and reliable vehicle', 4, 'Mike Johnson', new Date()],
+      ['REF-005', new Date(), 'Project Eagle', 'Echo Team', 'Alex Brown', 'TEST-VEHICLE-E', 'Honda', 'Accord', 'Sedan', 'Rental', 'Alex Brown', 'RELEASE', 'Great car for team transportation', 5, 'Lisa Davis', new Date()],
+      ['REF-006', new Date(), 'Project Falcon', 'Alpha Ops', 'John Doe', 'TEST-VEHICLE-A', 'Toyota', 'Corolla', 'Sedan', 'Rental', 'John Doe', 'IN USE', 'Reassigned to same team', 4, 'Jane Smith', new Date()]
     ];
     
     // Add the sample data starting from row 2
@@ -3514,16 +4220,18 @@ function addSampleCarData() {
         'Date and time of entry',
         'Project',
         'Team',
-        'Car Number',
+        'R.Beneficiary',
+        'Vehicle Number',
         'Make',
         'Model',
+        'Category',
         'Usage Type',
-        'Contract Type',
         'Owner',
         'In Use/Release',
         'Last Users remarks',
         'Stars',
-        'Submitter username'
+        'Submitter username',
+        'R.Ben Time'
       ];
       sh.getRange(1, 1, 1, header.length).setValues([header]);
       sh.setFrozenRows(1);
@@ -3541,12 +4249,12 @@ function addSampleCarData() {
     
     // Add sample car data - mix of RELEASE and IN USE entries (anonymized vehicle numbers)
     const sampleData = [
-      ['REF-001', new Date(), 'Project Falcon', 'Alpha Ops', 'TEST-VEHICLE-A', 'Toyota', 'Corolla', 'Rental', 'Monthly', 'John Doe', 'RELEASE', 'This car was good for city driving', 4, 'Jane Smith'],
-      ['REF-002', new Date(), 'Project Falcon', 'Beta Team', 'TEST-VEHICLE-B', 'Honda', 'Civic', 'Rental', 'Monthly', 'Jane Smith', 'IN USE', 'Currently assigned to team', 5, 'John Doe'],
-      ['REF-003', new Date(), 'Project Eagle', 'Gamma Squad', 'TEST-VEHICLE-C', 'Nissan', 'Sentra', 'Rental', 'Weekly', 'Mike Johnson', 'RELEASE', 'Excellent vehicle for long trips', 5, 'Sarah Wilson'],
-      ['REF-004', new Date(), 'Project Falcon', 'Delta Force', 'TEST-VEHICLE-D', 'Toyota', 'Camry', 'Rental', 'Monthly', 'Sarah Wilson', 'IN USE', 'Comfortable and reliable vehicle', 4, 'Mike Johnson'],
-      ['REF-005', new Date(), 'Project Eagle', 'Echo Team', 'TEST-VEHICLE-E', 'Honda', 'Accord', 'Rental', 'Weekly', 'Alex Brown', 'RELEASE', 'Great car for team transportation', 5, 'Lisa Davis'],
-      ['REF-006', new Date(), 'Project Falcon', 'Alpha Ops', 'TEST-VEHICLE-A', 'Toyota', 'Corolla', 'Rental', 'Monthly', 'John Doe', 'IN USE', 'Reassigned to same team', 4, 'Jane Smith']
+      ['REF-001', new Date(), 'Project Falcon', 'Alpha Ops', 'John Doe', 'TEST-VEHICLE-A', 'Toyota', 'Corolla', 'Sedan', 'Rental', 'John Doe', 'RELEASE', 'This car was good for city driving', 4, 'Jane Smith', new Date()],
+      ['REF-002', new Date(), 'Project Falcon', 'Beta Team', 'Jane Smith', 'TEST-VEHICLE-B', 'Honda', 'Civic', 'Sedan', 'Rental', 'Jane Smith', 'IN USE', 'Currently assigned to team', 5, 'John Doe', new Date()],
+      ['REF-003', new Date(), 'Project Eagle', 'Gamma Squad', 'Mike Johnson', 'TEST-VEHICLE-C', 'Nissan', 'Sentra', 'Sedan', 'Rental', 'Mike Johnson', 'RELEASE', 'Excellent vehicle for long trips', 5, 'Sarah Wilson', new Date()],
+      ['REF-004', new Date(), 'Project Falcon', 'Delta Force', 'Sarah Wilson', 'TEST-VEHICLE-D', 'Toyota', 'Camry', 'Sedan', 'Rental', 'Sarah Wilson', 'IN USE', 'Comfortable and reliable vehicle', 4, 'Mike Johnson', new Date()],
+      ['REF-005', new Date(), 'Project Eagle', 'Echo Team', 'Alex Brown', 'TEST-VEHICLE-E', 'Honda', 'Accord', 'Sedan', 'Rental', 'Alex Brown', 'RELEASE', 'Great car for team transportation', 5, 'Lisa Davis', new Date()],
+      ['REF-006', new Date(), 'Project Falcon', 'Alpha Ops', 'John Doe', 'TEST-VEHICLE-A', 'Toyota', 'Corolla', 'Sedan', 'Rental', 'John Doe', 'IN USE', 'Reassigned to same team', 4, 'Jane Smith', new Date()]
     ];
     
     // Add the sample data starting from row 2
@@ -3792,7 +4500,7 @@ function syncVehicleSheetFromCarTP(){
       const values = records.map(r => {
         const dateVal = r['Date and time of entry'];
         const isDate = dateVal instanceof Date;
-        const responsible = String(r['R.Beneficiary'] || r.responsibleBeneficiary || '').trim();
+        const responsible = String(r['R.Beneficiary'] || r['R. Ben'] || r.responsibleBeneficiary || '').trim();
         return [
           r.Ref || r['Reference Number'] || '',
           isDate ? dateVal : (dateVal || ''),
@@ -3916,7 +4624,8 @@ function testCarTPAccess() {
       'IN USE',
       'Test Remarks',
       5,
-      'test@example.com'
+      'test@example.com',
+      new Date()
     ];
     
     const startRow = sh.getLastRow() + 1;
@@ -4283,6 +4992,72 @@ function assignCarToTeam(payload){
     };
 
     ensureResponsibleColumn();
+
+    const ensureShortResponsibleColumn = () => {
+      try {
+        const currentHead = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
+        const normalized = currentHead.map(function(h){
+          return String(h || '').trim().toLowerCase().replace(/[^a-z]/g, '');
+        });
+        if (normalized.indexOf('rben') >= 0) {
+          return;
+        }
+        const timeIdx = normalized.indexOf('rbentime');
+        if (timeIdx >= 0) {
+          sh.insertColumnAfter(timeIdx + 1);
+          sh.getRange(1, timeIdx + 2).setValue('R. Ben');
+          return;
+        }
+        const respIdx = normalized.indexOf('rbeneficiary');
+        if (respIdx >= 0) {
+          sh.insertColumnAfter(respIdx + 1);
+          sh.getRange(1, respIdx + 2).setValue('R. Ben');
+          return;
+        }
+        const lastColumn = sh.getLastColumn();
+        sh.insertColumnAfter(lastColumn);
+        sh.getRange(1, lastColumn + 1).setValue('R. Ben');
+      } catch (err) {
+        console.warn('Unable to ensure R. Ben column', err);
+      }
+    };
+
+    ensureShortResponsibleColumn();
+
+    const ensureRBTimeColumn = () => {
+      try {
+        const currentHead = sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0];
+        const normalized = currentHead.map((h) => String(h || '').trim().toLowerCase().replace(/[^a-z]/g, ''));
+        const timeIdx = normalized.indexOf('rbentime');
+        const submitIdx = normalized.indexOf('submitterusername');
+        if (timeIdx >= 0) {
+          if (submitIdx >= 0 && timeIdx !== submitIdx + 1) {
+            const currentCol = timeIdx + 1;
+            const destination = submitIdx + 2;
+            if (currentCol !== destination) {
+              try {
+                sh.moveColumns(sh.getRange(1, currentCol, sh.getMaxRows(), 1), destination);
+              } catch (moveErr) {
+                console.warn('Unable to reposition R.Ben Time column', moveErr);
+              }
+            }
+          }
+          return;
+        }
+        if (submitIdx >= 0) {
+          sh.insertColumnAfter(submitIdx + 1);
+          sh.getRange(1, submitIdx + 2).setValue('R.Ben Time');
+        } else {
+          const lastCol = sh.getLastColumn();
+          sh.insertColumnAfter(lastCol);
+          sh.getRange(1, lastCol + 1).setValue('R.Ben Time');
+        }
+      } catch (err) {
+        console.warn('Unable to ensure R.Ben Time column', err);
+      }
+    };
+
+    ensureRBTimeColumn();
     const head = sh.getRange(1,1,1,Math.max(15, sh.getLastColumn())).getDisplayValues()[0];
     const IX = _headerIndex_(head);
     function idx(labels, required){ try{ return IX.get(labels); }catch(e){ if(required) throw e; return -1; } }
@@ -4292,7 +5067,8 @@ function assignCarToTeam(payload){
     if(iCarNo<0) iCarNo = _findCarNumberColumn_(head);
     const iProj  = idx(['Project'], false);
     const iTeam  = idx(['Team','Team Name'], false);
-    const iResp  = idx(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible'], false);
+    const iResp  = idx(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible','R. Ben','R Ben'], false);
+    const iRespShort = idx(['R. Ben','R Ben'], false);
     const iMake  = idx(['Make','Car Make','Brand'], false);
     const iModel = idx(['Model','Car Model'], false);
     const iCat   = idx(['Category','Vehicle Category','Cat'], false);
@@ -4302,6 +5078,7 @@ function assignCarToTeam(payload){
     const iRem   = idx(['Last Users remarks','Remarks','Feedback'], false);
     const iRate  = idx(['Ratings','Stars','Rating'], false);
     const iSub   = idx(['Submitter username','Submitter','User'], false);
+    const iRespTime = idx(['R.Ben Time','R.Ben timestamp','Responsible Beneficiary Time'], false);
 
     // Generate a base ref prefix
     const baseTs = Date.now();
@@ -4351,6 +5128,13 @@ function assignCarToTeam(payload){
           arr[iResp] = _norm(beneficiaryName) || responsible;
         }
       }
+      if(iRespShort>=0){
+        if(isResponsibleRow){
+          arr[iRespShort] = responsible || _norm(beneficiaryName);
+        } else {
+          arr[iRespShort] = '';
+        }
+      }
       if(iCarNo>=0) arr[iCarNo]= carNum;
       if(iMake>=0)  arr[iMake] = make;
       if(iModel>=0) arr[iModel]= model;
@@ -4361,6 +5145,9 @@ function assignCarToTeam(payload){
       if(iRem>=0)   arr[iRem]  = '';
       if(iRate>=0)  arr[iRate] = 0;
       if(iSub>=0)   arr[iSub]  = submitter;
+      if (iRespTime >= 0 && isResponsibleRow) {
+        arr[iRespTime] = now;
+      }
       return arr;
     };
 
@@ -4653,9 +5440,17 @@ function _readDD_compact_() {
   const iTeam   = IX.get(['Team','Team Name']);
   const iAcct   = IX.get(['Account Holder Name','Account Holder']);
   const iUse    = IX.get(['In Use / release','In Use','In Use/Release']);
+  let iDateTime = -1;
+  try {
+    iDateTime = IX.get(['Date and Time','Date & Time','Timestamp','Updated At','Date']);
+  } catch (_missingDateCol) {
+    iDateTime = -1;
+  }
 
-  const minIdx = Math.min(iName, iDesig, iDA, iProj, iTeam, iAcct, iUse);
-  const maxIdx = Math.max(iName, iDesig, iDA, iProj, iTeam, iAcct, iUse);
+  const indices = [iName, iDesig, iDA, iProj, iTeam, iAcct, iUse];
+  if (iDateTime >= 0) indices.push(iDateTime);
+  const minIdx = Math.min.apply(null, indices);
+  const maxIdx = Math.max.apply(null, indices);
   const width  = maxIdx - minIdx + 1;
 
   const shBody = sh.getRange(2, minIdx + 1, lastRow - 1, width).getValues();
@@ -4664,14 +5459,22 @@ function _readDD_compact_() {
   for (let r = 0; r < shBody.length; r++) {
     const row = shBody[r];
     const get = (abs) => row[abs - minIdx];
+    const beneficiaryValue = _norm(get(iName));
+    const teamValue = _norm(get(iTeam));
+    const dateRaw = iDateTime >= 0 ? get(iDateTime) : '';
+    const ts = iDateTime >= 0 ? _parseTs_(dateRaw) : 0;
     out[r] = {
-      beneficiary: _norm(get(iName)),
+      beneficiary: beneficiaryValue,
       designation: _norm(get(iDesig)),
       defaultDa:   _toNum(get(iDA)),
       project:     _norm(get(iProj)),
-      team:        _norm(get(iTeam)),
+      team:        teamValue,
       account:     _norm(get(iAcct)),
-      inuse:       _norm(get(iUse))
+      inuse:       _norm(get(iUse)),
+      dateTime:    dateRaw,
+      timestamp:   ts,
+      teamKey:     _normTeamKey(teamValue),
+      beneficiaryKey: _beneficiaryKey_(beneficiaryValue)
     };
   }
 
@@ -7134,11 +7937,12 @@ function _readCarTP_objects_(){
   const iCat   = idx(['Category','Vehicle Category','Cat'], false);
   const iUse   = idx(['Usage Type','Usage','Use Type'], false);
   const iOwner = idx(['Owner','Owner Name','Owner Info'], false);
-  const iResp  = idx(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible'], false);
+  const iResp  = idx(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible','R. Ben','R Ben'], false);
   const iStat  = idx(['In Use/Release','In Use / release','In Use','Status'], false);
   const iRem   = idx(['Last Users remarks','Remarks','Feedback'], false);
   const iRate  = idx(['Ratings','Stars','Rating'], false);
   const iSubmit= idx(['Submitter username','Submitter','User'], false);
+  const iRespTime = idx(['R.Ben Time','R.Ben timestamp','Responsible Beneficiary Time'], false);
 
   const rng = sh.getRange(2,1,lastRow-1,lastCol);
   const data = rng.getValues();
@@ -7158,17 +7962,23 @@ function _readCarTP_objects_(){
       'Usage Type': iUse>=0 ? (row[iUse] || disp[r][iUse] || '') : '',
       Owner: iOwner>=0 ? (row[iOwner] || disp[r][iOwner] || '') : '',
       'R.Beneficiary': iResp>=0 ? (row[iResp] || disp[r][iResp] || '') : '',
+      'R. Ben': iResp>=0 ? (row[iResp] || disp[r][iResp] || '') : '',
       Status: iStat>=0 ? (row[iStat] || disp[r][iStat] || '') : '',
       'Last Users remarks': iRem>=0 ? (row[iRem] || disp[r][iRem] || '') : '',
       Ratings: iRate>=0 ? (row[iRate] || disp[r][iRate] || '') : '',
-      'Submitter username': iSubmit>=0 ? (row[iSubmit] || disp[r][iSubmit] || '') : ''
+      'Submitter username': iSubmit>=0 ? (row[iSubmit] || disp[r][iSubmit] || '') : '',
+      'R.Ben Time': iRespTime>=0 ? (row[iRespTime] || disp[r][iRespTime] || '') : ''
     };
     obj._rowIndex = r + 2;
+    const rbValue = obj['R.Beneficiary'] || obj['R. Ben'] || '';
     if (!obj.responsibleBeneficiary) {
-      obj.responsibleBeneficiary = obj['R.Beneficiary'] || '';
+      obj.responsibleBeneficiary = rbValue;
     }
-    if (!obj['Responsible Beneficiary'] && obj['R.Beneficiary']) {
-      obj['Responsible Beneficiary'] = obj['R.Beneficiary'];
+    if (!obj['Responsible Beneficiary'] && rbValue) {
+      obj['Responsible Beneficiary'] = rbValue;
+    }
+    if (!obj['R. Ben'] && rbValue) {
+      obj['R. Ben'] = rbValue;
     }
     const ts = _parseTs_(obj['Date and time of entry']);
     obj._ts = ts;
@@ -7222,6 +8032,82 @@ function _parseTs_(v){
   }catch(_){ }
   return 0;
 }
+function _parseDateTimeFlexible_(value){
+  if (!value && value !== 0) return 0;
+  if (value instanceof Date) {
+    const ts = value.getTime();
+    return isNaN(ts) ? 0 : ts;
+  }
+  if (typeof value === 'number' && !isNaN(value)) {
+    if (value > 1e12) {
+      return value;
+    }
+    if (value > 0) {
+      const serialMs = Math.round((value - 25569) * 86400000);
+      if (serialMs > 0) {
+        const serialDate = new Date(serialMs);
+        if (!isNaN(serialDate.getTime())) {
+          return serialDate.getTime();
+        }
+      }
+    }
+  }
+
+  const text = String(value || '').trim();
+  if (!text) return 0;
+
+  const normalized = text.replace(/T/, ' ').replace(/-(?=\d)/g, '/');
+  const direct = Date.parse(normalized);
+  if (!isNaN(direct)) return direct;
+
+  const dmy = normalized.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{2,4})(?:\s+(\d{1,2})(?::(\d{2})(?::(\d{2}))?)?)?$/);
+  if (dmy) {
+    const day = Number(dmy[1]);
+    const month = Number(dmy[2]);
+    const year = Number(dmy[3].length === 2 ? ('20' + dmy[3]) : dmy[3]);
+    const hour = Number(dmy[4] || '0');
+    const minute = Number(dmy[5] || '0');
+    const second = Number(dmy[6] || '0');
+    const date = new Date(year, month - 1, day, hour, minute, second);
+    if (!isNaN(date.getTime())) {
+      return date.getTime();
+    }
+  }
+
+  const monthMap = {
+    jan: 0, january: 0,
+    feb: 1, february: 1,
+    mar: 2, march: 2,
+    apr: 3, april: 3,
+    may: 4,
+    jun: 5, june: 5,
+    jul: 6, july: 6,
+    aug: 7, august: 7,
+    sep: 8, sept: 8, september: 8,
+    oct: 9, october: 9,
+    nov: 10, november: 10,
+    dec: 11, december: 11
+  };
+
+  const alpha = text.match(/^(\d{1,2})\s+([A-Za-z]{3,})\s+(\d{2,4})(?:\s+(\d{1,2})(?::(\d{2})(?::(\d{2}))?)?)?$/);
+  if (alpha) {
+    const day = Number(alpha[1]);
+    const monthName = alpha[2].toLowerCase();
+    const month = monthMap.hasOwnProperty(monthName) ? monthMap[monthName] : null;
+    if (month !== null) {
+      const year = Number(alpha[3].length === 2 ? ('20' + alpha[3]) : alpha[3]);
+      const hour = Number(alpha[4] || '0');
+      const minute = Number(alpha[5] || '0');
+      const second = Number(alpha[6] || '0');
+      const date = new Date(year, month, day, hour, minute, second);
+      if (!isNaN(date.getTime())) {
+        return date.getTime();
+      }
+    }
+  }
+
+  return 0;
+}
 
 function _normStatus_(s){
   const raw = String(s||'').trim().toUpperCase();
@@ -7239,6 +8125,22 @@ function _vehicleKey_(value){
   if (!raw) return '';
   const stripped = raw.replace(/[^A-Z0-9]/g, '');
   return stripped || raw;
+}
+
+function _beneficiaryKey_(value){
+  if (!value && value !== 0) return '';
+  return String(value)
+    .replace(/\u00A0/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function _teamBeneficiaryKey_(team, beneficiary){
+  const teamKey = _normTeamKey(team);
+  const benKey = _beneficiaryKey_(beneficiary);
+  if (!teamKey && !benKey) return '';
+  return teamKey + '|' + benKey;
 }
 
 function _splitBeneficiaryNames_(value) {
@@ -8315,7 +9217,7 @@ function getLatestVehicleForTeam(teamName, preferStatus){
       make: String(target.Make||'').trim(),
       model: String(target.Model||'').trim(),
       category: String(target.Category||'').trim(),
-      responsibleBeneficiary: String(target['R.Beneficiary'] || target.responsibleBeneficiary || '').trim(),
+      responsibleBeneficiary: String(target['R.Beneficiary'] || target['R. Ben'] || target.responsibleBeneficiary || '').trim(),
       dateTime: target['Date and time of entry'] || null
     };
   }catch(e){
@@ -8381,9 +9283,9 @@ function getLatestInUseVehiclesForTeams(teamNames){
         owner: String(row.Owner || '').trim(),
         status: _normStatus_(row.Status || ''),
         remarks: String(row['Last Users remarks'] || '').trim(),
-        stars: Number(row.Ratings || 0) || 0,
-        dateTime: dateIso,
-        responsibleBeneficiary: String(row['R.Beneficiary'] || row.responsibleBeneficiary || '').trim()
+       stars: Number(row.Ratings || 0) || 0,
+       dateTime: dateIso,
+        responsibleBeneficiary: String(row['R.Beneficiary'] || row['R. Ben'] || row.responsibleBeneficiary || '').trim()
       };
 
       const entry = teamMap.get(key) || { inUse:null, latest:null };
@@ -8502,7 +9404,7 @@ function getTeamMembersCurrentlyInUse(teamName, projectName) {
     }
 
     const iTeam = idx(['Team', 'Team Name'], true);
-    const iResp = idx(['R.Beneficiary', 'Responsible Beneficiary', 'R Beneficiary', 'Responsible'], false);
+    const iResp = idx(['R.Beneficiary', 'Responsible Beneficiary', 'R Beneficiary', 'Responsible', 'R. Ben', 'R Ben'], false);
     const iStatus = idx(['Status', 'In Use/Release', 'In Use'], false);
 
     const iDate = idx(['Date and time of entry', 'Date and time', 'Timestamp', 'Date'], false);
@@ -9007,7 +9909,7 @@ function getBeneficiaryInfo(query) {
     const statusCol = findCol(['Status','In Use/Release','In Use / release']);
     const starsCol = findCol(['Stars','Ratings']);
     const remarksCol = findCol(['Last Users remarks','Remarks']);
-    const responsibleCol = findCol(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible']);
+    const responsibleCol = findCol(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible','R. Ben','R Ben']);
 
     if (carCol === -1) {
       return 'Unable to find vehicle column in the data.';
