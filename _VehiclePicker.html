@@ -812,6 +812,9 @@
       (function(){
         let targetInput=null, vehicles=[], master=[], vpMode='existing';
         const VEHICLE_CACHE_TTL = 60000; // 60s client cache window
+        const VEHICLE_STORAGE_KEY = 'vp:vehiclePicker:v1';
+        const VEHICLE_STORAGE_MAX_AGE = 5 * 60 * 1000; // 5 minutes persisted cache
+        const VEHICLE_STORAGE_LIMIT = 1000; // guard against runaway payloads
         let vehicleDataCache=null;
         let vehicleDataCacheTs=0;
         let vehicleCacheSource='';
@@ -822,11 +825,89 @@
         let vehicleVersionMonitorTimer=null;
         let lastKnownVehicleServerVersion=null;
         let vehicleVersionRefreshPending=false;
-        let vehicleWarmInitiated=false;
         let vehicleWarmRetryTimer=null;
         let vehicleVersionMonitorStartTimer=null;
+        let lastWarmSelectionKey='';
+        let vehicleWarmInFlight=false;
+        let lastVehicleWarmTs=0;
         const VEHICLE_VERSION_POLL_INTERVAL = 10000;
         let manualRefreshInProgress = false;
+
+        let storageHydrationAttempted = false;
+
+        function storageAvailable(){
+          if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+            return false;
+          }
+          try {
+            const testKey = '__vp_storage_test__';
+            window.localStorage.setItem(testKey, '1');
+            window.localStorage.removeItem(testKey);
+            return true;
+          } catch (_err) {
+            return false;
+          }
+        }
+
+        function clearVehicleStorage(){
+          if (!storageAvailable()) return;
+          try {
+            window.localStorage.removeItem(VEHICLE_STORAGE_KEY);
+          } catch (storageErr) {
+            console.warn('[VP] Failed to clear vehicle storage cache', storageErr);
+          }
+        }
+
+        function persistVehicleCache(list, version){
+          if (!Array.isArray(list) || !list.length) return;
+          if (!storageAvailable()) return;
+          try {
+            const payload = {
+              timestamp: Date.now(),
+              version: version != null ? String(version) : null,
+              maxAge: VEHICLE_STORAGE_MAX_AGE,
+              vehicles: list.slice(0, VEHICLE_STORAGE_LIMIT)
+            };
+            window.localStorage.setItem(VEHICLE_STORAGE_KEY, JSON.stringify(payload));
+          } catch (storageErr) {
+            console.warn('[VP] Failed to persist vehicle cache', storageErr);
+          }
+        }
+
+        function bootstrapVehicleCacheFromStorage(){
+          if (storageHydrationAttempted) return;
+          storageHydrationAttempted = true;
+          if (vehicleDataCache && vehicleDataCache.length) return;
+          if (!storageAvailable()) return;
+          try {
+            const raw = window.localStorage.getItem(VEHICLE_STORAGE_KEY);
+            if (!raw) return;
+            const payload = JSON.parse(raw);
+            if (!payload || !Array.isArray(payload.vehicles) || !payload.vehicles.length) return;
+            const ts = Number(payload.timestamp || 0);
+            if (!ts) return;
+            const maxAge = typeof payload.maxAge === 'number' ? payload.maxAge : VEHICLE_STORAGE_MAX_AGE;
+            if (Date.now() - ts > maxAge) return;
+            vehicleDataCache = payload.vehicles.slice();
+            vehicleDataCacheTs = ts;
+            vehicleCacheSource = 'localStorage';
+            const storedVersion = payload.version != null ? String(payload.version) : null;
+            vehicleDataCacheVersion = storedVersion;
+            if (storedVersion != null) {
+              lastKnownVehicleServerVersion = storedVersion;
+            }
+            try {
+              console.log('[VP] Hydrated vehicles from localStorage cache', {
+                count: vehicleDataCache.length,
+                version: storedVersion
+              });
+            } catch (_logErr) { /* ignore */ }
+          } catch (hydrateErr) {
+            console.warn('[VP] Vehicle cache hydration failed', hydrateErr);
+          }
+        }
+
+        bootstrapVehicleCacheFromStorage();
 
         function setRefreshButtonState(active){
           const btn = document.getElementById('vpRefreshBtn');
@@ -2152,6 +2233,8 @@
           master=[]; vehicles=[];
           resetPickerUI();
           try{ populateContextFromRow(targetInput); }catch(_){ }
+          bootstrapVehicleCacheFromStorage();
+          const statusEl = document.getElementById('vpStatus');
           const hadCache = Array.isArray(vehicleDataCache) && vehicleDataCache.length;
           if (hadCache) {
             try {
@@ -2159,11 +2242,23 @@
             } catch (cacheRenderErr) {
               console.warn('[VP] Failed to render cached vehicles on open', cacheRenderErr);
             }
+            const isFresh = (Date.now() - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
+            if (statusEl) {
+              statusEl.textContent = isFresh
+                ? 'Vehicles loaded from cache.'
+                : 'Vehicles loaded from cache. Re-apply project & team to refresh.';
+            }
+          } else {
+            const warmPending = vehicleFetchPending || vehicleWarmInFlight;
+            if (warmPending) {
+              setDropdownLoading(true, 'Loading vehicles…');
+              if (statusEl) statusEl.textContent = 'Loading vehicles…';
+            } else {
+              setDropdownLoading(true, 'Waiting for vehicle cache…');
+              if (statusEl) statusEl.textContent = 'Select a project & team, then click Apply to load vehicles.';
+            }
           }
           setMode('existing', { autoFetch: false });
-          const cacheIsFresh = hadCache && (Date.now() - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
-          const shouldForce = !hadCache || !cacheIsFresh;
-          fetchVehicles({ force: shouldForce, skipCache: false });
         }
 
         function close(){
@@ -2188,6 +2283,7 @@
             vehicleVersionRefreshPending = false;
             return;
           }
+          bootstrapVehicleCacheFromStorage();
           const statusEl = document.getElementById('vpStatus');
           if (vehicleRetryTimer){
             clearTimeout(vehicleRetryTimer);
@@ -2246,6 +2342,7 @@
             .withFailureHandler(function(err){
               vehicleFetchPending = false;
               vehicleVersionRefreshPending = false;
+              vehicleWarmInFlight = false;
               console.error('Vehicle picker load failed', err);
               window.vehiclePickerLastResponse = {
                 timestamp: new Date().toISOString(),
@@ -2262,6 +2359,7 @@
 
         function handleVehicleFetchSuccess(res, startTs, opts){
           vehicleFetchPending = false;
+          vehicleWarmInFlight = false;
           let list = [];
           let source = '';
           let cachedFlag = false;
@@ -2334,6 +2432,11 @@
           vehicleDataCache = list.slice();
           vehicleDataCacheTs = Date.now();
           vehicleCacheSource = source;
+          try {
+            persistVehicleCache(vehicleDataCache, vehicleDataCacheVersion || incomingVersion || null);
+          } catch (persistErr) {
+            console.warn('[VP] Vehicle cache persistence skipped', persistErr);
+          }
 
           const end = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
           vehiclePickerMeta = {
@@ -2394,7 +2497,16 @@
         }
 
         function warmVehiclePickerCache(forceRefresh = false){
-          if (!forceRefresh && vehicleWarmInitiated) return;
+          const now = Date.now();
+          const cacheFresh = vehicleDataCache && (now - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
+          if (!forceRefresh) {
+            if (cacheFresh) return;
+            if (vehicleFetchPending || vehicleWarmInFlight) return;
+            if (lastVehicleWarmTs && (now - lastVehicleWarmTs) < 750) return;
+          }
+          if (vehicleFetchPending || vehicleWarmInFlight) {
+            return;
+          }
           if (!window.google || !google.script || !google.script.run) {
             if (!vehicleWarmRetryTimer) {
               vehicleWarmRetryTimer = setTimeout(function(){
@@ -2408,11 +2520,37 @@
             clearTimeout(vehicleWarmRetryTimer);
             vehicleWarmRetryTimer = null;
           }
-          vehicleWarmInitiated = true;
+          vehicleWarmInFlight = true;
+          lastVehicleWarmTs = now;
           try {
             fetchVehicles({ force: true, skipCache: false, silent: true });
           } catch (warmErr) {
+            vehicleWarmInFlight = false;
             console.warn('[VP] Warm cache fetch failed', warmErr);
+          }
+        }
+
+        function computeSelectionWarmKey(detail){
+          if (!detail) return '';
+          const project = String(detail.projectId || detail.project || '').trim().toLowerCase();
+          const teamIds = Array.isArray(detail.teamIds) ? detail.teamIds.filter(Boolean).map(function(id){
+            return String(id).trim().toLowerCase();
+          }).sort() : [];
+          return project + '::' + teamIds.join('|');
+        }
+
+        function maybeWarmVehiclesForSelection(detail){
+          const teamIds = Array.isArray(detail && detail.teamIds) ? detail.teamIds.filter(Boolean) : [];
+          if (!teamIds.length) return;
+          const key = computeSelectionWarmKey(detail);
+          const now = Date.now();
+          const cacheFresh = vehicleDataCache && (now - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
+          if (key && key === lastWarmSelectionKey && cacheFresh) return;
+          lastWarmSelectionKey = key;
+          try {
+            warmVehiclePickerCache(!cacheFresh);
+          } catch (prefetchErr) {
+            console.warn('[VP] Prefetch warm failed', prefetchErr);
           }
         }
 
@@ -3244,13 +3382,22 @@
       // Expose beneficiary options populator for external callers (e.g., populateContextFromRow)
       window.populateResponsibleBeneficiaryOptions = populateResponsibleBeneficiaryOptions;
 
+        document.addEventListener('pp:applied', function(e){
+          try {
+            maybeWarmVehiclesForSelection(e && e.detail);
+          } catch (eventErr) {
+            console.warn('[VP] Warm on project apply failed', eventErr);
+          }
+        });
+
         function clearVehiclePickerCacheInternal() {
           vehicleDataCache = null;
           vehicleDataCacheTs = 0;
           vehicleCacheSource = '';
           vehicleDataCacheVersion = null;
           vehicleVersionRefreshPending = false;
-          vehicleWarmInitiated = false;
+          vehicleWarmInFlight = false;
+          lastVehicleWarmTs = 0;
           if (vehicleWarmRetryTimer) {
             clearTimeout(vehicleWarmRetryTimer);
             vehicleWarmRetryTimer = null;
@@ -3260,12 +3407,24 @@
             clearTimeout(vehicleRetryTimer);
             vehicleRetryTimer = null;
           }
+          clearVehicleStorage();
+          storageHydrationAttempted = false;
+          lastWarmSelectionKey='';
         }
 
         // Expose cache controls so other modules (release modal) can force a reload
         window.clearVehiclePickerCache = function() {
           console.log('[VP] Clearing cached vehicle picker data');
           clearVehiclePickerCacheInternal();
+        };
+
+        window.forceVehiclePickerWarm = function(force) {
+          const shouldForce = force === true;
+          try {
+            warmVehiclePickerCache(shouldForce);
+          } catch (err) {
+            console.warn('[VP] External warm request failed', err);
+          }
         };
 
         // ✅ Updated: actively refresh assignments and vehicle data when invoked externally
