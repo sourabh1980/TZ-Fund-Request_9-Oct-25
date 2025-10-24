@@ -5239,11 +5239,11 @@ function assignCarToTeam(payload){
           arr[iResp] = _norm(beneficiaryName) || responsible;
         }
       }
-      if(iRespShort>=0){
-        if(isResponsibleRow){
-          arr[iRespShort] = responsible || _norm(beneficiaryName);
+      if (iRespShort >= 0) {
+        if (responsible) {
+          arr[iRespShort] = responsible;
         } else {
-          arr[iRespShort] = '';
+          arr[iRespShort] = _norm(beneficiaryName);
         }
       }
       if(iCarNo>=0) arr[iCarNo]= carNum;
