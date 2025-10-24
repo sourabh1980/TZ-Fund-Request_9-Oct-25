@@ -71,7 +71,18 @@
           <div class="label">Last Users</div>
           <div class="value" id="car-last-users"></div>
             <div class="label">Name of Responsible Beneficiary</div>
-            <div class="value" id="car-responsible-beneficiary"></div>
+            <div class="value value--with-action" id="car-responsible-wrapper">
+              <span id="car-responsible-beneficiary"></span>
+              <button type="button" class="responsible-change-button" id="changeResponsibleBtn">Change</button>
+              <div class="responsible-change-panel" id="responsibleChangePanel" data-open="false">
+                <label for="responsibleChangeSelect" class="responsible-change-label">Select new responsible beneficiary</label>
+                <select id="responsibleChangeSelect" class="responsible-change-select"></select>
+                <div class="responsible-change-actions">
+                  <button type="button" class="btn btn--secondary btn--compact" id="responsibleChangeCancel">Cancel</button>
+                  <button type="button" class="btn btn--primary btn--compact" id="responsibleChangeConfirm" disabled>Confirm</button>
+                </div>
+              </div>
+            </div>
 
             <div class="label">Other Team Members Using Vehicle</div>
             <div class="value team-member-list" id="car-team-members-using"></div>
@@ -389,12 +400,85 @@
       font-weight: 500;
       color: var(--mac-ink-secondary);
     }
+    .value--with-action{
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      position: relative;
+    }
     .value strong{ font-weight: 600; color: var(--mac-ink-primary); }
     .value--mono{
       font-family: "SF Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
       letter-spacing: .4px;
       font-weight: 600;
       color: var(--mac-ink-primary);
+    }
+    .responsible-change-button{
+      appearance: none;
+      border: none;
+      background: transparent;
+      font-size: 12px;
+      font-weight: 600;
+      color: #2563eb;
+      padding: 2px 6px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background .18s ease, color .18s ease;
+    }
+    .responsible-change-button:hover{
+      background: rgba(37,99,235,0.12);
+      color: #1d4ed8;
+    }
+    .responsible-change-button[disabled]{
+      opacity: .5;
+      cursor: not-allowed;
+    }
+    .responsible-change-panel{
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      min-width: 260px;
+      max-width: 320px;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.35);
+      box-shadow: 0 18px 40px rgba(15,23,42,0.18);
+      background: rgba(255,255,255,0.96);
+      backdrop-filter: blur(10px);
+      display: none;
+      z-index: 30;
+    }
+    .responsible-change-panel[data-open="true"]{
+      display: block;
+    }
+    .responsible-change-label{
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .32px;
+      color: var(--mac-ink-muted);
+      margin-bottom: 6px;
+    }
+    .responsible-change-select{
+      width: 100%;
+      font-size: 14px;
+      padding: 6px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(148,163,184,0.45);
+      background: rgba(255,255,255,0.92);
+      color: var(--mac-ink-primary);
+    }
+    .responsible-change-actions{
+      margin-top: 12px;
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+    .btn--compact{
+      padding: 4px 12px;
+      font-size: 12px;
     }
     .team-member-list{
       display: flex;
@@ -836,6 +920,8 @@
         this.preloadActive = false;
         this.lastCachePrepareTs = 0;
         this.handleUserReleaseCheckboxChange = this.handleUserReleaseCheckboxChange.bind(this);
+        this.responsibleChangeInFlight = false;
+        this.boundResponsibleChangeOutsideHandler = this.handleResponsibleChangeOutsideClick.bind(this);
 
         this.init();
       }
@@ -871,6 +957,10 @@
   document.getElementById('viewHistoryBtn')?.addEventListener('click', () => this.toggleHistorySection());
   document.getElementById('releaseUserBtn')?.addEventListener('click', () => this.showUserReleaseForm());
         document.getElementById('release-user-select')?.addEventListener('change', () => this.validateForm());
+        document.getElementById('changeResponsibleBtn')?.addEventListener('click', () => this.toggleResponsibleChangePanel(true));
+        document.getElementById('responsibleChangeCancel')?.addEventListener('click', () => this.toggleResponsibleChangePanel(false));
+        document.getElementById('responsibleChangeConfirm')?.addEventListener('click', () => this.submitResponsibleChange());
+        document.getElementById('responsibleChangeSelect')?.addEventListener('change', () => this.updateResponsibleChangeConfirmState());
         
         // Release form actions
         document.getElementById('cancelReleaseBtn')?.addEventListener('click', () => this.hideReleaseForm());
@@ -1092,53 +1182,11 @@
         }
 
         const hydrateFromResult = (result) => {
-          const previousView = this.historyView;
-          if (result && result.ok) {
-            const usingMembers = Array.isArray(result.teamMembersUsing)
-              ? result.teamMembersUsing
-              : (Array.isArray(result.teamMembers) ? result.teamMembers : []);
-            const notUsingMembers = Array.isArray(result.teamMembersNotUsing)
-              ? result.teamMembersNotUsing
-              : [];
-            const mergedData = {
-              ...this.currentCarData,
-              responsibleBeneficiary: result.responsible || '',
-              otherTeamMembers: Array.isArray(result.teamMembers)
-                ? result.teamMembers
-                : usingMembers.slice(),
-              otherTeamMembersUsing: usingMembers,
-              otherTeamMembersNotUsing: notUsingMembers
-            };
-            const candidateData = result.carData ? { ...mergedData, ...result.carData } : mergedData;
-            this.currentCarData = this.normalizeCarData(candidateData);
-          } else {
-            this.currentCarData = this.normalizeCarData({
-              ...this.currentCarData,
-              responsibleBeneficiary: '',
-              otherTeamMembers: [],
-              otherTeamMembersUsing: [],
-              otherTeamMembersNotUsing: []
-            });
-          }
-          this.populateCarDetails();
-          if (previousView !== 'summary') {
-            this.historyView = previousView;
-          }
+          this.applyCarDetailsResult(result, { preserveHistoryView: true });
         };
 
         const handleDetailFailure = (error) => {
-          const previousView = this.historyView;
-          this.currentCarData = this.normalizeCarData({
-            ...this.currentCarData,
-            responsibleBeneficiary: '',
-            otherTeamMembers: [],
-            otherTeamMembersUsing: [],
-            otherTeamMembersNotUsing: []
-          });
-          this.populateCarDetails();
-          if (previousView !== 'summary') {
-            this.historyView = previousView;
-          }
+          this.applyCarDetailsResult(null, { preserveHistoryView: true });
           if (error) {
             console.error('Failed to retrieve vehicle details for modal:', error);
           }
@@ -1511,18 +1559,17 @@
           pillElement.setAttribute('aria-disabled', 'true');
         }
         try {
-          const payload = this.buildAssignmentPayload(name);
-          const result = await this.submitAssignmentPayload(payload);
+          const result = await this.submitSecondaryBeneficiary(carNumber, name);
           if (!result || result.ok === false) {
             throw new Error((result && result.error) || 'Assignment failed');
           }
-          if (result && result.partial === false && Array.isArray(result.replacedUsers) && result.replacedUsers.length) {
-            this.currentCarData.otherTeamMembersUsing = result.replacedUsers
-              .filter((user) => user && this.normalizeBeneficiaryKey(user) !== this.normalizeBeneficiaryKey(name));
+          if (result.carDetails && result.carDetails.ok) {
+            this.applyCarDetailsResult(result.carDetails, { preserveHistoryView: true });
+          } else {
+            this.applyLocalAssignment(name, { setResponsible: false });
+            this.populateCarDetails();
           }
-          this.applyLocalAssignment(name);
           this.recordAssignmentInCache(name);
-          this.populateCarDetails();
           this.showSuccessMessage(`Assigned ${name} to vehicle ${carNumber}.`);
           this.handlePostReleaseRefresh(
             carNumber,
@@ -1567,54 +1614,42 @@
         }
       }
 
-      buildAssignmentPayload(beneficiaryName) {
-        const data = this.currentCarData || {};
-        const carNumber = String(data.carNumber || data.car_number || '').trim().toUpperCase();
-        return {
-          project: data.projectName || data.project || '',
-          team: data.teamName || data.team || '',
-          carNumber,
-          beneficiaries: [beneficiaryName],
-          responsibleBeneficiary: beneficiaryName,
-          car: {
-            make: data.make || '',
-            model: data.model || '',
-            category: data.category || '',
-            usageType: data.usageType || '',
-            owner: data.owner || ''
-          }
-        };
-      }
-
-      submitAssignmentPayload(payload) {
+      submitSecondaryBeneficiary(carNumber, beneficiaryName) {
         return new Promise((resolve, reject) => {
           try {
-            if (!window.google || !google.script || !google.script.run || typeof google.script.run.assignCarToTeam !== 'function') {
+            if (!window.google || !google.script || !google.script.run || typeof google.script.run.addVehicleSecondaryBeneficiary !== 'function') {
               reject(new Error('Assignment service unavailable'));
               return;
             }
             google.script.run
               .withSuccessHandler(resolve)
               .withFailureHandler(reject)
-              .assignCarToTeamWithReturn(payload);
+              .addVehicleSecondaryBeneficiary(carNumber, beneficiaryName);
           } catch (err) {
             reject(err);
           }
         });
       }
 
-      applyLocalAssignment(name) {
+      applyLocalAssignment(name, options = {}) {
         if (!this.currentCarData) return;
         const normalized = this.normalizeBeneficiaryKey(name);
         const notUsing = Array.isArray(this.currentCarData.otherTeamMembersNotUsing)
           ? this.currentCarData.otherTeamMembersNotUsing.filter(member => this.normalizeBeneficiaryKey(member) !== normalized)
           : [];
         this.currentCarData.otherTeamMembersNotUsing = notUsing;
-        const usingList = Array.isArray(this.currentCarData.otherTeamMembersUsing)
-          ? this.currentCarData.otherTeamMembersUsing.filter(member => this.normalizeBeneficiaryKey(member) !== normalized)
+        let usingList = Array.isArray(this.currentCarData.otherTeamMembersUsing)
+          ? this.currentCarData.otherTeamMembersUsing.slice()
           : [];
+        usingList = usingList.filter(member => this.normalizeBeneficiaryKey(member) !== normalized);
+        if (!usingList.some(member => this.normalizeBeneficiaryKey(member) === normalized)) {
+          usingList.push(name);
+        }
         this.currentCarData.otherTeamMembersUsing = usingList;
-        this.currentCarData.responsibleBeneficiary = name;
+        const setResponsible = options.setResponsible !== false;
+        if (setResponsible) {
+          this.currentCarData.responsibleBeneficiary = name;
+        }
         if (!Array.isArray(this.currentCarData.lastUsers)) {
           this.currentCarData.lastUsers = [];
         }
@@ -1622,6 +1657,175 @@
           this.currentCarData.lastUsers.push(name);
         }
         this.currentCarData.status = 'IN USE';
+      }
+
+      updateResponsibleChangeControls() {
+        const button = document.getElementById('changeResponsibleBtn');
+        const select = document.getElementById('responsibleChangeSelect');
+        const panel = document.getElementById('responsibleChangePanel');
+        if (!button || !select || !panel) return;
+
+        const usingMembers = Array.isArray(this.currentCarData?.otherTeamMembersUsing)
+          ? this.currentCarData.otherTeamMembersUsing
+          : [];
+        const currentKey = this.normalizeBeneficiaryKey(this.currentCarData?.responsibleBeneficiary || '');
+        const seen = new Set();
+        const options = usingMembers
+          .map((name) => String(name || '').trim())
+          .filter(Boolean)
+          .filter((name) => {
+            const key = this.normalizeBeneficiaryKey(name);
+            if (!key || key === currentKey || seen.has(key)) return false;
+            seen.add(key);
+            return true;
+          });
+
+        if (!options.length) {
+          button.style.display = 'none';
+          panel.dataset.open = 'false';
+          select.innerHTML = '';
+          this.updateResponsibleChangeConfirmState();
+          return;
+        }
+
+        button.style.display = 'inline-flex';
+        select.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Select beneficiary';
+        select.appendChild(placeholder);
+        options.forEach((name) => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          opt.textContent = name;
+          select.appendChild(opt);
+        });
+        this.updateResponsibleChangeConfirmState();
+      }
+
+      toggleResponsibleChangePanel(show) {
+        const panel = document.getElementById('responsibleChangePanel');
+        const button = document.getElementById('changeResponsibleBtn');
+        const select = document.getElementById('responsibleChangeSelect');
+        if (!panel || !button || !select) return;
+        if (show) {
+          if (!select.options.length) return;
+          panel.dataset.open = 'true';
+          this.updateResponsibleChangeConfirmState();
+          document.addEventListener('mousedown', this.boundResponsibleChangeOutsideHandler, true);
+        } else {
+          panel.dataset.open = 'false';
+          if (!this.responsibleChangeInFlight) {
+            select.selectedIndex = 0;
+            this.updateResponsibleChangeConfirmState();
+          }
+          document.removeEventListener('mousedown', this.boundResponsibleChangeOutsideHandler, true);
+          button.disabled = false;
+        }
+      }
+
+      handleResponsibleChangeOutsideClick(event) {
+        const panel = document.getElementById('responsibleChangePanel');
+        const button = document.getElementById('changeResponsibleBtn');
+        if (!panel || panel.dataset.open !== 'true') return;
+        const target = event.target instanceof Node ? event.target : null;
+        if (!target) return;
+        if (panel.contains(target) || (button && button.contains(target))) {
+          return;
+        }
+        this.toggleResponsibleChangePanel(false);
+      }
+
+      updateResponsibleChangeConfirmState() {
+        const select = document.getElementById('responsibleChangeSelect');
+        const confirmBtn = document.getElementById('responsibleChangeConfirm');
+        if (!select || !confirmBtn) return;
+        const hasSelection = !!String(select.value || '').trim();
+        confirmBtn.disabled = !(hasSelection && !this.responsibleChangeInFlight);
+      }
+
+      submitResponsibleChange() {
+        if (this.responsibleChangeInFlight) return;
+        const select = document.getElementById('responsibleChangeSelect');
+        const confirmBtn = document.getElementById('responsibleChangeConfirm');
+        const changeBtn = document.getElementById('changeResponsibleBtn');
+        if (!select || !confirmBtn || !changeBtn) return;
+
+        const selected = String(select.value || '').trim();
+        if (!selected) {
+          this.showErrorMessage('Please select a beneficiary to set as responsible.');
+          return;
+        }
+
+        const carNumber = this.currentCarData?.carNumber || this.currentCarData?.car_number || '';
+        if (!carNumber) {
+          this.showErrorMessage('Vehicle information is missing.');
+          return;
+        }
+
+        this.responsibleChangeInFlight = true;
+        confirmBtn.disabled = true;
+        const originalLabel = confirmBtn.textContent;
+        confirmBtn.textContent = 'Updating...';
+        changeBtn.disabled = true;
+
+        google.script.run
+          .withSuccessHandler((result) => {
+            this.responsibleChangeInFlight = false;
+            confirmBtn.textContent = originalLabel;
+            changeBtn.disabled = false;
+            this.updateResponsibleChangeConfirmState();
+            if (!result || result.ok === false) {
+              const message = (result && result.error) ? result.error : 'Responsible change failed.';
+              this.showErrorMessage(message);
+              return;
+            }
+            if (result.carDetails) {
+              this.applyCarDetailsResult(result.carDetails, { preserveHistoryView: true });
+            } else {
+              this.currentCarData = this.normalizeCarData({
+                ...this.currentCarData,
+                responsibleBeneficiary: result.newResponsible || selected
+              });
+              this.populateCarDetails();
+            }
+            this.toggleResponsibleChangePanel(false);
+            this.showSuccessMessage(`Responsible beneficiary changed to ${selected}.`);
+            try {
+              this.handlePostReleaseRefresh(
+                carNumber,
+                this.currentCarData?.teamName || this.currentCarData?.team || '',
+                { skipPrune: true }
+              );
+            } catch (_refreshErr) {
+              // ignore refresh errors
+            }
+            try {
+              this.applyAssignmentToVisibleRow(selected, carNumber);
+            } catch (_applyErr) {
+              // ignore if list not present
+            }
+            try { window.vehicleAssignmentManager?.assign?.(carNumber, selected); } catch(_assignErr){ /* ignore */ }
+            try { window.invalidateBeneficiaryVehicleCache?.(); } catch(_cacheErr){ /* ignore */ }
+            try { this.registerVehicleInUseLocalState(selected); } catch(_regErr){ /* ignore */ }
+            this.ensureBeneficiaryVehicleInsights(true).then(() => {
+              if (this.isModalOpen()) {
+                this.refreshNotUsingPills();
+              }
+            }).catch((err) => {
+              console.warn('Failed to refresh beneficiary insights after responsible change', err);
+            });
+          })
+          .withFailureHandler((error) => {
+            console.error('Responsible beneficiary change failed', error);
+            this.responsibleChangeInFlight = false;
+            confirmBtn.textContent = originalLabel;
+            changeBtn.disabled = false;
+            this.updateResponsibleChangeConfirmState();
+            const message = error && error.message ? error.message : (error ? String(error) : 'Unknown error');
+            this.showErrorMessage(`Unable to change responsible beneficiary: ${message}`);
+          })
+          .changeVehicleResponsibleBeneficiary(carNumber, selected);
       }
 
       recordAssignmentInCache(name) {
@@ -1679,6 +1883,8 @@
         if (responsibleEl) {
           responsibleEl.textContent = data.responsibleBeneficiary || 'N/A';
         }
+        this.toggleResponsibleChangePanel(false);
+        this.updateResponsibleChangeControls();
         this.renderTeamMemberPills('car-team-members-using', data.otherTeamMembersUsing, 'using');
         this.renderTeamMemberPills('car-team-members-not-using', data.otherTeamMembersNotUsing, 'not-using');
         
@@ -1694,6 +1900,42 @@
           this.renderHistoryTable(this.lastHistoryData.inUse, 'IN USE History');
         } else if (this.historyView === 'release' && Array.isArray(this.lastHistoryData.release)) {
           this.renderHistoryTable(this.lastHistoryData.release, 'RELEASE History');
+        }
+      }
+
+      applyCarDetailsResult(detailResult, options = {}) {
+        const preserveHistory = !!options.preserveHistoryView;
+        const previousView = this.historyView;
+        if (detailResult && detailResult.ok) {
+          const usingMembers = Array.isArray(detailResult.teamMembersUsing)
+            ? detailResult.teamMembersUsing
+            : (Array.isArray(detailResult.teamMembers) ? detailResult.teamMembers : []);
+          const notUsingMembers = Array.isArray(detailResult.teamMembersNotUsing)
+            ? detailResult.teamMembersNotUsing
+            : [];
+          const mergedData = {
+            ...this.currentCarData,
+            responsibleBeneficiary: detailResult.responsible || '',
+            otherTeamMembers: Array.isArray(detailResult.teamMembers)
+              ? detailResult.teamMembers
+              : usingMembers.slice(),
+            otherTeamMembersUsing: usingMembers,
+            otherTeamMembersNotUsing: notUsingMembers
+          };
+          const candidateData = detailResult.carData ? { ...mergedData, ...detailResult.carData } : mergedData;
+          this.currentCarData = this.normalizeCarData(candidateData);
+        } else {
+          this.currentCarData = this.normalizeCarData({
+            ...this.currentCarData,
+            responsibleBeneficiary: '',
+            otherTeamMembers: [],
+            otherTeamMembersUsing: [],
+            otherTeamMembersNotUsing: []
+          });
+        }
+        this.populateCarDetails();
+        if (preserveHistory && previousView !== 'summary') {
+          this.historyView = previousView;
         }
       }
 
@@ -1744,6 +1986,7 @@
           inUse: null
         };
         this.assigningBeneficiary = null;
+        this.responsibleChangeInFlight = false;
         this.resetUserReleaseSelection();
         this.restoreHistoryContent();
         
@@ -1779,6 +2022,12 @@
         if (responsibleEl) {
           responsibleEl.textContent = 'N/A';
         }
+        const changeBtn = document.getElementById('changeResponsibleBtn');
+        if (changeBtn) {
+          changeBtn.style.display = 'none';
+          changeBtn.disabled = false;
+        }
+        this.toggleResponsibleChangePanel(false);
         this.renderTeamMemberPills('car-team-members-using', [], 'using');
         this.renderTeamMemberPills('car-team-members-not-using', [], 'not-using');
       }
