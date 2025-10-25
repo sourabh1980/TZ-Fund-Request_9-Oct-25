@@ -524,8 +524,9 @@
 
         .vp-header__switch{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 
-        .vp-body{padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;background:rgba(255,255,255,.9);
-          backdrop-filter:blur(6px);overflow-y:auto;overscroll-behavior:contain}
+        .vp-body{padding:24px;background:rgba(255,255,255,.9);
+          backdrop-filter:blur(6px);overflow-y:auto;overscroll-behavior:contain;display:grid;gap:20px}
+        #vpExistingSection{display:grid;grid-template-columns:1fr 1fr;gap:20px}
         .vp-status{grid-column:1/-1;font-size:13px;color:var(--vp-muted);margin-top:-2px}
 
         /* Top context row: 3 fields aligned in one line on desktop */
@@ -560,6 +561,9 @@
         /* Two columns below switch */
         .vp-left,.vp-right{display:grid;gap:12px;align-content:start}
         .vp-filters{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+        .vp-newcar{display:grid;grid-template-columns:minmax(220px,1fr);gap:12px}
+        .vp-newcar-input{background:#fff}
+        .vp-input--invalid{border-color:#f87171;background:#fee2e2;box-shadow:0 0 0 1px rgba(248,113,113,.25) inset}
 
         /* Remarks chips (stacked, colored tags like mock) */
         .vp-remark,.vp-chips{display:grid;gap:10px}
@@ -614,10 +618,13 @@
         .vp-users-option--selectall{font-weight:600}
         .vp-users-empty{font-size:13px;color:var(--vp-muted)}
         .vp-users-summary{margin-top:6px;font-size:12px;color:var(--vp-muted)}
+        #vpNewCarSection{min-height:260px;border-radius:16px}
 
         /* Responsive */
         @media(max-width:720px){
-          .vp-body{grid-template-columns:1fr;padding:20px}
+          .vp-body{padding:20px}
+          #vpExistingSection{grid-template-columns:1fr;gap:16px}
+          .vp-newcar{grid-template-columns:1fr}
           .vp-context{grid-template-columns:1fr}
           .vp-left,.vp-right{grid-column:1}
           .vp-switch__group{width:100%}
@@ -716,84 +723,82 @@
           </header>
 
           <div class="vp-body">
-            <div id="vpStatus" class="vp-status">Loading latest vehicles…</div>
+            <div id="vpExistingSection">
+              <div id="vpStatus" class="vp-status">Loading latest vehicles…</div>
 
-            <!-- Top context row: aligned 3 fields -->
-            <div class="vp-context">
-              <div class="vp-field">
-                <label>Project Name</label>
-                <input id="vpProject" class="vp-input" readonly />
+              <!-- Top context row: aligned 3 fields -->
+              <div class="vp-context">
+                <div class="vp-field">
+                  <label>Project Name</label>
+                  <input id="vpProject" class="vp-input" readonly />
+                </div>
+                <div class="vp-field">
+                  <label>Team Name</label>
+                  <input id="vpTeam" class="vp-input" readonly />
+                </div>
+                <div class="vp-field">
+                  <label>Name of Responsible Beneficiary</label>
+                  <select id="vpBeneficiary" class="vp-select">
+                    <option value="">Select Responsible Beneficiary Only</option>
+                  </select>
+                </div>
+                <div class="vp-field vp-field--full">
+                  <label>Users</label>
+                  <div id="vpUsersMulti" class="vp-users-select" role="group" aria-label="Users" aria-expanded="false" tabindex="0"></div>
+                  <div id="vpUsersSummary" class="vp-users-summary">Selected: No team members</div>
+                </div>
               </div>
-              <div class="vp-field">
-                <label>Team Name</label>
-                <input id="vpTeam" class="vp-input" readonly />
+
+              <!-- Left column: filters + vehicle number -->
+              <div class="vp-left">
+                <div class="vp-filters">
+                  <div class="vp-field">
+                    <label for="vpMake">Make</label>
+                    <select id="vpMake" class="vp-select"><option value="">All</option></select>
+                  </div>
+                  <div class="vp-field">
+                    <label for="vpModel">Model</label>
+                    <select id="vpModel" class="vp-select"><option value="">All</option></select>
+                  </div>
+                  <div class="vp-field">
+                    <label for="vpCategory">Category</label>
+                    <select id="vpCategory" class="vp-select"><option value="">All</option></select>
+                  </div>
+                  <div class="vp-field">
+                    <label for="vpUsage">Usage Type</label>
+                    <select id="vpUsage" class="vp-select"><option value="">All</option></select>
+                  </div>
+                  <div class="vp-field">
+                    <label for="vpOwner">Owner</label>
+                    <select id="vpOwner" class="vp-select"><option value="">All</option></select>
+                  </div>
+                </div>
+
+                <div class="vp-field">
+                  <label for="vpDropdown">Vehicle Number</label>
+                  <select id="vpDropdown" class="vp-select">
+                    <option value="">Select a vehicle…</option>
+                  </select>
+                </div>
               </div>
-              <div class="vp-field">
-                <label>Name of Responsible Beneficiary</label>
-                <select id="vpBeneficiary" class="vp-select">
-                  <option value="">Select Responsible Beneficiary Only</option>
-                </select>
-              </div>
-              <div class="vp-field vp-field--full">
-                <label>Users</label>
-                <div id="vpUsersMulti" class="vp-users-select" role="group" aria-label="Users" aria-expanded="false" tabindex="0"></div>
-                <div id="vpUsersSummary" class="vp-users-summary">Selected: No team members</div>
+
+              <!-- Right column: insights -->
+              <div class="vp-right">
+                <div class="vp-field">
+                  <label>Last 3 Ratings</label>
+                  <div id="vpLastRatings" class="vp-last" aria-label="Last three ratings"></div>
+                </div>
               </div>
             </div>
 
-            <!-- Left column: filters + vehicle number -->
-            <div class="vp-left">
-              <div class="vp-filters">
+            <div id="vpNewCarSection" hidden>
+              <div id="vpNewCarStatus" class="vp-status">Add a new vehicle to the fleet.</div>
+              <div class="vp-newcar">
                 <div class="vp-field">
-                  <label for="vpMake">Make</label>
-                  <select id="vpMake" class="vp-select"><option value="">All</option></select>
+                  <label for="vpNewCarVehicle">Vehicle Number</label>
+                  <input id="vpNewCarVehicle" class="vp-input vp-newcar-input" list="vpNewCarVehicleOptions" placeholder="Enter or select vehicle number" autocomplete="off" />
+                  <datalist id="vpNewCarVehicleOptions"></datalist>
                 </div>
-                <div class="vp-field">
-                  <label for="vpModel">Model</label>
-                  <select id="vpModel" class="vp-select"><option value="">All</option></select>
-                </div>
-                <div class="vp-field">
-                  <label for="vpCategory">Category</label>
-                  <select id="vpCategory" class="vp-select"><option value="">All</option></select>
-                </div>
-                <div class="vp-field">
-                  <label for="vpUsage">Usage Type</label>
-                  <select id="vpUsage" class="vp-select"><option value="">All</option></select>
-                </div>
-                <div class="vp-field">
-                  <label for="vpOwner">Owner</label>
-                  <select id="vpOwner" class="vp-select"><option value="">All</option></select>
-                </div>
-              </div>
-
-              <div class="vp-field">
-                <label for="vpDropdown">Vehicle Number</label>
-                <select id="vpDropdown" class="vp-select">
-                  <option value="">Select a vehicle…</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Right column: insights -->
-            <div class="vp-right">
-              <div class="vp-field">
-                <label>Last 3 Remarks</label>
-                <div id="vpRemarks" class="vp-remark">
-                  <!-- Chips injected here -->
-                </div>
-              </div>
-
-              <div class="vp-field">
-                <label>Average Rating</label>
-                <div>
-                  <span id="vpRatingValue" class="vp-rating__value">—</span>
-                  <span id="vpStars" class="vp-stars" aria-label="Average rating"></span>
-                </div>
-              </div>
-
-              <div class="vp-field">
-                <label>Last 3 Ratings</label>
-                <div id="vpLastRatings" class="vp-last" aria-label="Last three ratings"></div>
               </div>
             </div>
           </div>
@@ -815,6 +820,7 @@
         const VEHICLE_STORAGE_KEY = 'vp:vehiclePicker:v1';
         const VEHICLE_STORAGE_MAX_AGE = 5 * 60 * 1000; // 5 minutes persisted cache
         const VEHICLE_STORAGE_LIMIT = 1000; // guard against runaway payloads
+        const NEW_VEHICLE_CACHE_TTL = 60000;
         let vehicleDataCache=null;
         let vehicleDataCacheTs=0;
         let vehicleCacheSource='';
@@ -834,6 +840,9 @@
         let manualRefreshInProgress = false;
 
         let storageHydrationAttempted = false;
+        let newVehicleOptions = null;
+        let newVehicleOptionsTs = 0;
+        let newVehicleFetchInFlight = false;
 
         function storageAvailable(){
           if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
@@ -935,6 +944,10 @@
         }
 
         function manualRefreshVehiclePicker(){
+          if (vpMode === 'new') {
+            ensureNewVehicleOptions(true);
+            return;
+          }
           if (manualRefreshInProgress) return;
           manualRefreshInProgress = true;
           setRefreshButtonState(true);
@@ -1392,6 +1405,106 @@
 
         function escapeAttr(value){
           return escapeHtml(value).replace(/"/g, '&quot;');
+        }
+
+        const newCarFieldConfig = [
+          { key: 'vehicleNumber', inputId: 'vpNewCarVehicle', listId: 'vpNewCarVehicleOptions' }
+        ];
+
+        function resetNewCarForm(){
+          newCarFieldConfig.forEach(cfg => {
+            const input = document.getElementById(cfg.inputId);
+            if (input) {
+              input.value = '';
+              input.classList.remove('vp-input--invalid');
+            }
+          });
+          const statusEl = document.getElementById('vpNewCarStatus');
+          if (statusEl) statusEl.textContent = 'Add a new vehicle to the fleet.';
+        }
+
+        function getNewCarFormValues(){
+          const values = {};
+          newCarFieldConfig.forEach(cfg => {
+            const input = document.getElementById(cfg.inputId);
+            values[cfg.key] = input ? String(input.value || '').trim() : '';
+          });
+          return values;
+        }
+
+        function validateNewCarForm(markInvalid){
+          const values = getNewCarFormValues();
+          let valid = true;
+          newCarFieldConfig.forEach(cfg => {
+            const input = document.getElementById(cfg.inputId);
+            const hasValue = !!values[cfg.key];
+            if (!hasValue) {
+              valid = false;
+              if (markInvalid && input) {
+                input.classList.add('vp-input--invalid');
+              }
+            } else if (input) {
+              input.classList.remove('vp-input--invalid');
+            }
+          });
+          return { valid, values };
+        }
+
+        function applyNewVehicleOptions(options){
+          const source = options && typeof options === 'object' ? options : {};
+          newCarFieldConfig.forEach(cfg => {
+            const listEl = document.getElementById(cfg.listId);
+            if (!listEl) return;
+            const values = Array.isArray(source[cfg.key]) ? source[cfg.key] : [];
+            const seen = new Set();
+            const html = values.reduce((acc, value) => {
+              const trimmed = String(value || '').trim();
+              if (!trimmed) return acc;
+              const key = trimmed.toLowerCase();
+              if (seen.has(key)) return acc;
+              seen.add(key);
+              return acc + `<option value="${escapeAttr(trimmed)}"></option>`;
+            }, '');
+            listEl.innerHTML = html;
+          });
+        }
+
+        function ensureNewVehicleOptions(force){
+          const now = Date.now();
+          if (!force && newVehicleOptions && (now - newVehicleOptionsTs) < NEW_VEHICLE_CACHE_TTL) {
+            applyNewVehicleOptions(newVehicleOptions);
+            return;
+          }
+          if (newVehicleFetchInFlight) return;
+          if (!window.google || !google.script || !google.script.run) {
+            const statusEl = document.getElementById('vpNewCarStatus');
+            if (statusEl) statusEl.textContent = 'Google Apps Script unavailable.';
+            return;
+          }
+          newVehicleFetchInFlight = true;
+          updateSelectButtonState();
+          const statusEl = document.getElementById('vpNewCarStatus');
+          if (statusEl) statusEl.textContent = 'Loading vehicle catalog…';
+          google.script.run
+            .withSuccessHandler(function(res){
+              newVehicleFetchInFlight = false;
+              if (res && res.ok && res.options) {
+                newVehicleOptions = res.options;
+                newVehicleOptionsTs = Date.now();
+                applyNewVehicleOptions(newVehicleOptions);
+                if (statusEl) statusEl.textContent = 'Add a new vehicle to the fleet.';
+              } else {
+                if (statusEl) statusEl.textContent = res && res.error ? res.error : 'No vehicle catalog data available';
+              }
+              updateSelectButtonState();
+            })
+            .withFailureHandler(function(err){
+              newVehicleFetchInFlight = false;
+              console.warn('[VP] Failed to load new vehicle options', err);
+              if (statusEl) statusEl.textContent = 'Failed to load vehicle catalog';
+              updateSelectButtonState();
+            })
+            .getNewVehicleOptions();
         }
 
         function nameKey(name){
@@ -2181,8 +2294,26 @@
           document.querySelectorAll('.vp-switch__btn').forEach(btn=>{
             btn.setAttribute('aria-selected', btn.dataset.key===mode ? 'true':'false');
           });
-          document.getElementById('vpSelectBtn').disabled = true;
-          // Hide/show creation area (not used here; you can extend)
+          const existingSection = document.getElementById('vpExistingSection');
+          const newSection = document.getElementById('vpNewCarSection');
+          if (existingSection) existingSection.hidden = mode !== 'existing';
+          if (newSection) newSection.hidden = mode !== 'new';
+          const statusEl = document.getElementById('vpStatus');
+          const metaEl = document.getElementById('vpMatchMeta');
+          const selectBtn = document.getElementById('vpSelectBtn');
+          if (selectBtn) selectBtn.textContent = mode === 'existing' ? 'Select' : 'Save';
+          if (mode === 'new') {
+            if (statusEl) statusEl.textContent = '';
+            if (metaEl) metaEl.textContent = '';
+            resetNewCarForm();
+            ensureNewVehicleOptions(false);
+            clearVehicleInsights();
+            updateSelectButtonState();
+            return;
+          }
+          if (statusEl) statusEl.textContent = 'Loading latest vehicles…';
+          if (metaEl) metaEl.textContent = '0 vehicles match filters';
+          if (selectBtn) selectBtn.disabled = true;
           if(mode==='existing' && autoFetch){ fetchVehicles(fetchOpts); }
         }
 
@@ -2200,7 +2331,18 @@
         function resetPickerUI(){
           const statusEl=document.getElementById('vpStatus'); if(statusEl) statusEl.textContent='Loading latest vehicles…';
           setDropdownLoading(true, 'Loading vehicles…');
-          document.getElementById('vpSelectBtn').disabled=true;
+          const selectBtn = document.getElementById('vpSelectBtn');
+          if (selectBtn) {
+            selectBtn.disabled = true;
+            selectBtn.textContent = 'Select';
+          }
+          const metaEl = document.getElementById('vpMatchMeta');
+          if (metaEl) metaEl.textContent = '0 vehicles match filters';
+          const existingSection = document.getElementById('vpExistingSection');
+          const newSection = document.getElementById('vpNewCarSection');
+          if (existingSection) existingSection.hidden = false;
+          if (newSection) newSection.hidden = true;
+          resetNewCarForm();
           ['vpMake','vpModel','vpCategory','vpUsage','vpOwner'].forEach(id=>{
             const s=document.getElementById(id); if(s){ s.selectedIndex=0; }
           });
@@ -2834,50 +2976,22 @@
 
         let __vpStarUid = 0;
         function renderRemarksAndRating(hist){
-          const remarks = Array.isArray(hist?.feedback)?hist.feedback.slice(0,3):[];
           const lastRatings = Array.isArray(hist?.ratings) ? hist.ratings.slice(0,3) : [];
-          let avg = Number(hist?.avg)||Number(hist?.rating)||null;
-          if(!avg && lastRatings.length){ avg = lastRatings.reduce((a,b)=>a+Number(b||0),0)/lastRatings.length; }
-
-          // remarks chips
-          const cont=document.getElementById('vpRemarks');
-          cont.innerHTML = remarks.length ? remarks.map(txt=>{
-            const t=String(txt||'').trim();
-            const lower=t.toLowerCase();
-            let tone='warn';
-            if(lower.match(/scratch|issue|damage|problem|break|fault|dent|repair/)) tone='bad';
-            if(lower.match(/good|excellent|ok|up-to-date|no damage|fine|great/)) tone='good';
-            return `<div class="vp-chip vp-chip--${tone}"><div class="vp-chip__text">${t.replace(/</g,'&lt;')}</div></div>`;
-          }).join('') : '<span class="vp-chip vp-chip--warn"><div class="vp-chip__text">No recent remarks</div></span>';
-
-          // rating
-          const valEl=document.getElementById('vpRatingValue');
-          const starEl=document.getElementById('vpStars');
-          if(avg){ valEl.textContent=avg.toFixed(1); } else { valEl.textContent='—'; }
-          const total=5;
-          let out='';
-          const full = Math.floor(avg||0), half = (avg?avg-full>=0.5:0);
-          for(let i=0;i<total;i++){
-            const state = i<full ? 'full' : (i===full && half ? 'half':'empty');
-            out+=starSVG(state);
-          }
-          starEl.innerHTML=out;
-
-          // Render last 3 ratings as rows of stars
           const lastCont = document.getElementById('vpLastRatings');
-          if(lastCont){
-            if(lastRatings.length){
-              lastCont.innerHTML = lastRatings.map((r,idx)=>{
-                const n = Number(r)||0; const f = Math.floor(n); const h = (n-f)>=0.5; let s='';
-                for(let i=0;i<total;i++){
-                  const st = i<f ? 'full' : (i===f && h ? 'half':'empty');
-                  s += starSVG(st);
-                }
-                return `<div class="vp-last__row"><span class="vp-last__stars" aria-label="Rating ${idx+1}">${s}</span></div>`;
-              }).join('');
-            } else {
-              lastCont.innerHTML = '<span class="vp-last__label">No recent ratings</span>';
-            }
+          if (!lastCont) return;
+
+          const total = 5;
+          if(lastRatings.length){
+            lastCont.innerHTML = lastRatings.map((r,idx)=>{
+              const n = Number(r)||0; const f = Math.floor(n); const h = (n-f)>=0.5; let s='';
+              for(let i=0;i<total;i++){
+                const st = i<f ? 'full' : (i===f && h ? 'half':'empty');
+                s += starSVG(st);
+              }
+              return `<div class="vp-last__row"><span class="vp-last__stars" aria-label="Rating ${idx+1}">${s}</span></div>`;
+            }).join('');
+          } else {
+            lastCont.innerHTML = '<span class="vp-last__label">No recent ratings</span>';
           }
         }
 
@@ -2907,23 +3021,14 @@
             clearVehicleInsights();
             return;
           }
-          const remarks = normalizeList(car.remarks || car.Remarks || car.lastRemarks || '').map(val => String(val || '').trim()).filter(Boolean).slice(0,3);
           const ratingsRaw = normalizeList(car.lastRatings || car.latestRatings || '');
           const ratings = ratingsRaw.map(val => {
             if (typeof val === 'number') return val;
             const match = String(val || '').match(/[-+]?\d*\.?\d+/);
             return match ? parseFloat(match[0]) : null;
           }).filter(val => val !== null && !Number.isNaN(val)).slice(0,3);
-          const avgCandidates = [car.avg, car.average, car.averageRating, car.avgRating, car.rating, car.stars];
-          let avg = null;
-          for (let i = 0; i < avgCandidates.length; i++) {
-            const num = Number(avgCandidates[i]);
-            if (!Number.isNaN(num) && num > 0) { avg = num; break; }
-          }
           const history = {};
-          if (remarks.length) history.feedback = remarks;
           if (ratings.length) history.ratings = ratings;
-          if (avg !== null) history.avg = avg;
           renderRemarksAndRating(history);
         }
 
@@ -3006,6 +3111,13 @@
         function updateSelectButtonState(){
           const btn = document.getElementById('vpSelectBtn');
           if (!btn) return;
+          if (vpMode !== 'existing') {
+            btn.textContent = 'Save';
+            const { valid } = validateNewCarForm(false);
+            btn.disabled = !valid || newVehicleFetchInFlight;
+            return;
+          }
+          btn.textContent = 'Select';
           const carSelected = String(document.getElementById('vpDropdown')?.value || '').trim();
           const beneficiarySelected = String(document.getElementById('vpBeneficiary')?.value || '').trim();
           const isValidBeneficiary = validateResponsibleBeneficiary();
@@ -3018,7 +3130,90 @@
           }
         }
 
+        function submitNewVehicle(){
+          const btn = document.getElementById('vpSelectBtn');
+          const statusEl = document.getElementById('vpNewCarStatus');
+          const validation = validateNewCarForm(true);
+          if (!validation.valid) {
+            updateSelectButtonState();
+            return;
+          }
+          const values = validation.values;
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
+          }
+          if (statusEl) statusEl.textContent = 'Saving new vehicle…';
+
+          const project = (document.getElementById('vpProject')?.value || window.__vpLastContext?.project || '').trim();
+          const team = (document.getElementById('vpTeam')?.value || window.__vpLastContext?.team || '').trim();
+          const responsible = (window.__vpSourceBeneficiary || '').trim();
+
+          const payload = {
+            vehicleNumber: values.vehicleNumber,
+            make: '',
+            model: '',
+            category: '',
+            usageType: '',
+            owner: '',
+            project: project,
+            team: team,
+            responsibleBeneficiary: responsible
+          };
+
+          if (!window.google || !google.script || !google.script.run) {
+            if (statusEl) statusEl.textContent = 'Google Apps Script unavailable.';
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Save';
+            }
+            return;
+          }
+
+          google.script.run
+            .withSuccessHandler(function(res){
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Save';
+              }
+              if (res && res.ok) {
+                if (statusEl) statusEl.textContent = 'Vehicle saved with status RELEASE.';
+                try { clearVehiclePickerCacheInternal(); } catch (cacheErr) { console.warn('[VP] Failed to clear picker cache after new vehicle', cacheErr); }
+                newVehicleOptions = null;
+                newVehicleOptionsTs = 0;
+                ensureNewVehicleOptions(true);
+                resetNewCarForm();
+                updateSelectButtonState();
+                try {
+                  if (typeof window.refreshVehicleAssignments === 'function') {
+                    window.refreshVehicleAssignments({ prefetchVehicles: true });
+                  }
+                } catch (assignErr) {
+                  console.warn('[VP] refreshVehicleAssignments after new vehicle failed', assignErr);
+                }
+                setTimeout(() => { close(); }, 400);
+              } else {
+                if (statusEl) statusEl.textContent = (res && res.error) ? res.error : 'Failed to save vehicle.';
+                updateSelectButtonState();
+              }
+            })
+            .withFailureHandler(function(err){
+              console.error('[VP] submitNewVehicleRelease failed', err);
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Save';
+              }
+              if (statusEl) statusEl.textContent = 'Failed to save vehicle.';
+              updateSelectButtonState();
+            })
+            .submitNewVehicleRelease(payload);
+        }
+
         function selectVehicle(){
+          if (vpMode === 'new') {
+            submitNewVehicle();
+            return;
+          }
           const sel = document.getElementById('vpDropdown');
           const carNumber = sel && sel.value ? sel.value.trim() : '';
           if (!carNumber) return;
@@ -3138,21 +3333,21 @@
             const owner = ownerInput ? ownerInput.value.trim() : '';
             
             // Prepare payload for backend submission
-            const payload = {
-              project: project,
-              team: team,
-              carNumber: carNumber,
-              responsibleBeneficiary: benFromContext,
-              beneficiaries: finalBeneficiaries,
-              car: {
-                make: make,
-                model: model,
-                category: category,
-                usageType: usageType,
-                owner: owner
-              },
-              timestamp: new Date().toISOString()
-            };
+          const payload = {
+            project: project,
+            team: team,
+            carNumber: carNumber,
+            responsibleBeneficiary: benFromContext,
+            beneficiaries: finalBeneficiaries,
+            car: {
+              make: '',
+              model: '',
+              category: '',
+              usageType: '',
+              owner: ''
+            },
+            timestamp: new Date().toISOString()
+          };
             
             console.log('[VP] Submitting vehicle assignment to CarT_P:', payload);
             
@@ -3235,6 +3430,25 @@
           if (refresh) {
             refresh.addEventListener('click', manualRefreshVehiclePicker);
           }
+
+          newCarFieldConfig.forEach(cfg => {
+            const input = x(cfg.inputId);
+            if (!input) return;
+            input.addEventListener('input', () => {
+              if (cfg.key === 'vehicleNumber') {
+                const cursor = input.selectionStart;
+                input.value = input.value.toUpperCase();
+                if (typeof cursor === 'number' && typeof input.setSelectionRange === 'function') {
+                  input.setSelectionRange(cursor, cursor);
+                }
+              }
+              if (input.classList.contains('vp-input--invalid') && input.value.trim()) {
+                input.classList.remove('vp-input--invalid');
+              }
+              updateSelectButtonState();
+            });
+            input.addEventListener('change', () => updateSelectButtonState());
+          });
 
           document.addEventListener('change',function(e){
             if(/^vp(Make|Model|Category|Usage|Owner)$/.test(e.target.id)){ updateFilterChoices(); updateVehiclesDropdown(); }

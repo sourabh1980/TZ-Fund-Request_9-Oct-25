@@ -5433,6 +5433,148 @@ function debugWriteTest(value){
   }
 }
 
+function _ensureCarTPSchemaAndHeader_(sh){
+  if (!sh) return [];
+  const hasRows = sh.getLastRow() > 0;
+  const lastCol = sh.getLastColumn();
+  if (!hasRows || lastCol === 0){
+    const header = [
+      'Ref',
+      'Date and time of entry',
+      'Project',
+      'Team',
+      'R.Beneficiary',
+      'Vehicle Number',
+      'Make',
+      'Model',
+      'Category',
+      'Usage Type',
+      'Owner',
+      'Status',
+      'Last Users remarks',
+      'Ratings',
+      'Submitter username'
+    ];
+    sh.getRange(1,1,1,header.length).setValues([header]);
+  }
+
+  const ensureResponsibleColumn = () => {
+    try {
+      const currentHead = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
+      const needsColumn = !currentHead.some(function(h){
+        const norm = String(h||'').trim().toLowerCase().replace(/[^a-z]/g,'');
+        return norm === 'rbeneficiary' || norm === 'responsiblebeneficiary';
+      });
+      if (!needsColumn) return;
+      const teamIdx = currentHead.findIndex(function(h){
+        const norm = String(h||'').trim().toLowerCase();
+        return norm === 'team' || norm === 'team name';
+      });
+      if (teamIdx >= 0) {
+        sh.insertColumnAfter(teamIdx + 1);
+        sh.getRange(1, teamIdx + 2).setValue('R.Beneficiary');
+      } else {
+        const col = sh.getLastColumn();
+        sh.insertColumnAfter(col);
+        sh.getRange(1, col + 1).setValue('R.Beneficiary');
+      }
+    } catch (err) {
+      console.warn('Unable to ensure R.Beneficiary column', err);
+    }
+  };
+
+  const ensureShortResponsibleColumn = () => {
+    try {
+      const currentHead = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
+      const normalized = currentHead.map(function(h){
+        return String(h || '').trim().toLowerCase().replace(/[^a-z]/g, '');
+      });
+      if (normalized.indexOf('rben') >= 0) return;
+      const timeIdx = normalized.indexOf('rbentime');
+      if (timeIdx >= 0) {
+        sh.insertColumnAfter(timeIdx + 1);
+        sh.getRange(1, timeIdx + 2).setValue('R. Ben');
+        return;
+      }
+      const respIdx = normalized.indexOf('rbeneficiary');
+      if (respIdx >= 0) {
+        sh.insertColumnAfter(respIdx + 1);
+        sh.getRange(1, respIdx + 2).setValue('R. Ben');
+        return;
+      }
+      const col = sh.getLastColumn();
+      sh.insertColumnAfter(col);
+      sh.getRange(1, col + 1).setValue('R. Ben');
+    } catch (err) {
+      console.warn('Unable to ensure R. Ben column', err);
+    }
+  };
+
+  const ensureFullResponsibleColumn = () => {
+    try {
+      const currentHead = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
+      const normalized = currentHead.map(function(h){
+        return String(h || '').trim().toLowerCase().replace(/[^a-z]/g, '');
+      });
+      if (normalized.indexOf('responsiblebeneficiary') >= 0 || normalized.indexOf('nameofresponsiblebeneficiary') >= 0) {
+        return;
+      }
+      const respIdx = normalized.indexOf('rbeneficiary');
+      if (respIdx >= 0) {
+        sh.insertColumnAfter(respIdx + 1);
+        sh.getRange(1, respIdx + 2).setValue('Responsible Beneficiary');
+        return;
+      }
+      const col = sh.getLastColumn();
+      sh.insertColumnAfter(col);
+      sh.getRange(1, col + 1).setValue('Responsible Beneficiary');
+    } catch (err) {
+      console.warn('Unable to ensure Responsible Beneficiary column', err);
+    }
+  };
+
+  const ensureRBTimeColumn = () => {
+    try {
+      const currentHead = sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0];
+      const normalized = currentHead.map((h) => String(h || '').trim().toLowerCase().replace(/[^a-z]/g, ''));
+      const timeIdx = normalized.indexOf('rbentime');
+      const submitIdx = normalized.indexOf('submitterusername');
+      if (timeIdx >= 0) {
+        if (submitIdx >= 0 && timeIdx !== submitIdx + 1) {
+          const currentCol = timeIdx + 1;
+          const destination = submitIdx + 2;
+          if (currentCol !== destination) {
+            try {
+              sh.moveColumns(sh.getRange(1, currentCol, sh.getMaxRows(), 1), destination);
+            } catch (moveErr) {
+              console.warn('Unable to reposition R.Ben Time column', moveErr);
+            }
+          }
+        }
+        return;
+      }
+      if (submitIdx >= 0) {
+        sh.insertColumnAfter(submitIdx + 1);
+        sh.getRange(1, submitIdx + 2).setValue('R.Ben Time');
+      } else {
+        const col = sh.getLastColumn();
+        sh.insertColumnAfter(col);
+        sh.getRange(1, col + 1).setValue('R.Ben Time');
+      }
+    } catch (err) {
+      console.warn('Unable to ensure R.Ben Time column', err);
+    }
+  };
+
+  ensureResponsibleColumn();
+  ensureShortResponsibleColumn();
+  ensureFullResponsibleColumn();
+  ensureRBTimeColumn();
+
+  const width = Math.max(15, sh.getLastColumn());
+  return sh.getRange(1,1,1,width).getDisplayValues()[0];
+}
+
 /**
  * Assign a vehicle to a team (and optionally multiple beneficiaries) and log entries in CarT_P.
  * - Does not overwrite existing UI values; frontend only passes beneficiaries that were empty.
@@ -5485,147 +5627,7 @@ function assignCarToTeam(payload){
       lastColumn: sh.getLastColumn()
     });
 
-    const lastCol = sh.getLastColumn();
-    const hasHeader = sh.getLastRow() >= 1 && lastCol >= 1;
-    if(!hasHeader || sh.getLastRow() === 0){
-      const header = [
-        'Ref',
-        'Date and time of entry',
-        'Project',
-        'Team',
-        'R.Beneficiary',
-        'Vehicle Number',
-        'Make',
-        'Model',
-        'Category',
-        'Usage Type',
-        'Owner',
-        'Status',
-        'Last Users remarks',
-        'Ratings',
-        'Submitter username'
-      ];
-      sh.getRange(1,1,1,header.length).setValues([header]);
-    }
-
-    const ensureResponsibleColumn = () => {
-      try {
-        const currentHead = sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0];
-        const hasResponsible = currentHead.some(function(h){
-          const norm = String(h||'').trim().toLowerCase().replace(/[^a-z]/g,'');
-          return norm === 'rbeneficiary' || norm === 'responsiblebeneficiary';
-        });
-        if (hasResponsible) return;
-        const teamIdx = currentHead.findIndex(function(h){
-          const norm = String(h||'').trim().toLowerCase();
-          return norm === 'team' || norm === 'team name';
-        });
-        if (teamIdx >= 0) {
-          sh.insertColumnAfter(teamIdx + 1);
-          sh.getRange(1, teamIdx + 2).setValue('R.Beneficiary');
-        } else {
-          const lastCol = sh.getLastColumn();
-          sh.insertColumnAfter(lastCol);
-          sh.getRange(1, lastCol + 1).setValue('R.Beneficiary');
-        }
-      } catch (err) {
-        console.warn('Unable to ensure R.Beneficiary column', err);
-      }
-    };
-
-    ensureResponsibleColumn();
-
-    const ensureShortResponsibleColumn = () => {
-      try {
-        const currentHead = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
-        const normalized = currentHead.map(function(h){
-          return String(h || '').trim().toLowerCase().replace(/[^a-z]/g, '');
-        });
-        if (normalized.indexOf('rben') >= 0) {
-          return;
-        }
-        const timeIdx = normalized.indexOf('rbentime');
-        if (timeIdx >= 0) {
-          sh.insertColumnAfter(timeIdx + 1);
-          sh.getRange(1, timeIdx + 2).setValue('R. Ben');
-          return;
-        }
-        const respIdx = normalized.indexOf('rbeneficiary');
-        if (respIdx >= 0) {
-          sh.insertColumnAfter(respIdx + 1);
-          sh.getRange(1, respIdx + 2).setValue('R. Ben');
-          return;
-        }
-        const lastColumn = sh.getLastColumn();
-        sh.insertColumnAfter(lastColumn);
-        sh.getRange(1, lastColumn + 1).setValue('R. Ben');
-      } catch (err) {
-        console.warn('Unable to ensure R. Ben column', err);
-      }
-    };
-
-    ensureShortResponsibleColumn();
-
-    const ensureFullResponsibleColumn = () => {
-      try {
-        const currentHead = sh.getRange(1, 1, 1, sh.getLastColumn()).getDisplayValues()[0];
-        const normalized = currentHead.map(function(h){
-          return String(h || '').trim().toLowerCase().replace(/[^a-z]/g, '');
-        });
-        if (normalized.indexOf('responsiblebeneficiary') >= 0 || normalized.indexOf('nameofresponsiblebeneficiary') >= 0) {
-          return;
-        }
-        const respIdx = normalized.indexOf('rbeneficiary');
-        if (respIdx >= 0) {
-          sh.insertColumnAfter(respIdx + 1);
-          sh.getRange(1, respIdx + 2).setValue('Responsible Beneficiary');
-          return;
-        }
-        const lastColumn = sh.getLastColumn();
-        sh.insertColumnAfter(lastColumn);
-        sh.getRange(1, lastColumn + 1).setValue('Responsible Beneficiary');
-      } catch (err) {
-        console.warn('Unable to ensure Responsible Beneficiary column', err);
-      }
-    };
-
-    ensureFullResponsibleColumn();
-
-    const ensureRBTimeColumn = () => {
-      try {
-        const currentHead = sh.getRange(1,1,1,sh.getLastColumn()).getDisplayValues()[0];
-        const normalized = currentHead.map((h) => String(h || '').trim().toLowerCase().replace(/[^a-z]/g, ''));
-        const timeIdx = normalized.indexOf('rbentime');
-        const submitIdx = normalized.indexOf('submitterusername');
-        if (timeIdx >= 0) {
-          if (submitIdx >= 0 && timeIdx !== submitIdx + 1) {
-            const currentCol = timeIdx + 1;
-            const destination = submitIdx + 2;
-            if (currentCol !== destination) {
-              try {
-                sh.moveColumns(sh.getRange(1, currentCol, sh.getMaxRows(), 1), destination);
-              } catch (moveErr) {
-                console.warn('Unable to reposition R.Ben Time column', moveErr);
-              }
-            }
-          }
-          return;
-        }
-        if (submitIdx >= 0) {
-          sh.insertColumnAfter(submitIdx + 1);
-          sh.getRange(1, submitIdx + 2).setValue('R.Ben Time');
-        } else {
-          const lastCol = sh.getLastColumn();
-          sh.insertColumnAfter(lastCol);
-          sh.getRange(1, lastCol + 1).setValue('R.Ben Time');
-        }
-      } catch (err) {
-        console.warn('Unable to ensure R.Ben Time column', err);
-      }
-    };
-
-    ensureRBTimeColumn();
-    const head = sh.getRange(1,1,1,Math.max(15, sh.getLastColumn())).getDisplayValues()[0];
+    const head = _ensureCarTPSchemaAndHeader_(sh);
     const IX = _headerIndex_(head);
     function idx(labels, required){ try{ return IX.get(labels); }catch(e){ if(required) throw e; return -1; } }
     const iRef   = idx(['Ref','Reference Number','Ref Number'], false);
@@ -5786,6 +5788,289 @@ function assignCarToTeam(payload){
       name: e.name
     });
     return { ok:false, error:String(e) };
+  }
+}
+
+function submitNewVehicleRelease(payload){
+  try {
+    console.log('[NEW_VEHICLE] submitNewVehicleRelease called with payload:', JSON.stringify(payload || {}, null, 2));
+    if (!payload || typeof payload !== 'object') {
+      return { ok: false, error: 'No payload' };
+    }
+
+    const vehicleNumberInput = _norm(payload.vehicleNumber);
+    if (!vehicleNumberInput) {
+      return { ok: false, error: 'Vehicle number required' };
+    }
+    const vehicleNumber = vehicleNumberInput.toUpperCase();
+
+    const make = _norm(payload.make);
+    const model = _norm(payload.model);
+    const category = _norm(payload.category);
+    const usageType = _norm(payload.usageType);
+    const owner = _norm(payload.owner);
+    const project = _norm(payload.project);
+    const team = _norm(payload.team);
+    const responsibleBeneficiary = _norm(payload.responsibleBeneficiary);
+
+    const sh = _openCarTP_();
+    if (!sh) {
+      return { ok: false, error: 'CarT_P not found' };
+    }
+
+    const head = _ensureCarTPSchemaAndHeader_(sh);
+    const IX = _headerIndex_(head);
+    const idx = (labels, required) => {
+      try { return IX.get(labels); }
+      catch (err) { if (required) throw err; return -1; }
+    };
+
+    const iRef   = idx(['Ref','Reference Number','Ref Number'], false);
+    const iDate  = idx(['Date and time of entry','Date and time','Timestamp','Date'], false);
+    let iCarNo   = -1; try{ iCarNo = idx(['Vehicle Number','Car Number','Car No','Vehicle No','Car #','Car'], false);}catch(_){ iCarNo=-1; }
+    if (iCarNo < 0) iCarNo = _findCarNumberColumn_(head);
+    const iProj  = idx(['Project'], false);
+    const iTeam  = idx(['Team','Team Name'], false);
+    const iResp  = idx(['R.Beneficiary','Responsible Beneficiary','R Beneficiary','Responsible','R. Ben','R Ben'], false);
+    const iRespShort = idx(['R. Ben','R Ben'], false);
+    const iRespFull = idx(['Responsible Beneficiary','Name of Responsible beneficiary'], false);
+    const iMake  = idx(['Make','Car Make','Brand'], false);
+    const iModel = idx(['Model','Car Model'], false);
+    const iCat   = idx(['Category','Vehicle Category','Cat'], false);
+    const iUse   = idx(['Usage Type','Usage','Use Type'], false);
+    const iOwner = idx(['Owner','Owner Name','Owner Info'], false);
+    const iStat  = idx(['Status','In Use/Release','In Use / release','In Use'], false);
+    const iRem   = idx(['Last Users remarks','Remarks','Feedback'], false);
+    const iRate  = idx(['Ratings','Stars','Rating'], false);
+    const iSub   = idx(['Submitter username','Submitter','User'], false);
+    const iRespTime = idx(['R.Ben Time','R.Ben timestamp','Responsible Beneficiary Time'], false);
+
+    const now = new Date();
+    const submitter = (function(){ try{ return Session.getActiveUser().getEmail() || ''; }catch(_){ return ''; } })() || 'System';
+    const baseRef = 'NEW-' + Date.now() + '-' + Math.random().toString(36).slice(2,6).toUpperCase();
+
+    const columnCount = Math.max(head.length, sh.getLastColumn());
+    const row = new Array(columnCount).fill('');
+    if (iRef >= 0) row[iRef] = baseRef;
+    if (iDate >= 0) row[iDate] = now;
+    if (iProj >= 0) row[iProj] = project;
+    if (iTeam >= 0) row[iTeam] = team;
+    if (iResp >= 0) row[iResp] = responsibleBeneficiary;
+    if (iRespShort >= 0) row[iRespShort] = responsibleBeneficiary;
+    if (iRespFull >= 0) row[iRespFull] = responsibleBeneficiary;
+    if (iCarNo >= 0) row[iCarNo] = vehicleNumber;
+    if (iMake >= 0) row[iMake] = make;
+    if (iModel >= 0) row[iModel] = model;
+    if (iCat >= 0) row[iCat] = category;
+    if (iUse >= 0) row[iUse] = usageType;
+    if (iOwner >= 0) row[iOwner] = owner;
+    if (iStat >= 0) row[iStat] = 'RELEASE';
+    if (iRem >= 0) row[iRem] = _norm(payload.remarks);
+    if (iRate >= 0) row[iRate] = Number(payload.rating) || 0;
+    if (iSub >= 0) row[iSub] = submitter;
+    if (iRespTime >= 0) row[iRespTime] = now;
+
+    const startRow = sh.getLastRow() + 1;
+    sh.getRange(startRow, 1, 1, columnCount).setValues([row]);
+    console.log('[NEW_VEHICLE] Row appended at', startRow);
+
+    try {
+      const summaryObj = {};
+      for (let i = 0; i < VEHICLE_SUMMARY_HEADER.length; i++) {
+        summaryObj[VEHICLE_SUMMARY_HEADER[i]] = row[i] || '';
+      }
+      summaryObj.Status = 'RELEASE';
+      upsertVehicleSummaryRow('Vehicle_Released', summaryObj, 'vehicle');
+    } catch (summaryErr) {
+      console.warn('[NEW_VEHICLE] Vehicle_Released summary update failed:', summaryErr);
+    }
+
+    try {
+      invalidateVehicleReleasedCache('new_vehicle_release');
+    } catch (cacheErr) {
+      console.warn('[NEW_VEHICLE] Cache invalidation failed:', cacheErr);
+    }
+
+    try {
+      syncVehicleSheetFromCarTP();
+    } catch (syncErr) {
+      console.warn('[NEW_VEHICLE] Vehicle sheet sync failed:', syncErr);
+    }
+
+    return { ok: true, status: 'RELEASE', ref: row[iRef] || baseRef };
+  } catch (error) {
+    console.error('[NEW_VEHICLE] submitNewVehicleRelease error:', error);
+    return { ok: false, error: String(error) };
+  }
+}
+
+function getNewVehicleOptions(){
+  try {
+    const empty = {
+      make: [],
+      model: [],
+      category: [],
+      usageType: [],
+      owner: [],
+      vehicleNumber: [],
+      catalog: []
+    };
+    const sh = _openVehicleSheet_();
+    if (!sh) {
+      return { ok: false, error: 'Vehicle sheet not found', options: empty };
+    }
+    const lastRow = sh.getLastRow();
+    const lastCol = sh.getLastColumn();
+    if (lastRow < 2 || lastCol < 1) {
+      return {
+        ok: true,
+        options: empty,
+        rowCount: 0,
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    const columnLetterToIndex = function(letter){
+      if (!letter) return -1;
+      let idx = 0;
+      const cleaned = String(letter).toUpperCase().replace(/[^A-Z]/g, '');
+      for (let i = 0; i < cleaned.length; i++) {
+        idx *= 26;
+        idx += (cleaned.charCodeAt(i) - 64); // 'A' => 1
+      }
+      return idx > 0 ? idx : -1; // 1-based
+    };
+
+    const letterMap = {
+      make: 'Z',
+      model: 'AA',
+      category: 'AB',
+      usageType: 'AC',
+      owner: 'AD',
+      vehicleNumber: 'AE'
+    };
+
+    const columnIndexes = {};
+    Object.keys(letterMap).forEach(function(key){
+      const col = columnLetterToIndex(letterMap[key]);
+      columnIndexes[key] = col > 0 ? (col - 1) : -1; // convert to zero-based
+    });
+
+    const range = sh.getRange(2, 1, lastRow - 1, lastCol).getDisplayValues();
+    if (!range.length) {
+      return {
+        ok: true,
+        options: empty,
+        rowCount: 0,
+        updatedAt: new Date().toISOString()
+      };
+    }
+
+    const uniqueMaps = {
+      make: new Map(),
+      model: new Map(),
+      category: new Map(),
+      usageType: new Map(),
+      owner: new Map()
+    };
+    const catalogMap = new Map();
+
+    function recordUnique(map, rawValue){
+      if (!rawValue && rawValue !== 0) return;
+      const value = String(rawValue).trim();
+      if (!value) return;
+      const key = value.toLowerCase();
+      const current = map.get(key);
+      if (current) {
+        current.count += 1;
+      } else {
+        map.set(key, { value: value, count: 1 });
+      }
+    }
+
+    range.forEach(function(row){
+      const make = columnIndexes.make >= 0 ? String(row[columnIndexes.make] || '').trim() : '';
+      const model = columnIndexes.model >= 0 ? String(row[columnIndexes.model] || '').trim() : '';
+      const category = columnIndexes.category >= 0 ? String(row[columnIndexes.category] || '').trim() : '';
+      const usageType = columnIndexes.usageType >= 0 ? String(row[columnIndexes.usageType] || '').trim() : '';
+      const owner = columnIndexes.owner >= 0 ? String(row[columnIndexes.owner] || '').trim() : '';
+      const vehicleNumberRaw = columnIndexes.vehicleNumber >= 0 ? String(row[columnIndexes.vehicleNumber] || '').trim() : '';
+      if (!vehicleNumberRaw) {
+        // Still record meta lists so dropdowns remain populated even if some rows miss vehicle numbers
+        recordUnique(uniqueMaps.make, make);
+        recordUnique(uniqueMaps.model, model);
+        recordUnique(uniqueMaps.category, category);
+        recordUnique(uniqueMaps.usageType, usageType);
+        recordUnique(uniqueMaps.owner, owner);
+        return;
+      }
+      const vehicleNumber = vehicleNumberRaw.toUpperCase();
+      recordUnique(uniqueMaps.make, make);
+      recordUnique(uniqueMaps.model, model);
+      recordUnique(uniqueMaps.category, category);
+      recordUnique(uniqueMaps.usageType, usageType);
+      recordUnique(uniqueMaps.owner, owner);
+
+      if (!catalogMap.has(vehicleNumber)) {
+        catalogMap.set(vehicleNumber, {
+          vehicleNumber: vehicleNumber,
+          make: make,
+          model: model,
+          category: category,
+          usageType: usageType,
+          owner: owner
+        });
+      }
+    });
+
+    function mapToOptionList(map){
+      return Array.from(map.values())
+        .sort(function(a, b){
+          return a.value.localeCompare(b.value, undefined, { sensitivity: 'base' });
+        })
+        .map(function(entry){
+          const label = entry.count > 1 ? entry.value + ' [' + entry.count + ']' : entry.value;
+          return { value: entry.value, label: label };
+        });
+    }
+
+    const catalog = Array.from(catalogMap.values())
+      .sort(function(a, b){
+        return a.vehicleNumber.localeCompare(b.vehicleNumber, undefined, { sensitivity: 'base' });
+      });
+
+    const vehicleNumberOptions = catalog.map(function(entry){
+      const descriptor = [entry.make, entry.model].filter(Boolean).join(' ');
+      return {
+        value: entry.vehicleNumber,
+        label: descriptor ? (entry.vehicleNumber + ' — ' + descriptor) : entry.vehicleNumber,
+        make: entry.make,
+        model: entry.model,
+        category: entry.category,
+        usageType: entry.usageType,
+        owner: entry.owner
+      };
+    });
+
+    const options = {
+      make: mapToOptionList(uniqueMaps.make),
+      model: mapToOptionList(uniqueMaps.model),
+      category: mapToOptionList(uniqueMaps.category),
+      usageType: mapToOptionList(uniqueMaps.usageType),
+      owner: mapToOptionList(uniqueMaps.owner),
+      vehicleNumber: vehicleNumberOptions,
+      catalog: catalog
+    };
+
+    return {
+      ok: true,
+      updatedAt: new Date().toISOString(),
+      rowCount: catalog.length,
+      options: options
+    };
+  } catch (error) {
+    console.error('getNewVehicleOptions error:', error);
+    return { ok: false, error: String(error) };
   }
 }
 
