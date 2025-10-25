@@ -561,8 +561,9 @@
         /* Two columns below switch */
         .vp-left,.vp-right{display:grid;gap:12px;align-content:start}
         .vp-filters{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
-        .vp-newcar{display:grid;grid-template-columns:minmax(220px,1fr);gap:12px}
-        .vp-newcar-input{background:#fff}
+  .vp-newcar{display:grid;grid-template-columns:minmax(220px,1fr);gap:12px}
+  .vp-newcar-select,.vp-newcar-input{width:100%;}
+  .vp-select.vp-select--invalid{background:#fee2e2;border-color:#f87171;box-shadow:0 0 0 1px rgba(248,113,113,.25) inset;color:#7f1d1d}
         .vp-input--invalid{border-color:#f87171;background:#fee2e2;box-shadow:0 0 0 1px rgba(248,113,113,.25) inset}
 
         /* Remarks chips (stacked, colored tags like mock) */
@@ -796,8 +797,38 @@
               <div class="vp-newcar">
                 <div class="vp-field">
                   <label for="vpNewCarVehicle">Vehicle Number</label>
-                  <input id="vpNewCarVehicle" class="vp-input vp-newcar-input" list="vpNewCarVehicleOptions" placeholder="Enter or select vehicle number" autocomplete="off" />
-                  <datalist id="vpNewCarVehicleOptions"></datalist>
+                  <input id="vpNewCarVehicle" class="vp-input vp-newcar-input" type="text" list="vpNewCarVehicleList" placeholder="Enter vehicle number" autocomplete="off" />
+                  <datalist id="vpNewCarVehicleList"></datalist>
+                </div>
+                <div class="vp-field">
+                  <label for="vpNewCarMake">Make</label>
+                  <select id="vpNewCarMake" class="vp-select vp-newcar-select">
+                    <option value="">Select make</option>
+                  </select>
+                </div>
+                <div class="vp-field">
+                  <label for="vpNewCarModel">Model</label>
+                  <select id="vpNewCarModel" class="vp-select vp-newcar-select">
+                    <option value="">Select model</option>
+                  </select>
+                </div>
+                <div class="vp-field">
+                  <label for="vpNewCarCategory">Category</label>
+                  <select id="vpNewCarCategory" class="vp-select vp-newcar-select">
+                    <option value="">Select category</option>
+                  </select>
+                </div>
+                <div class="vp-field">
+                  <label for="vpNewCarUsage">Usage Type</label>
+                  <select id="vpNewCarUsage" class="vp-select vp-newcar-select">
+                    <option value="">Select usage type</option>
+                  </select>
+                </div>
+                <div class="vp-field">
+                  <label for="vpNewCarOwner">Owner</label>
+                  <select id="vpNewCarOwner" class="vp-select vp-newcar-select">
+                    <option value="">Select owner</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -840,8 +871,9 @@
         let manualRefreshInProgress = false;
 
         let storageHydrationAttempted = false;
-        let newVehicleOptions = null;
-        let newVehicleOptionsTs = 0;
+  let newVehicleOptions = null;
+  let newVehicleOptionsTs = 0;
+  let newVehicleCatalog = [];
         let newVehicleFetchInFlight = false;
 
         function storageAvailable(){
@@ -856,6 +888,40 @@
           } catch (_err) {
             return false;
           }
+        }
+
+        function autoFillNewVehicleDetails(vehicleNumber){
+          const target = String(vehicleNumber || '').trim();
+          if (!target) return;
+          const match = (Array.isArray(newVehicleCatalog) ? newVehicleCatalog : []).find(entry => {
+            return String(entry?.vehicleNumber || '').trim().toLowerCase() === target.toLowerCase();
+          });
+          if (!match) return;
+          const fields = [
+            ['make', match.make],
+            ['model', match.model],
+            ['category', match.category],
+            ['usageType', match.usageType],
+            ['owner', match.owner]
+          ];
+          fields.forEach(([key, value]) => {
+            const cfg = newCarFieldConfig.find(item => item.key === key);
+            if (!cfg) return;
+            const field = document.getElementById(cfg.elementId);
+            if (!field) return;
+            if (String(field.value || '').trim()) return;
+            const normalized = String(value || '').trim();
+            if (!normalized) return;
+            const exists = Array.from(field.options || []).some(opt => String(opt.value || '').trim().toLowerCase() === normalized.toLowerCase());
+            if (!exists) {
+              const opt = document.createElement('option');
+              opt.value = normalized;
+              opt.textContent = normalized;
+              field.appendChild(opt);
+            }
+            field.value = normalized;
+          });
+          updateSelectButtonState();
         }
 
         function clearVehicleStorage(){
@@ -1408,15 +1474,21 @@
         }
 
         const newCarFieldConfig = [
-          { key: 'vehicleNumber', inputId: 'vpNewCarVehicle', listId: 'vpNewCarVehicleOptions' }
+          { key: 'vehicleNumber', elementId: 'vpNewCarVehicle', placeholder: 'Enter vehicle number', type: 'text', required: true },
+          { key: 'make', elementId: 'vpNewCarMake', placeholder: 'Select make', type: 'select', required: false },
+          { key: 'model', elementId: 'vpNewCarModel', placeholder: 'Select model', type: 'select', required: false },
+          { key: 'category', elementId: 'vpNewCarCategory', placeholder: 'Select category', type: 'select', required: false },
+          { key: 'usageType', elementId: 'vpNewCarUsage', placeholder: 'Select usage type', type: 'select', required: false },
+          { key: 'owner', elementId: 'vpNewCarOwner', placeholder: 'Select owner', type: 'select', required: false }
         ];
 
         function resetNewCarForm(){
           newCarFieldConfig.forEach(cfg => {
-            const input = document.getElementById(cfg.inputId);
-            if (input) {
-              input.value = '';
-              input.classList.remove('vp-input--invalid');
+            const field = document.getElementById(cfg.elementId);
+            if (field) {
+              field.value = '';
+              field.classList.remove('vp-input--invalid');
+              field.classList.remove('vp-select--invalid');
             }
           });
           const statusEl = document.getElementById('vpNewCarStatus');
@@ -1426,8 +1498,8 @@
         function getNewCarFormValues(){
           const values = {};
           newCarFieldConfig.forEach(cfg => {
-            const input = document.getElementById(cfg.inputId);
-            values[cfg.key] = input ? String(input.value || '').trim() : '';
+            const field = document.getElementById(cfg.elementId);
+            values[cfg.key] = field ? String(field.value || '').trim() : '';
           });
           return values;
         }
@@ -1436,15 +1508,18 @@
           const values = getNewCarFormValues();
           let valid = true;
           newCarFieldConfig.forEach(cfg => {
-            const input = document.getElementById(cfg.inputId);
+            const field = document.getElementById(cfg.elementId);
             const hasValue = !!values[cfg.key];
-            if (!hasValue) {
+            const isRequired = cfg.required !== false;
+            if (isRequired && !hasValue) {
               valid = false;
-              if (markInvalid && input) {
-                input.classList.add('vp-input--invalid');
+              if (markInvalid && field) {
+                const invalidClass = field.tagName === 'SELECT' ? 'vp-select--invalid' : 'vp-input--invalid';
+                field.classList.add(invalidClass);
               }
-            } else if (input) {
-              input.classList.remove('vp-input--invalid');
+            } else if (field) {
+              field.classList.remove('vp-input--invalid');
+              field.classList.remove('vp-select--invalid');
             }
           });
           return { valid, values };
@@ -1453,19 +1528,52 @@
         function applyNewVehicleOptions(options){
           const source = options && typeof options === 'object' ? options : {};
           newCarFieldConfig.forEach(cfg => {
-            const listEl = document.getElementById(cfg.listId);
-            if (!listEl) return;
-            const values = Array.isArray(source[cfg.key]) ? source[cfg.key] : [];
-            const seen = new Set();
-            const html = values.reduce((acc, value) => {
-              const trimmed = String(value || '').trim();
-              if (!trimmed) return acc;
-              const key = trimmed.toLowerCase();
-              if (seen.has(key)) return acc;
-              seen.add(key);
-              return acc + `<option value="${escapeAttr(trimmed)}"></option>`;
-            }, '');
-            listEl.innerHTML = html;
+            const field = document.getElementById(cfg.elementId);
+            if (!field) return;
+            const valuesRaw = Array.isArray(source[cfg.key]) ? source[cfg.key] : [];
+            const entries = valuesRaw.map(function(item){
+              if (item && typeof item === 'object') {
+                const value = String(item.value || item.vehicleNumber || '').trim();
+                const label = String(item.label || item.name || item.value || '').trim();
+                if (!value) return null;
+                return { value: value, label: label || value };
+              }
+              const value = String(item || '').trim();
+              if (!value) return null;
+              return { value: value, label: value };
+            }).filter(Boolean);
+
+            const current = String(field.value || '').trim();
+            const placeholder = cfg.placeholder || 'Select option';
+            if (field.tagName !== 'SELECT') {
+              if ('placeholder' in field && field.placeholder !== placeholder) {
+                field.placeholder = placeholder;
+              }
+              if (cfg.key === 'vehicleNumber') {
+                const list = document.getElementById('vpNewCarVehicleList');
+                if (list) {
+                  const optionMarkup = entries.map(entry => {
+                    const valueEsc = escapeAttr(entry.value);
+                    if (entry.label && entry.label !== entry.value) {
+                      const labelEsc = escapeAttr(entry.label);
+                      return `<option value="${valueEsc}" label="${labelEsc}"></option>`;
+                    }
+                    return `<option value="${valueEsc}"></option>`;
+                  });
+                  list.innerHTML = optionMarkup.join('');
+                }
+              }
+              return;
+            }
+
+            const opts = [`<option value="">${escapeHtml(placeholder)}</option>`];
+            entries.forEach(entry => {
+              opts.push(`<option value="${escapeAttr(entry.value)}">${escapeHtml(entry.label)}</option>`);
+            });
+            field.innerHTML = opts.join('');
+            if (current && entries.some(entry => entry.value.toLowerCase() === current.toLowerCase())) {
+              field.value = current;
+            }
           });
         }
 
@@ -1485,21 +1593,66 @@
           updateSelectButtonState();
           const statusEl = document.getElementById('vpNewCarStatus');
           if (statusEl) statusEl.textContent = 'Loading vehicle catalog…';
+          
           google.script.run
             .withSuccessHandler(function(res){
               newVehicleFetchInFlight = false;
               if (res && res.ok && res.options) {
-                newVehicleOptions = res.options;
+                const optionPayload = res.options || {};
+                const normalizeList = function(list){
+                  if (!Array.isArray(list)) return [];
+                  return list.map(function(item){
+                    if (item && typeof item === 'object') {
+                      const value = String(item.value || item.vehicleNumber || '').trim();
+                      const label = String(item.label || item.name || item.value || '').trim();
+                      return value ? { value: value, label: label || value } : null;
+                    }
+                    const value = String(item || '').trim();
+                    return value ? { value: value, label: value } : null;
+                  }).filter(Boolean);
+                };
+
+                const optionLists = {
+                  vehicleNumber: normalizeList(optionPayload.vehicleNumber),
+                  make: normalizeList(optionPayload.make),
+                  model: normalizeList(optionPayload.model),
+                  category: normalizeList(optionPayload.category),
+                  usageType: normalizeList(optionPayload.usageType),
+                  owner: normalizeList(optionPayload.owner)
+                };
+
+                newVehicleCatalog = Array.isArray(optionPayload.catalog) ? optionPayload.catalog.slice() : [];
+                newVehicleOptions = optionLists;
                 newVehicleOptionsTs = Date.now();
+
+                const totals = Object.fromEntries(Object.keys(optionLists).map(key => [key, optionLists[key].length]));
+                try {
+                  console.log('[VP_NEW] Loaded vehicle catalog from vehicle sheet', {
+                    totals: totals,
+                    samples: Object.fromEntries(Object.keys(optionLists).map(key => [key, optionLists[key].slice(0, 5)]))
+                  });
+                } catch (_logErr) {
+                  /* logging best effort */
+                }
                 applyNewVehicleOptions(newVehicleOptions);
-                if (statusEl) statusEl.textContent = 'Add a new vehicle to the fleet.';
+                if (statusEl) {
+                  const vehicleTotal = totals.vehicleNumber || 0;
+                  const sourceCount = Number(res.rowCount || vehicleTotal || 0);
+                  statusEl.textContent = vehicleTotal
+                    ? `Loaded ${vehicleTotal} vehicles from catalog${sourceCount && sourceCount !== vehicleTotal ? ` (from ${sourceCount} rows)` : ''}.`
+                    : 'No vehicle catalog data available';
+                }
               } else {
+                newVehicleCatalog = [];
+                newVehicleOptions = null;
+                newVehicleOptionsTs = 0;
                 if (statusEl) statusEl.textContent = res && res.error ? res.error : 'No vehicle catalog data available';
               }
               updateSelectButtonState();
             })
             .withFailureHandler(function(err){
               newVehicleFetchInFlight = false;
+              newVehicleCatalog = [];
               console.warn('[VP] Failed to load new vehicle options', err);
               if (statusEl) statusEl.textContent = 'Failed to load vehicle catalog';
               updateSelectButtonState();
@@ -2296,8 +2449,26 @@
           });
           const existingSection = document.getElementById('vpExistingSection');
           const newSection = document.getElementById('vpNewCarSection');
-          if (existingSection) existingSection.hidden = mode !== 'existing';
-          if (newSection) newSection.hidden = mode !== 'new';
+          if (existingSection) {
+            existingSection.hidden = mode !== 'existing';
+            existingSection.style.display = mode === 'existing' ? '' : 'none';
+          }
+          if (newSection) {
+            newSection.hidden = mode !== 'new';
+            newSection.style.display = mode === 'new' ? '' : 'none';
+          }
+          const clearAll = document.getElementById('vpClearAll');
+          if (clearAll) {
+            clearAll.style.display = mode === 'existing' ? '' : 'none';
+          }
+          const refreshBtn = document.getElementById('vpRefreshBtn');
+          if (refreshBtn) {
+            refreshBtn.style.display = mode === 'existing' ? '' : 'none';
+          }
+          const modal = document.querySelector('.vp-modal');
+          if (modal) {
+            modal.classList.toggle('vp-mode-new', mode === 'new');
+          }
           const statusEl = document.getElementById('vpStatus');
           const metaEl = document.getElementById('vpMatchMeta');
           const selectBtn = document.getElementById('vpSelectBtn');
@@ -2306,7 +2477,7 @@
             if (statusEl) statusEl.textContent = '';
             if (metaEl) metaEl.textContent = '';
             resetNewCarForm();
-            ensureNewVehicleOptions(false);
+            ensureNewVehicleOptions(true);
             clearVehicleInsights();
             updateSelectButtonState();
             return;
@@ -2340,8 +2511,26 @@
           if (metaEl) metaEl.textContent = '0 vehicles match filters';
           const existingSection = document.getElementById('vpExistingSection');
           const newSection = document.getElementById('vpNewCarSection');
-          if (existingSection) existingSection.hidden = false;
-          if (newSection) newSection.hidden = true;
+          if (existingSection) {
+            existingSection.hidden = false;
+            existingSection.style.display = '';
+          }
+          if (newSection) {
+            newSection.hidden = true;
+            newSection.style.display = 'none';
+          }
+          const clearAll = document.getElementById('vpClearAll');
+          if (clearAll) {
+            clearAll.style.display = '';
+          }
+          const refreshBtn = document.getElementById('vpRefreshBtn');
+          if (refreshBtn) {
+            refreshBtn.style.display = '';
+          }
+          const modal = document.querySelector('.vp-modal');
+          if (modal) {
+            modal.classList.remove('vp-mode-new');
+          }
           resetNewCarForm();
           ['vpMake','vpModel','vpCategory','vpUsage','vpOwner'].forEach(id=>{
             const s=document.getElementById(id); if(s){ s.selectedIndex=0; }
@@ -3151,11 +3340,11 @@
 
           const payload = {
             vehicleNumber: values.vehicleNumber,
-            make: '',
-            model: '',
-            category: '',
-            usageType: '',
-            owner: '',
+            make: values.make || '',
+            model: values.model || '',
+            category: values.category || '',
+            usageType: values.usageType || '',
+            owner: values.owner || '',
             project: project,
             team: team,
             responsibleBeneficiary: responsible
@@ -3432,22 +3621,30 @@
           }
 
           newCarFieldConfig.forEach(cfg => {
-            const input = x(cfg.inputId);
-            if (!input) return;
-            input.addEventListener('input', () => {
-              if (cfg.key === 'vehicleNumber') {
-                const cursor = input.selectionStart;
-                input.value = input.value.toUpperCase();
-                if (typeof cursor === 'number' && typeof input.setSelectionRange === 'function') {
-                  input.setSelectionRange(cursor, cursor);
-                }
+            const field = x(cfg.elementId);
+            if (!field) return;
+            const clearInvalid = () => {
+              field.classList.remove('vp-input--invalid');
+              field.classList.remove('vp-select--invalid');
+            };
+            field.addEventListener('change', () => {
+              if (String(field.value || '').trim()) {
+                clearInvalid();
               }
-              if (input.classList.contains('vp-input--invalid') && input.value.trim()) {
-                input.classList.remove('vp-input--invalid');
+              if (cfg.key === 'vehicleNumber') {
+                autoFillNewVehicleDetails(field.value);
               }
               updateSelectButtonState();
             });
-            input.addEventListener('change', () => updateSelectButtonState());
+            field.addEventListener('input', () => {
+              if (String(field.value || '').trim()) {
+                clearInvalid();
+              }
+              if (cfg.key === 'vehicleNumber') {
+                autoFillNewVehicleDetails(field.value);
+              }
+              updateSelectButtonState();
+            });
           });
 
           document.addEventListener('change',function(e){

@@ -125,6 +125,47 @@ function invalidateVehicleReleasedCache(reason) {
   }
 }
 
+function invalidateVehicleCache(reason) {
+  try {
+    CacheService.getScriptCache().remove(VEHICLE_CACHE_KEY);
+  } catch (_cacheErr) {
+    // ignore cache purge failures
+  }
+  try {
+    const props = PropertiesService.getScriptProperties();
+    props.deleteProperty(VEHICLE_PROP_KEY);
+    props.deleteProperty(VEHICLE_VERSION_PROP_KEY);
+  } catch (_propErr) {
+    // ignore property purge failures
+  }
+  if (reason) {
+    try {
+      console.log('[CACHE] Vehicle cache invalidated:', reason);
+    } catch (_logErr) {
+      // logging optional
+    }
+  }
+}
+
+function invalidateVehicleSheetCache(sheetName, reason) {
+  try {
+    const cacheKey = 'VEHICLE_' + sheetName.toUpperCase() + '_CACHE_KEY';
+    const propKey = 'VEHICLE_' + sheetName.toUpperCase() + '_PROP_KEY';
+    const versionPropKey = 'VEHICLE_' + sheetName.toUpperCase() + '_VERSION_PROP_KEY';
+
+    CacheService.getScriptCache().remove(cacheKey);
+    const props = PropertiesService.getScriptProperties();
+    props.deleteProperty(propKey);
+    props.deleteProperty(versionPropKey);
+
+    if (reason) {
+      console.log('[CACHE] Vehicle sheet cache invalidated for', sheetName + ':', reason);
+    }
+  } catch (err) {
+    console.error('invalidateVehicleSheetCache failed:', err);
+  }
+}
+
 /**
  * Gets vehicle assignment data from Vehicle_InUse tab
  * Returns latest IN USE vehicle mapped per beneficiary so UI can prefill rows.
@@ -10626,6 +10667,201 @@ function _loadVehicleReleasedDropdownPayload_() {
   return payload;
 }
 
+function _loadVehicleDropdownPayload_(sheetName) {
+  const cacheKey = 'VEHICLE_' + sheetName.toUpperCase() + '_CACHE_KEY';
+  const propKey = 'VEHICLE_' + sheetName.toUpperCase() + '_PROP_KEY';
+  const versionPropKey = 'VEHICLE_' + sheetName.toUpperCase() + '_VERSION_PROP_KEY';
+  const cacheTtl = VEHICLE_RELEASED_CACHE_TTL_SECONDS || 3600;
+
+  const cache = (typeof CacheService !== 'undefined') ? CacheService.getScriptCache() : null;
+  let props = null;
+  try {
+    props = PropertiesService.getScriptProperties();
+  } catch (_err) {
+    props = null;
+  }
+
+  let version = null;
+  if (props) {
+    try {
+      version = props.getProperty(versionPropKey) || null;
+    } catch (_err) {
+      version = null;
+    }
+  }
+
+  function fromCache(raw, label) {
+    const parsed = _deserializeVehicleReleasedWrapper_(raw, label);
+    if (!parsed) return null;
+    if (version && parsed.cacheVersion && parsed.cacheVersion !== version) {
+      return null;
+    }
+    return parsed;
+  }
+
+  let payload = null;
+
+  if (!payload && cache) {
+    try {
+      const cachedRaw = cache.get(cacheKey);
+      if (cachedRaw) {
+        payload = fromCache(cachedRaw, 'CacheService');
+      }
+    } catch (cacheErr) {
+      console.warn(sheetName + ' cache lookup failed:', cacheErr);
+    }
+  }
+
+  if (!payload && props) {
+    try {
+      const storedRaw = props.getProperty(propKey);
+      if (storedRaw) {
+        payload = _deserializeVehicleReleasedWrapper_(storedRaw, 'PropertiesService');
+        if (payload) {
+          version = payload.cacheVersion || version;
+          if (cache) {
+            try {
+              cache.put(cacheKey, storedRaw, cacheTtl);
+            } catch (cachePutErr) {
+              console.warn(sheetName + ' cache backfill failed:', cachePutErr);
+            }
+          }
+        }
+      }
+    } catch (propErr) {
+      console.warn(sheetName + ' properties lookup failed:', propErr);
+    }
+  }
+
+  let lock = null;
+  let locked = false;
+  if (!payload && typeof LockService !== 'undefined') {
+    try {
+      lock = LockService.getScriptLock();
+      lock.waitLock(5000);
+      locked = true;
+    } catch (lockErr) {
+      console.warn(sheetName + ' cache lock acquisition failed:', lockErr);
+    }
+  }
+
+  try {
+    if (!payload && cache) {
+      try {
+        const cachedRaw = cache.get(cacheKey);
+        if (cachedRaw) {
+          payload = fromCache(cachedRaw, 'CacheService');
+        }
+      } catch (cacheRetryErr) {
+        console.warn(sheetName + ' cache retry failed:', cacheRetryErr);
+      }
+    }
+
+    if (!payload && props) {
+      try {
+        const storedRaw = props.getProperty(propKey);
+        if (storedRaw) {
+          payload = _deserializeVehicleReleasedWrapper_(storedRaw, 'PropertiesService');
+          if (payload && cache) {
+            try {
+              cache.put(cacheKey, storedRaw, cacheTtl);
+            } catch (cachePutErr) {
+              console.warn(sheetName + ' cache backfill failed (post-lock):', cachePutErr);
+            }
+          }
+        }
+      } catch (propRetryErr) {
+        console.warn(sheetName + ' properties retry failed:', propRetryErr);
+      }
+    }
+  } finally {
+    if (locked && lock) {
+      try { lock.releaseLock(); } catch (_releaseErr) { /* ignore */ }
+    }
+  }
+
+  if (!payload) {
+    const fresh = _buildVehicleDropdownPayload_(sheetName);
+    payload = Object.assign({}, fresh, {
+      cached: false,
+      cacheSource: 'fresh',
+      cacheVersion: null
+    });
+
+    if (fresh && fresh.ok) {
+      const versionStamp = String(Date.now());
+      payload.cacheVersion = versionStamp;
+      const wrapper = { version: versionStamp, payload: fresh };
+      const serialized = JSON.stringify(wrapper);
+      if (!props) {
+        try {
+          props = PropertiesService.getScriptProperties();
+        } catch (_propInitErr) {
+          props = null;
+        }
+      }
+      if (props) {
+        try {
+          props.setProperty(propKey, serialized);
+          props.setProperty(versionPropKey, versionStamp);
+        } catch (propStoreErr) {
+          console.error('Failed to persist ' + sheetName + ' payload to PropertiesService:', propStoreErr);
+        }
+      }
+      if (cache) {
+        try {
+          cache.put(cacheKey, serialized, cacheTtl);
+        } catch (cacheStoreErr) {
+          console.warn('Failed to persist ' + sheetName + ' payload to CacheService:', cacheStoreErr);
+        }
+      }
+    }
+  }
+
+  if (payload && payload.cached && payload.ok !== false) {
+    const vehicles = Array.isArray(payload.vehicles) ? payload.vehicles : [];
+    if (!vehicles.length) {
+      invalidateVehicleCache(sheetName, 'Cached ' + sheetName + ' payload empty, forcing rebuild');
+      const fresh = _buildVehicleDropdownPayload_(sheetName);
+      payload = Object.assign({}, fresh, {
+        cached: false,
+        cacheSource: 'fresh',
+        cacheVersion: null
+      });
+      if (fresh && fresh.ok) {
+        const versionStamp = String(Date.now());
+        payload.cacheVersion = versionStamp;
+        const wrapper = { version: versionStamp, payload: fresh };
+        const serialized = JSON.stringify(wrapper);
+        if (!props) {
+          try {
+            props = PropertiesService.getScriptProperties();
+          } catch (_propInitErr) {
+            props = null;
+          }
+        }
+        if (props) {
+          try {
+            props.setProperty(propKey, serialized);
+            props.setProperty(versionPropKey, versionStamp);
+          } catch (propStoreErr) {
+            console.error('Failed to persist ' + sheetName + ' payload to PropertiesService (rebuild):', propStoreErr);
+          }
+        }
+        if (cache) {
+          try {
+            cache.put(cacheKey, serialized, cacheTtl);
+          } catch (cacheStoreErr) {
+            console.warn('Failed to persist ' + sheetName + ' payload to CacheService (rebuild):', cacheStoreErr);
+          }
+        }
+      }
+    }
+  }
+
+  return payload;
+}
+
 function _buildVehicleReleasedDropdownPayload_() {
   _maybeAutoRefreshCarTPSummaries_(10);
 
@@ -10690,12 +10926,133 @@ function _buildVehicleReleasedDropdownPayload_() {
   };
 }
 
-function getVehiclePickerData(){
+function _buildVehicleDropdownPayload_(sheetName) {
+  const summary = getVehicleSummaryRows(sheetName);
+  const generatedAt = new Date().toISOString();
+
+  if (!summary.ok) {
+    return {
+      ok: false,
+      source: sheetName,
+      count: 0,
+      vehicles: [],
+      cached: false,
+      updatedAt: summary.updatedAt || '',
+      error: summary.error || sheetName + ' summary unavailable',
+      notes: summary.notes || null,
+      sheetId: summary.sheetId || null,
+      tried: summary.tried || null,
+      summaryMessage: summary.message || null,
+      generatedAt: generatedAt
+    };
+  }
+
+  if (!summary.rows.length) {
+    if (summary.notes || summary.tried) {
+      console.warn('[BACKEND] ' + sheetName + ' summary empty', { notes: summary.notes, tried: summary.tried });
+    }
+    return { ok: true, source: sheetName, vehicles: [], updatedAt: summary.updatedAt || '', message: sheetName + ' summary empty' };
+  }
+
+  const IX = summary.headerIndex;
+  const idx = function(labels) {
+    if (!IX) return -1;
+    try { return IX.get(labels); } catch (_err) { return -1; }
+  };
+
+  let vehicles = [];
+
+  if (sheetName === 'vehicle') {
+    const fallback = function(index, fallbackIndex) {
+      return index >= 0 ? index : fallbackIndex;
+    };
+
+    const makeIdx = fallback(idx(['Make', 'Vehicle Make', 'Car Make']), 25);
+    const modelIdx = fallback(idx(['Model', 'Vehicle Model', 'Car Model']), 26);
+    const categoryIdx = fallback(idx(['Category', 'Vehicle Category']), 27);
+    const usageIdx = fallback(idx(['Usage Type', 'Usage', 'Vehicle Usage']), 28);
+    const ownerIdx = fallback(idx(['Owner', 'Vehicle Owner']), 29);
+    const vehicleIdx = fallback(idx(['Vehicle Number', 'Vehicle No', 'Car Number', 'Vehicle']), 30);
+
+    vehicles = summary.rows.map(function(row) {
+      const safeGet = function(i) {
+        return i >= 0 && i < row.length ? row[i] : '';
+      };
+      return {
+        vehicleNumber: safeGet(vehicleIdx),
+        make: safeGet(makeIdx),
+        model: safeGet(modelIdx),
+        category: safeGet(categoryIdx),
+        usageType: safeGet(usageIdx),
+        owner: safeGet(ownerIdx),
+        status: 'AVAILABLE'
+      };
+    }).filter(function(entry) {
+      return String(entry.vehicleNumber || '').trim() !== '';
+    });
+  } else {
+    // For other sheets, use the existing logic or adapt as needed
+    const vehicleIdx = idx(['Vehicle Number', 'Car Number', 'Vehicle No', 'Car No', 'Car #', 'Car', 'Vehicle']);
+    const statusIdx = idx(['Status', 'Release Status']);
+    const makeIdx = idx(['Make']);
+    const modelIdx = idx(['Model']);
+    const categoryIdx = idx(['Category']);
+    const usageIdx = idx(['Usage Type']);
+    const ownerIdx = idx(['Owner']);
+
+    vehicles = summary.rows.map(function(row) {
+      return {
+        vehicleNumber: vehicleIdx >= 0 ? row[vehicleIdx] : '',
+        status: statusIdx >= 0 ? row[statusIdx] : 'RELEASE',
+        make: makeIdx >= 0 ? row[makeIdx] : '',
+        model: modelIdx >= 0 ? row[modelIdx] : '',
+        category: categoryIdx >= 0 ? row[categoryIdx] : '',
+        usageType: usageIdx >= 0 ? row[usageIdx] : '',
+        owner: ownerIdx >= 0 ? row[ownerIdx] : ''
+      };
+    }).filter(function(entry) {
+      return String(entry.vehicleNumber || '').trim() !== '';
+    });
+  }
+
+  if (!vehicles.length) {
+    console.warn('[BACKEND] getVehiclePickerData via cache builder returned 0 vehicles (' + sheetName + ' empty)', {
+      summaryMessage: summary.message || null,
+      notes: summary.notes || null,
+      tried: summary.tried || null,
+      sheetId: summary.sheetId || null,
+      headers: summary.headerRow || null
+    });
+  } else {
+    console.log(`[BACKEND] getVehiclePickerData cache builder loaded ${vehicles.length} vehicles from ${sheetName} (sheet ${summary.sheetLabel || summary.sheetId || 'unknown'})`);
+  }
+
+  return {
+    ok: true,
+    source: sheetName,
+    count: vehicles.length,
+    vehicles: vehicles,
+    cached: false,
+    updatedAt: summary.updatedAt || new Date().toISOString(),
+    generatedAt: generatedAt,
+    notes: summary.notes || null,
+    headers: summary.headerRow || null,
+    sheetId: summary.sheetId || null,
+    tried: summary.tried || null,
+    summaryMessage: summary.message || null
+  };
+}
+
+function getVehiclePickerData(isNewCar){
   try {
-    return _loadVehicleReleasedDropdownPayload_();
+    if (isNewCar) {
+      return _loadVehicleDropdownPayload_('vehicle');
+    } else {
+      return _loadVehicleReleasedDropdownPayload_();
+    }
   } catch (e) {
     console.error('getVehiclePickerData failed:', e);
-    return { ok:false, source: 'Vehicle_Released', error:String(e) };
+    return { ok:false, source: isNewCar ? 'vehicle' : 'Vehicle_Released', error:String(e) };
   }
 }
 
