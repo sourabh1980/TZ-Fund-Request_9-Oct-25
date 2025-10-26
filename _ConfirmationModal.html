@@ -113,53 +113,94 @@
     gap: 12px;
   }
 
-  /* Yes button with gradient tilt and ripple effect */
-  .confirmation-btn-yes {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
+  @media (min-width: 520px) {
+    .confirmation-buttons {
+      flex-direction: row;
+      justify-content: center;
+    }
+  }
+
+  .confirmation-btn {
+    position: relative;
     border-radius: 16px;
-    padding: 16px 32px;
+    padding: 14px 28px;
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.3s ease;
-    position: relative;
+    border: none;
     overflow: hidden;
-    transform-origin: center;
   }
 
-  .confirmation-btn-yes:hover {
-    transform: perspective(1000px) rotateX(-5deg) rotateY(5deg);
+  .confirmation-btn:focus-visible {
+    outline: 3px solid rgba(102, 126, 234, 0.35);
+    outline-offset: 2px;
+  }
+
+  .confirmation-btn.primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff;
+    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.35);
+  }
+
+  .confirmation-btn.primary:hover {
+    transform: perspective(1000px) rotateX(-4deg) rotateY(4deg);
     background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
-    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.4);
   }
 
-  .confirmation-btn-yes:active {
+  .confirmation-btn.primary:active {
     transform: scale(0.98);
   }
 
-  /* Ripple effect */
-  .confirmation-btn-yes::before {
+  .confirmation-btn.destructive {
+    background: linear-gradient(135deg, #f56565 0%, #e11d48 100%);
+    color: #fff;
+    box-shadow: 0 12px 32px rgba(229, 62, 62, 0.3);
+  }
+
+  .confirmation-btn.destructive:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #ef4444 0%, #be123c 100%);
+  }
+
+  .confirmation-btn.destructive:active {
+    transform: scale(0.98);
+  }
+
+  .confirmation-btn.secondary {
+    background: transparent;
+    color: #4a5568;
+    border: 2px solid #e2e8f0;
+  }
+
+  .confirmation-btn.secondary:hover {
+    background: #f7fafc;
+    border-color: #cbd5e0;
+  }
+
+  .confirmation-btn.secondary:active {
+    transform: scale(0.98);
+  }
+
+  .confirmation-btn.with-feedback::before {
     content: '';
     position: absolute;
     top: 50%;
     left: 50%;
     width: 0;
     height: 0;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.25);
     border-radius: 50%;
     transform: translate(-50%, -50%);
     transition: width 0.6s ease, height 0.6s ease;
   }
 
-  .confirmation-btn-yes.ripple::before {
-    width: 300px;
-    height: 300px;
+  .confirmation-btn.with-feedback.ripple::before {
+    width: 260px;
+    height: 260px;
   }
 
-  /* Success halo effect */
-  .confirmation-btn-yes.success {
+  .confirmation-btn.with-feedback.success {
     background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
     box-shadow: 0 0 0 0 rgba(72, 187, 120, 0.7);
     animation: success-halo 0.6s ease-out;
@@ -175,25 +216,6 @@
     100% {
       box-shadow: 0 0 0 0 rgba(72, 187, 120, 0);
     }
-  }
-
-  /* No button */
-  .confirmation-btn-no {
-    background: transparent;
-    color: #718096;
-    border: 2px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 14px 32px;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-  }
-
-  .confirmation-btn-no:hover {
-    background: #f7fafc;
-    border-color: #cbd5e0;
-    color: #4a5568;
   }
 
   /* View cost breakdown link */
@@ -243,10 +265,7 @@
     <h2 class="confirmation-title" id="confirmationTitle">Reactivate beneficiary?</h2>
     <p class="confirmation-message" id="confirmationMessage">Re-enabling means you'll fund their expenses. Continue?</p>
     
-    <div class="confirmation-buttons">
-      <button class="confirmation-btn-yes" id="confirmationYes" onclick="handleConfirmationYes()">Yes, Reactivate</button>
-      <button class="confirmation-btn-no" id="confirmationNo" onclick="handleConfirmationNo()">No, Keep Inactive</button>
-    </div>
+    <div class="confirmation-buttons" id="confirmationButtons"></div>
     
     <a href="#" class="confirmation-link" onclick="viewCostBreakdown()">View cost breakdown</a>
   </div>
@@ -254,80 +273,164 @@
 
 <script>
 (function() {
-  let currentCallback = null;
-  let currentRejectCallback = null;
+  let currentResolve = null;
+  let currentReject = null;
+  let buttonConfigs = [];
+  let buttonElements = [];
+
+  function normalizeButtons(options = {}) {
+    const supplied = Array.isArray(options.buttons) ? options.buttons.filter(Boolean) : [];
+    if (supplied.length) {
+      return supplied.map((btn, index) => {
+        const role = btn.role || (index === 0 ? 'confirm' : 'option');
+        const variant = btn.variant || (role === 'destructive' ? 'destructive' : role === 'cancel' ? 'secondary' : 'primary');
+        const value = Object.prototype.hasOwnProperty.call(btn, 'value') ? btn.value : (role === 'cancel' ? false : btn.text || true);
+        return {
+          text: btn.text || btn.label || `Option ${index + 1}`,
+          value,
+          role,
+          variant,
+          feedback: btn.feedback === undefined ? (variant === 'primary') : Boolean(btn.feedback),
+          successText: btn.successText,
+          focus: btn.focus === true
+        };
+      });
+    }
+
+    return [
+      {
+        text: options.yesText || 'Yes',
+        value: true,
+        role: 'confirm',
+        variant: 'primary',
+        feedback: true,
+        successText: options.successText || '✓ Confirmed'
+      },
+      {
+        text: options.noText || 'Cancel',
+        value: false,
+        role: 'cancel',
+        variant: 'secondary',
+        feedback: false
+      }
+    ];
+  }
+
+  function resetButtons() {
+    buttonElements.forEach(btn => {
+      btn.classList.remove('ripple', 'success');
+      if (btn.dataset && btn.dataset.originalText) {
+        btn.textContent = btn.dataset.originalText;
+      }
+    });
+    buttonElements = [];
+    buttonConfigs = [];
+  }
+
+  function renderButtons(configs) {
+    const container = document.getElementById('confirmationButtons');
+    container.innerHTML = '';
+    buttonElements = configs.map((config, index) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = `confirmation-btn ${config.variant}`;
+      if (config.feedback) {
+        btn.classList.add('with-feedback');
+      }
+      btn.textContent = config.text;
+      btn.dataset.index = String(index);
+      btn.dataset.originalText = config.text;
+      btn.addEventListener('click', () => selectButton(index));
+      container.appendChild(btn);
+      return btn;
+    });
+  }
+
+  function selectButton(index) {
+    const config = buttonConfigs[index];
+    const btn = buttonElements[index];
+    if (!config || !btn) return;
+
+    const finalize = () => {
+      const resolver = currentResolve;
+      currentResolve = null;
+      if (typeof resolver === 'function') {
+        resolver(config.value);
+      }
+      closeConfirmationModal({ resolve: true });
+    };
+
+    if (config.feedback && btn.classList.contains('with-feedback')) {
+      btn.classList.add('ripple');
+      setTimeout(() => {
+        btn.classList.add('success');
+        btn.textContent = config.successText || '✓ Confirmed';
+        setTimeout(finalize, 650);
+      }, 120);
+    } else {
+      finalize();
+    }
+  }
+
+  function focusInitialButton() {
+    const explicitIndex = buttonConfigs.findIndex(cfg => cfg.focus);
+    const targetIndex = explicitIndex >= 0 ? explicitIndex : 0;
+    const btn = buttonElements[targetIndex];
+    if (btn) {
+      btn.focus();
+    }
+  }
 
   // Show confirmation modal
   window.showConfirmationModal = function(options = {}) {
     return new Promise((resolve, reject) => {
-      currentCallback = resolve;
-      currentRejectCallback = reject;
-      
+      currentResolve = resolve;
+      currentReject = reject;
+
       const modal = document.getElementById('confirmationModal');
       const title = document.getElementById('confirmationTitle');
       const message = document.getElementById('confirmationMessage');
-      const yesBtn = document.getElementById('confirmationYes');
-      
-      // Set content
+
       title.textContent = options.title || 'Reactivate beneficiary?';
       message.textContent = options.message || "Re-enabling means you'll fund their expenses. Continue?";
-      yesBtn.textContent = options.yesText || 'Yes, Reactivate';
-      
-      // Show modal with spring animation
+
+      buttonConfigs = normalizeButtons(options);
+      renderButtons(buttonConfigs);
+
       modal.classList.add('show');
-      
-      // Focus management
-      setTimeout(() => yesBtn.focus(), 100);
+      setTimeout(focusInitialButton, 120);
     });
   };
 
   // Close confirmation modal
-  window.closeConfirmationModal = function() {
+  window.closeConfirmationModal = function(options = {}) {
     const modal = document.getElementById('confirmationModal');
     modal.classList.remove('show');
-    
-    if (currentRejectCallback) {
-      currentRejectCallback(false);
-      currentRejectCallback = null;
+
+    const resolved = options && options.resolve === true;
+    if (!resolved && typeof currentReject === 'function') {
+      currentReject(false);
     }
-    currentCallback = null;
+
+    currentResolve = null;
+    currentReject = null;
+    resetButtons();
   };
 
   // Handle Yes button click
   window.handleConfirmationYes = function() {
-    const yesBtn = document.getElementById('confirmationYes');
-    
-    // Add ripple effect
-    yesBtn.classList.add('ripple');
-    
-    setTimeout(() => {
-      // Add success halo
-      yesBtn.classList.add('success');
-      yesBtn.textContent = '✓ Confirmed';
-      
-      setTimeout(() => {
-        if (currentCallback) {
-          currentCallback(true);
-          currentCallback = null;
-        }
-        closeConfirmationModal();
-        
-        // Reset button state
-        setTimeout(() => {
-          yesBtn.classList.remove('ripple', 'success');
-          yesBtn.textContent = 'Yes, Reactivate';
-        }, 300);
-      }, 800);
-    }, 100);
+    selectButton(0);
   };
 
   // Handle No button click
   window.handleConfirmationNo = function() {
-    if (currentCallback) {
-      currentCallback(false);
-      currentCallback = null;
+    const cancelIndex = buttonConfigs.findIndex(cfg => cfg.role === 'cancel');
+    const target = cancelIndex >= 0 ? cancelIndex : buttonConfigs.length - 1;
+    if (target >= 0) {
+      selectButton(target);
+    } else {
+      closeConfirmationModal();
     }
-    closeConfirmationModal();
   };
 
   // View cost breakdown (placeholder)
