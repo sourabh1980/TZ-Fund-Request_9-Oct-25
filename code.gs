@@ -7340,6 +7340,33 @@ function getTeams(projectId) {
   }
 }
 
+function _latestBeneficiaryEntries_(ddRows) {
+  const latestRows = new Map();
+  if (!Array.isArray(ddRows) || ddRows.length === 0) {
+    return latestRows;
+  }
+
+  for (let idx = 0; idx < ddRows.length; idx++) {
+    const row = ddRows[idx];
+    if (!row || !row.beneficiaryKey) continue;
+
+    const tsValue = Number(row.timestamp);
+    const ts = Number.isFinite(tsValue) ? tsValue : 0;
+    const sheetRow = idx + 2; // header row offset
+    const existing = latestRows.get(row.beneficiaryKey);
+
+    if (!existing || ts > existing.timestamp || (ts === existing.timestamp && sheetRow > existing.sheetRow)) {
+      latestRows.set(row.beneficiaryKey, {
+        row: row,
+        timestamp: ts,
+        sheetRow: sheetRow
+      });
+    }
+  }
+
+  return latestRows;
+}
+
 /** Beneficiaries */
 function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
   try {
@@ -7442,6 +7469,257 @@ function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
   } catch (e) {
     console.error('getBeneficiaries error', e);
     throw new Error('getBeneficiaries: ' + e);
+  }
+}
+
+function getReleasedBeneficiariesForInduction(targetProject, targetTeam) {
+  try {
+    const project = _norm(targetProject);
+    const team = _norm(targetTeam);
+    const ddRows = _readDD_compact_();
+    if (!Array.isArray(ddRows) || ddRows.length === 0) {
+      return { ok: true, targetProject: project, targetTeam: team, total: 0, beneficiaries: [] };
+    }
+
+    const latestRows = _latestBeneficiaryEntries_(ddRows);
+    const nowMs = Date.now();
+    const list = [];
+
+    latestRows.forEach(function(entry, key) {
+      if (!entry || !entry.row) return;
+      const row = entry.row;
+      if (_normStatus_(row.inuse) !== 'RELEASE') return;
+
+      let idleDays = null;
+      if (entry.timestamp && Number.isFinite(entry.timestamp)) {
+        const diff = nowMs - entry.timestamp;
+        if (Number.isFinite(diff) && diff >= 0) {
+          idleDays = Math.floor(diff / (24 * 60 * 60 * 1000));
+        }
+      }
+
+      list.push({
+        beneficiary: row.beneficiary || '',
+        beneficiaryKey: key,
+        designation: row.designation || '',
+        project: row.project || '',
+        team: row.team || '',
+        accountHolder: row.account || '',
+        defaultDa: Number(row.defaultDa || 0) || 0,
+        idleDays: idleDays,
+        releasedAt: entry.timestamp ? new Date(entry.timestamp).toISOString() : '',
+        sheetRow: entry.sheetRow || 0
+      });
+    });
+
+    list.sort(function(a, b) {
+      const aIdle = typeof a.idleDays === 'number' ? a.idleDays : -1;
+      const bIdle = typeof b.idleDays === 'number' ? b.idleDays : -1;
+      if (bIdle !== aIdle) return bIdle - aIdle;
+      return (a.beneficiary || '').localeCompare(b.beneficiary || '', undefined, { sensitivity: 'base' });
+    });
+
+    return {
+      ok: true,
+      targetProject: project,
+      targetTeam: team,
+      total: list.length,
+      beneficiaries: list
+    };
+  } catch (e) {
+    console.error('getReleasedBeneficiariesForInduction error', e);
+    return { ok: false, error: String(e) };
+  }
+}
+
+function inductReleasedBeneficiaries(payload) {
+  try {
+    if (!payload || typeof payload !== 'object') {
+      return { ok: false, error: 'Invalid payload' };
+    }
+
+    const project = _norm(payload.project);
+    if (!project) {
+      return { ok: false, error: 'Project is required to induct beneficiaries' };
+    }
+    const team = _norm(payload.team);
+
+    const rawKeys = Array.isArray(payload.beneficiaryKeys)
+      ? payload.beneficiaryKeys
+      : (Array.isArray(payload.beneficiaries) ? payload.beneficiaries : []);
+    const selectedKeys = [];
+    const seenKeys = new Set();
+    rawKeys.forEach(function(val) {
+      const key = _beneficiaryKey_(val);
+      if (!key || seenKeys.has(key)) return;
+      seenKeys.add(key);
+      selectedKeys.push(key);
+    });
+
+    if (!selectedKeys.length) {
+      return { ok: false, error: 'No beneficiaries selected for induction' };
+    }
+
+    const ddRows = _readDD_compact_();
+    if (!Array.isArray(ddRows) || ddRows.length === 0) {
+      return { ok: false, error: 'DD sheet is empty' };
+    }
+
+    const latestRows = _latestBeneficiaryEntries_(ddRows);
+    const eligible = [];
+    const skipped = [];
+
+    selectedKeys.forEach(function(key) {
+      const entry = latestRows.get(key);
+      if (!entry || !entry.row) {
+        skipped.push({ key: key, reason: 'not_found' });
+        return;
+      }
+      if (_normStatus_(entry.row.inuse) !== 'RELEASE') {
+        skipped.push({ key: key, reason: 'not_released' });
+        return;
+      }
+      eligible.push({ key: key, entry: entry });
+    });
+
+    if (!eligible.length) {
+      return { ok: false, error: 'Selected beneficiaries are no longer available for induction', skipped: skipped };
+    }
+
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sh = ss.getSheetByName(DATA_SHEET_NAME);
+    if (!sh) {
+      return { ok: false, error: 'Data sheet "DD" not found' };
+    }
+
+    const lastRow = sh.getLastRow();
+    const lastCol = sh.getLastColumn();
+    if (lastCol < 1) {
+      return { ok: false, error: 'DD sheet has no columns' };
+    }
+
+    const header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    const IX = _headerIndex_(header);
+
+    const idxName = IX.get(['Name of Beneficiary', 'Beneficiary', 'Beneficiary Name', 'Name']);
+    const idxStatus = IX.get(['In Use/Release', 'In Use / release', 'In Use', 'Status']);
+    let idxProject = -1;
+    let idxTeam = -1;
+    let idxAccount = -1;
+    let idxDesignation = -1;
+    let idxDefaultDa = -1;
+    let idxTimestamp = -1;
+    let idxSubmitter = -1;
+    let idxRemarks = -1;
+
+    try { idxProject = IX.get(['Project']); } catch (_e) {}
+    try { idxTeam = IX.get(['Team', 'Team Name']); } catch (_e) {}
+    try { idxAccount = IX.get(['Account Holder Name', 'Account Holder']); } catch (_e) {}
+    try { idxDesignation = IX.get(['Resource Designation', 'Designation']); } catch (_e) {}
+    try { idxDefaultDa = IX.get(['Default DA Amt', 'Default DA', 'DA Default']); } catch (_e) {}
+    try { idxTimestamp = IX.get(['Date and Time', 'Date & Time', 'Timestamp', 'Updated At', 'Date']); } catch (_e) {}
+    try { idxSubmitter = IX.get(['Submitter', 'Updated By', 'Entered By']); } catch (_e) {}
+    try { idxRemarks = IX.get(['Remarks', 'Comment', 'Comments', 'Notes']); } catch (_e) {}
+
+    const rowsToInsert = [];
+    const appendedItems = [];
+    const addedKeys = [];
+    const timestampNow = new Date();
+    let submitter = '';
+    try { submitter = Session.getActiveUser().getEmail() || ''; } catch (_ignore) { submitter = ''; }
+
+    eligible.forEach(function(item) {
+      const rowInfo = item.entry;
+      const row = rowInfo.row;
+      const sheetRow = rowInfo.sheetRow || 0;
+      let template = null;
+
+      if (sheetRow >= 2 && sheetRow <= lastRow) {
+        try {
+          const tpl = sh.getRange(sheetRow, 1, 1, lastCol).getValues()[0];
+          if (tpl && tpl.length) {
+            template = tpl.slice();
+          }
+        } catch (tplErr) {
+          console.warn('inductReleasedBeneficiaries: template fetch failed', tplErr);
+        }
+      }
+
+      if (!template) {
+        template = new Array(lastCol).fill('');
+      }
+
+      const setValue = function(idx, value) {
+        if (idx < 0) return;
+        template[idx] = value == null ? '' : value;
+      };
+
+      const setIfPresent = function(idx, value) {
+        if (idx < 0) return;
+        if (value == null || value === '') return;
+        template[idx] = value;
+      };
+
+      setValue(idxName, row.beneficiary);
+      setValue(idxProject, project);
+      setValue(idxTeam, team);
+      setIfPresent(idxAccount, row.account);
+      setIfPresent(idxDesignation, row.designation);
+      if (idxDefaultDa >= 0 && row.defaultDa !== undefined && row.defaultDa !== null && row.defaultDa !== '') {
+        template[idxDefaultDa] = row.defaultDa;
+      }
+      if (idxRemarks >= 0) {
+        template[idxRemarks] = '';
+      }
+      setValue(idxStatus, 'IN USE');
+      if (idxTimestamp >= 0) {
+        template[idxTimestamp] = new Date(timestampNow);
+      }
+      if (idxSubmitter >= 0 && submitter) {
+        template[idxSubmitter] = submitter;
+      }
+
+      rowsToInsert.push(template);
+      addedKeys.push(item.key);
+      appendedItems.push({
+        beneficiary: row.beneficiary || '',
+        accountHolder: row.account || '',
+        designation: row.designation || '',
+        erdaAmt: 0,
+        project: project,
+        projectName: project,
+        team: team,
+        teamId: team,
+        teamName: team,
+        diffNames: (row.beneficiary && row.account)
+          ? row.beneficiary.toLowerCase() !== row.account.toLowerCase()
+          : false
+      });
+    });
+
+    if (!rowsToInsert.length) {
+      return { ok: false, error: 'No entries to append', skipped: skipped };
+    }
+
+    const startRow = lastRow + 1;
+    sh.getRange(startRow, 1, rowsToInsert.length, lastCol).setValues(rowsToInsert);
+
+    try { bustDDCache(); } catch (cacheErr) { console.warn('inductReleasedBeneficiaries: bustDDCache failed', cacheErr); }
+    try { bustPTCache(); } catch (ptErr) { console.warn('inductReleasedBeneficiaries: bustPTCache failed', ptErr); }
+    try { bustTypeaheadCache(); } catch (taErr) { console.warn('inductReleasedBeneficiaries: bustTypeaheadCache failed', taErr); }
+
+    return {
+      ok: true,
+      inserted: rowsToInsert.length,
+      project: project,
+      team: team,
+      addedKeys: addedKeys,
+      skipped: skipped,
+      beneficiaries: appendedItems
+    };
+  } catch (e) {
+    console.error('inductReleasedBeneficiaries error', e);
+    return { ok: false, error: String(e) };
   }
 }
 
