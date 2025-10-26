@@ -7361,21 +7361,44 @@ function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
       return false;
     })(includeAllStatuses);
 
-    const rows = _readDD_compact_().filter(r => {
-      if (!includeAll && _up(r.inuse) !== 'IN USE') return false;
+    const ddRows = _readDD_compact_();
+    if (!Array.isArray(ddRows) || ddRows.length === 0) return [];
+
+    const latestRows = new Map();
+    for (let idx = 0; idx < ddRows.length; idx++) {
+      const row = ddRows[idx];
+      if (!row || !row.beneficiaryKey) continue;
+
+      const tsRaw = Number(row.timestamp);
+      const ts = Number.isFinite(tsRaw) ? tsRaw : 0;
+      const order = idx + 2; // Sheet rows start at 2 because of header
+      const existing = latestRows.get(row.beneficiaryKey);
+
+      if (!existing || ts > existing.timestamp || (ts === existing.timestamp && order > existing.order)) {
+        latestRows.set(row.beneficiaryKey, { row: row, timestamp: ts, order: order });
+      }
+    }
+
+    const rows = [];
+    latestRows.forEach(function(entry) {
+      const r = entry && entry.row;
+      if (!r || !r.beneficiary) return;
+
+      if (!includeAll && _up(r.inuse) !== 'IN USE') return;
       if (projKey) {
-        if (_normProjectKey(r.project) !== projKey) return false;
+        if (_normProjectKey(r.project) !== projKey) return;
       } else if (!haveTeams) {
-        return false;
+        return;
       }
       if (haveTeams) {
         const rowTeamNorm = _norm(r.team);
         const rowTeamAlias = _normTeamKey(r.team);
         const directMatch = teamSet.has(rowTeamNorm);
         const aliasMatch = rowTeamAlias ? teamAliasSet.has(rowTeamAlias) : false;
-        if (!directMatch && !aliasMatch) return false;
+        if (!directMatch && !aliasMatch) return;
       }
-      return !!r.beneficiary;
+
+      rows.push(r);
     });
 
     if (!proj && rows.length) {
