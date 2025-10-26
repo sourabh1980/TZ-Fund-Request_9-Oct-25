@@ -182,6 +182,21 @@
     transform: scale(0.98);
   }
 
+  .confirmation-btn.accent {
+    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    color: #fff;
+    box-shadow: 0 12px 32px rgba(234, 88, 12, 0.28);
+  }
+
+  .confirmation-btn.accent:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #fb923c 0%, #f97316 100%);
+  }
+
+  .confirmation-btn.accent:active {
+    transform: scale(0.98);
+  }
+
   .confirmation-btn.secondary {
     background: transparent;
     color: #4a5568;
@@ -307,7 +322,8 @@
           variant,
           feedback: btn.feedback === undefined ? (variant === 'primary') : Boolean(btn.feedback),
           successText: btn.successText,
-          focus: btn.focus === true
+          focus: btn.focus === true,
+          id: btn.id ? String(btn.id) : ''
         };
       });
     }
@@ -355,6 +371,9 @@
       btn.textContent = config.text;
       btn.dataset.index = String(index);
       btn.dataset.originalText = config.text;
+      if (config.id) {
+        btn.dataset.buttonId = config.id;
+      }
       btn.addEventListener('click', () => selectButton(index));
       container.appendChild(btn);
       return btn;
@@ -415,6 +434,22 @@
       modal.classList.add('show');
       setTimeout(focusInitialButton, 120);
     });
+  };
+
+  window.updateConfirmationButton = function(buttonId, props = {}) {
+    if (!buttonId) return;
+    const idx = buttonConfigs.findIndex(cfg => cfg && cfg.id === buttonId);
+    if (idx < 0) return;
+    const config = buttonConfigs[idx];
+    const btn = buttonElements[idx];
+    if (!config || !btn) return;
+
+    if (Object.prototype.hasOwnProperty.call(props, 'text')) {
+      const nextText = props.text == null ? '' : String(props.text);
+      config.text = nextText;
+      btn.textContent = nextText;
+      btn.dataset.originalText = nextText;
+    }
   };
 
   // Close confirmation modal

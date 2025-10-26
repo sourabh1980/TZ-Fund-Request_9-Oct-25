@@ -6583,6 +6583,12 @@ function _readDD_compact_() {
   const iTeam   = IX.get(['Team','Team Name']);
   const iAcct   = IX.get(['Account Holder Name','Account Holder']);
   const iUse    = IX.get(['In Use / release','In Use','In Use/Release']);
+  let iNation = -1;
+  try {
+    iNation = IX.get(['Nationality', 'Country', 'Citizenship']);
+  } catch (_e) {
+    iNation = -1;
+  }
   let iDateTime = -1;
   try {
     iDateTime = IX.get(['Date and Time','Date & Time','Timestamp','Updated At','Date']);
@@ -6591,6 +6597,7 @@ function _readDD_compact_() {
   }
 
   const indices = [iName, iDesig, iDA, iProj, iTeam, iAcct, iUse];
+  if (iNation >= 0) indices.push(iNation);
   if (iDateTime >= 0) indices.push(iDateTime);
   const minIdx = Math.min.apply(null, indices);
   const maxIdx = Math.max.apply(null, indices);
@@ -6613,6 +6620,7 @@ function _readDD_compact_() {
       project:     _norm(get(iProj)),
       team:        teamValue,
       account:     _norm(get(iAcct)),
+      nationality: iNation >= 0 ? _norm(get(iNation)) : '',
       inuse:       _norm(get(iUse)),
       dateTime:    dateRaw,
       timestamp:   ts,

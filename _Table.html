@@ -2761,7 +2761,16 @@ document.addEventListener('keydown', function(event) {
       var scope = scopeParts.length ? ' (' + scopeParts.join(' • ') + ')' : '';
       var message = 'Choose how to proceed with ' + nameLabel + scope + '. Deactivate clears this row, Release removes them from the team and project.';
 
-      showConfirmationModal({
+      var existingCount = null;
+      if (window.FRTZ) {
+        if (typeof window.FRTZ.getReleasedBeneficiaryCount === 'function') {
+          existingCount = window.FRTZ.getReleasedBeneficiaryCount();
+        } else if (typeof window.FRTZ.releasedBeneficiaryCount === 'number') {
+          existingCount = window.FRTZ.releasedBeneficiaryCount;
+        }
+      }
+
+      var confirmationPromise = showConfirmationModal({
         title: 'Deactivate or release beneficiary?',
         message: message,
         buttons: [
@@ -2770,7 +2779,38 @@ document.addEventListener('keydown', function(event) {
           { text: 'Add Beneficiary', value: 'add', role: 'option', variant: 'success', feedback: true, successText: '✓ Opening' },
           { text: 'No, Keep Active', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
         ]
-      }).then(function(action) {
+      });
+
+      var removeCountWatcher = null;
+      if (window.FRTZ && typeof window.FRTZ.onReleasedBeneficiaryCountChange === 'function') {
+        removeCountWatcher = window.FRTZ.onReleasedBeneficiaryCountChange(function(count) {
+          updateExistingBeneficiaryButton(count);
+        });
+      }
+
+      setTimeout(function() {
+        updateExistingBeneficiaryButton(existingCount);
+      }, 0);
+
+      if (window.FRTZ && typeof window.FRTZ.refreshReleasedBeneficiaryCount === 'function') {
+        if (!(typeof existingCount === 'number' && isFinite(existingCount))) {
+          window.FRTZ.refreshReleasedBeneficiaryCount(context.project, context.team);
+        }
+      }
+
+      var cleanupWatcher = function() {
+        if (removeCountWatcher) {
+          try {
+            removeCountWatcher();
+          } catch (err) {
+            console.error('remove count watcher failed', err);
+          }
+          removeCountWatcher = null;
+        }
+      };
+
+      confirmationPromise.then(function(action) {
+        cleanupWatcher();
         if (action === 'deactivate') {
           deactivateRow(row);
         } else if (action === 'release') {
