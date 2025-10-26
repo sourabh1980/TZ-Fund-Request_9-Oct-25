@@ -173,6 +173,7 @@
             row.member ||
             row.name ||
             row['R.Beneficiary'] ||
+            row['R. Ben'] ||
             ''
           ).trim();
           if (!vehicleNumber || !beneficiary) return;
@@ -523,8 +524,9 @@
 
         .vp-header__switch{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 
-        .vp-body{padding:24px;display:grid;grid-template-columns:1fr 1fr;gap:20px;background:rgba(255,255,255,.9);
-          backdrop-filter:blur(6px);overflow-y:auto;overscroll-behavior:contain}
+        .vp-body{padding:24px;background:rgba(255,255,255,.9);
+          backdrop-filter:blur(6px);overflow-y:auto;overscroll-behavior:contain;display:grid;gap:20px}
+        #vpExistingSection{display:grid;grid-template-columns:1fr 1fr;gap:20px}
         .vp-status{grid-column:1/-1;font-size:13px;color:var(--vp-muted);margin-top:-2px}
 
         /* Top context row: 3 fields aligned in one line on desktop */
@@ -559,6 +561,10 @@
         /* Two columns below switch */
         .vp-left,.vp-right{display:grid;gap:12px;align-content:start}
         .vp-filters{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+  .vp-newcar{display:grid;grid-template-columns:minmax(220px,1fr);gap:12px}
+  .vp-newcar-select,.vp-newcar-input{width:100%;}
+  .vp-select.vp-select--invalid{background:#fee2e2;border-color:#f87171;box-shadow:0 0 0 1px rgba(248,113,113,.25) inset;color:#7f1d1d}
+        .vp-input--invalid{border-color:#f87171;background:#fee2e2;box-shadow:0 0 0 1px rgba(248,113,113,.25) inset}
 
         /* Remarks chips (stacked, colored tags like mock) */
         .vp-remark,.vp-chips{display:grid;gap:10px}
@@ -613,10 +619,13 @@
         .vp-users-option--selectall{font-weight:600}
         .vp-users-empty{font-size:13px;color:var(--vp-muted)}
         .vp-users-summary{margin-top:6px;font-size:12px;color:var(--vp-muted)}
+        #vpNewCarSection{min-height:260px;border-radius:16px}
 
         /* Responsive */
         @media(max-width:720px){
-          .vp-body{grid-template-columns:1fr;padding:20px}
+          .vp-body{padding:20px}
+          #vpExistingSection{grid-template-columns:1fr;gap:16px}
+          .vp-newcar{grid-template-columns:1fr}
           .vp-context{grid-template-columns:1fr}
           .vp-left,.vp-right{grid-column:1}
           .vp-switch__group{width:100%}
@@ -715,84 +724,107 @@
           </header>
 
           <div class="vp-body">
-            <div id="vpStatus" class="vp-status">Loading latest vehicles…</div>
+            <div id="vpExistingSection">
+              <div id="vpStatus" class="vp-status">Loading latest vehicles…</div>
 
-            <!-- Top context row: aligned 3 fields -->
-            <div class="vp-context">
-              <div class="vp-field">
-                <label>Project Name</label>
-                <input id="vpProject" class="vp-input" readonly />
+              <!-- Top context row: aligned 3 fields -->
+              <div class="vp-context">
+                <div class="vp-field">
+                  <label>Project Name</label>
+                  <input id="vpProject" class="vp-input" readonly />
+                </div>
+                <div class="vp-field">
+                  <label>Team Name</label>
+                  <input id="vpTeam" class="vp-input" readonly />
+                </div>
+                <div class="vp-field">
+                  <label>Name of Responsible Beneficiary</label>
+                  <select id="vpBeneficiary" class="vp-select">
+                    <option value="">Select Responsible Beneficiary Only</option>
+                  </select>
+                </div>
+                <div class="vp-field vp-field--full">
+                  <label>Users</label>
+                  <div id="vpUsersMulti" class="vp-users-select" role="group" aria-label="Users" aria-expanded="false" tabindex="0"></div>
+                  <div id="vpUsersSummary" class="vp-users-summary">Selected: No team members</div>
+                </div>
               </div>
-              <div class="vp-field">
-                <label>Team Name</label>
-                <input id="vpTeam" class="vp-input" readonly />
+
+              <!-- Left column: filters + vehicle number -->
+              <div class="vp-left">
+                <div class="vp-filters">
+                  <div class="vp-field">
+                    <label for="vpMake">Make</label>
+                    <select id="vpMake" class="vp-select"><option value="">All</option></select>
+                  </div>
+                  <div class="vp-field">
+                    <label for="vpModel">Model</label>
+                    <select id="vpModel" class="vp-select"><option value="">All</option></select>
+                  </div>
+                  <div class="vp-field">
+                    <label for="vpCategory">Category</label>
+                    <select id="vpCategory" class="vp-select"><option value="">All</option></select>
+                  </div>
+                  <div class="vp-field">
+                    <label for="vpUsage">Usage Type</label>
+                    <select id="vpUsage" class="vp-select"><option value="">All</option></select>
+                  </div>
+                  <div class="vp-field">
+                    <label for="vpOwner">Owner</label>
+                    <select id="vpOwner" class="vp-select"><option value="">All</option></select>
+                  </div>
+                </div>
+
+                <div class="vp-field">
+                  <label for="vpDropdown">Vehicle Number</label>
+                  <select id="vpDropdown" class="vp-select">
+                    <option value="">Select a vehicle…</option>
+                  </select>
+                </div>
               </div>
-              <div class="vp-field">
-                <label>Name of Responsible Beneficiary</label>
-                <select id="vpBeneficiary" class="vp-select">
-                  <option value="">Select Responsible Beneficiary Only</option>
-                </select>
-              </div>
-              <div class="vp-field vp-field--full">
-                <label>Users</label>
-                <div id="vpUsersMulti" class="vp-users-select" role="group" aria-label="Users" aria-expanded="false" tabindex="0"></div>
-                <div id="vpUsersSummary" class="vp-users-summary">Selected: No team members</div>
+
+              <!-- Right column: insights -->
+              <div class="vp-right">
+                <div class="vp-field">
+                  <label>Last 3 Ratings</label>
+                  <div id="vpLastRatings" class="vp-last" aria-label="Last three ratings"></div>
+                </div>
               </div>
             </div>
 
-            <!-- Left column: filters + vehicle number -->
-            <div class="vp-left">
-              <div class="vp-filters">
+            <div id="vpNewCarSection" hidden>
+              <div id="vpNewCarStatus" class="vp-status">Add a new vehicle to the fleet.</div>
+              <div class="vp-newcar">
                 <div class="vp-field">
-                  <label for="vpMake">Make</label>
-                  <select id="vpMake" class="vp-select"><option value="">All</option></select>
-                </div>
-                <div class="vp-field">
-                  <label for="vpModel">Model</label>
-                  <select id="vpModel" class="vp-select"><option value="">All</option></select>
+                  <label for="vpNewCarVehicle">Vehicle Number</label>
+                  <input id="vpNewCarVehicle" class="vp-input vp-newcar-input" type="text" list="vpNewCarVehicleList" placeholder="Enter vehicle number" autocomplete="off" />
+                  <datalist id="vpNewCarVehicleList"></datalist>
                 </div>
                 <div class="vp-field">
-                  <label for="vpCategory">Category</label>
-                  <select id="vpCategory" class="vp-select"><option value="">All</option></select>
+                  <label for="vpNewCarMake">Make</label>
+                  <input id="vpNewCarMake" class="vp-input vp-newcar-input" type="text" list="vpNewCarMakeList" placeholder="Enter make" autocomplete="off" />
+                  <datalist id="vpNewCarMakeList"></datalist>
                 </div>
                 <div class="vp-field">
-                  <label for="vpUsage">Usage Type</label>
-                  <select id="vpUsage" class="vp-select"><option value="">All</option></select>
+                  <label for="vpNewCarModel">Model</label>
+                  <input id="vpNewCarModel" class="vp-input vp-newcar-input" type="text" list="vpNewCarModelList" placeholder="Enter model" autocomplete="off" />
+                  <datalist id="vpNewCarModelList"></datalist>
                 </div>
                 <div class="vp-field">
-                  <label for="vpOwner">Owner</label>
-                  <select id="vpOwner" class="vp-select"><option value="">All</option></select>
+                  <label for="vpNewCarCategory">Category</label>
+                  <input id="vpNewCarCategory" class="vp-input vp-newcar-input" type="text" list="vpNewCarCategoryList" placeholder="Enter category" autocomplete="off" />
+                  <datalist id="vpNewCarCategoryList"></datalist>
                 </div>
-              </div>
-
-              <div class="vp-field">
-                <label for="vpDropdown">Vehicle Number</label>
-                <select id="vpDropdown" class="vp-select">
-                  <option value="">Select a vehicle…</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Right column: insights -->
-            <div class="vp-right">
-              <div class="vp-field">
-                <label>Last 3 Remarks</label>
-                <div id="vpRemarks" class="vp-remark">
-                  <!-- Chips injected here -->
+                <div class="vp-field">
+                  <label for="vpNewCarUsage">Usage Type</label>
+                  <input id="vpNewCarUsage" class="vp-input vp-newcar-input" type="text" list="vpNewCarUsageList" placeholder="Enter usage type" autocomplete="off" />
+                  <datalist id="vpNewCarUsageList"></datalist>
                 </div>
-              </div>
-
-              <div class="vp-field">
-                <label>Average Rating</label>
-                <div>
-                  <span id="vpRatingValue" class="vp-rating__value">—</span>
-                  <span id="vpStars" class="vp-stars" aria-label="Average rating"></span>
+                <div class="vp-field">
+                  <label for="vpNewCarOwner">Owner</label>
+                  <input id="vpNewCarOwner" class="vp-input vp-newcar-input" type="text" list="vpNewCarOwnerList" placeholder="Enter owner" autocomplete="off" />
+                  <datalist id="vpNewCarOwnerList"></datalist>
                 </div>
-              </div>
-
-              <div class="vp-field">
-                <label>Last 3 Ratings</label>
-                <div id="vpLastRatings" class="vp-last" aria-label="Last three ratings"></div>
               </div>
             </div>
           </div>
@@ -811,6 +843,10 @@
       (function(){
         let targetInput=null, vehicles=[], master=[], vpMode='existing';
         const VEHICLE_CACHE_TTL = 60000; // 60s client cache window
+        const VEHICLE_STORAGE_KEY = 'vp:vehiclePicker:v1';
+        const VEHICLE_STORAGE_MAX_AGE = 5 * 60 * 1000; // 5 minutes persisted cache
+        const VEHICLE_STORAGE_LIMIT = 1000; // guard against runaway payloads
+        const NEW_VEHICLE_CACHE_TTL = 60000;
         let vehicleDataCache=null;
         let vehicleDataCacheTs=0;
         let vehicleCacheSource='';
@@ -821,11 +857,163 @@
         let vehicleVersionMonitorTimer=null;
         let lastKnownVehicleServerVersion=null;
         let vehicleVersionRefreshPending=false;
-        let vehicleWarmInitiated=false;
         let vehicleWarmRetryTimer=null;
         let vehicleVersionMonitorStartTimer=null;
+        let lastWarmSelectionKey='';
+        let vehicleWarmInFlight=false;
+        let lastVehicleWarmTs=0;
         const VEHICLE_VERSION_POLL_INTERVAL = 10000;
         let manualRefreshInProgress = false;
+
+        let storageHydrationAttempted = false;
+  let newVehicleOptions = null;
+  let newVehicleOptionsTs = 0;
+  let newVehicleCatalog = [];
+        let newCarStatusBaseMessage = 'Add a new vehicle to the fleet.';
+        let newCarStatusTemporary = false;
+        let newVehicleFetchInFlight = false;
+        let newCarStatusTempReason = '';
+
+        function setNewCarStatus(message, options){
+          const opts = options && typeof options === 'object' ? options : {};
+          if (opts.persistBase) {
+            newCarStatusBaseMessage = message;
+          }
+          const statusEl = document.getElementById('vpNewCarStatus');
+          if (statusEl) {
+            statusEl.textContent = message;
+          }
+          newCarStatusTemporary = !!opts.temporary;
+          newCarStatusTempReason = newCarStatusTemporary ? String(opts.reason || '') : '';
+        }
+
+        function resetNewCarStatus(){
+          newCarStatusTempReason = '';
+          setNewCarStatus(newCarStatusBaseMessage);
+        }
+
+        function isVehicleNumberDuplicate(value){
+          const target = String(value || '').trim().toUpperCase();
+          if (!target) return false;
+          const catalog = Array.isArray(newVehicleCatalog) ? newVehicleCatalog : [];
+          return catalog.some(entry => String(entry?.vehicleNumber || '').trim().toUpperCase() === target);
+        }
+
+        function storageAvailable(){
+          if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
+            return false;
+          }
+          try {
+            const testKey = '__vp_storage_test__';
+            window.localStorage.setItem(testKey, '1');
+            window.localStorage.removeItem(testKey);
+            return true;
+          } catch (_err) {
+            return false;
+          }
+        }
+
+        function autoFillNewVehicleDetails(vehicleNumber){
+          const target = String(vehicleNumber || '').trim();
+          if (!target) return;
+          const match = (Array.isArray(newVehicleCatalog) ? newVehicleCatalog : []).find(entry => {
+            return String(entry?.vehicleNumber || '').trim().toLowerCase() === target.toLowerCase();
+          });
+          if (!match) return;
+          const fields = [
+            ['make', match.make],
+            ['model', match.model],
+            ['category', match.category],
+            ['usageType', match.usageType],
+            ['owner', match.owner]
+          ];
+          fields.forEach(([key, value]) => {
+            const cfg = newCarFieldConfig.find(item => item.key === key);
+            if (!cfg) return;
+            const field = document.getElementById(cfg.elementId);
+            if (!field) return;
+            if (String(field.value || '').trim()) return;
+            const normalized = String(value || '').trim();
+            if (!normalized) return;
+            const listId = cfg.datalistId;
+            let exists = false;
+            if (listId) {
+              const list = document.getElementById(listId);
+              if (list) {
+                const normalizedLc = normalized.toLowerCase();
+                exists = Array.from(list.options || []).some(opt => String(opt.value || '').trim().toLowerCase() === normalizedLc);
+                if (!exists) {
+                  const opt = document.createElement('option');
+                  opt.value = normalized;
+                  opt.label = normalized;
+                  list.appendChild(opt);
+                }
+              }
+            }
+            field.value = normalized;
+          });
+          updateSelectButtonState();
+        }
+
+        function clearVehicleStorage(){
+          if (!storageAvailable()) return;
+          try {
+            window.localStorage.removeItem(VEHICLE_STORAGE_KEY);
+          } catch (storageErr) {
+            console.warn('[VP] Failed to clear vehicle storage cache', storageErr);
+          }
+        }
+
+        function persistVehicleCache(list, version){
+          if (!Array.isArray(list) || !list.length) return;
+          if (!storageAvailable()) return;
+          try {
+            const payload = {
+              timestamp: Date.now(),
+              version: version != null ? String(version) : null,
+              maxAge: VEHICLE_STORAGE_MAX_AGE,
+              vehicles: list.slice(0, VEHICLE_STORAGE_LIMIT)
+            };
+            window.localStorage.setItem(VEHICLE_STORAGE_KEY, JSON.stringify(payload));
+          } catch (storageErr) {
+            console.warn('[VP] Failed to persist vehicle cache', storageErr);
+          }
+        }
+
+        function bootstrapVehicleCacheFromStorage(){
+          if (storageHydrationAttempted) return;
+          storageHydrationAttempted = true;
+          if (vehicleDataCache && vehicleDataCache.length) return;
+          if (!storageAvailable()) return;
+          try {
+            const raw = window.localStorage.getItem(VEHICLE_STORAGE_KEY);
+            if (!raw) return;
+            const payload = JSON.parse(raw);
+            if (!payload || !Array.isArray(payload.vehicles) || !payload.vehicles.length) return;
+            const ts = Number(payload.timestamp || 0);
+            if (!ts) return;
+            const maxAge = typeof payload.maxAge === 'number' ? payload.maxAge : VEHICLE_STORAGE_MAX_AGE;
+            if (Date.now() - ts > maxAge) return;
+            vehicleDataCache = payload.vehicles.slice();
+            vehicleDataCacheTs = ts;
+            vehicleCacheSource = 'localStorage';
+            const storedVersion = payload.version != null ? String(payload.version) : null;
+            vehicleDataCacheVersion = storedVersion;
+            if (storedVersion != null) {
+              lastKnownVehicleServerVersion = storedVersion;
+            }
+            try {
+              console.log('[VP] Hydrated vehicles from localStorage cache', {
+                count: vehicleDataCache.length,
+                version: storedVersion
+              });
+            } catch (_logErr) { /* ignore */ }
+          } catch (hydrateErr) {
+            console.warn('[VP] Vehicle cache hydration failed', hydrateErr);
+          }
+        }
+
+        bootstrapVehicleCacheFromStorage();
 
         function setRefreshButtonState(active){
           const btn = document.getElementById('vpRefreshBtn');
@@ -853,6 +1041,10 @@
         }
 
         function manualRefreshVehiclePicker(){
+          if (vpMode === 'new') {
+            ensureNewVehicleOptions(true);
+            return;
+          }
           if (manualRefreshInProgress) return;
           manualRefreshInProgress = true;
           setRefreshButtonState(true);
@@ -1310,6 +1502,207 @@
 
         function escapeAttr(value){
           return escapeHtml(value).replace(/"/g, '&quot;');
+        }
+
+        const newCarFieldConfig = [
+          { key: 'vehicleNumber', elementId: 'vpNewCarVehicle', placeholder: 'Enter vehicle number', type: 'text', required: true, datalistId: 'vpNewCarVehicleList' },
+          { key: 'make', elementId: 'vpNewCarMake', placeholder: 'Enter make', type: 'text', required: false, datalistId: 'vpNewCarMakeList' },
+          { key: 'model', elementId: 'vpNewCarModel', placeholder: 'Enter model', type: 'text', required: false, datalistId: 'vpNewCarModelList' },
+          { key: 'category', elementId: 'vpNewCarCategory', placeholder: 'Enter category', type: 'text', required: false, datalistId: 'vpNewCarCategoryList' },
+          { key: 'usageType', elementId: 'vpNewCarUsage', placeholder: 'Enter usage type', type: 'text', required: false, datalistId: 'vpNewCarUsageList' },
+          { key: 'owner', elementId: 'vpNewCarOwner', placeholder: 'Enter owner', type: 'text', required: false, datalistId: 'vpNewCarOwnerList' }
+        ];
+
+        function resetNewCarForm(){
+          newCarFieldConfig.forEach(cfg => {
+            const field = document.getElementById(cfg.elementId);
+            if (field) {
+              field.value = '';
+              field.classList.remove('vp-input--invalid');
+              field.classList.remove('vp-select--invalid');
+            }
+          });
+          setNewCarStatus('Add a new vehicle to the fleet.', { persistBase: true });
+        }
+
+        function getNewCarFormValues(){
+          const values = {};
+          newCarFieldConfig.forEach(cfg => {
+            const field = document.getElementById(cfg.elementId);
+            values[cfg.key] = field ? String(field.value || '').trim() : '';
+          });
+          return values;
+        }
+
+        function validateNewCarForm(markInvalid){
+          const values = getNewCarFormValues();
+          let valid = true;
+          let duplicateVehicle = false;
+          newCarFieldConfig.forEach(cfg => {
+            const field = document.getElementById(cfg.elementId);
+            const hasValue = !!values[cfg.key];
+            const isRequired = cfg.required !== false;
+            if (isRequired && !hasValue) {
+              valid = false;
+              if (markInvalid && field) {
+                const invalidClass = field.tagName === 'SELECT' ? 'vp-select--invalid' : 'vp-input--invalid';
+                field.classList.add(invalidClass);
+              }
+            } else if (field) {
+              field.classList.remove('vp-input--invalid');
+              field.classList.remove('vp-select--invalid');
+            }
+          });
+          const vehicleField = document.getElementById('vpNewCarVehicle');
+          if (values.vehicleNumber) {
+            duplicateVehicle = isVehicleNumberDuplicate(values.vehicleNumber);
+            if (duplicateVehicle) {
+              valid = false;
+              if (markInvalid && vehicleField) {
+                vehicleField.classList.add('vp-input--invalid');
+              }
+            }
+          }
+          if (duplicateVehicle) {
+            setNewCarStatus('Vehicle number already exists in catalog. Enter a unique number.', { temporary: true, reason: 'duplicate' });
+          } else if (newCarStatusTemporary && newCarStatusTempReason === 'duplicate') {
+            resetNewCarStatus();
+          }
+          return { valid, values, duplicateVehicle };
+        }
+
+        function applyNewVehicleOptions(options){
+          const source = options && typeof options === 'object' ? options : {};
+          newCarFieldConfig.forEach(cfg => {
+            const field = document.getElementById(cfg.elementId);
+            if (!field) return;
+            const valuesRaw = Array.isArray(source[cfg.key]) ? source[cfg.key] : [];
+            const entries = valuesRaw.map(function(item){
+              if (item && typeof item === 'object') {
+                const value = String(item.value || item.vehicleNumber || '').trim();
+                const label = String(item.label || item.name || item.value || '').trim();
+                if (!value) return null;
+                return { value: value, label: label || value };
+              }
+              const value = String(item || '').trim();
+              if (!value) return null;
+              return { value: value, label: value };
+            }).filter(Boolean);
+
+            const current = String(field.value || '').trim();
+            const placeholder = cfg.placeholder || 'Select option';
+            if (field.tagName !== 'SELECT') {
+              if ('placeholder' in field && field.placeholder !== placeholder) {
+                field.placeholder = placeholder;
+              }
+              const listId = cfg.datalistId;
+              if (listId) {
+                const list = document.getElementById(listId);
+                if (list) {
+                  const optionMarkup = entries.map(entry => {
+                    const valueEsc = escapeAttr(entry.value);
+                    if (entry.label && entry.label !== entry.value) {
+                      const labelEsc = escapeAttr(entry.label);
+                      return `<option value="${valueEsc}" label="${labelEsc}"></option>`;
+                    }
+                    return `<option value="${valueEsc}"></option>`;
+                  });
+                  list.innerHTML = optionMarkup.join('');
+                }
+              }
+              return;
+            }
+
+            const opts = [`<option value="">${escapeHtml(placeholder)}</option>`];
+            entries.forEach(entry => {
+              opts.push(`<option value="${escapeAttr(entry.value)}">${escapeHtml(entry.label)}</option>`);
+            });
+            field.innerHTML = opts.join('');
+            if (current && entries.some(entry => entry.value.toLowerCase() === current.toLowerCase())) {
+              field.value = current;
+            }
+          });
+        }
+
+        function ensureNewVehicleOptions(force){
+          const now = Date.now();
+          if (!force && newVehicleOptions && (now - newVehicleOptionsTs) < NEW_VEHICLE_CACHE_TTL) {
+            applyNewVehicleOptions(newVehicleOptions);
+            return;
+          }
+          if (newVehicleFetchInFlight) return;
+          if (!window.google || !google.script || !google.script.run) {
+            setNewCarStatus('Google Apps Script unavailable.', { persistBase: true });
+            return;
+          }
+          newVehicleFetchInFlight = true;
+          updateSelectButtonState();
+          setNewCarStatus('Loading vehicle catalog…', { temporary: true, reason: 'loading' });
+          
+          google.script.run
+            .withSuccessHandler(function(res){
+              newVehicleFetchInFlight = false;
+              if (res && res.ok && res.options) {
+                const optionPayload = res.options || {};
+                const normalizeList = function(list){
+                  if (!Array.isArray(list)) return [];
+                  return list.map(function(item){
+                    if (item && typeof item === 'object') {
+                      const value = String(item.value || item.vehicleNumber || '').trim();
+                      const label = String(item.label || item.name || item.value || '').trim();
+                      return value ? { value: value, label: label || value } : null;
+                    }
+                    const value = String(item || '').trim();
+                    return value ? { value: value, label: value } : null;
+                  }).filter(Boolean);
+                };
+
+                const optionLists = {
+                  vehicleNumber: normalizeList(optionPayload.vehicleNumber),
+                  make: normalizeList(optionPayload.make),
+                  model: normalizeList(optionPayload.model),
+                  category: normalizeList(optionPayload.category),
+                  usageType: normalizeList(optionPayload.usageType),
+                  owner: normalizeList(optionPayload.owner)
+                };
+
+                newVehicleCatalog = Array.isArray(optionPayload.catalog) ? optionPayload.catalog.slice() : [];
+                newVehicleOptions = optionLists;
+                newVehicleOptionsTs = Date.now();
+
+                const totals = Object.fromEntries(Object.keys(optionLists).map(key => [key, optionLists[key].length]));
+                try {
+                  console.log('[VP_NEW] Loaded vehicle catalog from vehicle sheet', {
+                    totals: totals,
+                    samples: Object.fromEntries(Object.keys(optionLists).map(key => [key, optionLists[key].slice(0, 5)]))
+                  });
+                } catch (_logErr) {
+                  /* logging best effort */
+                }
+                applyNewVehicleOptions(newVehicleOptions);
+                const vehicleTotal = totals.vehicleNumber || 0;
+                const sourceCount = Number(res.rowCount || vehicleTotal || 0);
+                const message = vehicleTotal
+                  ? `Loaded ${vehicleTotal} vehicles from catalog${sourceCount && sourceCount !== vehicleTotal ? ` (from ${sourceCount} rows)` : ''}.`
+                  : 'Catalog ready. Start typing to add vehicle details.';
+                setNewCarStatus(message, { persistBase: true });
+              } else {
+                newVehicleCatalog = [];
+                newVehicleOptions = null;
+                newVehicleOptionsTs = 0;
+                const failureMessage = (res && res.error) ? String(res.error) : 'Vehicle catalog unavailable. Start typing to add vehicle details.';
+                setNewCarStatus(failureMessage, { persistBase: true });
+              }
+              updateSelectButtonState();
+            })
+            .withFailureHandler(function(err){
+              newVehicleFetchInFlight = false;
+              newVehicleCatalog = [];
+              console.warn('[VP] Failed to load new vehicle options', err);
+              setNewCarStatus('Failed to load vehicle catalog', { persistBase: true });
+              updateSelectButtonState();
+            })
+            .getNewVehicleOptions();
         }
 
         function nameKey(name){
@@ -2060,7 +2453,7 @@
           const usageType = get('usageType','usage_type','Usage Type','usage','Usage');
           const contractType = get('contractType','contract_type','Contract Type','contract','Contract','agreementType','Agreement Type');
           const owner = get('owner','Owner','ownerName','Owner Name');
-          const responsibleBeneficiary = get('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','responsible');
+          const responsibleBeneficiary = get('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','R. Ben','responsible');
           const status = get('status','Status','inUseRelease','In Use/Release');
           const remarksRaw = get('remarks','Remarks','feedback','Feedback');
           const stars = get('stars','rating','Rating');
@@ -2079,7 +2472,7 @@
             contractType,
             owner,
             responsibleBeneficiary,
-            'R.Beneficiary': car['R.Beneficiary'] || responsibleBeneficiary || '',
+            'R.Beneficiary': car['R.Beneficiary'] || car['R. Ben'] || responsibleBeneficiary || '',
             status,
             remarks: remarksRaw || car.remarks || '',
             stars: stars || car.stars || 0,
@@ -2099,8 +2492,44 @@
           document.querySelectorAll('.vp-switch__btn').forEach(btn=>{
             btn.setAttribute('aria-selected', btn.dataset.key===mode ? 'true':'false');
           });
-          document.getElementById('vpSelectBtn').disabled = true;
-          // Hide/show creation area (not used here; you can extend)
+          const existingSection = document.getElementById('vpExistingSection');
+          const newSection = document.getElementById('vpNewCarSection');
+          if (existingSection) {
+            existingSection.hidden = mode !== 'existing';
+            existingSection.style.display = mode === 'existing' ? '' : 'none';
+          }
+          if (newSection) {
+            newSection.hidden = mode !== 'new';
+            newSection.style.display = mode === 'new' ? '' : 'none';
+          }
+          const clearAll = document.getElementById('vpClearAll');
+          if (clearAll) {
+            clearAll.style.display = mode === 'existing' ? '' : 'none';
+          }
+          const refreshBtn = document.getElementById('vpRefreshBtn');
+          if (refreshBtn) {
+            refreshBtn.style.display = mode === 'existing' ? '' : 'none';
+          }
+          const modal = document.querySelector('.vp-modal');
+          if (modal) {
+            modal.classList.toggle('vp-mode-new', mode === 'new');
+          }
+          const statusEl = document.getElementById('vpStatus');
+          const metaEl = document.getElementById('vpMatchMeta');
+          const selectBtn = document.getElementById('vpSelectBtn');
+          if (selectBtn) selectBtn.textContent = mode === 'existing' ? 'Select' : 'Save';
+          if (mode === 'new') {
+            if (statusEl) statusEl.textContent = '';
+            if (metaEl) metaEl.textContent = '';
+            resetNewCarForm();
+            ensureNewVehicleOptions(true);
+            clearVehicleInsights();
+            updateSelectButtonState();
+            return;
+          }
+          if (statusEl) statusEl.textContent = 'Loading latest vehicles…';
+          if (metaEl) metaEl.textContent = '0 vehicles match filters';
+          if (selectBtn) selectBtn.disabled = true;
           if(mode==='existing' && autoFetch){ fetchVehicles(fetchOpts); }
         }
 
@@ -2118,7 +2547,36 @@
         function resetPickerUI(){
           const statusEl=document.getElementById('vpStatus'); if(statusEl) statusEl.textContent='Loading latest vehicles…';
           setDropdownLoading(true, 'Loading vehicles…');
-          document.getElementById('vpSelectBtn').disabled=true;
+          const selectBtn = document.getElementById('vpSelectBtn');
+          if (selectBtn) {
+            selectBtn.disabled = true;
+            selectBtn.textContent = 'Select';
+          }
+          const metaEl = document.getElementById('vpMatchMeta');
+          if (metaEl) metaEl.textContent = '0 vehicles match filters';
+          const existingSection = document.getElementById('vpExistingSection');
+          const newSection = document.getElementById('vpNewCarSection');
+          if (existingSection) {
+            existingSection.hidden = false;
+            existingSection.style.display = '';
+          }
+          if (newSection) {
+            newSection.hidden = true;
+            newSection.style.display = 'none';
+          }
+          const clearAll = document.getElementById('vpClearAll');
+          if (clearAll) {
+            clearAll.style.display = '';
+          }
+          const refreshBtn = document.getElementById('vpRefreshBtn');
+          if (refreshBtn) {
+            refreshBtn.style.display = '';
+          }
+          const modal = document.querySelector('.vp-modal');
+          if (modal) {
+            modal.classList.remove('vp-mode-new');
+          }
+          resetNewCarForm();
           ['vpMake','vpModel','vpCategory','vpUsage','vpOwner'].forEach(id=>{
             const s=document.getElementById(id); if(s){ s.selectedIndex=0; }
           });
@@ -2151,6 +2609,8 @@
           master=[]; vehicles=[];
           resetPickerUI();
           try{ populateContextFromRow(targetInput); }catch(_){ }
+          bootstrapVehicleCacheFromStorage();
+          const statusEl = document.getElementById('vpStatus');
           const hadCache = Array.isArray(vehicleDataCache) && vehicleDataCache.length;
           if (hadCache) {
             try {
@@ -2158,11 +2618,23 @@
             } catch (cacheRenderErr) {
               console.warn('[VP] Failed to render cached vehicles on open', cacheRenderErr);
             }
+            const isFresh = (Date.now() - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
+            if (statusEl) {
+              statusEl.textContent = isFresh
+                ? 'Vehicles loaded from cache.'
+                : 'Vehicles loaded from cache. Re-apply project & team to refresh.';
+            }
+          } else {
+            const warmPending = vehicleFetchPending || vehicleWarmInFlight;
+            if (warmPending) {
+              setDropdownLoading(true, 'Loading vehicles…');
+              if (statusEl) statusEl.textContent = 'Loading vehicles…';
+            } else {
+              setDropdownLoading(true, 'Waiting for vehicle cache…');
+              if (statusEl) statusEl.textContent = 'Select a project & team, then click Apply to load vehicles.';
+            }
           }
           setMode('existing', { autoFetch: false });
-          const cacheIsFresh = hadCache && (Date.now() - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
-          const shouldForce = !hadCache || !cacheIsFresh;
-          fetchVehicles({ force: shouldForce, skipCache: false });
         }
 
         function close(){
@@ -2187,6 +2659,7 @@
             vehicleVersionRefreshPending = false;
             return;
           }
+          bootstrapVehicleCacheFromStorage();
           const statusEl = document.getElementById('vpStatus');
           if (vehicleRetryTimer){
             clearTimeout(vehicleRetryTimer);
@@ -2245,6 +2718,7 @@
             .withFailureHandler(function(err){
               vehicleFetchPending = false;
               vehicleVersionRefreshPending = false;
+              vehicleWarmInFlight = false;
               console.error('Vehicle picker load failed', err);
               window.vehiclePickerLastResponse = {
                 timestamp: new Date().toISOString(),
@@ -2261,6 +2735,7 @@
 
         function handleVehicleFetchSuccess(res, startTs, opts){
           vehicleFetchPending = false;
+          vehicleWarmInFlight = false;
           let list = [];
           let source = '';
           let cachedFlag = false;
@@ -2333,6 +2808,11 @@
           vehicleDataCache = list.slice();
           vehicleDataCacheTs = Date.now();
           vehicleCacheSource = source;
+          try {
+            persistVehicleCache(vehicleDataCache, vehicleDataCacheVersion || incomingVersion || null);
+          } catch (persistErr) {
+            console.warn('[VP] Vehicle cache persistence skipped', persistErr);
+          }
 
           const end = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
           vehiclePickerMeta = {
@@ -2393,7 +2873,16 @@
         }
 
         function warmVehiclePickerCache(forceRefresh = false){
-          if (!forceRefresh && vehicleWarmInitiated) return;
+          const now = Date.now();
+          const cacheFresh = vehicleDataCache && (now - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
+          if (!forceRefresh) {
+            if (cacheFresh) return;
+            if (vehicleFetchPending || vehicleWarmInFlight) return;
+            if (lastVehicleWarmTs && (now - lastVehicleWarmTs) < 750) return;
+          }
+          if (vehicleFetchPending || vehicleWarmInFlight) {
+            return;
+          }
           if (!window.google || !google.script || !google.script.run) {
             if (!vehicleWarmRetryTimer) {
               vehicleWarmRetryTimer = setTimeout(function(){
@@ -2407,11 +2896,37 @@
             clearTimeout(vehicleWarmRetryTimer);
             vehicleWarmRetryTimer = null;
           }
-          vehicleWarmInitiated = true;
+          vehicleWarmInFlight = true;
+          lastVehicleWarmTs = now;
           try {
             fetchVehicles({ force: true, skipCache: false, silent: true });
           } catch (warmErr) {
+            vehicleWarmInFlight = false;
             console.warn('[VP] Warm cache fetch failed', warmErr);
+          }
+        }
+
+        function computeSelectionWarmKey(detail){
+          if (!detail) return '';
+          const project = String(detail.projectId || detail.project || '').trim().toLowerCase();
+          const teamIds = Array.isArray(detail.teamIds) ? detail.teamIds.filter(Boolean).map(function(id){
+            return String(id).trim().toLowerCase();
+          }).sort() : [];
+          return project + '::' + teamIds.join('|');
+        }
+
+        function maybeWarmVehiclesForSelection(detail){
+          const teamIds = Array.isArray(detail && detail.teamIds) ? detail.teamIds.filter(Boolean) : [];
+          if (!teamIds.length) return;
+          const key = computeSelectionWarmKey(detail);
+          const now = Date.now();
+          const cacheFresh = vehicleDataCache && (now - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
+          if (key && key === lastWarmSelectionKey && cacheFresh) return;
+          lastWarmSelectionKey = key;
+          try {
+            warmVehiclePickerCache(!cacheFresh);
+          } catch (prefetchErr) {
+            console.warn('[VP] Prefetch warm failed', prefetchErr);
           }
         }
 
@@ -2695,50 +3210,22 @@
 
         let __vpStarUid = 0;
         function renderRemarksAndRating(hist){
-          const remarks = Array.isArray(hist?.feedback)?hist.feedback.slice(0,3):[];
           const lastRatings = Array.isArray(hist?.ratings) ? hist.ratings.slice(0,3) : [];
-          let avg = Number(hist?.avg)||Number(hist?.rating)||null;
-          if(!avg && lastRatings.length){ avg = lastRatings.reduce((a,b)=>a+Number(b||0),0)/lastRatings.length; }
-
-          // remarks chips
-          const cont=document.getElementById('vpRemarks');
-          cont.innerHTML = remarks.length ? remarks.map(txt=>{
-            const t=String(txt||'').trim();
-            const lower=t.toLowerCase();
-            let tone='warn';
-            if(lower.match(/scratch|issue|damage|problem|break|fault|dent|repair/)) tone='bad';
-            if(lower.match(/good|excellent|ok|up-to-date|no damage|fine|great/)) tone='good';
-            return `<div class="vp-chip vp-chip--${tone}"><div class="vp-chip__text">${t.replace(/</g,'&lt;')}</div></div>`;
-          }).join('') : '<span class="vp-chip vp-chip--warn"><div class="vp-chip__text">No recent remarks</div></span>';
-
-          // rating
-          const valEl=document.getElementById('vpRatingValue');
-          const starEl=document.getElementById('vpStars');
-          if(avg){ valEl.textContent=avg.toFixed(1); } else { valEl.textContent='—'; }
-          const total=5;
-          let out='';
-          const full = Math.floor(avg||0), half = (avg?avg-full>=0.5:0);
-          for(let i=0;i<total;i++){
-            const state = i<full ? 'full' : (i===full && half ? 'half':'empty');
-            out+=starSVG(state);
-          }
-          starEl.innerHTML=out;
-
-          // Render last 3 ratings as rows of stars
           const lastCont = document.getElementById('vpLastRatings');
-          if(lastCont){
-            if(lastRatings.length){
-              lastCont.innerHTML = lastRatings.map((r,idx)=>{
-                const n = Number(r)||0; const f = Math.floor(n); const h = (n-f)>=0.5; let s='';
-                for(let i=0;i<total;i++){
-                  const st = i<f ? 'full' : (i===f && h ? 'half':'empty');
-                  s += starSVG(st);
-                }
-                return `<div class="vp-last__row"><span class="vp-last__stars" aria-label="Rating ${idx+1}">${s}</span></div>`;
-              }).join('');
-            } else {
-              lastCont.innerHTML = '<span class="vp-last__label">No recent ratings</span>';
-            }
+          if (!lastCont) return;
+
+          const total = 5;
+          if(lastRatings.length){
+            lastCont.innerHTML = lastRatings.map((r,idx)=>{
+              const n = Number(r)||0; const f = Math.floor(n); const h = (n-f)>=0.5; let s='';
+              for(let i=0;i<total;i++){
+                const st = i<f ? 'full' : (i===f && h ? 'half':'empty');
+                s += starSVG(st);
+              }
+              return `<div class="vp-last__row"><span class="vp-last__stars" aria-label="Rating ${idx+1}">${s}</span></div>`;
+            }).join('');
+          } else {
+            lastCont.innerHTML = '<span class="vp-last__label">No recent ratings</span>';
           }
         }
 
@@ -2768,23 +3255,14 @@
             clearVehicleInsights();
             return;
           }
-          const remarks = normalizeList(car.remarks || car.Remarks || car.lastRemarks || '').map(val => String(val || '').trim()).filter(Boolean).slice(0,3);
           const ratingsRaw = normalizeList(car.lastRatings || car.latestRatings || '');
           const ratings = ratingsRaw.map(val => {
             if (typeof val === 'number') return val;
             const match = String(val || '').match(/[-+]?\d*\.?\d+/);
             return match ? parseFloat(match[0]) : null;
           }).filter(val => val !== null && !Number.isNaN(val)).slice(0,3);
-          const avgCandidates = [car.avg, car.average, car.averageRating, car.avgRating, car.rating, car.stars];
-          let avg = null;
-          for (let i = 0; i < avgCandidates.length; i++) {
-            const num = Number(avgCandidates[i]);
-            if (!Number.isNaN(num) && num > 0) { avg = num; break; }
-          }
           const history = {};
-          if (remarks.length) history.feedback = remarks;
           if (ratings.length) history.ratings = ratings;
-          if (avg !== null) history.avg = avg;
           renderRemarksAndRating(history);
         }
 
@@ -2867,6 +3345,13 @@
         function updateSelectButtonState(){
           const btn = document.getElementById('vpSelectBtn');
           if (!btn) return;
+          if (vpMode !== 'existing') {
+            btn.textContent = 'Save';
+            const { valid } = validateNewCarForm(false);
+            btn.disabled = !valid || newVehicleFetchInFlight;
+            return;
+          }
+          btn.textContent = 'Select';
           const carSelected = String(document.getElementById('vpDropdown')?.value || '').trim();
           const beneficiarySelected = String(document.getElementById('vpBeneficiary')?.value || '').trim();
           const isValidBeneficiary = validateResponsibleBeneficiary();
@@ -2879,7 +3364,100 @@
           }
         }
 
+        function submitNewVehicle(){
+          const btn = document.getElementById('vpSelectBtn');
+          const validation = validateNewCarForm(true);
+          if (!validation.valid) {
+            updateSelectButtonState();
+            return;
+          }
+          const values = validation.values;
+          if (btn) {
+            btn.disabled = true;
+            btn.textContent = 'Saving…';
+          }
+          setNewCarStatus('Saving new vehicle…', { temporary: true, reason: 'saving' });
+
+          const project = (document.getElementById('vpProject')?.value || window.__vpLastContext?.project || '').trim();
+          const team = (document.getElementById('vpTeam')?.value || window.__vpLastContext?.team || '').trim();
+          const responsible = (window.__vpSourceBeneficiary || '').trim();
+
+          const payload = {
+            vehicleNumber: values.vehicleNumber,
+            make: values.make || '',
+            model: values.model || '',
+            category: values.category || '',
+            usageType: values.usageType || '',
+            owner: values.owner || '',
+            project: project,
+            team: team,
+            responsibleBeneficiary: responsible
+          };
+
+          if (!window.google || !google.script || !google.script.run) {
+            setNewCarStatus('Google Apps Script unavailable.', { persistBase: true });
+            if (btn) {
+              btn.disabled = false;
+              btn.textContent = 'Save';
+            }
+            return;
+          }
+
+          google.script.run
+            .withSuccessHandler(function(res){
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Save';
+              }
+              if (res && res.ok) {
+                setNewCarStatus('Vehicle saved with status RELEASE.', { persistBase: true });
+                try { clearVehiclePickerCacheInternal(); } catch (cacheErr) { console.warn('[VP] Failed to clear picker cache after new vehicle', cacheErr); }
+                newVehicleOptions = null;
+                newVehicleOptionsTs = 0;
+                ensureNewVehicleOptions(true);
+                resetNewCarForm();
+                updateSelectButtonState();
+                try {
+                  if (typeof window.refreshVehicleAssignments === 'function') {
+                    window.refreshVehicleAssignments({ prefetchVehicles: true });
+                  }
+                } catch (assignErr) {
+                  console.warn('[VP] refreshVehicleAssignments after new vehicle failed', assignErr);
+                }
+                setTimeout(() => { close(); }, 400);
+              } else {
+                const errorMessage = (res && res.error) ? String(res.error) : 'Failed to save vehicle.';
+                setNewCarStatus(errorMessage, { persistBase: true });
+                if (res && res.error && /already exists/i.test(res.error)) {
+                  const vehicleField = document.getElementById('vpNewCarVehicle');
+                  if (vehicleField) {
+                    vehicleField.classList.add('vp-input--invalid');
+                  }
+                }
+                updateSelectButtonState();
+              }
+            })
+            .withFailureHandler(function(err){
+              console.error('[VP] submitNewVehicleRelease failed', err);
+              if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Save';
+              }
+              setNewCarStatus('Failed to save vehicle.', { persistBase: true });
+              const vehicleField = document.getElementById('vpNewCarVehicle');
+              if (vehicleField) {
+                vehicleField.classList.add('vp-input--invalid');
+              }
+              updateSelectButtonState();
+            })
+            .submitNewVehicleRelease(payload);
+        }
+
         function selectVehicle(){
+          if (vpMode === 'new') {
+            submitNewVehicle();
+            return;
+          }
           const sel = document.getElementById('vpDropdown');
           const carNumber = sel && sel.value ? sel.value.trim() : '';
           if (!carNumber) return;
@@ -2999,21 +3577,21 @@
             const owner = ownerInput ? ownerInput.value.trim() : '';
             
             // Prepare payload for backend submission
-            const payload = {
-              project: project,
-              team: team,
-              carNumber: carNumber,
-              responsibleBeneficiary: benFromContext,
-              beneficiaries: finalBeneficiaries,
-              car: {
-                make: make,
-                model: model,
-                category: category,
-                usageType: usageType,
-                owner: owner
-              },
-              timestamp: new Date().toISOString()
-            };
+          const payload = {
+            project: project,
+            team: team,
+            carNumber: carNumber,
+            responsibleBeneficiary: benFromContext,
+            beneficiaries: finalBeneficiaries,
+            car: {
+              make: '',
+              model: '',
+              category: '',
+              usageType: '',
+              owner: ''
+            },
+            timestamp: new Date().toISOString()
+          };
             
             console.log('[VP] Submitting vehicle assignment to CarT_P:', payload);
             
@@ -3096,6 +3674,94 @@
           if (refresh) {
             refresh.addEventListener('click', manualRefreshVehiclePicker);
           }
+
+          newCarFieldConfig.forEach(cfg => {
+            const field = x(cfg.elementId);
+            if (!field) return;
+            const clearInvalid = () => {
+              field.classList.remove('vp-input--invalid');
+              field.classList.remove('vp-select--invalid');
+            };
+            field.addEventListener('change', () => {
+              let value = String(field.value || '').trim();
+              if (cfg.key === 'vehicleNumber') {
+                const normalized = value.toUpperCase();
+                if (normalized !== field.value) {
+                  field.value = normalized;
+                }
+                value = normalized;
+                autoFillNewVehicleDetails(normalized);
+              }
+              const isDuplicate = cfg.key === 'vehicleNumber' && value ? isVehicleNumberDuplicate(value) : false;
+              if (value && !isDuplicate) {
+                clearInvalid();
+              } else if (isDuplicate) {
+                field.classList.add('vp-input--invalid');
+              } else if (!value) {
+                clearInvalid();
+              }
+              updateSelectButtonState();
+            });
+            field.addEventListener('input', () => {
+              const value = String(field.value || '').trim();
+              const isDuplicate = cfg.key === 'vehicleNumber' && value ? isVehicleNumberDuplicate(value) : false;
+              if (value && !isDuplicate) {
+                clearInvalid();
+              } else if (isDuplicate) {
+                field.classList.add('vp-input--invalid');
+              } else if (!value) {
+                clearInvalid();
+              }
+              if (cfg.key === 'vehicleNumber') {
+                autoFillNewVehicleDetails(field.value);
+              }
+              updateSelectButtonState();
+            });
+            if (cfg.key === 'vehicleNumber') {
+              field.addEventListener('blur', () => {
+                const normalized = String(field.value || '').trim().toUpperCase();
+                if (!normalized) {
+                  field.value = '';
+                  updateSelectButtonState();
+                  return;
+                }
+                if (normalized !== field.value) {
+                  field.value = normalized;
+                }
+                const listId = cfg.datalistId;
+                if (listId) {
+                  const list = document.getElementById(listId);
+                  if (list) {
+                    const normalizedLc = normalized.toLowerCase();
+                    const exists = Array.from(list.options || []).some(opt => String(opt.value || '').trim().toLowerCase() === normalizedLc);
+                    if (!exists) {
+                      const opt = document.createElement('option');
+                      opt.value = normalized;
+                      opt.label = normalized;
+                      list.appendChild(opt);
+                    }
+                  }
+                }
+                autoFillNewVehicleDetails(normalized);
+                updateSelectButtonState();
+              });
+            } else if (cfg.datalistId) {
+              field.addEventListener('blur', () => {
+                const value = String(field.value || '').trim();
+                if (!value) return;
+                const list = document.getElementById(cfg.datalistId);
+                if (!list) return;
+                const valueLc = value.toLowerCase();
+                const exists = Array.from(list.options || []).some(opt => String(opt.value || '').trim().toLowerCase() === valueLc);
+                if (!exists) {
+                  const opt = document.createElement('option');
+                  opt.value = value;
+                  opt.label = value;
+                  list.appendChild(opt);
+                }
+              });
+            }
+          });
 
           document.addEventListener('change',function(e){
             if(/^vp(Make|Model|Category|Usage|Owner)$/.test(e.target.id)){ updateFilterChoices(); updateVehiclesDropdown(); }
@@ -3243,13 +3909,22 @@
       // Expose beneficiary options populator for external callers (e.g., populateContextFromRow)
       window.populateResponsibleBeneficiaryOptions = populateResponsibleBeneficiaryOptions;
 
+        document.addEventListener('pp:applied', function(e){
+          try {
+            maybeWarmVehiclesForSelection(e && e.detail);
+          } catch (eventErr) {
+            console.warn('[VP] Warm on project apply failed', eventErr);
+          }
+        });
+
         function clearVehiclePickerCacheInternal() {
           vehicleDataCache = null;
           vehicleDataCacheTs = 0;
           vehicleCacheSource = '';
           vehicleDataCacheVersion = null;
           vehicleVersionRefreshPending = false;
-          vehicleWarmInitiated = false;
+          vehicleWarmInFlight = false;
+          lastVehicleWarmTs = 0;
           if (vehicleWarmRetryTimer) {
             clearTimeout(vehicleWarmRetryTimer);
             vehicleWarmRetryTimer = null;
@@ -3259,12 +3934,24 @@
             clearTimeout(vehicleRetryTimer);
             vehicleRetryTimer = null;
           }
+          clearVehicleStorage();
+          storageHydrationAttempted = false;
+          lastWarmSelectionKey='';
         }
 
         // Expose cache controls so other modules (release modal) can force a reload
         window.clearVehiclePickerCache = function() {
           console.log('[VP] Clearing cached vehicle picker data');
           clearVehiclePickerCacheInternal();
+        };
+
+        window.forceVehiclePickerWarm = function(force) {
+          const shouldForce = force === true;
+          try {
+            warmVehiclePickerCache(shouldForce);
+          } catch (err) {
+            console.warn('[VP] External warm request failed', err);
+          }
         };
 
         // ✅ Updated: actively refresh assignments and vehicle data when invoked externally

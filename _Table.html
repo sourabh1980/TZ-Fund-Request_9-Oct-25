@@ -2052,7 +2052,7 @@ function getProjectFromBeneficiary(beneficiaryName) {
     const remarksRaw = get('remarks','Remarks','feedback','Feedback');
     const stars = get('stars','rating','Rating');
     const category = get('category','Category','vehicleCategory','Vehicle Category','Cat');
-    const responsibleBeneficiary = get('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','responsible');
+    const responsibleBeneficiary = get('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','R. Ben','responsible');
     let lastUsers = car.lastUsers;
     if (!Array.isArray(lastUsers)) {
       const lu = get('lastUsers','Last Users','users','Users','Last Used By');
@@ -2069,7 +2069,8 @@ function getProjectFromBeneficiary(beneficiaryName) {
       status,
       category,
       responsibleBeneficiary,
-      'R.Beneficiary': car['R.Beneficiary'] || responsibleBeneficiary || '',
+      'R.Beneficiary': car['R.Beneficiary'] || car['R. Ben'] || responsibleBeneficiary || '',
+      'R. Ben': car['R. Ben'] || car['R.Beneficiary'] || responsibleBeneficiary || '',
       remarks: remarksRaw || car.remarks || '',
       stars: stars || car.stars || 0,
       lastUsers: lastUsers.length ? lastUsers : (Array.isArray(car.lastUsers) ? car.lastUsers : [])
@@ -2181,9 +2182,10 @@ function getProjectFromBeneficiary(beneficiaryName) {
                 merged.category = baseCarData.category || merged.category || merged.Category || '';
                 if (baseCarData.projectName && !merged.projectName) merged.projectName = baseCarData.projectName;
                 if (baseCarData.teamName && !merged.teamName) merged.teamName = baseCarData.teamName;
-                merged.responsibleBeneficiary = baseCarData.responsibleBeneficiary || merged.responsibleBeneficiary || merged['R.Beneficiary'] || '';
-                if (merged.responsibleBeneficiary && !merged['R.Beneficiary']) {
-                  merged['R.Beneficiary'] = merged.responsibleBeneficiary;
+                merged.responsibleBeneficiary = baseCarData.responsibleBeneficiary || merged.responsibleBeneficiary || merged['R.Beneficiary'] || merged['R. Ben'] || '';
+                if (merged.responsibleBeneficiary) {
+                  if (!merged['R.Beneficiary']) merged['R.Beneficiary'] = merged.responsibleBeneficiary;
+                  if (!merged['R. Ben']) merged['R. Ben'] = merged.responsibleBeneficiary;
                 }
                 if (merged.lastUsers && !Array.isArray(merged.lastUsers)) {
                   const users = String(merged.lastUsers || '').split(',').map(u => u.trim()).filter(Boolean);

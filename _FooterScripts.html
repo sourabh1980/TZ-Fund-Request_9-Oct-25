@@ -241,8 +241,55 @@
         }
       }
     });
+
+    try { highlightDuplicateVehicleCells(); } catch(_){ /* ignore */ }
   }
   window.applyVehicleInUseAssignmentsToRows = applyVehicleInUseAssignmentsToRows;
+
+  const VEHICLE_DUPLICATE_COLORS = ['#fef9c3', '#e0f2fe', '#fce7f3', '#dcfce7', '#ede9fe', '#fee2e2'];
+
+  function highlightDuplicateVehicleCells(){
+    const inputs = document.querySelectorAll('.tbody .row-data input.car-number-input');
+    if (!inputs || !inputs.length) return;
+
+    inputs.forEach(function(input){
+      if (!input) return;
+      input.style.backgroundColor = '';
+      try { input.classList.remove('vehicle-duplicate-highlight'); } catch(_){ /* ignore */ }
+    });
+
+    const groups = new Map();
+    inputs.forEach(function(input){
+      if (!input) return;
+      const value = String(input.value || '').trim().toUpperCase();
+      if (!value) return;
+      if (!groups.has(value)) groups.set(value, []);
+      groups.get(value).push(input);
+    });
+
+    let colorIndex = 0;
+    groups.forEach(function(list){
+      if (!Array.isArray(list) || list.length < 2) return;
+      const color = VEHICLE_DUPLICATE_COLORS[colorIndex % VEHICLE_DUPLICATE_COLORS.length];
+      colorIndex++;
+      list.forEach(function(input){
+        if (!input) return;
+        input.style.backgroundColor = color;
+        try { input.classList.add('vehicle-duplicate-highlight'); } catch(_){ /* ignore */ }
+      });
+    });
+  }
+  window.highlightDuplicateVehicleCells = highlightDuplicateVehicleCells;
+
+  document.addEventListener('input', function(event){
+    try {
+      const target = event && event.target;
+      if (!target) return;
+      if (target.classList && target.classList.contains('car-number-input')) {
+        highlightDuplicateVehicleCells();
+      }
+    } catch(_){ /* ignore */ }
+  });
 
   const vehicleInUseRetryManager = {
     timer: null,
@@ -927,6 +974,19 @@
     modal.setAttribute('aria-hidden', 'false');
   }
 
+  function refreshVehicleMatchPopup(summaryOverride){
+    setupVehicleMatchPopup();
+    const matches = collectVisibleVehicleMatches();
+    const list = Array.isArray(matches) ? matches : [];
+    vehicleMatchPopupState.matches = list.slice();
+    const modal = document.getElementById('vehicleMatchModal');
+    if (modal) {
+      populateVehicleMatchPopup(list, summaryOverride || vehicleMatchPopupState.lastSummary);
+    }
+    prefetchVehicleReleaseData(list);
+  }
+  window.refreshVehicleMatchPopup = refreshVehicleMatchPopup;
+
   function populateVehicleRatingsPopup(matches){
     const modal = document.getElementById('vehicleRatingsModal');
     if (!modal) return;
@@ -1119,7 +1179,7 @@
     if (owner) out.owner = owner;
     const status = pickString('status','Status','inUseRelease','In Use/Release');
     if (status) out.status = status;
-    const responsible = pickString('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','beneficiary','assignedTo');
+    const responsible = pickString('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','R. Ben','beneficiary','assignedTo');
     if (responsible) out.responsibleBeneficiary = responsible;
     const team = pickString('team','Team','teamName','Team Name');
     if (team) out.team = team;
@@ -1183,6 +1243,127 @@
   }
 
   window.invalidateVehicleNormalizationCache = invalidateVehicleNormalizationCache;
+
+  const vehicleCacheRefreshState = {
+    timer: null,
+    retries: 0,
+    maxRetries: 5
+  };
+
+  function refreshAllVehicleCaches(reason) {
+    const label = reason ? String(reason) : 'unspecified';
+    try {
+      console.log('[VehicleCache] Refresh requested', { reason: label });
+    } catch (_err) { /* best-effort logging */ }
+
+    const missing = [];
+
+    try {
+      invalidateVehicleNormalizationCache();
+    } catch (err) {
+      console.warn('[VehicleCache] normalize cache reset failed', err);
+    }
+
+    if (typeof window.clearVehiclePickerCache === 'function') {
+      try {
+        window.clearVehiclePickerCache();
+      } catch (err) {
+        console.warn('[VehicleCache] clearVehiclePickerCache failed', err);
+      }
+    } else {
+      missing.push('clearVehiclePickerCache');
+    }
+
+    if (typeof window.forceVehiclePickerWarm === 'function') {
+      try {
+        window.forceVehiclePickerWarm(true);
+      } catch (err) {
+        console.warn('[VehicleCache] forceVehiclePickerWarm failed', err);
+      }
+    } else {
+      missing.push('forceVehiclePickerWarm');
+    }
+
+    if (typeof invalidateBeneficiaryVehicleCache === 'function') {
+      try {
+        invalidateBeneficiaryVehicleCache();
+      } catch (err) {
+        console.warn('[VehicleCache] invalidateBeneficiaryVehicleCache failed', err);
+      }
+    } else {
+      missing.push('invalidateBeneficiaryVehicleCache');
+    }
+
+    if (typeof window.refreshVehicleInUseData === 'function') {
+      try {
+        window.refreshVehicleInUseData();
+      } catch (err) {
+        console.warn('[VehicleCache] refreshVehicleInUseData failed', err);
+      }
+    } else {
+      missing.push('refreshVehicleInUseData');
+    }
+
+    if (typeof ensureBeneficiaryVehicleCache === 'function') {
+      try {
+        ensureBeneficiaryVehicleCache();
+      } catch (err) {
+        console.warn('[VehicleCache] ensureBeneficiaryVehicleCache failed', err);
+      }
+    } else {
+      missing.push('ensureBeneficiaryVehicleCache');
+    }
+
+    if (typeof window.invalidateVehicleInUseCache === 'function') {
+      try {
+        window.invalidateVehicleInUseCache();
+      } catch (err) {
+        console.warn('[VehicleCache] invalidateVehicleInUseCache failed', err);
+      }
+    }
+
+    const needsRetry = missing.some(function(name){
+      return name === 'clearVehiclePickerCache' || name === 'forceVehiclePickerWarm';
+    });
+
+    if (needsRetry && vehicleCacheRefreshState.retries < vehicleCacheRefreshState.maxRetries) {
+      vehicleCacheRefreshState.retries++;
+      if (vehicleCacheRefreshState.timer) {
+        clearTimeout(vehicleCacheRefreshState.timer);
+      }
+      vehicleCacheRefreshState.timer = setTimeout(function(){
+        refreshAllVehicleCaches(label + ':retry');
+      }, 300);
+      return;
+    }
+
+    vehicleCacheRefreshState.retries = 0;
+    if (vehicleCacheRefreshState.timer) {
+      clearTimeout(vehicleCacheRefreshState.timer);
+      vehicleCacheRefreshState.timer = null;
+    }
+  }
+
+  function scheduleVehicleCacheRefresh(reason) {
+    const label = reason ? String(reason) : 'unspecified';
+    setTimeout(function(){
+      refreshAllVehicleCaches(label);
+    }, 0);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function(){
+      scheduleVehicleCacheRefresh('page-load');
+    }, { once: true });
+  } else {
+    scheduleVehicleCacheRefresh('page-load');
+  }
+
+  document.addEventListener('pp:applied', function(){
+    refreshAllVehicleCaches('project-apply');
+  });
+
+  window.refreshAllVehicleCaches = refreshAllVehicleCaches;
 
   function getVehicleMetaSummary(vehicleNumber){
     const rawValue = String(vehicleNumber || '').trim();
@@ -1602,7 +1783,7 @@
       if (!car) return;
       const vehicleNumber = String(car.carNumber || car.vehicleNumber || '').trim();
       if (!vehicleNumber) return;
-      const responsible = car.responsibleBeneficiary || car['R.Beneficiary'] || car.responsible || '';
+    const responsible = car.responsibleBeneficiary || car['R.Beneficiary'] || car['R. Ben'] || car.responsible || '';
       const beneficiaries = splitBeneficiaryList(responsible);
       if (!beneficiaries.length) return;
   const releaseMeta = getVehicleMetaSummary(vehicleNumber) || { ratings: [], remarks: [] };
@@ -1812,22 +1993,111 @@
 
   function scheduleVehicleAssignmentPopup(projectName, teamNames, options){
     const opts = options && typeof options === 'object' ? options : {};
+    const detail = opts.rawDetail || null;
+    const attempt = Number.isFinite(opts.attempt) && opts.attempt >= 0 ? Math.floor(opts.attempt) : 0;
+    const maxAttempts = Number.isFinite(opts.maxAttempts) && opts.maxAttempts > 0 ? Math.floor(opts.maxAttempts) : 4;
     const projectLabel = projectName ? String(projectName).trim() : '';
-    const normalizedTeams = extractTeamNames(teamNames);
-    if (!projectLabel && !normalizedTeams.length) return;
-    const selectionKey = buildSelectionKey(projectLabel, normalizedTeams);
-    if (!selectionKey) return;
-    if (!opts.force && selectionKey === vehicleMatchPopupState.lastSelectionKey) return;
-    vehicleMatchPopupState.lastSelectionKey = selectionKey;
+    const baseTeams = extractTeamNames(teamNames);
+    if (!projectLabel && !baseTeams.length) return;
+    const baseSelectionKey = buildSelectionKey(projectLabel, baseTeams);
+    if (!opts.force && baseSelectionKey && baseSelectionKey === vehicleMatchPopupState.lastSelectionKey) return;
+
+    const projectCandidates = [];
+    const seenProjects = new Set();
+    function addProjectCandidate(value){
+      const v = String(value || '').trim();
+      if (!v) return;
+      const key = v.toLowerCase();
+      if (seenProjects.has(key)) return;
+      seenProjects.add(key);
+      projectCandidates.push(v);
+    }
+
+    addProjectCandidate(projectLabel);
+    if (detail) {
+      addProjectCandidate(detail.projectName);
+      addProjectCandidate(detail.projectLabel);
+      addProjectCandidate(detail.projectCode);
+      addProjectCandidate(detail.projectId);
+    }
+    if (!projectCandidates.length || projectCandidates.every(function(val){ return !String(val || '').trim(); })) {
+      projectCandidates.push('');
+    } else if (!projectCandidates.some(function(val){ return !String(val || '').trim(); })) {
+      projectCandidates.push('');
+    }
+
+    const teamCandidates = [];
+    const seenTeamKeys = new Set();
+    function addTeamCandidate(source){
+      const list = extractTeamNames(source);
+      if (!Array.isArray(list) || !list.length) return;
+      const key = list.map(function(name){ return String(name || '').trim().toLowerCase(); }).sort().join('|');
+      if (seenTeamKeys.has(key)) return;
+      seenTeamKeys.add(key);
+      teamCandidates.push(list);
+    }
+
+    addTeamCandidate(baseTeams);
+    if (detail) {
+      addTeamCandidate(detail.selectedTeams);
+      addTeamCandidate(detail.teamNames);
+      addTeamCandidate(detail.teamLabels);
+      addTeamCandidate(detail.teamIds);
+      addTeamCandidate(detail.teams);
+    }
+    if (!teamCandidates.length) {
+      teamCandidates.push([]);
+    }
+
     ensureVehicleInUseDataReady(function(){
-      const initialMatches = findAssignmentsForSelection(projectLabel, normalizedTeams);
-      if (!initialMatches.length) return;
+      let matchedProject = '';
+      let matchedTeams = [];
+      let initialMatches = [];
+
+      outer:
+      for (let i = 0; i < projectCandidates.length && !initialMatches.length; i++) {
+        for (let j = 0; j < teamCandidates.length && !initialMatches.length; j++) {
+          const candidateProject = projectCandidates[i];
+          const candidateTeams = teamCandidates[j];
+          const matches = findAssignmentsForSelection(candidateProject, candidateTeams);
+          if (matches.length) {
+            matchedProject = candidateProject;
+            matchedTeams = candidateTeams;
+            initialMatches = matches;
+            break outer;
+          }
+        }
+      }
+
+      if (!initialMatches.length) {
+        if (attempt < maxAttempts) {
+          const nextOptions = Object.assign({}, opts, { attempt: attempt + 1, maxAttempts: maxAttempts, force: true });
+          setTimeout(function(){
+            scheduleVehicleAssignmentPopup(projectName, teamNames, nextOptions);
+          }, 260 + attempt * 180);
+        } else {
+          console.log('[VehicleInUse] No vehicle assignments found for selection', {
+            projectCandidates: projectCandidates,
+            teamCandidates: teamCandidates,
+            recordsLoaded: Array.isArray(vehicleInUseState.records) ? vehicleInUseState.records.length : 0
+          });
+        }
+        return;
+      }
+
+      const summaryProject = matchedProject || projectLabel;
+      const summaryTeams = (matchedTeams && matchedTeams.length) ? matchedTeams : baseTeams;
+      const finalSelectionKey = buildSelectionKey(summaryProject, summaryTeams);
+      if (finalSelectionKey) {
+        vehicleMatchPopupState.lastSelectionKey = finalSelectionKey;
+      }
+
       setupVehicleMatchPopup();
       prefetchVehicleReleaseData(initialMatches);
       const summaryParts = [];
-      if (projectLabel) summaryParts.push('Project: ' + projectLabel);
-      if (normalizedTeams.length) {
-        summaryParts.push('Team' + (normalizedTeams.length > 1 ? 's' : '') + ': ' + normalizedTeams.join(', '));
+      if (summaryProject) summaryParts.push('Project: ' + summaryProject);
+      if (summaryTeams.length) {
+        summaryParts.push('Team' + (summaryTeams.length > 1 ? 's' : '') + ': ' + summaryTeams.join(', '));
       }
       const summaryText = summaryParts.length
         ? `Found ${initialMatches.length} active vehicle assignment${initialMatches.length === 1 ? '' : 's'} for ${summaryParts.join(' • ')}.`
@@ -1836,8 +2106,10 @@
 
       try { ensureBeneficiaryVehicleCache(); } catch(_){ /* ignore */ }
       ensureVehicleMetaCache(function(){
-        const enrichedMatches = findAssignmentsForSelection(projectLabel, normalizedTeams);
-        if (!Array.isArray(enrichedMatches) || !enrichedMatches.length) return;
+        let enrichedMatches = findAssignmentsForSelection(summaryProject, summaryTeams);
+        if (!Array.isArray(enrichedMatches) || !enrichedMatches.length) {
+          enrichedMatches = initialMatches;
+        }
         populateVehicleMatchPopup(enrichedMatches, summaryText);
         prefetchVehicleReleaseData(enrichedMatches);
       });
@@ -1847,11 +2119,13 @@
   document.addEventListener('pp:applied', function(event){
     try {
       const detail = event && event.detail ? event.detail : {};
-      const projectName = detail.projectId || detail.projectName || '';
-      const teamNames = extractTeamNames(
-        (Array.isArray(detail.selectedTeams) && detail.selectedTeams.length) ? detail.selectedTeams : detail.teamIds
-      );
-      scheduleVehicleAssignmentPopup(projectName, teamNames);
+      const projectName = detail.projectName || detail.projectLabel || detail.projectId || '';
+      const teamSource = (Array.isArray(detail.selectedTeams) && detail.selectedTeams.length) ? detail.selectedTeams
+        : (Array.isArray(detail.teamNames) && detail.teamNames.length) ? detail.teamNames
+        : (Array.isArray(detail.teamLabels) && detail.teamLabels.length) ? detail.teamLabels
+        : detail.teamIds;
+      const teamNames = extractTeamNames(teamSource);
+      scheduleVehicleAssignmentPopup(projectName, teamNames, { force: true, rawDetail: detail, maxAttempts: 5 });
     } catch (selErr) {
       console.warn('[VehicleInUse] Unable to process selection for vehicle assignments', selErr);
     }
@@ -1957,7 +2231,7 @@
     const byKey = new Map();
     (Array.isArray(records) ? records : []).forEach(function(rec){
       if (!rec) return;
-      const beneficiary = String(rec.beneficiary || rec.responsibleBeneficiary || rec.member || rec.name || rec['R.Beneficiary'] || '').trim();
+      const beneficiary = String(rec.beneficiary || rec.responsibleBeneficiary || rec.member || rec.name || rec['R.Beneficiary'] || rec['R. Ben'] || '').trim();
       const vehicleNumber = String(rec.vehicleNumber || rec.carNumber || rec['Vehicle Number'] || '').trim();
       if (!beneficiary || !vehicleNumber) return;
       let status = String(rec.status || rec.Status || rec['In Use/Release'] || '').trim();
