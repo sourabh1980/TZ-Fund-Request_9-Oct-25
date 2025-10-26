@@ -412,8 +412,14 @@
 
 <div id="chatWidget" class="chat-widget">
   <!-- Chat Toggle Button -->
-  <div id="chatToggle" class="chat-toggle">
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <div id="chatToggle" class="chat-toggle" aria-label="Open chat" role="button">
+    <svg class="chat-icon chat-icon--tab" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <path d="M52 8H12a4 4 0 0 0-4 4v26a4 4 0 0 0 4 4h6v9.5c0 .9 1 1.4 1.7.9L30.4 42H52a4 4 0 0 0 4-4V12a4 4 0 0 0-4-4Z" fill="#75E6EF" stroke="#0F172A" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M24 22h4v8h8v-8h4v20h-4v-8h-8v8h-4V22Z" fill="#0F172A"/>
+      <path d="M44 22h4v15h-4z" fill="#0F172A"/>
+      <circle cx="46" cy="41" r="2.5" fill="#0F172A"/>
+    </svg>
+    <svg class="chat-icon chat-icon--main" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d="M20 2H4C2.9 2 2 2.9 2 4V22L6 18H20C21.1 18 22 17.1 22 16V4C22 2.9 21.1 2 20 2Z" fill="currentColor"/>
     </svg>
   </div>
@@ -528,7 +534,8 @@
 }
 
 .chat-widget:hover,
-.chat-widget:focus-within {
+.chat-widget:focus-within,
+.chat-widget.expanded {
   right: 20px;
 }
 
@@ -545,11 +552,44 @@
   transition: all 0.3s ease;
   color: white;
   animation: float 6s ease-in-out infinite;
+  position: relative;
+  overflow: hidden;
 }
 
 .chat-toggle:hover {
   transform: scale(1.1);
   box-shadow: 0 6px 25px rgba(0,0,0,0.2);
+}
+
+.chat-toggle .chat-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, -50%) scale(0.9);
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+}
+
+.chat-toggle .chat-icon.chat-icon--tab {
+  opacity: 1;
+  transform: translate(-50%, -50%);
+}
+
+.chat-widget:hover .chat-toggle .chat-icon--tab,
+.chat-widget:focus-within .chat-toggle .chat-icon--tab,
+.chat-widget.expanded .chat-toggle .chat-icon--tab {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.85);
+}
+
+.chat-widget:hover .chat-toggle .chat-icon--main,
+.chat-widget:focus-within .chat-toggle .chat-icon--main,
+.chat-widget.expanded .chat-toggle .chat-icon--main {
+  opacity: 1;
+  transform: translate(-50%, -50%);
 }
 
 @keyframes float {
@@ -1752,11 +1792,13 @@
   // Toggle chat
   chatToggle.addEventListener('click', () => {
     chatContainer.classList.add('open');
+    chatWidget.classList.add('expanded');
     const composer = document.getElementById('chatComposer'); if (composer) composer.focus();
   });
 
   chatClose.addEventListener('click', () => {
     chatContainer.classList.remove('open');
+    chatWidget.classList.remove('expanded');
   });
 
   // Prefetch common prefixes to warm serverCache (optional, keeps startup light)
