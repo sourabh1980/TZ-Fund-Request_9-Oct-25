@@ -7391,8 +7391,21 @@ function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
     const ddRows = _readDD_compact_();
     if (!Array.isArray(ddRows) || ddRows.length === 0) return [];
 
-    const latestRows = _latestBeneficiaryEntries_(ddRows);
-    
+    const latestRows = new Map();
+    for (let idx = 0; idx < ddRows.length; idx++) {
+      const row = ddRows[idx];
+      if (!row || !row.beneficiaryKey) continue;
+
+      const tsRaw = Number(row.timestamp);
+      const ts = Number.isFinite(tsRaw) ? tsRaw : 0;
+      const order = idx + 2; // Sheet rows start at 2 because of header
+      const existing = latestRows.get(row.beneficiaryKey);
+
+      if (!existing || ts > existing.timestamp || (ts === existing.timestamp && order > existing.order)) {
+        latestRows.set(row.beneficiaryKey, { row: row, timestamp: ts, order: order });
+      }
+    }
+
     const rows = [];
     latestRows.forEach(function(entry) {
       const r = entry && entry.row;
