@@ -195,9 +195,9 @@
   }
 
   .confirmation-btn.accent {
-    background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
     color: #fff;
-    box-shadow: 0 12px 32px rgba(234, 88, 12, 0.28);
+    box-shadow: 0 12px 32px rgba(14, 165, 233, 0.3);
   }
 
   .confirmation-btn.accent:hover {
@@ -461,6 +461,17 @@
       config.text = nextText;
       btn.textContent = nextText;
       btn.dataset.originalText = nextText;
+    }
+
+    if (props && props.dataset && typeof props.dataset === 'object') {
+      Object.keys(props.dataset).forEach(key => {
+        const value = props.dataset[key];
+        if (value === undefined || value === null) {
+          delete btn.dataset[key];
+        } else {
+          btn.dataset[key] = value;
+        }
+      });
     }
   };
 

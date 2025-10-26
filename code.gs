@@ -7399,21 +7399,8 @@ function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
     const ddRows = _readDD_compact_();
     if (!Array.isArray(ddRows) || ddRows.length === 0) return [];
 
-    const latestRows = new Map();
-    for (let idx = 0; idx < ddRows.length; idx++) {
-      const row = ddRows[idx];
-      if (!row || !row.beneficiaryKey) continue;
-
-      const tsRaw = Number(row.timestamp);
-      const ts = Number.isFinite(tsRaw) ? tsRaw : 0;
-      const order = idx + 2; // Sheet rows start at 2 because of header
-      const existing = latestRows.get(row.beneficiaryKey);
-
-      if (!existing || ts > existing.timestamp || (ts === existing.timestamp && order > existing.order)) {
-        latestRows.set(row.beneficiaryKey, { row: row, timestamp: ts, order: order });
-      }
-    }
-
+    const latestRows = _latestBeneficiaryEntries_(ddRows);
+    
     const rows = [];
     latestRows.forEach(function(entry) {
       const r = entry && entry.row;
@@ -7491,6 +7478,7 @@ function getReleasedBeneficiariesForInduction(targetProject, targetTeam) {
 
     const latestRows = _latestBeneficiaryEntries_(ddRows);
     const nowMs = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
     const list = [];
 
     latestRows.forEach(function(entry, key) {
@@ -7502,7 +7490,10 @@ function getReleasedBeneficiariesForInduction(targetProject, targetTeam) {
       if (entry.timestamp && Number.isFinite(entry.timestamp)) {
         const diff = nowMs - entry.timestamp;
         if (Number.isFinite(diff) && diff >= 0) {
-          idleDays = Math.floor(diff / (24 * 60 * 60 * 1000));
+          const raw = Math.floor(diff / dayMs);
+          idleDays = raw >= 1 ? raw : 1;
+        } else if (Number.isFinite(diff)) {
+          idleDays = 1;
         }
       }
 
@@ -7514,6 +7505,7 @@ function getReleasedBeneficiariesForInduction(targetProject, targetTeam) {
         team: row.team || '',
         accountHolder: row.account || '',
         defaultDa: Number(row.defaultDa || 0) || 0,
+        nationality: row.nationality || '',
         idleDays: idleDays,
         releasedAt: entry.timestamp ? new Date(entry.timestamp).toISOString() : '',
         sheetRow: entry.sheetRow || 0
@@ -7716,12 +7708,22 @@ function inductReleasedBeneficiaries(payload) {
     try { bustPTCache(); } catch (ptErr) { console.warn('inductReleasedBeneficiaries: bustPTCache failed', ptErr); }
     try { bustTypeaheadCache(); } catch (taErr) { console.warn('inductReleasedBeneficiaries: bustTypeaheadCache failed', taErr); }
 
+    const addedKeySet = new Set(addedKeys);
+    let remainingRelease = 0;
+    latestRows.forEach(function(entry, key) {
+      if (!entry || !entry.row) return;
+      if (_normStatus_(entry.row.inuse) !== 'RELEASE') return;
+      if (addedKeySet.has(key)) return;
+      remainingRelease++;
+    });
+
     return {
       ok: true,
       inserted: rowsToInsert.length,
       project: project,
       team: team,
       addedKeys: addedKeys,
+      remaining: remainingRelease,
       skipped: skipped,
       beneficiaries: appendedItems
     };
