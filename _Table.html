@@ -456,15 +456,18 @@ function applyBulkAmount(field, amount) {
   // Get all visible rows (not hidden by team filtering)
   const allRows = document.querySelectorAll('.tbody .row-data');
   const visibleRows = Array.from(allRows).filter(row => {
-    return !row.style.display || row.style.display !== 'none';
+    const computedStyle = window.getComputedStyle(row);
+    const isHidden = computedStyle.display === 'none';
+    const isDeactivated = row.classList.contains('row-deactivated');
+    return !isHidden && !isDeactivated;
   });
-  
+
   let appliedCount = 0;
-  
+
   visibleRows.forEach(row => {
     // Find the amount input for the specific field
     const amountInput = row.querySelector(`input.amount-input[data-field="${field}"]`);
-    
+
     if (amountInput) {
       // Format the amount with commas before setting
       const formattedAmount = formatNumberWithCommas(amount.toFixed(2));
