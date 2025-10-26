@@ -6630,6 +6630,125 @@ function _readDD_compact_() {
 }
 
 /**
+ * Append a Release entry for a beneficiary on the DD sheet and bust caches.
+ */
+function releaseBeneficiary(payload) {
+  try {
+    if (!payload || typeof payload !== 'object') {
+      return { ok: false, error: 'Invalid payload' };
+    }
+
+    const name = String(payload.beneficiary || '').trim();
+    if (!name) {
+      return { ok: false, error: 'Beneficiary name is required' };
+    }
+
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sh = ss.getSheetByName(DATA_SHEET_NAME);
+    if (!sh) {
+      return { ok: false, error: 'Data sheet "DD" not found' };
+    }
+
+    const lastRow = sh.getLastRow();
+    const lastCol = sh.getLastColumn();
+    if (lastCol < 1) {
+      return { ok: false, error: 'DD sheet has no columns' };
+    }
+
+    const header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    const IX = _headerIndex_(header);
+
+    const idxName = IX.get(['Name of Beneficiary', 'Beneficiary', 'Beneficiary Name', 'Name']);
+    const idxStatus = IX.get(['In Use/Release', 'In Use / release', 'In Use', 'Status']);
+    let idxProject = -1;
+    let idxTeam = -1;
+    let idxAccount = -1;
+    let idxDesignation = -1;
+    let idxMobile = -1;
+    let idxDisplay = -1;
+    let idxWH = -1;
+    let idxRemarks = -1;
+    let idxTimestamp = -1;
+    let idxSubmitter = -1;
+
+    try { idxProject = IX.get(['Project']); } catch (_e) {}
+    try { idxTeam = IX.get(['Team', 'Team Name']); } catch (_e) {}
+    try { idxAccount = IX.get(['Account Holder Name', 'Account Holder']); } catch (_e) {}
+    try { idxDesignation = IX.get(['Resource Designation', 'Designation']); } catch (_e) {}
+    try { idxMobile = IX.get(['Mob No', 'Mobile', 'Mobile Number', 'Mob']); } catch (_e) {}
+    try { idxDisplay = IX.get(['Display Name']); } catch (_e) {}
+    try { idxWH = IX.get(['W/H Charge', 'Withholding Charge', 'W/H']); } catch (_e) {}
+    try { idxRemarks = IX.get(['Remarks', 'Comment', 'Comments', 'Notes']); } catch (_e) {}
+    try { idxTimestamp = IX.get(['Date and Time', 'Date & Time', 'Timestamp', 'Updated At', 'Date']); } catch (_e) {}
+    try { idxSubmitter = IX.get(['Submitter', 'Updated By', 'Entered By']); } catch (_e) {}
+
+    const rowCount = Math.max(lastRow - 1, 0);
+    let templateRow = null;
+    if (rowCount > 0) {
+      const values = sh.getRange(2, 1, rowCount, lastCol).getValues();
+      const target = name.toLowerCase();
+      for (let r = values.length - 1; r >= 0; r--) {
+        const row = values[r];
+        const cell = row[idxName];
+        if (cell != null && String(cell).trim().toLowerCase() === target) {
+          templateRow = row.slice();
+          break;
+        }
+      }
+    }
+
+    const newRow = templateRow ? templateRow.slice() : new Array(lastCol).fill('');
+
+    const assignIfPresent = (idx, value) => {
+      if (idx < 0) return;
+      const text = value == null ? '' : String(value).trim();
+      if (text !== '') {
+        newRow[idx] = text;
+      }
+    };
+
+    const assignWithFallback = (idx, incoming) => {
+      if (idx < 0) return;
+      const text = incoming == null ? '' : String(incoming).trim();
+      if (text) {
+        newRow[idx] = text;
+      }
+    };
+
+    newRow[idxName] = name;
+    assignWithFallback(idxProject, payload.project);
+    assignWithFallback(idxTeam, payload.team);
+    assignIfPresent(idxAccount, payload.accountHolder);
+    assignIfPresent(idxDesignation, payload.designation);
+    assignIfPresent(idxMobile, payload.mobile);
+    assignIfPresent(idxDisplay, payload.displayName);
+    assignIfPresent(idxWH, payload.whCharge);
+    assignIfPresent(idxRemarks, payload.remarks);
+
+    newRow[idxStatus] = 'Release';
+
+    if (idxTimestamp >= 0) {
+      newRow[idxTimestamp] = new Date();
+    }
+
+    if (idxSubmitter >= 0) {
+      let userEmail = '';
+      try { userEmail = Session.getActiveUser().getEmail() || ''; } catch (_ignore) {}
+      newRow[idxSubmitter] = userEmail;
+    }
+
+    sh.appendRow(newRow);
+
+    try { bustDDCache(); } catch (cacheErr) { console.warn('releaseBeneficiary: bustDDCache failed', cacheErr); }
+
+    return { ok: true };
+  } catch (error) {
+    console.error('releaseBeneficiary error:', error);
+    return { ok: false, error: String(error) };
+  }
+}
+
+/**
  * Get historical submission date ranges for a beneficiary for a given field
  * field can be: 'da', 'fuel', 'car', 'air', 'transport', 'misc'
  * Returns an array of { from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }

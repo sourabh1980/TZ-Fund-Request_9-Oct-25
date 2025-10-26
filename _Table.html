@@ -456,15 +456,18 @@ function applyBulkAmount(field, amount) {
   // Get all visible rows (not hidden by team filtering)
   const allRows = document.querySelectorAll('.tbody .row-data');
   const visibleRows = Array.from(allRows).filter(row => {
-    return !row.style.display || row.style.display !== 'none';
+    const computedStyle = window.getComputedStyle(row);
+    const isHidden = computedStyle.display === 'none';
+    const isDeactivated = row.classList.contains('row-deactivated');
+    return !isHidden && !isDeactivated;
   });
-  
+
   let appliedCount = 0;
-  
+
   visibleRows.forEach(row => {
     // Find the amount input for the specific field
     const amountInput = row.querySelector(`input.amount-input[data-field="${field}"]`);
-    
+
     if (amountInput) {
       // Format the amount with commas before setting
       const formattedAmount = formatNumberWithCommas(amount.toFixed(2));
@@ -912,6 +915,31 @@ document.addEventListener('keydown', function(event) {
   .row-deactivated input:not([readonly]) {
     background-color: #e9ecef !important;
     color: #6c757d !important;
+  }
+
+  .row-action-pending {
+    opacity: 0.55;
+    pointer-events: none;
+  }
+
+  .row-action-pending::after {
+    content: 'Processing…';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(15, 23, 42, 0.88);
+    color: #fff;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.25);
+  }
+
+  .row-released {
+    opacity: 0;
+    transition: opacity 0.22s ease;
   }
   
   /* Row total pill cursor pointer */
@@ -1749,7 +1777,7 @@ document.addEventListener('keydown', function(event) {
   
   function reactivateRow(row) {
     row.classList.remove('row-deactivated');
-    
+
     // Enable all interactive elements
     var interactiveElements = row.querySelectorAll('input:not([readonly]), .splitflap');
     interactiveElements.forEach(function(element) {
@@ -1763,6 +1791,140 @@ document.addEventListener('keydown', function(event) {
     // Recalculate totals
     rowTotal(row);
     recalcAll();
+  }
+
+  function buildReleaseContext(row) {
+    var cells = row ? row.querySelectorAll('.cells > .cell') : [];
+    var readCellValue = function(index) {
+      if (!cells || index < 0 || index >= cells.length) return '';
+      var el = cells[index].querySelector('input, textarea');
+      return el && el.value != null ? String(el.value).trim() : '';
+    };
+
+    var accountHolderInput = row ? row.querySelector('.account-holder-input') : null;
+    var projectRaw = row ? (row.dataset.project || row.getAttribute('data-project') || '') : '';
+    var teamRaw = row ? (row.dataset.team || row.getAttribute('data-team') || '') : '';
+
+    return {
+      beneficiary: readCellValue(0),
+      accountHolder: accountHolderInput && accountHolderInput.value != null ? String(accountHolderInput.value).trim() : '',
+      project: String(projectRaw || '').trim(),
+      team: String(teamRaw || '').trim(),
+      designation: readCellValue(3),
+      mobile: readCellValue(10),
+      displayName: readCellValue(11),
+      whCharge: readCellValue(12),
+      remarks: readCellValue(13)
+    };
+  }
+
+  function setRowPending(row, pending) {
+    if (!row) return;
+    if (pending) {
+      row.classList.add('row-action-pending');
+    } else {
+      row.classList.remove('row-action-pending');
+    }
+  }
+
+  function describeBeneficiaryAction(context) {
+    var name = context && context.beneficiary ? context.beneficiary : 'this beneficiary';
+    var segments = [];
+    if (context && context.team) segments.push(context.team);
+    if (context && context.project) segments.push(context.project);
+    var suffix = segments.length ? ' (' + segments.join(' • ') + ')' : '';
+    return name + suffix;
+  }
+
+  function submitRelease(row, context) {
+    if (row && row.classList.contains('row-action-pending')) {
+      return;
+    }
+    if (!(window.google && google.script && google.script.run)) {
+      alert('Release is only available inside the Google Sheets web app environment.');
+      return;
+    }
+
+    setRowPending(row, true);
+
+    var payload = {
+      beneficiary: context.beneficiary,
+      project: context.project,
+      team: context.team,
+      accountHolder: context.accountHolder,
+      designation: context.designation,
+      mobile: context.mobile,
+      displayName: context.displayName,
+      whCharge: context.whCharge,
+      remarks: context.remarks
+    };
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        setRowPending(row, false);
+        if (res && res.ok) {
+          finalizeRelease(row, context);
+        } else {
+          var err = res && res.error ? res.error : 'Unknown error';
+          alert('Failed to release beneficiary: ' + err);
+        }
+      })
+      .withFailureHandler(function(err) {
+        setRowPending(row, false);
+        alert('Failed to release beneficiary: ' + (err && err.message ? err.message : err));
+      })
+      .releaseBeneficiary(payload);
+  }
+
+  function finalizeRelease(row, context) {
+    if (!row) return;
+    row.classList.remove('row-action-pending');
+    row.classList.add('row-released');
+
+    var detail = {
+      beneficiary: context && context.beneficiary ? context.beneficiary : '',
+      team: context && context.team ? context.team : '',
+      project: context && context.project ? context.project : ''
+    };
+
+    setTimeout(function() {
+      if (row.parentNode) {
+        row.parentNode.removeChild(row);
+      }
+      recalcAll();
+      try {
+        if (window.FRTZ && typeof window.FRTZ.applyTeamTints === 'function') {
+          window.FRTZ.applyTeamTints();
+        }
+      } catch (_e) {}
+
+      try {
+        document.dispatchEvent(new CustomEvent('frtz:beneficiary-released', { detail: detail }));
+      } catch (_eventErr) {}
+    }, 240);
+  }
+
+  function confirmReleaseRow(row, baseContext) {
+    var context = baseContext || buildReleaseContext(row);
+    var subject = describeBeneficiaryAction(context);
+
+    showConfirmationModal({
+      title: 'Release beneficiary?',
+      message: 'This will remove ' + subject + ' and log a Release entry. Continue?',
+      buttons: [
+        { text: 'Yes, Release', value: true, role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Releasing' },
+        { text: 'Cancel', value: false, role: 'cancel', variant: 'secondary', feedback: false }
+      ]
+    }).then(function(confirmed) {
+      if (confirmed) {
+        submitRelease(row, context);
+      }
+    });
+  }
+
+  window.FRTZ = window.FRTZ || {};
+  if (!window.FRTZ.buildReleaseContext) {
+    window.FRTZ.buildReleaseContext = buildReleaseContext;
   }
   
   // Add click handler for row total pills
@@ -1780,21 +1942,35 @@ document.addEventListener('keydown', function(event) {
       showConfirmationModal({
         title: 'Reactivate beneficiary?',
         message: "Re-enabling means you'll fund their expenses. Continue?",
-        yesText: 'Yes, Reactivate'
+        yesText: 'Yes, Reactivate',
+        noText: 'No, Keep Inactive'
       }).then(function(confirmed) {
         if (confirmed) {
           reactivateRow(row);
         }
       });
     } else {
-      // Deactivation confirmation
+      var context = buildReleaseContext(row);
+      var nameLabel = context && context.beneficiary ? context.beneficiary : 'this beneficiary';
+      var scopeParts = [];
+      if (context && context.team) scopeParts.push(context.team);
+      if (context && context.project) scopeParts.push(context.project);
+      var scope = scopeParts.length ? ' (' + scopeParts.join(' • ') + ')' : '';
+      var message = 'Choose how to proceed with ' + nameLabel + scope + '. Deactivate clears this row, Release removes them from the team and project.';
+
       showConfirmationModal({
-        title: 'Deactivate beneficiary?',
-        message: 'This will reset all values in this row. Continue?',
-        yesText: 'Yes, Deactivate'
-      }).then(function(confirmed) {
-        if (confirmed) {
+        title: 'Deactivate or release beneficiary?',
+        message: message,
+        buttons: [
+          { text: 'Deactivate', value: 'deactivate', role: 'destructive', variant: 'destructive', feedback: false },
+          { text: 'Release', value: 'release', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Continue' },
+          { text: 'No, Keep Active', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
+        ]
+      }).then(function(action) {
+        if (action === 'deactivate') {
           deactivateRow(row);
+        } else if (action === 'release') {
+          confirmReleaseRow(row, context);
         }
       });
     }

@@ -765,7 +765,12 @@
     // Find the parent row element
     const row = element.closest('.row-data, tr');
     if (!row) return true; // If no row found, assume visible
-    
+
+    // Deactivated beneficiaries should be treated as non-visible for bulk actions
+    if (row.classList.contains('row-deactivated')) {
+      return false;
+    }
+
     // Check if the row is hidden by team filtering or category filtering
     const computedStyle = window.getComputedStyle(row);
     return computedStyle.display !== 'none';
