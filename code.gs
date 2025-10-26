@@ -5832,6 +5832,190 @@ function assignCarToTeam(payload){
   }
 }
 
+function _vehicleNumberExists_(vehicleNumber) {
+  const result = { exists: false, addedBy: '', source: '', status: '' };
+  const target = _norm(vehicleNumber).toUpperCase();
+  if (!target) return result;
+  try {
+    const vehicleSheet = _openVehicleSheet_();
+    if (vehicleSheet) {
+      const vehicleCol = _columnLetterToIndex_('AE');
+      const addedByCol = _columnLetterToIndex_('AF');
+      if (vehicleCol > 0) {
+        const lastRow = vehicleSheet.getLastRow();
+        if (lastRow > 1) {
+          const rowCount = lastRow - 1;
+          const vehicleValues = vehicleSheet.getRange(2, vehicleCol, rowCount, 1).getDisplayValues();
+          let addedByValues = null;
+          if (addedByCol > 0) {
+            addedByValues = vehicleSheet.getRange(2, addedByCol, rowCount, 1).getDisplayValues();
+          }
+          for (let i = 0; i < vehicleValues.length; i++) {
+            const candidate = _norm(vehicleValues[i][0]).toUpperCase();
+            if (!candidate) continue;
+            if (candidate === target) {
+              result.exists = true;
+              result.source = 'Vehicle';
+              result.addedBy = addedByValues && addedByValues[i] ? _norm(addedByValues[i][0]) : '';
+              return result;
+            }
+          }
+        }
+      }
+    }
+  } catch (sheetErr) {
+    console.warn('[NEW_VEHICLE] Vehicle sheet duplicate check failed:', sheetErr);
+  }
+
+  try {
+    const sh = _openCarTP_();
+    if (!sh) return result;
+    const lastRow = sh.getLastRow();
+    if (lastRow <= 1) return result;
+    const head = _ensureCarTPSchemaAndHeader_(sh);
+    const IX = _headerIndex_(head);
+    let iCarNo = -1;
+    try { iCarNo = IX.get(['Vehicle Number','Car Number','Car No','Vehicle No','Car #','Car']); } catch (_err) { iCarNo = -1; }
+    if (iCarNo < 0) iCarNo = _findCarNumberColumn_(head);
+    let columnIndex = iCarNo >= 0 ? iCarNo + 1 : 7; // default to column G when headers missing
+    if (columnIndex < 1) return result;
+    let iStatus = -1;
+    try { iStatus = IX.get(['Status','In Use/Release','In Use / release','In Use']); } catch (_err) { iStatus = -1; }
+    const rowCount = lastRow - 1;
+    const vehicleValues = sh.getRange(2, columnIndex, rowCount, 1).getDisplayValues();
+    let statusValues = null;
+    if (iStatus >= 0) {
+      statusValues = sh.getRange(2, iStatus + 1, rowCount, 1).getDisplayValues();
+    }
+    for (let i = 0; i < vehicleValues.length; i++) {
+      const candidate = _norm(vehicleValues[i][0]).toUpperCase();
+      if (!candidate) continue;
+      if (candidate === target) {
+        result.exists = true;
+        result.source = 'CarT_P';
+        result.status = statusValues && statusValues[i] ? _norm(statusValues[i][0]) : '';
+        return result;
+      }
+    }
+  } catch (carErr) {
+    console.warn('[NEW_VEHICLE] CarT_P duplicate check failed:', carErr);
+  }
+
+  return result;
+}
+
+function _upsertVehicleCatalogRow_(entry) {
+  try {
+    const sh = _openVehicleSheet_();
+    if (!sh) {
+      console.warn('[NEW_VEHICLE] Vehicle sheet unavailable; skipping catalog update');
+      return;
+    }
+
+    const makeCol = _columnLetterToIndex_('Z');
+    const modelCol = _columnLetterToIndex_('AA');
+    const categoryCol = _columnLetterToIndex_('AB');
+    const usageCol = _columnLetterToIndex_('AC');
+    const ownerCol = _columnLetterToIndex_('AD');
+    const vehicleCol = _columnLetterToIndex_('AE');
+    const addedByCol = _columnLetterToIndex_('AF');
+
+    if (makeCol < 1 || vehicleCol < 1 || addedByCol < 1) {
+      console.warn('[NEW_VEHICLE] Catalog column mapping failed; skipping.');
+      return;
+    }
+
+    const startCol = makeCol;
+    const colCount = addedByCol - startCol + 1;
+    if (colCount <= 0) return;
+
+    const maxCols = sh.getMaxColumns();
+    if (maxCols < addedByCol) {
+      sh.insertColumnsAfter(maxCols, addedByCol - maxCols);
+    }
+
+    const headerRange = sh.getRange(1, startCol, 1, colCount);
+    const headerCurrent = headerRange.getDisplayValues()[0];
+    const headerTemplate = ['Make','Model','Category','Usage Type','Owner','Vehicle Number','Added By'];
+    let headerNeedsUpdate = false;
+    const headerWrite = headerTemplate.map((label, idx) => {
+      const current = headerCurrent[idx];
+      if (typeof current === 'string' && current.trim()) {
+        return current;
+      }
+      headerNeedsUpdate = true;
+      return label;
+    });
+    if (headerNeedsUpdate) {
+      headerRange.setValues([headerWrite]);
+    }
+
+    const vehicleNumber = _norm(entry.vehicleNumber).toUpperCase();
+    if (!vehicleNumber) {
+      console.warn('[NEW_VEHICLE] No vehicle number provided for catalog update');
+      return;
+    }
+
+    const make = _norm(entry.make);
+    const model = _norm(entry.model);
+    const category = _norm(entry.category);
+    const usageType = _norm(entry.usageType);
+    const owner = _norm(entry.owner);
+    const addedBy = _norm(entry.addedBy);
+
+    const lastRow = sh.getLastRow();
+    const bodyRows = Math.max(0, lastRow - 1);
+    let targetRow = -1;
+    if (bodyRows > 0) {
+      const vehicleValues = sh.getRange(2, vehicleCol, bodyRows, 1).getDisplayValues();
+      for (let i = 0; i < vehicleValues.length; i++) {
+        const value = _norm(vehicleValues[i][0]).toUpperCase();
+        if (value && value === vehicleNumber) {
+          targetRow = i + 2;
+          break;
+        }
+      }
+    }
+
+    const ensureRow = targetRow > 0 ? targetRow : Math.max(lastRow + 1, 2);
+    const neededRows = Math.max(ensureRow, 2);
+    const maxRows = sh.getMaxRows();
+    if (maxRows < neededRows) {
+      sh.insertRowsAfter(maxRows, neededRows - maxRows);
+    }
+
+    let rowValues = [make, model, category, usageType, owner, vehicleNumber, addedBy];
+
+    if (targetRow > 0) {
+      const existing = sh.getRange(targetRow, startCol, 1, colCount).getDisplayValues()[0];
+      const merged = [
+        make || existing[0] || '',
+        model || existing[1] || '',
+        category || existing[2] || '',
+        usageType || existing[3] || '',
+        owner || existing[4] || '',
+        vehicleNumber || existing[5] || '',
+        addedBy || existing[6] || ''
+      ];
+      rowValues = merged;
+    }
+
+    sh.getRange(ensureRow, startCol, 1, colCount).setValues([rowValues]);
+    try {
+      console.log('[NEW_VEHICLE] Vehicle catalog updated', {
+        row: ensureRow,
+        vehicleNumber: vehicleNumber,
+        make: rowValues[0],
+        model: rowValues[1]
+      });
+    } catch (_logErr) {
+      // logging best effort
+    }
+  } catch (err) {
+    console.warn('[NEW_VEHICLE] Failed to upsert vehicle catalog row', err);
+  }
+}
+
 function submitNewVehicleRelease(payload){
   try {
     console.log('[NEW_VEHICLE] submitNewVehicleRelease called with payload:', JSON.stringify(payload || {}, null, 2));
@@ -5853,6 +6037,13 @@ function submitNewVehicleRelease(payload){
     const project = _norm(payload.project);
     const team = _norm(payload.team);
     const responsibleBeneficiary = _norm(payload.responsibleBeneficiary);
+
+    const duplicateCheck = _vehicleNumberExists_(vehicleNumber);
+    if (duplicateCheck.exists) {
+      const origin = duplicateCheck.source ? ` (${duplicateCheck.source})` : '';
+      const addedByNote = duplicateCheck.addedBy ? ` — added by ${duplicateCheck.addedBy}` : '';
+      return { ok: false, error: `Vehicle number ${vehicleNumber} already exists${origin}${addedByNote}` };
+    }
 
     const sh = _openCarTP_();
     if (!sh) {
@@ -5914,6 +6105,20 @@ function submitNewVehicleRelease(payload){
     const startRow = sh.getLastRow() + 1;
     sh.getRange(startRow, 1, 1, columnCount).setValues([row]);
     console.log('[NEW_VEHICLE] Row appended at', startRow);
+
+    try {
+      _upsertVehicleCatalogRow_({
+        vehicleNumber: vehicleNumber,
+        make: make,
+        model: model,
+        category: category,
+        usageType: usageType,
+        owner: owner,
+        addedBy: submitter
+      });
+    } catch (catalogErr) {
+      console.warn('[NEW_VEHICLE] Catalog update failed:', catalogErr);
+    }
 
     try {
       const summaryObj = {};
@@ -6063,6 +6268,36 @@ function getNewVehicleOptions(){
         });
       }
     });
+
+    try {
+      const cartpSheet = _openCarTP_();
+      if (cartpSheet) {
+        const cartpLastRow = cartpSheet.getLastRow();
+        if (cartpLastRow > 1) {
+          const vehicleColIndex = _columnLetterToIndex_('G');
+          if (vehicleColIndex > 0) {
+            const cartpVehicles = cartpSheet.getRange(2, vehicleColIndex, cartpLastRow - 1, 1).getDisplayValues();
+            cartpVehicles.forEach(function(rowValue){
+              const raw = rowValue && rowValue.length ? rowValue[0] : rowValue;
+              const vehicleNumber = String(raw || '').trim().toUpperCase();
+              if (!vehicleNumber) return;
+              if (!catalogMap.has(vehicleNumber)) {
+                catalogMap.set(vehicleNumber, {
+                  vehicleNumber: vehicleNumber,
+                  make: '',
+                  model: '',
+                  category: '',
+                  usageType: '',
+                  owner: ''
+                });
+              }
+            });
+          }
+        }
+      }
+    } catch (cartpErr) {
+      console.warn('[NEW_VEHICLE] Failed to hydrate catalog with CarT_P column G', cartpErr);
+    }
 
     function mapToOptionList(map){
       return Array.from(map.values())
@@ -6236,6 +6471,17 @@ function _findCarNumberColumn_(headRow, rows){
     }
   }catch(e){ /* ignore */ }
   return -1;
+}
+
+function _columnLetterToIndex_(letter) {
+  if (!letter) return -1;
+  let idx = 0;
+  const cleaned = String(letter).toUpperCase().replace(/[^A-Z]/g, '');
+  if (!cleaned) return -1;
+  for (let i = 0; i < cleaned.length; i++) {
+    idx = idx * 26 + (cleaned.charCodeAt(i) - 64);
+  }
+  return idx > 0 ? idx : -1;
 }
 
 /* -------------------------- versioned cache helpers -------------------------- */
