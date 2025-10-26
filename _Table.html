@@ -1423,7 +1423,7 @@ document.addEventListener('keydown', function(event) {
     flex: 1 1 auto;
     border: 1px solid #e2e8f0;
     border-radius: 16px;
-    overflow: auto;
+    overflow: hidden;
     background: #ffffff;
   }
 
@@ -1575,14 +1575,14 @@ document.addEventListener('keydown', function(event) {
   <div class="beneficiary-picker-card">
     <div class="beneficiary-picker-header">
       <div class="beneficiary-picker-header-group">
-        <h3 class="beneficiary-picker-title" id="beneficiaryPickerTitle">Add Existing Beneficiaries</h3>
+        <h3 class="beneficiary-picker-title" id="beneficiaryPickerTitle">Add released beneficiaries</h3>
         <div class="beneficiary-picker-subtitle" id="beneficiaryPickerSubtitle"></div>
       </div>
-      <button type="button" class="beneficiary-picker-close" aria-label="Close add existing beneficiary dialog">×</button>
+      <button type="button" class="beneficiary-picker-close" aria-label="Close add beneficiary dialog">×</button>
     </div>
     <div class="beneficiary-picker-body">
       <div class="beneficiary-picker-controls">
-        <input type="search" id="beneficiaryPickerSearch" class="beneficiary-picker-search" placeholder="Search by name, project, team, account holder, or nationality" autocomplete="off">
+        <input type="search" id="beneficiaryPickerSearch" class="beneficiary-picker-search" placeholder="Search by name, project, team, or account holder" autocomplete="off">
         <div class="beneficiary-picker-count" id="beneficiaryPickerCount"></div>
       </div>
       <div class="beneficiary-picker-table-wrapper">
@@ -1597,7 +1597,6 @@ document.addEventListener('keydown', function(event) {
               <th scope="col">Team</th>
               <th scope="col">Account Holder Name</th>
               <th scope="col" class="numeric">Idle since (days)</th>
-              <th scope="col">Nationality</th>
             </tr>
           </thead>
           <tbody id="beneficiaryPickerRows"></tbody>
@@ -2246,7 +2245,7 @@ document.addEventListener('keydown', function(event) {
     if (!overlay) {
       return {
         open: function() {
-          alert('The Add Existing Beneficiary dialog is unavailable. Please reload the page.');
+          alert('The Add Beneficiary dialog is unavailable. Please reload the page.');
         },
         close: function() {}
       };
@@ -2269,97 +2268,12 @@ document.addEventListener('keydown', function(event) {
     var currentContext = { project: '', team: '' };
     var searchTimer = null;
     var loading = false;
-    var releasedCount = null;
-    var countListeners = new Set();
-    var inflightCountPromise = null;
-
-    function notifyCountListeners() {
-      countListeners.forEach(function(listener) {
-        try {
-          listener(releasedCount);
-        } catch (err) {
-          console.error('beneficiaryPicker count listener failed', err);
-        }
-      });
-    }
-
-    function setReleasedCount(countValue) {
-      var next = (typeof countValue === 'number' && countValue >= 0 && isFinite(countValue))
-        ? countValue
-        : null;
-      releasedCount = next;
-      window.FRTZ = window.FRTZ || {};
-      window.FRTZ.releasedBeneficiaryCount = releasedCount;
-      try {
-        if (typeof window.updateExistingBeneficiaryButton === 'function') {
-          window.updateExistingBeneficiaryButton(releasedCount);
-        }
-      } catch (err) {
-        console.error('updateExistingBeneficiaryButton failed', err);
-      }
-      notifyCountListeners();
-    }
-
-    function onReleasedCountChange(listener) {
-      if (typeof listener !== 'function') {
-        return function() {};
-      }
-      countListeners.add(listener);
-      try {
-        listener(releasedCount);
-      } catch (err) {
-        console.error('initial count listener call failed', err);
-      }
-      return function() {
-        countListeners.delete(listener);
-      };
-    }
 
     function updateStatus(message, tone) {
       if (!statusEl) return;
       statusEl.textContent = message || '';
       statusEl.classList.remove('error', 'success');
       if (tone) statusEl.classList.add(tone);
-    }
-
-    function refreshReleasedCount(projectOverride, teamOverride) {
-      if (!(window.google && google.script && google.script.run)) {
-        return Promise.resolve(null);
-      }
-
-      var project = typeof projectOverride === 'string' ? projectOverride : currentContext.project;
-      var team = typeof teamOverride === 'string' ? teamOverride : currentContext.team;
-
-      if (inflightCountPromise) {
-        return inflightCountPromise;
-      }
-
-      inflightCountPromise = new Promise(function(resolve) {
-        google.script.run
-          .withSuccessHandler(function(res) {
-            inflightCountPromise = null;
-            if (res && res.ok !== false) {
-              if (typeof res.targetProject === 'string') currentContext.project = res.targetProject;
-              if (typeof res.targetTeam === 'string') currentContext.team = res.targetTeam;
-              var total = (typeof res.total === 'number' && isFinite(res.total))
-                ? res.total
-                : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
-              setReleasedCount(total);
-            } else {
-              setReleasedCount(null);
-            }
-            resolve(res || null);
-          })
-          .withFailureHandler(function(err) {
-            inflightCountPromise = null;
-            console.error('refreshReleasedBeneficiaryCount failed:', err);
-            setReleasedCount(null);
-            resolve(null);
-          })
-          .getReleasedBeneficiariesForInduction(project, team);
-      });
-
-      return inflightCountPromise;
     }
 
     function setLoading(flag, message) {
@@ -2509,10 +2423,6 @@ document.addEventListener('keydown', function(event) {
         }
         tr.appendChild(tdIdle);
 
-        var tdNationality = document.createElement('td');
-        tdNationality.textContent = item.nationality || '—';
-        tr.appendChild(tdNationality);
-
         rowsTbody.appendChild(tr);
       }
       updateSelectAllState();
@@ -2525,7 +2435,7 @@ document.addEventListener('keydown', function(event) {
       } else {
         filteredItems = allItems.filter(function(item) {
           if (!item) return false;
-          return [item.beneficiary, item.designation, item.project, item.team, item.accountHolder, item.nationality]
+          return [item.beneficiary, item.designation, item.project, item.team, item.accountHolder]
             .some(function(part) {
               return String(part || '').toLowerCase().indexOf(term) >= 0;
             });
@@ -2579,12 +2489,6 @@ document.addEventListener('keydown', function(event) {
           filteredItems = allItems.slice();
           selectedKeys.clear();
           applyFilterNow();
-
-          if (res && typeof res.remaining === 'number' && isFinite(res.remaining)) {
-            setReleasedCount(res.remaining);
-          } else {
-            setReleasedCount(allItems.length);
-          }
 
           var addedCount = res.inserted || addedKeys.size || 0;
           var statusMsg = addedCount
@@ -2706,7 +2610,6 @@ document.addEventListener('keydown', function(event) {
           if (!res || res.ok === false) {
             updateStatus(res && res.error ? res.error : 'Unable to load released beneficiaries.', 'error');
             showEmpty('No released beneficiaries found.');
-            setReleasedCount(null);
             allItems = [];
             filteredItems = [];
             updateCounts();
@@ -2718,11 +2621,6 @@ document.addEventListener('keydown', function(event) {
           if (typeof res.targetProject === 'string') currentContext.project = res.targetProject;
           if (typeof res.targetTeam === 'string') currentContext.team = res.targetTeam;
           updateSubtitle();
-
-          var total = (typeof res.total === 'number' && isFinite(res.total))
-            ? res.total
-            : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
-          setReleasedCount(total);
 
           allItems = Array.isArray(res.beneficiaries) ? res.beneficiaries : [];
           filteredItems = allItems.slice();
@@ -2736,7 +2634,6 @@ document.addEventListener('keydown', function(event) {
           console.error('getReleasedBeneficiariesForInduction failed:', err);
           updateStatus('Unable to load released beneficiaries. Please try again.', 'error');
           showEmpty('No released beneficiaries found.');
-          setReleasedCount(null);
           allItems = [];
           filteredItems = [];
           updateCounts();
@@ -2813,11 +2710,6 @@ document.addEventListener('keydown', function(event) {
 
     if (applyBtn) applyBtn.addEventListener('click', performAdd);
 
-    window.FRTZ = window.FRTZ || {};
-    window.FRTZ.onReleasedBeneficiaryCountChange = onReleasedCountChange;
-    window.FRTZ.getReleasedBeneficiaryCount = function() { return releasedCount; };
-    window.FRTZ.refreshReleasedBeneficiaryCount = refreshReleasedCount;
-
     return {
       open: open,
       close: close
@@ -2829,55 +2721,8 @@ document.addEventListener('keydown', function(event) {
       addBeneficiaryPicker.open(context || {});
     } catch (err) {
       console.error('openAddBeneficiaryModal failed:', err);
-      alert('Unable to open the Add Existing Beneficiary dialog. Please try again.');
+      alert('Unable to open the Add Beneficiary dialog. Please try again.');
     }
-  }
-
-  function formatExistingBeneficiaryLabel(count) {
-    if (typeof count === 'number' && count >= 0 && isFinite(count)) {
-      return 'Add Existing Beneficiary [' + count + ']';
-    }
-    return 'Add Existing Beneficiary [—]';
-  }
-
-  function updateExistingBeneficiaryButton(count) {
-    var text = formatExistingBeneficiaryLabel(count);
-    if (typeof window.updateConfirmationButton === 'function') {
-      window.updateConfirmationButton('add-existing', { text: text });
-    } else {
-      var btn = document.querySelector('.confirmation-buttons button[data-button-id="add-existing"]');
-      if (btn) {
-        btn.textContent = text;
-        btn.dataset.originalText = text;
-      }
-    }
-  }
-
-  window.updateExistingBeneficiaryButton = updateExistingBeneficiaryButton;
-
-  function triggerAddNewBeneficiary(context) {
-    try {
-      var detail = context && typeof context === 'object' ? context : {};
-      document.dispatchEvent(new CustomEvent('frtz:add-new-beneficiary', { detail: detail }));
-    } catch (err) {
-      console.error('dispatch add-new-beneficiary event failed', err);
-    }
-
-    if (window.FRTZ && typeof window.FRTZ.openNewBeneficiaryDialog === 'function') {
-      window.FRTZ.openNewBeneficiaryDialog(context || {});
-      return;
-    }
-
-    if (window.FRTZ && window.FRTZ.addRowBtn) {
-      try {
-        window.FRTZ.addRowBtn.click();
-        return;
-      } catch (errClick) {
-        console.error('click addRowBtn failed', errClick);
-      }
-    }
-
-    alert('Please use the Add Rows button to add a new beneficiary.');
   }
 
   window.FRTZ = window.FRTZ || {};
@@ -2931,8 +2776,7 @@ document.addEventListener('keydown', function(event) {
         buttons: [
           { text: 'Deactivate', value: 'deactivate', role: 'destructive', variant: 'destructive', feedback: false },
           { text: 'Release', value: 'release', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Continue' },
-          { text: formatExistingBeneficiaryLabel(existingCount), id: 'add-existing', value: 'add-existing', role: 'option', variant: 'success', feedback: true, successText: '✓ Opening' },
-          { text: 'Add New Beneficiary', id: 'add-new', value: 'add-new', role: 'option', variant: 'accent', feedback: true, successText: '✓ Opening' },
+          { text: 'Add Beneficiary', value: 'add', role: 'option', variant: 'success', feedback: true, successText: '✓ Opening' },
           { text: 'No, Keep Active', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
         ]
       });
@@ -2971,15 +2815,8 @@ document.addEventListener('keydown', function(event) {
           deactivateRow(row);
         } else if (action === 'release') {
           confirmReleaseRow(row, context);
-        } else if (action === 'add-existing') {
+        } else if (action === 'add') {
           openAddBeneficiaryModal(context);
-        } else if (action === 'add-new') {
-          triggerAddNewBeneficiary(context);
-        }
-      }).catch(function(err) {
-        cleanupWatcher();
-        if (err) {
-          console.error('confirmation dialog rejected', err);
         }
       });
     }
