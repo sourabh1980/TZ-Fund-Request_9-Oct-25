@@ -6675,6 +6675,7 @@ function releaseBeneficiary(payload) {
     let idxMobile = -1;
     let idxDisplay = -1;
     let idxWH = -1;
+    let idxRatings = -1;
     let idxRemarks = -1;
     let idxTimestamp = -1;
     let idxSubmitter = -1;
@@ -6686,6 +6687,7 @@ function releaseBeneficiary(payload) {
     try { idxMobile = IX.get(['Mob No', 'Mobile', 'Mobile Number', 'Mob']); } catch (_e) {}
     try { idxDisplay = IX.get(['Display Name']); } catch (_e) {}
     try { idxWH = IX.get(['W/H Charge', 'Withholding Charge', 'W/H']); } catch (_e) {}
+    try { idxRatings = IX.get(['Ratings', 'Rating', 'Stars']); } catch (_e) {}
     try { idxRemarks = IX.get(['Remarks', 'Comment', 'Comments', 'Notes']); } catch (_e) {}
     try { idxTimestamp = IX.get(['Date and Time', 'Date & Time', 'Timestamp', 'Updated At', 'Date']); } catch (_e) {}
     try { idxSubmitter = IX.get(['Submitter', 'Updated By', 'Entered By']); } catch (_e) {}
@@ -6731,7 +6733,56 @@ function releaseBeneficiary(payload) {
     assignIfPresent(idxMobile, payload.mobile);
     assignIfPresent(idxDisplay, payload.displayName);
     assignIfPresent(idxWH, payload.whCharge);
-    assignIfPresent(idxRemarks, payload.remarks);
+
+    const ratingKeys = ['coreKnowledge', 'discipline', 'honestyIntegrity', 'teamwork', 'attitudeBehaviour'];
+    const ratingLabels = {
+      coreKnowledge: 'Core Knowledge',
+      discipline: 'Discipline',
+      honestyIntegrity: 'Honesty and Integrity',
+      teamwork: 'Teamwork',
+      attitudeBehaviour: 'Attitude and Behaviour',
+      attitudeBehavior: 'Attitude and Behaviour'
+    };
+
+    const normalizeRatingValue = (val) => {
+      const num = Number(val);
+      if (!isFinite(num)) return 0;
+      if (num < 0) return 0;
+      if (num > 5) return 5;
+      return Math.round(num);
+    };
+
+    let ratingSummary = '';
+    if (payload && typeof payload.ratingSummary === 'string' && payload.ratingSummary.trim()) {
+      ratingSummary = payload.ratingSummary.trim();
+    } else if (payload && typeof payload.ratings === 'string' && payload.ratings.trim()) {
+      ratingSummary = String(payload.ratings).trim();
+    } else if (payload && payload.ratingValues && typeof payload.ratingValues === 'object') {
+      const parts = [];
+      const map = payload.ratingValues;
+      ratingKeys.forEach((key) => {
+        const altKey = key === 'attitudeBehaviour' ? 'attitudeBehavior' : key;
+        const raw = Object.prototype.hasOwnProperty.call(map, key)
+          ? map[key]
+          : (Object.prototype.hasOwnProperty.call(map, altKey) ? map[altKey] : null);
+        const rating = normalizeRatingValue(raw);
+        const label = ratingLabels[key] || ratingLabels[altKey] || key;
+        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        parts.push(`${label}: ${stars} (${rating}/5)`);
+      });
+      ratingSummary = parts.join(' | ');
+    }
+
+    if (idxRatings >= 0 && ratingSummary) {
+      newRow[idxRatings] = ratingSummary;
+    }
+
+    const reviewText = typeof payload.review === 'string' ? payload.review.trim() : '';
+    const remarksFallback = typeof payload.remarks === 'string' ? payload.remarks.trim() : '';
+    const remarksValue = reviewText || remarksFallback;
+    if (idxRemarks >= 0 && remarksValue) {
+      newRow[idxRemarks] = remarksValue;
+    }
 
     newRow[idxStatus] = 'Release';
 
