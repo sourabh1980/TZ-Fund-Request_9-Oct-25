@@ -256,9 +256,9 @@
     <form class="new-beneficiary-form" id="newBeneficiaryForm" novalidate>
       <div class="new-beneficiary-scroll">
         <div class="new-beneficiary-grid">
-          <div class="new-beneficiary-field" data-field="name">
-            <label for="newBeneficiaryName">Name of Beneficiary</label>
-            <input type="text" id="newBeneficiaryName" class="new-beneficiary-input" autocomplete="off">
+          <div class="new-beneficiary-field new-beneficiary-field--static" data-field="name">
+            <label for="newBeneficiaryNameDisplay">Name of Beneficiary</label>
+            <div id="newBeneficiaryNameDisplay" class="new-beneficiary-static" data-display="name" role="text" aria-live="polite" tabindex="-1">—</div>
             <div class="new-beneficiary-field-error" data-error-for="name"></div>
           </div>
           <div class="new-beneficiary-field" data-field="designation">
@@ -266,9 +266,9 @@
             <select id="newBeneficiaryDesignation" class="new-beneficiary-select"></select>
             <div class="new-beneficiary-field-error" data-error-for="designation"></div>
           </div>
-          <div class="new-beneficiary-field" data-field="defaultDa">
-            <label for="newBeneficiaryDa">Default DA Amt</label>
-            <input type="number" id="newBeneficiaryDa" class="new-beneficiary-input" inputmode="decimal" step="0.01" min="0">
+          <div class="new-beneficiary-field new-beneficiary-field--static" data-field="defaultDa">
+            <label for="newBeneficiaryDaDisplay">Default DA Amt</label>
+            <div id="newBeneficiaryDaDisplay" class="new-beneficiary-static" data-display="defaultDa" role="text" aria-live="polite" tabindex="-1">—</div>
             <div class="new-beneficiary-field-error" data-error-for="defaultDa"></div>
           </div>
           <div class="new-beneficiary-field" data-field="project">
@@ -303,6 +303,979 @@
     </form>
   </div>
 </div>
+
+<style>
+  .new-beneficiary-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 11000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.24s ease;
+  }
+
+  .new-beneficiary-overlay[hidden] {
+    display: none;
+  }
+
+  .new-beneficiary-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .new-beneficiary-card {
+    width: min(940px, 98vw);
+    max-height: min(90vh, 720px);
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 20px;
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    transform: translateY(24px) scale(0.97);
+    transition: transform 0.28s ease, opacity 0.28s ease;
+  }
+
+  .new-beneficiary-overlay.show .new-beneficiary-card {
+    transform: translateY(0) scale(1);
+  }
+
+  .new-beneficiary-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(15, 23, 42, 0.08);
+    color: #1f2937;
+    font-size: 22px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .new-beneficiary-close:hover {
+    background: rgba(79, 70, 229, 0.12);
+    color: #4338ca;
+  }
+
+  .new-beneficiary-close:focus-visible {
+    outline: 3px solid rgba(79, 70, 229, 0.35);
+    outline-offset: 2px;
+  }
+
+  .new-beneficiary-header {
+    padding: 32px 40px 0;
+  }
+
+  .new-beneficiary-title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  .new-beneficiary-subtitle {
+    margin: 10px 0 0;
+    font-size: 15px;
+    color: #475569;
+  }
+
+  .new-beneficiary-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    padding: 0 40px 36px;
+    gap: 28px;
+  }
+
+  .new-beneficiary-scroll {
+    flex: 1 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-top: 24px;
+  }
+
+  .new-beneficiary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px 28px;
+    align-items: flex-start;
+  }
+
+  @media (min-width: 1180px) {
+    .new-beneficiary-grid {
+      grid-template-columns: repeat(3, minmax(220px, 1fr));
+    }
+  }
+
+  .new-beneficiary-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .new-beneficiary-field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .new-beneficiary-input,
+  .new-beneficiary-select {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(248, 250, 252, 0.92);
+    padding: 12px 14px;
+    font-size: 15px;
+    color: #0f172a;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .new-beneficiary-static {
+    width: 100%;
+    min-height: 44px;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(241, 245, 249, 0.9);
+    padding: 12px 14px;
+    font-size: 15px;
+    color: #0f172a;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .new-beneficiary-static.is-empty {
+    color: #94a3b8;
+    font-weight: 500;
+  }
+
+  .new-beneficiary-input:focus-visible,
+  .new-beneficiary-select:focus-visible {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.24);
+    background: #fff;
+  }
+
+  .new-beneficiary-select:disabled,
+  .new-beneficiary-input:disabled {
+    background: rgba(241, 245, 249, 0.9);
+    cursor: not-allowed;
+    color: #64748b;
+  }
+
+  .new-beneficiary-field-error {
+    min-height: 18px;
+    font-size: 12px;
+    color: #dc2626;
+    font-weight: 500;
+  }
+
+  .new-beneficiary-field.has-error .new-beneficiary-input,
+  .new-beneficiary-field.has-error .new-beneficiary-select,
+  .new-beneficiary-field.has-error .new-beneficiary-static {
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.16);
+    background: rgba(255, 247, 237, 0.9);
+  }
+
+  .new-beneficiary-footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .new-beneficiary-status {
+    flex: 1 1 auto;
+    min-height: 20px;
+    font-size: 14px;
+    color: #475569;
+    font-weight: 500;
+  }
+
+  .new-beneficiary-status.error {
+    color: #dc2626;
+  }
+
+  .new-beneficiary-status.success {
+    color: #15803d;
+  }
+
+  .new-beneficiary-status.info {
+    color: #2563eb;
+  }
+
+  .new-beneficiary-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .new-beneficiary-btn {
+    border-radius: 999px;
+    border: none;
+    padding: 12px 26px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  .new-beneficiary-btn.primary {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    box-shadow: 0 14px 32px rgba(99, 102, 241, 0.28);
+  }
+
+  .new-beneficiary-btn.primary:hover {
+    transform: translateY(-1px);
+  }
+
+  .new-beneficiary-btn.secondary {
+    background: rgba(226, 232, 240, 0.85);
+    color: #0f172a;
+  }
+
+  .new-beneficiary-btn.secondary:hover {
+    background: rgba(203, 213, 225, 0.95);
+  }
+
+  .new-beneficiary-btn[disabled] {
+    opacity: 0.6;
+    cursor: wait;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .new-beneficiary-overlay.new-beneficiary-loading .new-beneficiary-status {
+    color: #2563eb;
+  }
+
+  @media (max-width: 720px) {
+    .new-beneficiary-card {
+      width: min(100%, 96vw);
+      padding-top: 40px;
+    }
+
+    .new-beneficiary-header {
+      padding: 24px 24px 0;
+    }
+
+    .new-beneficiary-form {
+      padding: 0 24px 28px;
+    }
+
+    .new-beneficiary-grid {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 18px;
+    }
+
+    .new-beneficiary-footer {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .new-beneficiary-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+</style>
+<script>
+(function(){
+  'use strict';
+
+  const overlay = document.getElementById('newBeneficiaryModal');
+  if (!overlay) return;
+
+  const form = overlay.querySelector('#newBeneficiaryForm');
+  const closeBtn = overlay.querySelector('#newBeneficiaryClose');
+  const cancelBtn = overlay.querySelector('#newBeneficiaryCancel');
+  const submitBtn = overlay.querySelector('#newBeneficiarySubmit');
+  const statusEl = overlay.querySelector('#newBeneficiaryStatus');
+
+  const nameDisplay = overlay.querySelector('[data-display="name"]');
+  const designationSelect = overlay.querySelector('#newBeneficiaryDesignation');
+  const defaultDaDisplay = overlay.querySelector('[data-display="defaultDa"]');
+  const projectSelect = overlay.querySelector('#newBeneficiaryProject');
+  const teamSelect = overlay.querySelector('#newBeneficiaryTeam');
+  const accountSelect = overlay.querySelector('#newBeneficiaryAccount');
+  const nationalitySelect = overlay.querySelector('#newBeneficiaryNationality');
+
+  const fieldState = {};
+  overlay.querySelectorAll('.new-beneficiary-field').forEach(function(field) {
+    const key = field.getAttribute('data-field');
+    if (!key) return;
+    fieldState[key] = {
+      container: field,
+      messageEl: field.querySelector('.new-beneficiary-field-error')
+    };
+  });
+
+  let optionsCache = null;
+  let optionsPromise = null;
+  let teamsByProject = {};
+  let pendingTeamValue = null;
+  let optionsReady = false;
+  let loadingOptions = false;
+  let submitting = false;
+  let teamEnabled = false;
+  let isOpen = false;
+  let lastActiveElement = null;
+  let openContext = {};
+  const submitOriginalText = submitBtn ? submitBtn.textContent : '';
+  const PLACEHOLDER_VALUE = '__placeholder__';
+
+  function setStatus(message, tone) {
+    if (!statusEl) return;
+    const text = message || '';
+    statusEl.textContent = text;
+    statusEl.classList.remove('error', 'success', 'info');
+    if (text) {
+      statusEl.classList.add(tone || 'info');
+    }
+  }
+
+  function clearFieldErrors() {
+    Object.keys(fieldState).forEach(function(key) {
+      const state = fieldState[key];
+      if (!state) return;
+      state.container.classList.remove('has-error');
+      if (state.messageEl) state.messageEl.textContent = '';
+    });
+  }
+
+  function showFieldError(field, message) {
+    const state = fieldState[field];
+    if (!state) return;
+    state.container.classList.add('has-error');
+    if (state.messageEl) state.messageEl.textContent = message || '';
+  }
+
+  function focusFirstError(errors) {
+    if (!Array.isArray(errors)) return;
+    for (let i = 0; i < errors.length; i++) {
+      const state = fieldState[errors[i].field];
+      if (!state || !state.container) continue;
+      const el = state.container.querySelector('input, select, textarea, button, [data-display]');
+      if (el && typeof el.focus === 'function') {
+        el.focus();
+        break;
+      }
+    }
+  }
+
+  function resetTeamSelect(message) {
+    if (!teamSelect) return;
+    teamSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = PLACEHOLDER_VALUE;
+    placeholder.textContent = message;
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    teamSelect.appendChild(placeholder);
+    teamSelect.dataset.userSet = 'false';
+    teamEnabled = false;
+  }
+
+  function updateFormDisabledState() {
+    const disableInputs = loadingOptions || submitting || !optionsReady;
+    [designationSelect, projectSelect, accountSelect, nationalitySelect].forEach(function(el) {
+      if (!el) return;
+      el.disabled = disableInputs;
+    });
+    if (teamSelect) {
+      teamSelect.disabled = disableInputs || !teamEnabled;
+    }
+    if (submitBtn) {
+      submitBtn.disabled = disableInputs || submitting;
+    }
+    if (cancelBtn) {
+      cancelBtn.disabled = submitting;
+    }
+    if (closeBtn) {
+      closeBtn.disabled = submitting;
+    }
+  }
+
+  function setLoading(flag) {
+    loadingOptions = flag;
+    overlay.classList.toggle('new-beneficiary-loading', flag);
+    if (flag) {
+      resetTeamSelect('Loading options…');
+    }
+    updateFormDisabledState();
+  }
+
+  function setSubmitting(flag) {
+    submitting = flag;
+    overlay.classList.toggle('new-beneficiary-submitting', flag);
+    if (submitBtn) {
+      submitBtn.textContent = flag ? 'Saving…' : submitOriginalText;
+    }
+    updateFormDisabledState();
+  }
+
+  function setSelectValue(select, value) {
+    if (!select) return false;
+    const target = value == null ? '' : String(value);
+    const len = select.options.length;
+    for (let i = 0; i < len; i++) {
+      const opt = select.options[i];
+      if (opt.value === target) {
+        select.selectedIndex = i;
+        return true;
+      }
+    }
+    const normalized = target.trim().toLowerCase();
+    if (!normalized) return false;
+    for (let i = 0; i < len; i++) {
+      const opt = select.options[i];
+      if (opt.value.trim().toLowerCase() === normalized) {
+        select.selectedIndex = i;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function populateSelect(select, list, placeholderText) {
+    if (!select) return;
+    const previous = select.value;
+    select.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = placeholderText;
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    select.appendChild(placeholder);
+    if (Array.isArray(list)) {
+      list.forEach(function(item) {
+        const option = document.createElement('option');
+        const val = item && item.value != null ? String(item.value) : '';
+        option.value = val;
+        option.textContent = item && item.label != null ? item.label : val;
+        select.appendChild(option);
+      });
+    }
+    if (previous && setSelectValue(select, previous)) {
+      placeholder.selected = false;
+    }
+  }
+
+  function updateNameStaticDisplay(value) {
+    if (!nameDisplay) return;
+    const raw = value != null ? String(value).trim() : '';
+    nameDisplay.textContent = raw || '—';
+    nameDisplay.dataset.value = raw;
+    if (raw) {
+      nameDisplay.title = raw;
+    } else {
+      nameDisplay.removeAttribute('title');
+    }
+    nameDisplay.classList.toggle('is-empty', raw === '');
+  }
+
+  function updateDefaultDaStaticDisplay(value) {
+    if (!defaultDaDisplay) return;
+    let raw = '';
+    let text = '—';
+    if (value !== '' && value != null) {
+      const sanitized = typeof value === 'string' ? value.replace(/,/g, '') : value;
+      const numeric = Number(sanitized);
+      if (Number.isFinite(numeric)) {
+        raw = String(numeric);
+        text = numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      } else {
+        raw = String(value).trim();
+        text = raw || '—';
+      }
+    }
+    defaultDaDisplay.textContent = text;
+    defaultDaDisplay.dataset.value = raw;
+    if (raw) {
+      defaultDaDisplay.title = raw;
+    } else {
+      defaultDaDisplay.removeAttribute('title');
+    }
+    defaultDaDisplay.classList.toggle('is-empty', raw === '');
+  }
+
+  function updateTeamOptions(projectValue, preferTeam) {
+    if (!teamSelect) return;
+    const trimmed = (projectValue || '').toString().trim();
+    teamSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = PLACEHOLDER_VALUE;
+    placeholder.textContent = trimmed ? 'Select team' : 'Select a project first';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    teamSelect.appendChild(placeholder);
+    teamSelect.dataset.userSet = 'false';
+
+    if (!trimmed) {
+      teamEnabled = false;
+      updateFormDisabledState();
+      return;
+    }
+
+    let list = (teamsByProject && (teamsByProject[projectValue] || teamsByProject[trimmed])) || null;
+    if (!list && teamsByProject) {
+      const lower = trimmed.toLowerCase();
+      Object.keys(teamsByProject).some(function(key) {
+        if (key && key.toLowerCase() === lower) {
+          list = teamsByProject[key];
+          return true;
+        }
+        return false;
+      });
+    }
+
+    if (!Array.isArray(list) || list.length === 0) {
+      placeholder.textContent = 'No teams found for project';
+      placeholder.disabled = true;
+      teamEnabled = false;
+      updateFormDisabledState();
+      return;
+    }
+
+    list.forEach(function(item) {
+      const option = document.createElement('option');
+      const val = item && item.value != null ? String(item.value) : '';
+      option.value = val;
+      option.textContent = item && item.label ? item.label : (val || 'Unassigned / Blank');
+      if (item && item.blank) {
+        option.dataset.blank = 'true';
+      }
+      teamSelect.appendChild(option);
+    });
+
+    teamEnabled = true;
+    updateFormDisabledState();
+
+    const desired = preferTeam != null ? preferTeam : pendingTeamValue;
+    if (desired != null) {
+      if (desired === '') {
+        const blankOption = Array.from(teamSelect.options).find(function(opt) {
+          return opt.value === '' && !opt.disabled;
+        });
+        if (blankOption) {
+          blankOption.selected = true;
+          placeholder.selected = false;
+          teamSelect.dataset.userSet = 'true';
+        }
+      } else if (setSelectValue(teamSelect, desired)) {
+        placeholder.selected = false;
+        teamSelect.dataset.userSet = 'true';
+      }
+    }
+    pendingTeamValue = null;
+  }
+
+  function ensureOptions() {
+    if (optionsCache) {
+      return Promise.resolve(optionsCache);
+    }
+    if (optionsPromise) {
+      return optionsPromise;
+    }
+    if (!(window.google && google.script && google.script.run)) {
+      return Promise.reject(new Error('Beneficiary options can only be loaded inside Google Sheets.'));
+    }
+    optionsPromise = new Promise(function(resolve, reject) {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          optionsPromise = null;
+          if (!res || res.ok === false) {
+            reject(new Error(res && res.error ? res.error : 'Unable to load beneficiary options.'));
+            return;
+          }
+          optionsCache = res;
+          resolve(res);
+        })
+        .withFailureHandler(function(err) {
+          optionsPromise = null;
+          const message = err && err.message ? err.message : 'Unable to load beneficiary options.';
+          reject(new Error(message));
+        })
+        .getNewBeneficiaryFormOptions();
+    });
+    return optionsPromise;
+  }
+
+  function applyOptions(opts) {
+    if (!opts) return;
+    teamsByProject = opts.teamsByProject || {};
+    populateSelect(designationSelect, opts.designations || [], 'Select designation');
+    populateSelect(accountSelect, opts.accountHolders || [], 'Select account holder');
+    populateSelect(nationalitySelect, opts.nationalities || [], 'Select nationality');
+    populateSelect(projectSelect, opts.projects || [], 'Select project');
+
+    const ctxName = Object.prototype.hasOwnProperty.call(openContext, 'beneficiary') ? openContext.beneficiary : '';
+    updateNameStaticDisplay(ctxName);
+    const ctxDa = Object.prototype.hasOwnProperty.call(openContext, 'defaultDa') ? openContext.defaultDa : '';
+    updateDefaultDaStaticDisplay(ctxDa);
+
+    pendingTeamValue = openContext && Object.prototype.hasOwnProperty.call(openContext, 'team') ? openContext.team : null;
+
+    if (projectSelect) {
+      const ctxProject = openContext && openContext.project ? openContext.project : '';
+      if (ctxProject) {
+        if (!setSelectValue(projectSelect, ctxProject)) {
+          pendingTeamValue = null;
+        }
+      } else {
+        projectSelect.selectedIndex = 0;
+      }
+    }
+
+    updateTeamOptions(projectSelect ? projectSelect.value : '', pendingTeamValue);
+    if (openContext && openContext.accountHolder) setSelectValue(accountSelect, openContext.accountHolder);
+    if (openContext && openContext.nationality) setSelectValue(nationalitySelect, openContext.nationality);
+    if (openContext && openContext.designation) setSelectValue(designationSelect, openContext.designation);
+  }
+
+  function collectValues() {
+    const nameValue = nameDisplay ? (nameDisplay.dataset.value || nameDisplay.textContent || '') : '';
+    const defaultDaValue = defaultDaDisplay ? (defaultDaDisplay.dataset.value || '') : '';
+    return {
+      name: nameValue.trim(),
+      designation: designationSelect ? designationSelect.value : '',
+      defaultDa: defaultDaValue.trim(),
+      project: projectSelect ? projectSelect.value : '',
+      teamRaw: teamSelect ? teamSelect.value : PLACEHOLDER_VALUE,
+      accountHolder: accountSelect ? accountSelect.value : '',
+      nationality: nationalitySelect ? nationalitySelect.value : ''
+    };
+  }
+
+  function validateForm() {
+    const values = collectValues();
+    const errors = [];
+    const payload = {
+      beneficiary: values.name,
+      designation: values.designation,
+      project: values.project,
+      accountHolder: values.accountHolder,
+      nationality: values.nationality,
+      team: '',
+      teamProvided: false
+    };
+
+    if (!payload.beneficiary) {
+      errors.push({ field: 'name', message: 'Beneficiary name is not available. Close and try again.' });
+    }
+    if (!payload.designation) {
+      errors.push({ field: 'designation', message: 'Select a resource designation.' });
+    }
+    if (!payload.project) {
+      errors.push({ field: 'project', message: 'Select a project.' });
+    }
+
+    if (teamSelect) {
+      if (!teamEnabled) {
+        payload.team = '';
+        payload.teamProvided = true;
+      } else if (values.teamRaw !== PLACEHOLDER_VALUE) {
+        payload.team = values.teamRaw == null ? '' : values.teamRaw;
+        payload.teamProvided = true;
+      } else {
+        errors.push({ field: 'team', message: 'Select a team or choose the blank option.' });
+      }
+    }
+
+    if (!payload.accountHolder) {
+      errors.push({ field: 'accountHolder', message: 'Select an account holder name.' });
+    }
+    if (!payload.nationality) {
+      errors.push({ field: 'nationality', message: 'Select a nationality.' });
+    }
+
+    if (values.defaultDa !== '') {
+      const numeric = Number(values.defaultDa);
+      if (!Number.isFinite(numeric) || numeric < 0) {
+        errors.push({ field: 'defaultDa', message: 'Default DA amount is invalid. Please contact your administrator.' });
+      } else {
+        payload.defaultDa = numeric;
+      }
+    }
+
+    return { errors: errors, payload: payload };
+  }
+
+  function buildConfirmation(payload) {
+    const project = payload.project || '—';
+    const team = payload.team ? payload.team : 'Unassigned / Blank';
+    const designation = payload.designation || '—';
+    const accountHolder = payload.accountHolder || '—';
+    return [
+      'Create and mark this beneficiary as RELEASE?',
+      'Name: ' + payload.beneficiary,
+      'Designation: ' + designation,
+      'Project: ' + project,
+      'Team: ' + team,
+      'Account Holder: ' + accountHolder
+    ].join('\n');
+  }
+
+  function focusFirstField() {
+    if (!isOpen) return;
+    const focusable = overlay.querySelector('input:not([disabled]), select:not([disabled])');
+    if (focusable && typeof focusable.focus === 'function') {
+      focusable.focus();
+    }
+  }
+
+  function openDialog(context) {
+    if (isOpen && !submitting) {
+      closeDialog();
+    }
+    openContext = context && typeof context === 'object' ? context : {};
+    pendingTeamValue = openContext && Object.prototype.hasOwnProperty.call(openContext, 'team') ? openContext.team : null;
+
+    lastActiveElement = document.activeElement;
+    overlay.hidden = false;
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+    isOpen = true;
+
+    if (form) form.reset();
+    clearFieldErrors();
+    if (optionsCache) {
+      setStatus('', '');
+    } else {
+      setStatus('Loading beneficiary options…', 'info');
+    }
+
+    const hasName = Object.prototype.hasOwnProperty.call(openContext, 'beneficiary');
+    updateNameStaticDisplay(hasName ? openContext.beneficiary : '');
+    const hasDefaultDa = Object.prototype.hasOwnProperty.call(openContext, 'defaultDa');
+    updateDefaultDaStaticDisplay(hasDefaultDa ? openContext.defaultDa : '');
+
+    optionsReady = false;
+    setLoading(!optionsCache);
+    updateFormDisabledState();
+
+    if (optionsCache) {
+      applyOptions(optionsCache);
+      optionsReady = true;
+      setLoading(false);
+      updateFormDisabledState();
+      setTimeout(focusFirstField, 80);
+    }
+
+    ensureOptions().then(function(opts) {
+      if (!isOpen) return;
+      applyOptions(opts);
+      optionsReady = true;
+      setLoading(false);
+      setStatus('', '');
+      updateFormDisabledState();
+      setTimeout(focusFirstField, 60);
+    }).catch(function(err) {
+      if (!isOpen) return;
+      setLoading(false);
+      optionsReady = false;
+      const message = err && err.message ? err.message : 'Failed to load beneficiary options. Close and try again.';
+      setStatus(message, 'error');
+      resetTeamSelect('Unable to load teams');
+      updateFormDisabledState();
+    });
+  }
+
+  function closeDialog() {
+    if (!isOpen) return;
+    if (submitting) return;
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.classList.remove('new-beneficiary-loading', 'new-beneficiary-submitting');
+    overlay.hidden = true;
+    isOpen = false;
+    loadingOptions = false;
+    submitting = false;
+    optionsReady = !!optionsCache;
+    teamEnabled = false;
+    pendingTeamValue = null;
+    if (form) form.reset();
+    clearFieldErrors();
+    setStatus('', '');
+    resetTeamSelect('Select a project first');
+    if (submitBtn) {
+      submitBtn.textContent = submitOriginalText;
+      submitBtn.disabled = false;
+    }
+    if (cancelBtn) {
+      cancelBtn.disabled = false;
+    }
+    if (closeBtn) {
+      closeBtn.disabled = false;
+    }
+    updateFormDisabledState();
+    if (lastActiveElement && typeof lastActiveElement.focus === 'function') {
+      try { lastActiveElement.focus(); } catch (_focusErr) {}
+    }
+    lastActiveElement = null;
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (submitting) return;
+    clearFieldErrors();
+    setStatus('', '');
+
+    const result = validateForm();
+    if (result.errors.length) {
+      result.errors.forEach(function(err) {
+        showFieldError(err.field, err.message);
+      });
+      setStatus('Please resolve the highlighted fields.', 'error');
+      focusFirstError(result.errors);
+      return;
+    }
+
+    const payload = result.payload;
+    const message = buildConfirmation(payload);
+    if (typeof window.confirm === 'function' && !window.confirm(message)) {
+      return;
+    }
+
+    if (!(window.google && google.script && google.script.run)) {
+      setStatus('Saving beneficiaries is only available inside Google Sheets.', 'error');
+      return;
+    }
+
+    setSubmitting(true);
+    setStatus('Saving new beneficiary…', 'info');
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!isOpen) {
+          setSubmitting(false);
+          return;
+        }
+        if (!res || res.ok === false) {
+          setSubmitting(false);
+          const errMsg = res && res.error ? res.error : 'Failed to create new beneficiary.';
+          setStatus(errMsg, 'error');
+          return;
+        }
+        setStatus('Beneficiary created successfully.', 'success');
+        setSubmitting(false);
+        const detail = res;
+        optionsCache = null;
+        optionsReady = false;
+        teamsByProject = {};
+        setTimeout(function() {
+          closeDialog();
+          try {
+            document.dispatchEvent(new CustomEvent('frtz:new-beneficiary-created', { detail: detail }));
+          } catch (_evtErr) {}
+          if (window.FRTZ && typeof window.FRTZ.refreshReleasedBeneficiaryCount === 'function') {
+            try {
+              window.FRTZ.refreshReleasedBeneficiaryCount(detail.project, detail.team);
+            } catch (refreshErr) {
+              console.warn('refreshReleasedBeneficiaryCount failed', refreshErr);
+            }
+          }
+        }, 600);
+      })
+      .withFailureHandler(function(err) {
+        if (!isOpen) {
+          setSubmitting(false);
+          return;
+        }
+        setSubmitting(false);
+        const message = err && err.message ? err.message : 'Failed to create new beneficiary.';
+        setStatus(message, 'error');
+      })
+      .createNewReleasedBeneficiary(payload);
+  }
+
+  if (form) {
+    form.addEventListener('submit', handleSubmit);
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function() {
+      if (!submitting) closeDialog();
+    });
+  }
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function() {
+      if (!submitting) closeDialog();
+    });
+  }
+
+  overlay.addEventListener('click', function(event) {
+    if (event.target === overlay && !submitting) {
+      closeDialog();
+    }
+  });
+
+  document.addEventListener('keydown', function(event) {
+    if (!isOpen || submitting) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDialog();
+    }
+  });
+
+  if (projectSelect) {
+    projectSelect.addEventListener('change', function() {
+      if (!isOpen) return;
+      pendingTeamValue = null;
+      updateTeamOptions(projectSelect.value, null);
+    });
+  }
+
+  if (teamSelect) {
+    teamSelect.addEventListener('change', function() {
+      if (!isOpen) return;
+      if (teamSelect.value !== PLACEHOLDER_VALUE) {
+        teamSelect.dataset.userSet = 'true';
+      }
+    });
+  }
+
+  window.FRTZ = window.FRTZ || {};
+  window.FRTZ.openNewBeneficiaryDialog = openDialog;
+  window.FRTZ.closeNewBeneficiaryDialog = closeDialog;
+  window.FRTZ.invalidateNewBeneficiaryOptions = function() {
+    optionsCache = null;
+    optionsReady = false;
+  };
+
+  document.addEventListener('frtz:add-new-beneficiary', function(event) {
+    const context = event && event.detail ? event.detail : {};
+    openDialog(context);
+  });
+})();
+</script>
 
 <script>
 (function(){
