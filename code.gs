@@ -8018,6 +8018,22 @@ function createNewReleasedBeneficiary(payload) {
     try { idxTimestamp = IX.get(['Date and Time', 'Date & Time', 'Timestamp', 'Updated At', 'Date']); } catch (_e) {}
     try { idxSubmitter = IX.get(['Submitter', 'Updated By', 'Entered By']); } catch (_e) {}
 
+    if (idxName < 0) {
+      return { ok: false, error: 'Name of Beneficiary column not found' };
+    }
+
+    const normalizedTargetName = name.toLowerCase();
+    if (lastRow > 1) {
+      const existingNames = sh.getRange(2, idxName + 1, lastRow - 1, 1).getDisplayValues();
+      for (let r = 0; r < existingNames.length; r++) {
+        const cell = existingNames[r] && existingNames[r][0] != null ? String(existingNames[r][0]).trim() : '';
+        if (!cell) continue;
+        if (cell.toLowerCase() === normalizedTargetName) {
+          return { ok: false, error: 'Duplicate beneficiary name detected.' };
+        }
+      }
+    }
+
     const newRow = new Array(lastCol).fill('');
     const setValue = (idx, value) => { if (idx >= 0) newRow[idx] = value == null ? '' : value; };
     const setIfPresent = (idx, value) => {
