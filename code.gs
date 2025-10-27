@@ -7791,6 +7791,224 @@ function inductReleasedBeneficiaries(payload) {
 }
 
 /** Get project and team information for a specific beneficiary */
+function getNewBeneficiaryFormOptions() {
+  try {
+    const rows = _readDD_compact_();
+    const designations = new Map();
+    const accountHolders = new Map();
+    const nationalities = new Map();
+    const projects = new Map();
+    const teamsByProject = new Map();
+
+    const addUnique = (map, value) => {
+      const text = (value || '').toString().trim();
+      if (!text) return;
+      const key = text.toLowerCase();
+      if (!map.has(key)) map.set(key, text);
+    };
+
+    if (Array.isArray(rows)) {
+      rows.forEach(row => {
+        if (!row) return;
+        addUnique(designations, row.designation);
+        addUnique(accountHolders, row.account);
+        addUnique(nationalities, row.nationality);
+
+        const project = (row.project || '').toString().trim();
+        if (!project) return;
+        const projKey = project.toLowerCase();
+        if (!projects.has(projKey)) projects.set(projKey, project);
+
+        if (!teamsByProject.has(projKey)) teamsByProject.set(projKey, new Map());
+        const teamsMap = teamsByProject.get(projKey);
+        const teamValue = (row.team || '').toString().trim();
+        const teamKey = teamValue ? teamValue.toLowerCase() : '__blank__';
+        if (!teamsMap.has(teamKey)) {
+          teamsMap.set(teamKey, {
+            value: teamValue,
+            label: teamValue || 'Unassigned / Blank',
+            blank: !teamValue
+          });
+        }
+      });
+    }
+
+    const toOptionList = (map) => Array.from(map.values())
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+      .map(value => ({ value: value, label: value }));
+
+    const designationsList = toOptionList(designations);
+    const accountList = toOptionList(accountHolders);
+    const nationalityList = toOptionList(nationalities);
+    const projectList = toOptionList(projects);
+
+    const teamsObj = {};
+    projects.forEach((projectValue, projKey) => {
+      const teamEntries = teamsByProject.get(projKey);
+      if (!teamEntries) return;
+      const arr = Array.from(teamEntries.values());
+      arr.sort((a, b) => {
+        if (a.blank && !b.blank) return -1;
+        if (!a.blank && b.blank) return 1;
+        const labelA = a.label || '';
+        const labelB = b.label || '';
+        return labelA.localeCompare(labelB, undefined, { sensitivity: 'base' });
+      });
+      teamsObj[projectValue] = arr.map(entry => ({
+        value: entry.value,
+        label: entry.label,
+        blank: entry.blank === true
+      }));
+    });
+
+    return {
+      ok: true,
+      designations: designationsList,
+      projects: projectList,
+      accountHolders: accountList,
+      nationalities: nationalityList,
+      teamsByProject: teamsObj
+    };
+  } catch (err) {
+    console.error('getNewBeneficiaryFormOptions error', err);
+    return { ok: false, error: String(err) };
+  }
+}
+
+function createNewReleasedBeneficiary(payload) {
+  try {
+    if (!payload || typeof payload !== 'object') {
+      return { ok: false, error: 'Invalid payload' };
+    }
+
+    const name = (payload.beneficiary || payload.name || '').toString().trim();
+    if (!name) {
+      return { ok: false, error: 'Name of Beneficiary is required' };
+    }
+
+    const designation = (payload.designation || '').toString().trim();
+    if (!designation) {
+      return { ok: false, error: 'Resource designation is required' };
+    }
+
+    const project = (payload.project || '').toString().trim();
+    if (!project) {
+      return { ok: false, error: 'Project is required' };
+    }
+
+    const teamProvided = payload.teamProvided === true
+      || payload.team === ''
+      || (payload.team != null && String(payload.team).trim() !== '');
+    if (!teamProvided) {
+      return { ok: false, error: 'Team selection is required' };
+    }
+    const team = payload.team != null ? String(payload.team).trim() : '';
+
+    const accountHolder = (payload.accountHolder || '').toString().trim();
+    if (!accountHolder) {
+      return { ok: false, error: 'Account holder is required' };
+    }
+
+    const nationality = (payload.nationality || '').toString().trim();
+    if (!nationality) {
+      return { ok: false, error: 'Nationality is required' };
+    }
+
+    let defaultDa = '';
+    if (payload.defaultDa !== '' && payload.defaultDa !== null && payload.defaultDa !== undefined) {
+      const numeric = Number(payload.defaultDa);
+      if (!Number.isFinite(numeric) || numeric < 0) {
+        return { ok: false, error: 'Default DA Amt must be a non-negative number' };
+      }
+      defaultDa = numeric;
+    }
+
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sh = ss.getSheetByName(DATA_SHEET_NAME);
+    if (!sh) {
+      return { ok: false, error: 'Data sheet "DD" not found' };
+    }
+
+    const lastRow = sh.getLastRow();
+    const lastCol = sh.getLastColumn();
+    if (lastCol < 1) {
+      return { ok: false, error: 'DD sheet has no columns' };
+    }
+
+    const header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    const IX = _headerIndex_(header);
+
+    const idxName = IX.get(['Name of Beneficiary', 'Beneficiary', 'Beneficiary Name', 'Name']);
+    const idxStatus = IX.get(['In Use/Release', 'In Use / release', 'In Use', 'Status']);
+    let idxProject = -1;
+    let idxTeam = -1;
+    let idxAccount = -1;
+    let idxDesignation = -1;
+    let idxDefaultDa = -1;
+    let idxNationality = -1;
+    let idxTimestamp = -1;
+    let idxSubmitter = -1;
+
+    try { idxProject = IX.get(['Project']); } catch (_e) {}
+    try { idxTeam = IX.get(['Team', 'Team Name']); } catch (_e) {}
+    try { idxAccount = IX.get(['Account Holder Name', 'Account Holder']); } catch (_e) {}
+    try { idxDesignation = IX.get(['Resource Designation', 'Designation']); } catch (_e) {}
+    try { idxDefaultDa = IX.get(['Default DA Amt', 'Default DA', 'DA Default']); } catch (_e) {}
+    try { idxNationality = IX.get(['Nationality', 'Country', 'Citizenship']); } catch (_e) {}
+    try { idxTimestamp = IX.get(['Date and Time', 'Date & Time', 'Timestamp', 'Updated At', 'Date']); } catch (_e) {}
+    try { idxSubmitter = IX.get(['Submitter', 'Updated By', 'Entered By']); } catch (_e) {}
+
+    const newRow = new Array(lastCol).fill('');
+    const setValue = (idx, value) => { if (idx >= 0) newRow[idx] = value == null ? '' : value; };
+    const setIfPresent = (idx, value) => {
+      if (idx >= 0 && value != null && value !== '') {
+        newRow[idx] = value;
+      }
+    };
+
+    setValue(idxName, name);
+    setValue(idxStatus, 'RELEASE');
+    setIfPresent(idxProject, project);
+    setValue(idxTeam, team);
+    setIfPresent(idxAccount, accountHolder);
+    setIfPresent(idxDesignation, designation);
+    if (idxDefaultDa >= 0 && defaultDa !== '') {
+      newRow[idxDefaultDa] = defaultDa;
+    }
+    setIfPresent(idxNationality, nationality);
+
+    if (idxTimestamp >= 0) {
+      newRow[idxTimestamp] = new Date();
+    }
+
+    if (idxSubmitter >= 0) {
+      let email = '';
+      try { email = Session.getActiveUser().getEmail() || ''; } catch (_e) {}
+      if (email) newRow[idxSubmitter] = email;
+    }
+
+    sh.appendRow(newRow);
+
+    try { bustDDCache(); } catch (_e) {}
+    try { bustPTCache(); } catch (_e) {}
+    try { bustTypeaheadCache(); } catch (_e) {}
+
+    return {
+      ok: true,
+      beneficiary: name,
+      project: project,
+      team: team,
+      designation: designation,
+      accountHolder: accountHolder,
+      nationality: nationality
+    };
+  } catch (err) {
+    console.error('createNewReleasedBeneficiary error', err);
+    return { ok: false, error: String(err) };
+  }
+}
+
+
 function getProjectTeamFromDD(beneficiaryName) {
   try {
     const name = _norm(beneficiaryName);

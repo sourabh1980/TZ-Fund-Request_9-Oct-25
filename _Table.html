@@ -246,6 +246,64 @@
   </div>
 </div>
 
+<div class="new-beneficiary-overlay" id="newBeneficiaryModal" role="dialog" aria-modal="true" aria-labelledby="newBeneficiaryTitle" hidden>
+  <div class="new-beneficiary-card">
+    <button type="button" class="new-beneficiary-close" id="newBeneficiaryClose" aria-label="Close add new beneficiary dialog">×</button>
+    <div class="new-beneficiary-header">
+      <h3 class="new-beneficiary-title" id="newBeneficiaryTitle">Add New Beneficiary</h3>
+      <p class="new-beneficiary-subtitle" id="newBeneficiarySubtitle">Provide details to create a released beneficiary record.</p>
+    </div>
+    <form class="new-beneficiary-form" id="newBeneficiaryForm" novalidate>
+      <div class="new-beneficiary-scroll">
+        <div class="new-beneficiary-grid">
+          <div class="new-beneficiary-field" data-field="name">
+            <label for="newBeneficiaryName">Name of Beneficiary</label>
+            <input type="text" id="newBeneficiaryName" class="new-beneficiary-input" autocomplete="off">
+            <div class="new-beneficiary-field-error" data-error-for="name"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="designation">
+            <label for="newBeneficiaryDesignation">Resource Designation</label>
+            <select id="newBeneficiaryDesignation" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="designation"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="defaultDa">
+            <label for="newBeneficiaryDa">Default DA Amt</label>
+            <input type="number" id="newBeneficiaryDa" class="new-beneficiary-input" inputmode="decimal" step="0.01" min="0">
+            <div class="new-beneficiary-field-error" data-error-for="defaultDa"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="project">
+            <label for="newBeneficiaryProject">Project</label>
+            <select id="newBeneficiaryProject" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="project"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="team">
+            <label for="newBeneficiaryTeam">Team</label>
+            <select id="newBeneficiaryTeam" class="new-beneficiary-select" disabled></select>
+            <div class="new-beneficiary-field-error" data-error-for="team"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="accountHolder">
+            <label for="newBeneficiaryAccount">Account Holder Name</label>
+            <select id="newBeneficiaryAccount" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="accountHolder"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="nationality">
+            <label for="newBeneficiaryNationality">Nationality</label>
+            <select id="newBeneficiaryNationality" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="nationality"></div>
+          </div>
+        </div>
+      </div>
+      <div class="new-beneficiary-footer">
+        <div class="new-beneficiary-status" id="newBeneficiaryStatus" aria-live="polite"></div>
+        <div class="new-beneficiary-actions">
+          <button type="button" class="new-beneficiary-btn secondary" id="newBeneficiaryCancel">Cancel</button>
+          <button type="submit" class="new-beneficiary-btn primary" id="newBeneficiarySubmit">Ok</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 (function(){
   const tableWrap = document.querySelector('.table-wrap');
@@ -3980,6 +4038,19 @@ document.addEventListener('keydown', function(event) {
   });
 
   // Car number input click handler will be attached after modal is loaded
+
+    return true;
+  }
+
+  var initialTbody = document.getElementById('tbody');
+  if (!initTableModule(initialTbody)) {
+    document.addEventListener('DOMContentLoaded', function handleFRTZTableInit() {
+      var lateTbody = document.getElementById('tbody');
+      if (initTableModule(lateTbody)) {
+        document.removeEventListener('DOMContentLoaded', handleFRTZTableInit);
+      }
+    });
+  }
 
     return true;
   }
