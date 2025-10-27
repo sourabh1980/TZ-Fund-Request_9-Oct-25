@@ -1898,10 +1898,11 @@ document.addEventListener('keydown', function(event) {
 /* === Row totals + summary aggregation (per-row only; no cross-row mirroring) === */
 (function(){
   'use strict';
-  const tbody = document.getElementById('tbody');
-  if(!tbody) return;
 
-  function parseAmt(v){
+  function initTableModule(tbody){
+    if(!tbody) return false;
+
+    function parseAmt(v){
     if(v==null || v==='') return 0;
     if (typeof v === 'number') return v;
     var s = String(v).replace(/\u00A0/g,' ').trim();
@@ -3979,6 +3980,19 @@ document.addEventListener('keydown', function(event) {
   });
 
   // Car number input click handler will be attached after modal is loaded
+
+    return true;
+  }
+
+  var initialTbody = document.getElementById('tbody');
+  if (!initTableModule(initialTbody)) {
+    document.addEventListener('DOMContentLoaded', function handleFRTZTableInit() {
+      var lateTbody = document.getElementById('tbody');
+      if (initTableModule(lateTbody)) {
+        document.removeEventListener('DOMContentLoaded', handleFRTZTableInit);
+      }
+    });
+  }
 
 })();
 
