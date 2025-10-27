@@ -256,9 +256,9 @@
     <form class="new-beneficiary-form" id="newBeneficiaryForm" novalidate>
       <div class="new-beneficiary-scroll">
         <div class="new-beneficiary-grid">
-          <div class="new-beneficiary-field" data-field="name">
-            <label for="newBeneficiaryName">Name of Beneficiary</label>
-            <input type="text" id="newBeneficiaryName" class="new-beneficiary-input" autocomplete="off">
+          <div class="new-beneficiary-field new-beneficiary-field--static" data-field="name">
+            <label for="newBeneficiaryNameDisplay">Name of Beneficiary</label>
+            <div id="newBeneficiaryNameDisplay" class="new-beneficiary-static" data-display="name" role="text" aria-live="polite" tabindex="-1">—</div>
             <div class="new-beneficiary-field-error" data-error-for="name"></div>
           </div>
           <div class="new-beneficiary-field" data-field="designation">
@@ -266,9 +266,9 @@
             <select id="newBeneficiaryDesignation" class="new-beneficiary-select"></select>
             <div class="new-beneficiary-field-error" data-error-for="designation"></div>
           </div>
-          <div class="new-beneficiary-field" data-field="defaultDa">
-            <label for="newBeneficiaryDa">Default DA Amt</label>
-            <input type="number" id="newBeneficiaryDa" class="new-beneficiary-input" inputmode="decimal" step="0.01" min="0">
+          <div class="new-beneficiary-field new-beneficiary-field--static" data-field="defaultDa">
+            <label for="newBeneficiaryDaDisplay">Default DA Amt</label>
+            <div id="newBeneficiaryDaDisplay" class="new-beneficiary-static" data-display="defaultDa" role="text" aria-live="polite" tabindex="-1">—</div>
             <div class="new-beneficiary-field-error" data-error-for="defaultDa"></div>
           </div>
           <div class="new-beneficiary-field" data-field="project">
