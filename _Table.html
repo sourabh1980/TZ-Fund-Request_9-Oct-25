@@ -4065,6 +4065,19 @@ document.addEventListener('keydown', function(event) {
     });
   }
 
+    return true;
+  }
+
+  var initialTbody = document.getElementById('tbody');
+  if (!initTableModule(initialTbody)) {
+    document.addEventListener('DOMContentLoaded', function handleFRTZTableInit() {
+      var lateTbody = document.getElementById('tbody');
+      if (initTableModule(lateTbody)) {
+        document.removeEventListener('DOMContentLoaded', handleFRTZTableInit);
+      }
+    });
+  }
+
 })();
 
 // Include Car Release Modal HTML and JavaScript
