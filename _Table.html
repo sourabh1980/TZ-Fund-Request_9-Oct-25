@@ -449,27 +449,6 @@
     box-sizing: border-box;
   }
 
-  .new-beneficiary-static {
-    width: 100%;
-    min-height: 44px;
-    border-radius: 12px;
-    border: 1px solid rgba(148, 163, 184, 0.45);
-    background: rgba(241, 245, 249, 0.9);
-    padding: 12px 14px;
-    font-size: 15px;
-    color: #0f172a;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-    font-weight: 600;
-    letter-spacing: 0.01em;
-  }
-
-  .new-beneficiary-static.is-empty {
-    color: #94a3b8;
-    font-weight: 500;
-  }
-
   .new-beneficiary-input:focus-visible,
   .new-beneficiary-select:focus-visible {
     outline: none;
@@ -493,8 +472,7 @@
   }
 
   .new-beneficiary-field.has-error .new-beneficiary-input,
-  .new-beneficiary-field.has-error .new-beneficiary-select,
-  .new-beneficiary-field.has-error .new-beneficiary-static {
+  .new-beneficiary-field.has-error .new-beneficiary-select {
     border-color: #f97316;
     box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.16);
     background: rgba(255, 247, 237, 0.9);
@@ -618,9 +596,9 @@
   const submitBtn = overlay.querySelector('#newBeneficiarySubmit');
   const statusEl = overlay.querySelector('#newBeneficiaryStatus');
 
-  const nameDisplay = overlay.querySelector('[data-display="name"]');
+  const nameInput = overlay.querySelector('#newBeneficiaryName');
   const designationSelect = overlay.querySelector('#newBeneficiaryDesignation');
-  const defaultDaDisplay = overlay.querySelector('[data-display="defaultDa"]');
+  const defaultDaInput = overlay.querySelector('#newBeneficiaryDa');
   const projectSelect = overlay.querySelector('#newBeneficiaryProject');
   const teamSelect = overlay.querySelector('#newBeneficiaryTeam');
   const accountSelect = overlay.querySelector('#newBeneficiaryAccount');
@@ -681,7 +659,7 @@
     for (let i = 0; i < errors.length; i++) {
       const state = fieldState[errors[i].field];
       if (!state || !state.container) continue;
-      const el = state.container.querySelector('input, select, textarea, button, [data-display]');
+      const el = state.container.querySelector('input, select, textarea, button');
       if (el && typeof el.focus === 'function') {
         el.focus();
         break;
@@ -704,7 +682,7 @@
 
   function updateFormDisabledState() {
     const disableInputs = loadingOptions || submitting || !optionsReady;
-    [designationSelect, projectSelect, accountSelect, nationalitySelect].forEach(function(el) {
+    [nameInput, designationSelect, defaultDaInput, projectSelect, accountSelect, nationalitySelect].forEach(function(el) {
       if (!el) return;
       el.disabled = disableInputs;
     });
@@ -785,44 +763,6 @@
     if (previous && setSelectValue(select, previous)) {
       placeholder.selected = false;
     }
-  }
-
-  function updateNameStaticDisplay(value) {
-    if (!nameDisplay) return;
-    const raw = value != null ? String(value).trim() : '';
-    nameDisplay.textContent = raw || '—';
-    nameDisplay.dataset.value = raw;
-    if (raw) {
-      nameDisplay.title = raw;
-    } else {
-      nameDisplay.removeAttribute('title');
-    }
-    nameDisplay.classList.toggle('is-empty', raw === '');
-  }
-
-  function updateDefaultDaStaticDisplay(value) {
-    if (!defaultDaDisplay) return;
-    let raw = '';
-    let text = '—';
-    if (value !== '' && value != null) {
-      const sanitized = typeof value === 'string' ? value.replace(/,/g, '') : value;
-      const numeric = Number(sanitized);
-      if (Number.isFinite(numeric)) {
-        raw = String(numeric);
-        text = numeric.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      } else {
-        raw = String(value).trim();
-        text = raw || '—';
-      }
-    }
-    defaultDaDisplay.textContent = text;
-    defaultDaDisplay.dataset.value = raw;
-    if (raw) {
-      defaultDaDisplay.title = raw;
-    } else {
-      defaultDaDisplay.removeAttribute('title');
-    }
-    defaultDaDisplay.classList.toggle('is-empty', raw === '');
   }
 
   function updateTeamOptions(projectValue, preferTeam) {
@@ -935,10 +875,13 @@
     populateSelect(nationalitySelect, opts.nationalities || [], 'Select nationality');
     populateSelect(projectSelect, opts.projects || [], 'Select project');
 
-    const ctxName = Object.prototype.hasOwnProperty.call(openContext, 'beneficiary') ? openContext.beneficiary : '';
-    updateNameStaticDisplay(ctxName);
-    const ctxDa = Object.prototype.hasOwnProperty.call(openContext, 'defaultDa') ? openContext.defaultDa : '';
-    updateDefaultDaStaticDisplay(ctxDa);
+    if (openContext && openContext.beneficiary && nameInput) {
+      nameInput.value = openContext.beneficiary;
+    }
+    if (defaultDaInput) {
+      const ctxDa = openContext && Object.prototype.hasOwnProperty.call(openContext, 'defaultDa') ? openContext.defaultDa : '';
+      defaultDaInput.value = ctxDa == null ? '' : ctxDa;
+    }
 
     pendingTeamValue = openContext && Object.prototype.hasOwnProperty.call(openContext, 'team') ? openContext.team : null;
 
@@ -960,12 +903,10 @@
   }
 
   function collectValues() {
-    const nameValue = nameDisplay ? (nameDisplay.dataset.value || nameDisplay.textContent || '') : '';
-    const defaultDaValue = defaultDaDisplay ? (defaultDaDisplay.dataset.value || '') : '';
     return {
-      name: nameValue.trim(),
+      name: nameInput ? nameInput.value.trim() : '',
       designation: designationSelect ? designationSelect.value : '',
-      defaultDa: defaultDaValue.trim(),
+      defaultDa: defaultDaInput ? defaultDaInput.value.trim() : '',
       project: projectSelect ? projectSelect.value : '',
       teamRaw: teamSelect ? teamSelect.value : PLACEHOLDER_VALUE,
       accountHolder: accountSelect ? accountSelect.value : '',
@@ -987,7 +928,7 @@
     };
 
     if (!payload.beneficiary) {
-      errors.push({ field: 'name', message: 'Beneficiary name is not available. Close and try again.' });
+      errors.push({ field: 'name', message: 'Enter the beneficiary name.' });
     }
     if (!payload.designation) {
       errors.push({ field: 'designation', message: 'Select a resource designation.' });
@@ -1018,7 +959,7 @@
     if (values.defaultDa !== '') {
       const numeric = Number(values.defaultDa);
       if (!Number.isFinite(numeric) || numeric < 0) {
-        errors.push({ field: 'defaultDa', message: 'Default DA amount is invalid. Please contact your administrator.' });
+        errors.push({ field: 'defaultDa', message: 'Enter a non-negative amount.' });
       } else {
         payload.defaultDa = numeric;
       }
@@ -1044,6 +985,11 @@
 
   function focusFirstField() {
     if (!isOpen) return;
+    if (nameInput && !nameInput.disabled) {
+      nameInput.focus();
+      nameInput.select && nameInput.select();
+      return;
+    }
     const focusable = overlay.querySelector('input:not([disabled]), select:not([disabled])');
     if (focusable && typeof focusable.focus === 'function') {
       focusable.focus();
@@ -1071,10 +1017,14 @@
       setStatus('Loading beneficiary options…', 'info');
     }
 
-    const hasName = Object.prototype.hasOwnProperty.call(openContext, 'beneficiary');
-    updateNameStaticDisplay(hasName ? openContext.beneficiary : '');
-    const hasDefaultDa = Object.prototype.hasOwnProperty.call(openContext, 'defaultDa');
-    updateDefaultDaStaticDisplay(hasDefaultDa ? openContext.defaultDa : '');
+    if (nameInput && openContext && openContext.beneficiary) {
+      nameInput.value = openContext.beneficiary;
+    }
+    if (defaultDaInput) {
+      defaultDaInput.value = openContext && Object.prototype.hasOwnProperty.call(openContext, 'defaultDa')
+        ? (openContext.defaultDa == null ? '' : openContext.defaultDa)
+        : '';
+    }
 
     optionsReady = false;
     setLoading(!optionsCache);
