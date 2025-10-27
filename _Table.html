@@ -246,6 +246,64 @@
   </div>
 </div>
 
+<div class="new-beneficiary-overlay" id="newBeneficiaryModal" role="dialog" aria-modal="true" aria-labelledby="newBeneficiaryTitle" hidden>
+  <div class="new-beneficiary-card">
+    <button type="button" class="new-beneficiary-close" id="newBeneficiaryClose" aria-label="Close add new beneficiary dialog">×</button>
+    <div class="new-beneficiary-header">
+      <h3 class="new-beneficiary-title" id="newBeneficiaryTitle">Add New Beneficiary</h3>
+      <p class="new-beneficiary-subtitle" id="newBeneficiarySubtitle">Provide details to create a released beneficiary record.</p>
+    </div>
+    <form class="new-beneficiary-form" id="newBeneficiaryForm" novalidate>
+      <div class="new-beneficiary-scroll">
+        <div class="new-beneficiary-grid">
+          <div class="new-beneficiary-field" data-field="name">
+            <label for="newBeneficiaryName">Name of Beneficiary</label>
+            <input type="text" id="newBeneficiaryName" class="new-beneficiary-input" autocomplete="off">
+            <div class="new-beneficiary-field-error" data-error-for="name"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="designation">
+            <label for="newBeneficiaryDesignation">Resource Designation</label>
+            <select id="newBeneficiaryDesignation" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="designation"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="defaultDa">
+            <label for="newBeneficiaryDa">Default DA Amt</label>
+            <input type="number" id="newBeneficiaryDa" class="new-beneficiary-input" inputmode="decimal" step="0.01" min="0">
+            <div class="new-beneficiary-field-error" data-error-for="defaultDa"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="project">
+            <label for="newBeneficiaryProject">Project</label>
+            <select id="newBeneficiaryProject" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="project"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="team">
+            <label for="newBeneficiaryTeam">Team</label>
+            <select id="newBeneficiaryTeam" class="new-beneficiary-select" disabled></select>
+            <div class="new-beneficiary-field-error" data-error-for="team"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="accountHolder">
+            <label for="newBeneficiaryAccount">Account Holder Name</label>
+            <select id="newBeneficiaryAccount" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="accountHolder"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="nationality">
+            <label for="newBeneficiaryNationality">Nationality</label>
+            <select id="newBeneficiaryNationality" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="nationality"></div>
+          </div>
+        </div>
+      </div>
+      <div class="new-beneficiary-footer">
+        <div class="new-beneficiary-status" id="newBeneficiaryStatus" aria-live="polite"></div>
+        <div class="new-beneficiary-actions">
+          <button type="button" class="new-beneficiary-btn secondary" id="newBeneficiaryCancel">Cancel</button>
+          <button type="submit" class="new-beneficiary-btn primary" id="newBeneficiarySubmit">Ok</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 (function(){
   const tableWrap = document.querySelector('.table-wrap');
@@ -1296,6 +1354,560 @@ document.addEventListener('keydown', function(event) {
   </div>
 </div>
 
+<!-- Released Beneficiary Picker Modal -->
+<style>
+  #beneficiaryPickerModal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 9985;
+    padding: 20px;
+  }
+
+  #beneficiaryPickerModal.show {
+    display: flex;
+  }
+
+  #beneficiaryPickerModal.loading .beneficiary-picker-table-wrapper {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .beneficiary-picker-card {
+    width: min(960px, 96vw);
+    max-height: 88vh;
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 22px;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.28);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .beneficiary-picker-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .beneficiary-picker-header-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .beneficiary-picker-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .beneficiary-picker-subtitle {
+    font-size: 13px;
+    color: #64748b;
+  }
+
+  .beneficiary-picker-close {
+    appearance: none;
+    border: 0;
+    background: rgba(148, 163, 184, 0.18);
+    color: #1e293b;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .beneficiary-picker-close:hover {
+    background: rgba(148, 163, 184, 0.32);
+    transform: rotate(90deg);
+  }
+
+  .beneficiary-picker-body {
+    padding: 16px 24px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+    flex: 1 1 auto;
+  }
+
+  .beneficiary-picker-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .beneficiary-picker-search {
+    flex: 1 1 280px;
+    min-width: 220px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid #cbd5f5;
+    background: #f8fafc;
+    font-size: 14px;
+    color: #1e293b;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .beneficiary-picker-search:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  }
+
+  .beneficiary-picker-count {
+    font-size: 13px;
+    color: #475569;
+  }
+
+  .beneficiary-picker-table-wrapper {
+    flex: 1 1 auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: auto;
+    background: #ffffff;
+  }
+
+  .beneficiary-picker-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .beneficiary-picker-table thead th {
+    position: sticky;
+    top: 0;
+    background: #f1f5f9;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    z-index: 1;
+  }
+
+  .beneficiary-picker-table tbody td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #1f2937;
+  }
+
+  .beneficiary-picker-table tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .beneficiary-picker-table tbody tr.selected {
+    background: #ecfdf5;
+  }
+
+  .beneficiary-picker-table .picker-checkbox {
+    width: 44px;
+    text-align: center;
+  }
+
+  .beneficiary-picker-table .picker-checkbox input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
+  .beneficiary-picker-table .numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: #0f172a;
+  }
+
+  .beneficiary-picker-empty {
+    padding: 28px 16px;
+    text-align: center;
+    font-size: 14px;
+    color: #64748b;
+  }
+
+  .beneficiary-picker-footer {
+    padding: 16px 24px 20px;
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .beneficiary-picker-status {
+    font-size: 13px;
+    color: #475569;
+    min-height: 18px;
+  }
+
+  .beneficiary-picker-status.error {
+    color: #dc2626;
+  }
+
+  .beneficiary-picker-status.success {
+    color: #047857;
+  }
+
+  .beneficiary-picker-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .picker-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .picker-btn.primary {
+    background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+    color: #ffffff;
+    box-shadow: 0 12px 28px rgba(52, 211, 153, 0.32);
+  }
+
+  .picker-btn.primary:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  .picker-btn.primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .picker-btn.secondary {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+
+  .picker-btn.secondary:hover {
+    background: #cbd5f5;
+  }
+
+  @media (max-width: 720px) {
+    .beneficiary-picker-card {
+      width: 100%;
+      max-height: 92vh;
+    }
+
+    .beneficiary-picker-footer {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .beneficiary-picker-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+
+    .picker-btn {
+      width: 100%;
+    }
+  }
+
+  .new-beneficiary-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 9990;
+    padding: 32px 24px;
+    overflow-y: auto;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
+  }
+
+  .new-beneficiary-overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .new-beneficiary-card {
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-radius: 22px;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+    width: min(96%, 760px);
+    max-height: min(90vh, 720px);
+    padding: 32px 36px 28px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    overflow: hidden;
+  }
+
+  .new-beneficiary-header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .new-beneficiary-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  .new-beneficiary-subtitle {
+    font-size: 14px;
+    color: #475569;
+    margin: 0;
+  }
+
+  .new-beneficiary-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .new-beneficiary-scroll {
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+
+  .new-beneficiary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px 24px;
+  }
+
+  .new-beneficiary-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .new-beneficiary-field label {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #475569;
+  }
+
+  .new-beneficiary-input,
+  .new-beneficiary-select {
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.7);
+    padding: 11px 14px;
+    font-size: 14px;
+    color: #0f172a;
+    background: rgba(255, 255, 255, 0.95);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .new-beneficiary-input:focus,
+  .new-beneficiary-select:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+  }
+
+  .new-beneficiary-input[type="number"]::-webkit-inner-spin-button,
+  .new-beneficiary-input[type="number"]::-webkit-outer-spin-button {
+    height: auto;
+  }
+
+  .new-beneficiary-field-error {
+    font-size: 12px;
+    color: #dc2626;
+    min-height: 18px;
+  }
+
+  .new-beneficiary-field.invalid .new-beneficiary-input,
+  .new-beneficiary-field.invalid .new-beneficiary-select {
+    border-color: rgba(220, 38, 38, 0.75);
+    box-shadow: 0 0 0 2px rgba(252, 165, 165, 0.35);
+  }
+
+  .new-beneficiary-footer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(226, 232, 240, 0.75);
+  }
+
+  .new-beneficiary-status {
+    font-size: 13px;
+    color: #475569;
+    min-height: 18px;
+    flex: 1 1 260px;
+  }
+
+  .new-beneficiary-status.error {
+    color: #dc2626;
+  }
+
+  .new-beneficiary-status.success {
+    color: #047857;
+  }
+
+  .new-beneficiary-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .new-beneficiary-btn {
+    border: none;
+    border-radius: 14px;
+    padding: 12px 24px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .new-beneficiary-btn.primary {
+    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+    color: #ffffff;
+    box-shadow: 0 14px 32px rgba(14, 165, 233, 0.35);
+  }
+
+  .new-beneficiary-btn.primary:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  .new-beneficiary-btn.secondary {
+    background: rgba(226, 232, 240, 0.9);
+    color: #1e293b;
+  }
+
+  .new-beneficiary-btn.secondary:not(:disabled):hover {
+    background: rgba(203, 213, 225, 0.95);
+  }
+
+  .new-beneficiary-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .new-beneficiary-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(148, 163, 184, 0.25);
+    color: #0f172a;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .new-beneficiary-close:hover {
+    background: rgba(148, 163, 184, 0.45);
+    transform: rotate(90deg);
+  }
+
+  @media (max-width: 640px) {
+    .new-beneficiary-card {
+      padding: 28px 24px 24px;
+      border-radius: 18px;
+    }
+
+    .new-beneficiary-grid {
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 14px 18px;
+    }
+
+    .new-beneficiary-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+
+    .new-beneficiary-status {
+      flex-basis: 100%;
+    }
+  }
+</style>
+
+<div id="beneficiaryPickerModal" role="dialog" aria-modal="true" aria-labelledby="beneficiaryPickerTitle">
+  <div class="beneficiary-picker-card">
+    <div class="beneficiary-picker-header">
+      <div class="beneficiary-picker-header-group">
+        <h3 class="beneficiary-picker-title" id="beneficiaryPickerTitle">Add Existing Beneficiaries</h3>
+        <div class="beneficiary-picker-subtitle" id="beneficiaryPickerSubtitle"></div>
+      </div>
+      <button type="button" class="beneficiary-picker-close" aria-label="Close add existing beneficiary dialog">×</button>
+    </div>
+    <div class="beneficiary-picker-body">
+      <div class="beneficiary-picker-controls">
+        <input type="search" id="beneficiaryPickerSearch" class="beneficiary-picker-search" placeholder="Search by name, project, team, account holder, or nationality" autocomplete="off">
+        <div class="beneficiary-picker-count" id="beneficiaryPickerCount"></div>
+      </div>
+      <div class="beneficiary-picker-table-wrapper">
+        <table class="beneficiary-picker-table" role="grid" aria-describedby="beneficiaryPickerCount">
+          <thead>
+            <tr>
+              <th scope="col" class="picker-checkbox"><input type="checkbox" id="beneficiaryPickerSelectAll" aria-label="Select all visible beneficiaries"></th>
+              <th scope="col">S.No</th>
+              <th scope="col">Name of Beneficiary</th>
+              <th scope="col">Resource Designation</th>
+              <th scope="col">Project</th>
+              <th scope="col">Team</th>
+              <th scope="col">Account Holder Name</th>
+              <th scope="col" class="numeric">Idle since (days)</th>
+              <th scope="col">Nationality</th>
+            </tr>
+          </thead>
+          <tbody id="beneficiaryPickerRows"></tbody>
+        </table>
+        <div class="beneficiary-picker-empty" id="beneficiaryPickerEmpty" hidden>No released beneficiaries are available right now.</div>
+      </div>
+    </div>
+    <div class="beneficiary-picker-footer">
+      <div class="beneficiary-picker-status" id="beneficiaryPickerStatus"></div>
+      <div class="beneficiary-picker-actions">
+        <button type="button" class="picker-btn secondary" id="beneficiaryPickerCancel">Cancel</button>
+        <button type="button" class="picker-btn primary" id="beneficiaryPickerApply" disabled>Add Selected</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   const isMobInput = (el)=>{
@@ -1579,10 +2191,11 @@ document.addEventListener('keydown', function(event) {
 /* === Row totals + summary aggregation (per-row only; no cross-row mirroring) === */
 (function(){
   'use strict';
-  const tbody = document.getElementById('tbody');
-  if(!tbody) return;
 
-  function parseAmt(v){
+  function initTableModule(tbody){
+    if(!tbody) return false;
+
+    function parseAmt(v){
     if(v==null || v==='') return 0;
     if (typeof v === 'number') return v;
     var s = String(v).replace(/\u00A0/g,' ').trim();
@@ -1847,6 +2460,7 @@ document.addEventListener('keydown', function(event) {
 
     setRowPending(row, true);
 
+    var reviewText = context && context.releaseReview ? String(context.releaseReview).trim() : '';
     var payload = {
       beneficiary: context.beneficiary,
       project: context.project,
@@ -1856,8 +2470,18 @@ document.addEventListener('keydown', function(event) {
       mobile: context.mobile,
       displayName: context.displayName,
       whCharge: context.whCharge,
-      remarks: context.remarks
+      remarks: reviewText || context.remarks || ''
     };
+
+    if (reviewText) {
+      payload.review = reviewText;
+    }
+    if (context && context.releaseRatings) {
+      payload.ratingSummary = context.releaseRatings;
+    }
+    if (context && context.releaseRatingValues) {
+      payload.ratingValues = context.releaseRatingValues;
+    }
 
     google.script.run
       .withSuccessHandler(function(res) {
@@ -1908,18 +2532,1689 @@ document.addEventListener('keydown', function(event) {
     var context = baseContext || buildReleaseContext(row);
     var subject = describeBeneficiaryAction(context);
 
-    showConfirmationModal({
-      title: 'Release beneficiary?',
-      message: 'This will remove ' + subject + ' and log a Release entry. Continue?',
-      buttons: [
-        { text: 'Yes, Release', value: true, role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Releasing' },
-        { text: 'Cancel', value: false, role: 'cancel', variant: 'secondary', feedback: false }
-      ]
-    }).then(function(confirmed) {
-      if (confirmed) {
-        submitRelease(row, context);
+    var ratingCategories = [
+      { key: 'coreKnowledge', label: 'Core Knowledge' },
+      { key: 'discipline', label: 'Discipline' },
+      { key: 'honestyIntegrity', label: 'Honesty and Integrity' },
+      { key: 'teamwork', label: 'Teamwork' },
+      { key: 'attitudeBehaviour', label: 'Attitude and Behaviour' }
+    ];
+
+    function clampRating(value) {
+      var num = Number(value);
+      if (!isFinite(num)) return 0;
+      if (num < 0) return 0;
+      if (num > 5) return 5;
+      return Math.round(num);
+    }
+
+    function countNonSpace(str) {
+      return String(str || '').replace(/\s/g, '').length;
+    }
+
+    function displayValue(value) {
+      var text = value == null ? '' : String(value).trim();
+      return text ? text : '—';
+    }
+
+    function formatRatingsSummary(ratingValues) {
+      var parts = [];
+      ratingCategories.forEach(function(cat) {
+        var rating = clampRating(ratingValues && ratingValues[cat.key]);
+        if (rating > 0) {
+          var stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+          parts.push(cat.label + ': ' + stars + ' (' + rating + '/5)');
+        } else {
+          parts.push(cat.label + ': ☆☆☆☆☆ (0/5)');
+        }
+      });
+      return parts.join(' | ');
+    }
+
+    function openReleaseForm(prefill) {
+      var ratingState = {};
+      var hoverState = {};
+      var initialRatings = prefill && prefill.ratingValues && typeof prefill.ratingValues === 'object'
+        ? prefill.ratingValues
+        : null;
+
+      ratingCategories.forEach(function(cat) {
+        var initial = initialRatings ? clampRating(initialRatings[cat.key]) : 0;
+        ratingState[cat.key] = initial;
+        hoverState[cat.key] = 0;
+      });
+
+      var content = document.createElement('div');
+      content.className = 'release-form';
+
+      var infoGrid = document.createElement('div');
+      infoGrid.className = 'release-info-grid';
+      [
+        { label: 'Name of Beneficiary', value: context.beneficiary },
+        { label: 'Resource Designation', value: context.designation },
+        { label: 'Project', value: context.project },
+        { label: 'Team', value: context.team }
+      ].forEach(function(field) {
+        var fieldEl = document.createElement('div');
+        fieldEl.className = 'release-info-field';
+        var labelEl = document.createElement('span');
+        labelEl.className = 'release-info-label';
+        labelEl.textContent = field.label;
+        var valueEl = document.createElement('span');
+        valueEl.className = 'release-info-value';
+        valueEl.textContent = displayValue(field.value);
+        fieldEl.appendChild(labelEl);
+        fieldEl.appendChild(valueEl);
+        infoGrid.appendChild(fieldEl);
+      });
+      content.appendChild(infoGrid);
+
+      var ratingsSection = document.createElement('div');
+      ratingsSection.className = 'release-section';
+      var ratingsTitle = document.createElement('div');
+      ratingsTitle.className = 'release-section-title';
+      ratingsTitle.textContent = 'Ratings';
+      ratingsSection.appendChild(ratingsTitle);
+      var ratingsHint = document.createElement('div');
+      ratingsHint.className = 'release-section-hint';
+      ratingsHint.textContent = 'Tap a star (1–5) for each category.';
+      ratingsSection.appendChild(ratingsHint);
+
+      var ratingsList = document.createElement('div');
+      ratingsList.className = 'release-ratings-list';
+      ratingsSection.appendChild(ratingsList);
+
+      var ratingsError = document.createElement('div');
+      ratingsError.className = 'release-error';
+      ratingsError.textContent = '';
+      ratingsSection.appendChild(ratingsError);
+
+      var starRefs = {};
+
+      function updateStars(catKey) {
+        var stars = starRefs[catKey] || [];
+        var hover = hoverState[catKey] || 0;
+        var active = ratingState[catKey] || 0;
+        var highlight = hover > 0 ? hover : active;
+        stars.forEach(function(star) {
+          var value = Number(star.dataset.value);
+          var filled = value <= highlight;
+          var selected = value <= active;
+          star.classList.toggle('filled', filled);
+          star.classList.toggle('selected', selected);
+          star.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
       }
+
+      function updateAllStars() {
+        ratingCategories.forEach(function(cat) {
+          updateStars(cat.key);
+        });
+      }
+
+      ratingCategories.forEach(function(cat) {
+        var rowEl = document.createElement('div');
+        rowEl.className = 'release-rating-row';
+        rowEl.setAttribute('data-category', cat.key);
+
+        var labelEl = document.createElement('span');
+        labelEl.className = 'release-rating-label';
+        labelEl.textContent = cat.label;
+        rowEl.appendChild(labelEl);
+
+        var starsWrap = document.createElement('div');
+        starsWrap.className = 'release-rating-stars';
+
+        var catStars = [];
+        for (var i = 1; i <= 5; i++) {
+          (function(catKey, catLabel, value) {
+            var starBtn = document.createElement('button');
+            starBtn.type = 'button';
+            starBtn.className = 'release-star';
+            starBtn.dataset.value = String(value);
+            starBtn.setAttribute('aria-label', catLabel + ' ' + value + ' star' + (value === 1 ? '' : 's'));
+            starBtn.innerHTML = '★';
+            starBtn.addEventListener('mouseenter', function() {
+              hoverState[catKey] = value;
+              updateStars(catKey);
+            });
+            starBtn.addEventListener('mouseleave', function() {
+              hoverState[catKey] = 0;
+              updateStars(catKey);
+            });
+            starBtn.addEventListener('focus', function() {
+              hoverState[catKey] = value;
+              updateStars(catKey);
+            });
+            starBtn.addEventListener('blur', function() {
+              hoverState[catKey] = 0;
+              updateStars(catKey);
+            });
+            starBtn.addEventListener('click', function() {
+              ratingState[catKey] = value;
+              hoverState[catKey] = 0;
+              updateAllStars();
+              if (ratingsError.textContent) {
+                ratingsError.textContent = '';
+              }
+            });
+            starsWrap.appendChild(starBtn);
+            catStars.push(starBtn);
+          })(cat.key, cat.label, i);
+        }
+
+        starRefs[cat.key] = catStars;
+        rowEl.appendChild(starsWrap);
+        ratingsList.appendChild(rowEl);
+      });
+
+      updateAllStars();
+
+      var reviewSection = document.createElement('div');
+      reviewSection.className = 'release-section';
+      var reviewLabel = document.createElement('label');
+      reviewLabel.className = 'release-section-title';
+      reviewLabel.setAttribute('for', 'releaseReviewInput');
+      reviewLabel.textContent = 'Review';
+      reviewSection.appendChild(reviewLabel);
+      var reviewHint = document.createElement('div');
+      reviewHint.className = 'release-section-hint';
+      reviewHint.textContent = 'Minimum 10 letters.';
+      reviewSection.appendChild(reviewHint);
+      var reviewInput = document.createElement('textarea');
+      reviewInput.id = 'releaseReviewInput';
+      reviewInput.className = 'release-review-input';
+      reviewInput.placeholder = 'Share a brief review…';
+      reviewInput.value = prefill && prefill.review ? prefill.review : '';
+      reviewSection.appendChild(reviewInput);
+      var reviewError = document.createElement('div');
+      reviewError.className = 'release-error';
+      reviewError.textContent = '';
+      reviewSection.appendChild(reviewError);
+
+      reviewInput.addEventListener('input', function() {
+        if (reviewError.textContent && countNonSpace(reviewInput.value) >= 10) {
+          reviewError.textContent = '';
+        }
+      });
+
+      content.appendChild(ratingsSection);
+      content.appendChild(reviewSection);
+
+      function validateForm() {
+        var missing = ratingCategories.filter(function(cat) {
+          return (ratingState[cat.key] || 0) <= 0;
+        });
+        if (missing.length) {
+          ratingsError.textContent = 'Please provide a rating for all categories.';
+        } else {
+          ratingsError.textContent = '';
+        }
+
+        var reviewValue = reviewInput.value || '';
+        if (countNonSpace(reviewValue) < 10) {
+          reviewError.textContent = 'Review must be at least 10 letters.';
+        } else {
+          reviewError.textContent = '';
+        }
+
+        if (missing.length) {
+          var firstKey = missing[0].key;
+          var focusStars = starRefs[firstKey];
+          if (focusStars && focusStars[0]) {
+            focusStars[0].focus();
+          }
+          return { ok: false };
+        }
+
+        if (countNonSpace(reviewValue) < 10) {
+          reviewInput.focus();
+          return { ok: false };
+        }
+
+        var cleanedReview = reviewValue.trim();
+        var ratingValues = {};
+        ratingCategories.forEach(function(cat) {
+          ratingValues[cat.key] = ratingState[cat.key] || 0;
+        });
+
+        return {
+          ok: true,
+          review: cleanedReview,
+          ratingValues: ratingValues,
+          summary: formatRatingsSummary(ratingValues)
+        };
+      }
+
+      var capturedResult = null;
+
+      showConfirmationModal({
+        title: 'Release beneficiary',
+        message: 'Complete the ratings and add a review before releasing.',
+        content: content,
+        buttons: [
+          { text: 'Cancel', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false },
+          { text: 'Submit Review', value: 'submit', role: 'confirm', variant: 'primary', feedback: false }
+        ],
+        onSelect: function(value) {
+          if (value === 'submit') {
+            var result = validateForm();
+            if (!result.ok) {
+              return false;
+            }
+            capturedResult = result;
+          } else {
+            capturedResult = null;
+          }
+          return true;
+        }
+      }).then(function(choice) {
+        if (choice === 'submit' && capturedResult) {
+          showConfirmationModal({
+            title: 'Confirm release',
+            message: 'Are you sure you want to release ' + subject + ' with the submitted review?',
+            buttons: [
+              { text: 'Yes, Release', value: true, role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Releasing' },
+              { text: 'No, Go Back', value: false, role: 'cancel', variant: 'secondary', feedback: false }
+            ]
+          }).then(function(confirmed) {
+            if (confirmed) {
+              var releaseContext = {};
+              for (var key in context) {
+                if (Object.prototype.hasOwnProperty.call(context, key)) {
+                  releaseContext[key] = context[key];
+                }
+              }
+              releaseContext.releaseReview = capturedResult.review;
+              releaseContext.releaseRatings = capturedResult.summary;
+              releaseContext.releaseRatingValues = capturedResult.ratingValues;
+              submitRelease(row, releaseContext);
+            } else {
+              openReleaseForm(capturedResult);
+            }
+          }).catch(function(err) {
+            if (err && err !== false) {
+              console.error('Release confirmation dialog failed', err);
+            }
+          });
+        }
+      }).catch(function(err) {
+        if (err && err !== false) {
+          console.error('Release form dialog failed', err);
+        }
+      });
+    }
+
+    openReleaseForm();
+  }
+
+  var addBeneficiaryPicker = (function() {
+    var overlay = document.getElementById('beneficiaryPickerModal');
+    if (!overlay) {
+      return {
+        open: function() {
+          alert('The Add Existing Beneficiary dialog is unavailable. Please reload the page.');
+        },
+        close: function() {}
+      };
+    }
+
+    var rowsTbody = document.getElementById('beneficiaryPickerRows');
+    var emptyEl = document.getElementById('beneficiaryPickerEmpty');
+    var searchInput = document.getElementById('beneficiaryPickerSearch');
+    var selectAll = document.getElementById('beneficiaryPickerSelectAll');
+    var applyBtn = document.getElementById('beneficiaryPickerApply');
+    var cancelBtn = document.getElementById('beneficiaryPickerCancel');
+    var closeBtn = overlay.querySelector('.beneficiary-picker-close');
+    var statusEl = document.getElementById('beneficiaryPickerStatus');
+    var countEl = document.getElementById('beneficiaryPickerCount');
+    var subtitleEl = document.getElementById('beneficiaryPickerSubtitle');
+
+    var allItems = [];
+    var filteredItems = [];
+    var selectedKeys = new Set();
+    var currentContext = { project: '', team: '' };
+    var searchTimer = null;
+    var loading = false;
+    var releasedCount = null;
+    var countListeners = new Set();
+    var inflightCountPromise = null;
+
+    function notifyCountListeners() {
+      countListeners.forEach(function(listener) {
+        try {
+          listener(releasedCount);
+        } catch (err) {
+          console.error('beneficiaryPicker count listener failed', err);
+        }
+      });
+    }
+
+    function setReleasedCount(countValue) {
+      var next = coerceCount(countValue);
+      releasedCount = next;
+      window.FRTZ = window.FRTZ || {};
+      window.FRTZ.releasedBeneficiaryCount = releasedCount;
+      try {
+        if (typeof window.updateExistingBeneficiaryButton === 'function') {
+          window.updateExistingBeneficiaryButton(releasedCount);
+        }
+      } catch (err) {
+        console.error('updateExistingBeneficiaryButton failed', err);
+      }
+      notifyCountListeners();
+    }
+
+    function onReleasedCountChange(listener) {
+      if (typeof listener !== 'function') {
+        return function() {};
+      }
+      countListeners.add(listener);
+      try {
+        listener(releasedCount);
+      } catch (err) {
+        console.error('initial count listener call failed', err);
+      }
+      return function() {
+        countListeners.delete(listener);
+      };
+    }
+
+    function updateStatus(message, tone) {
+      if (!statusEl) return;
+      statusEl.textContent = message || '';
+      statusEl.classList.remove('error', 'success');
+      if (tone) statusEl.classList.add(tone);
+    }
+
+    function refreshReleasedCount(projectOverride, teamOverride) {
+      if (!(window.google && google.script && google.script.run)) {
+        return Promise.resolve(null);
+      }
+
+      var project = typeof projectOverride === 'string' ? projectOverride : currentContext.project;
+      var team = typeof teamOverride === 'string' ? teamOverride : currentContext.team;
+
+      if (inflightCountPromise) {
+        return inflightCountPromise;
+      }
+
+      inflightCountPromise = new Promise(function(resolve) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            inflightCountPromise = null;
+            if (res && res.ok !== false) {
+              if (typeof res.targetProject === 'string') currentContext.project = res.targetProject;
+              if (typeof res.targetTeam === 'string') currentContext.team = res.targetTeam;
+              var total = (typeof res.total === 'number' && isFinite(res.total))
+                ? res.total
+                : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
+              setReleasedCount(total);
+            } else {
+              setReleasedCount(null);
+            }
+            resolve(res || null);
+          })
+          .withFailureHandler(function(err) {
+            inflightCountPromise = null;
+            console.error('refreshReleasedBeneficiaryCount failed:', err);
+            setReleasedCount(null);
+            resolve(null);
+          })
+          .getReleasedBeneficiariesForInduction(project, team);
+      });
+
+      return inflightCountPromise;
+    }
+
+    function setLoading(flag, message) {
+      loading = !!flag;
+      overlay.classList.toggle('loading', loading);
+      if (message) {
+        updateStatus(message);
+      }
+      if (loading && applyBtn) {
+        applyBtn.disabled = true;
+      }
+    }
+
+    function updateSubtitle(projectOverride, teamOverride) {
+      if (!subtitleEl) return;
+      var proj = typeof projectOverride === 'string' ? projectOverride : currentContext.project;
+      var team = typeof teamOverride === 'string' ? teamOverride : currentContext.team;
+      if (!proj) {
+        subtitleEl.textContent = 'Project not detected for this row.';
+        return;
+      }
+      var parts = ['Project: ' + proj];
+      parts.push('Team: ' + (team ? team : 'Unassigned'));
+      subtitleEl.textContent = parts.join(' • ');
+    }
+
+    function showEmpty(message) {
+      if (!emptyEl) return;
+      emptyEl.textContent = message || 'No released beneficiaries found.';
+      emptyEl.hidden = false;
+    }
+
+    function hideEmpty() {
+      if (emptyEl) emptyEl.hidden = true;
+    }
+
+    function updateCounts() {
+      if (!countEl) return;
+      var total = allItems.length;
+      var visible = filteredItems.length;
+      if (!total && !visible) {
+        countEl.textContent = '';
+        return;
+      }
+      if (visible === total) {
+        countEl.textContent = visible === 1 ? 'Showing 1 beneficiary' : 'Showing ' + visible + ' beneficiaries';
+      } else {
+        countEl.textContent = 'Showing ' + visible + ' of ' + total + ' beneficiaries';
+      }
+    }
+
+    function updateApplyState() {
+      if (!applyBtn) return;
+      var count = selectedKeys.size;
+      applyBtn.disabled = loading || !count;
+      applyBtn.textContent = count ? ('Add Selected (' + count + ')') : 'Add Selected';
+    }
+
+    function updateSelectAllState() {
+      if (!selectAll) return;
+      if (loading || !filteredItems.length) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+        selectAll.disabled = loading || !filteredItems.length;
+        return;
+      }
+      var selectedInView = 0;
+      for (var i = 0; i < filteredItems.length; i++) {
+        var item = filteredItems[i];
+        if (item && selectedKeys.has(item.beneficiaryKey)) {
+          selectedInView++;
+        }
+      }
+      selectAll.disabled = loading;
+      if (selectedInView === 0) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      } else if (selectedInView === filteredItems.length) {
+        selectAll.checked = true;
+        selectAll.indeterminate = false;
+      } else {
+        selectAll.checked = false;
+        selectAll.indeterminate = true;
+      }
+    }
+
+    function renderRows(list) {
+      if (!rowsTbody) return;
+      rowsTbody.innerHTML = '';
+      if (!Array.isArray(list) || !list.length) {
+        showEmpty('No released beneficiaries match your filters.');
+        updateSelectAllState();
+        return;
+      }
+      hideEmpty();
+      for (var i = 0; i < list.length; i++) {
+        var item = list[i];
+        if (!item) continue;
+        var tr = document.createElement('tr');
+        if (selectedKeys.has(item.beneficiaryKey)) {
+          tr.classList.add('selected');
+        }
+        var tdCheck = document.createElement('td');
+        tdCheck.className = 'picker-checkbox';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.key = item.beneficiaryKey || '';
+        cb.checked = selectedKeys.has(item.beneficiaryKey);
+        cb.disabled = loading;
+        cb.setAttribute('aria-label', 'Select ' + (item.beneficiary || 'beneficiary'));
+        tdCheck.appendChild(cb);
+        tr.appendChild(tdCheck);
+
+        var tdIndex = document.createElement('td');
+        tdIndex.textContent = String(i + 1);
+        tr.appendChild(tdIndex);
+
+        var tdBeneficiary = document.createElement('td');
+        tdBeneficiary.textContent = item.beneficiary || '';
+        tr.appendChild(tdBeneficiary);
+
+        var tdDesignation = document.createElement('td');
+        tdDesignation.textContent = item.designation || '—';
+        tr.appendChild(tdDesignation);
+
+        var tdProject = document.createElement('td');
+        tdProject.textContent = item.project || '—';
+        tr.appendChild(tdProject);
+
+        var tdTeam = document.createElement('td');
+        tdTeam.textContent = item.team || '—';
+        tr.appendChild(tdTeam);
+
+        var tdAccount = document.createElement('td');
+        tdAccount.textContent = item.accountHolder || '—';
+        tr.appendChild(tdAccount);
+
+        var tdIdle = document.createElement('td');
+        tdIdle.className = 'numeric';
+        var idleText = (typeof item.idleDays === 'number' && item.idleDays >= 0) ? String(item.idleDays) : '—';
+        tdIdle.textContent = idleText;
+        if (item.releasedAt) {
+          var releaseDate = new Date(item.releasedAt);
+          if (!isNaN(releaseDate.getTime())) {
+            tdIdle.title = 'Released on ' + releaseDate.toLocaleString();
+          }
+        }
+        tr.appendChild(tdIdle);
+
+        var tdNationality = document.createElement('td');
+        tdNationality.textContent = item.nationality || '—';
+        tr.appendChild(tdNationality);
+
+        rowsTbody.appendChild(tr);
+      }
+      updateSelectAllState();
+    }
+
+    function applyFilterNow() {
+      var term = searchInput ? searchInput.value.trim().toLowerCase() : '';
+      if (!term) {
+        filteredItems = allItems.slice();
+      } else {
+        filteredItems = allItems.filter(function(item) {
+          if (!item) return false;
+          return [item.beneficiary, item.designation, item.project, item.team, item.accountHolder, item.nationality]
+            .some(function(part) {
+              return String(part || '').toLowerCase().indexOf(term) >= 0;
+            });
+        });
+      }
+      renderRows(filteredItems);
+      updateCounts();
+      updateApplyState();
+    }
+
+    function scheduleFilter() {
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(applyFilterNow, 120);
+    }
+
+    function namesForKeys(keys) {
+      return keys.map(function(key) {
+        var match = allItems.find(function(item) {
+          return item && item.beneficiaryKey === key;
+        });
+        return match && match.beneficiary ? match.beneficiary : key;
+      }).filter(Boolean);
+    }
+
+    function executeAdd(keys) {
+      if (!(window.google && google.script && google.script.run)) {
+        updateStatus('Beneficiary updates are only available inside the Google Sheets environment.', 'error');
+        return;
+      }
+      setLoading(true, 'Adding beneficiaries…');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setLoading(false);
+          if (!res || res.ok === false) {
+            updateStatus(res && res.error ? res.error : 'Failed to induct beneficiaries.', 'error');
+            updateApplyState();
+            return;
+          }
+
+          if (typeof res.project === 'string') currentContext.project = res.project;
+          if (typeof res.team === 'string') currentContext.team = res.team;
+          updateSubtitle();
+
+          var addedKeys = Array.isArray(res.addedKeys) ? new Set(res.addedKeys) : new Set(keys);
+          if (addedKeys.size) {
+            allItems = allItems.filter(function(item) {
+              return !(item && addedKeys.has(item.beneficiaryKey));
+            });
+          }
+
+          filteredItems = allItems.slice();
+          selectedKeys.clear();
+          applyFilterNow();
+
+          if (res && typeof res.remaining === 'number' && isFinite(res.remaining)) {
+            setReleasedCount(res.remaining);
+          } else {
+            setReleasedCount(allItems.length);
+          }
+
+          var addedCount = res.inserted || addedKeys.size || 0;
+          var statusMsg = addedCount
+            ? ('Added ' + addedCount + ' beneficiary' + (addedCount === 1 ? '' : 'ies') + ' to ' + (currentContext.project || 'project') + (currentContext.team ? ' • ' + currentContext.team : '') + '.')
+            : 'No beneficiaries were added.';
+
+          if (Array.isArray(res.skipped) && res.skipped.length) {
+            var skippedKeys = res.skipped.map(function(info) { return info && info.key; }).filter(Boolean);
+            var skippedNames = namesForKeys(skippedKeys);
+            if (skippedNames.length) {
+              statusMsg += ' Skipped: ' + skippedNames.join(', ') + '.';
+            }
+          }
+
+          updateStatus(statusMsg, addedCount ? 'success' : null);
+          updateApplyState();
+
+          if (res && Array.isArray(res.beneficiaries) && res.beneficiaries.length && typeof window.appendRowsFromBeneficiaries === 'function') {
+            try {
+              window.appendRowsFromBeneficiaries(res.beneficiaries);
+            } catch (appendErr) {
+              console.warn('appendRowsFromBeneficiaries failed:', appendErr);
+            }
+          }
+
+          try {
+            document.dispatchEvent(new CustomEvent('frtz:beneficiary-inducted', {
+              detail: {
+                project: currentContext.project,
+                team: currentContext.team,
+                beneficiaries: res && res.beneficiaries ? res.beneficiaries : []
+              }
+            }));
+          } catch (_eventErr) {}
+        })
+        .withFailureHandler(function(err) {
+          setLoading(false);
+          console.error('inductReleasedBeneficiaries failed:', err);
+          updateStatus('Failed to induct beneficiaries. Please try again.', 'error');
+          updateApplyState();
+        })
+        .inductReleasedBeneficiaries({
+          project: currentContext.project,
+          team: currentContext.team,
+          beneficiaryKeys: keys
+        });
+    }
+
+    function performAdd() {
+      if (loading || !selectedKeys.size) return;
+      if (!currentContext.project) {
+        updateStatus('Project information is missing for this row.', 'error');
+        return;
+      }
+      var keys = Array.from(selectedKeys);
+      var names = namesForKeys(keys);
+      var targetLabel = currentContext.project + (currentContext.team ? ' • ' + currentContext.team : '');
+      var message = names.length === 1
+        ? 'Are you sure you want to induct ' + names[0] + ' into ' + targetLabel + '?'
+        : 'Are you sure you want to induct ' + names.length + ' beneficiaries into ' + targetLabel + '?';
+
+      showConfirmationModal({
+        title: 'Induct beneficiaries?',
+        message: message,
+        yesText: 'Yes, Induct',
+        noText: 'Cancel'
+      }).then(function(confirmed) {
+        if (!confirmed) return;
+        executeAdd(keys);
+      });
+    }
+
+    function close() {
+      overlay.classList.remove('show');
+      overlay.classList.remove('loading');
+      if (searchTimer) {
+        clearTimeout(searchTimer);
+        searchTimer = null;
+      }
+      document.removeEventListener('keydown', onKeydown);
+    }
+
+    function open(context) {
+      context = context || {};
+      currentContext.project = context.project ? String(context.project).trim() : '';
+      currentContext.team = context.team ? String(context.team).trim() : '';
+      selectedKeys.clear();
+      updateStatus('');
+      updateSubtitle();
+      hideEmpty();
+      if (searchInput) searchInput.value = '';
+      if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+        selectAll.disabled = true;
+      }
+      allItems = [];
+      filteredItems = [];
+      renderRows(filteredItems);
+      updateCounts();
+      updateApplyState();
+
+      overlay.classList.add('show');
+      setTimeout(function() {
+        try { if (searchInput) searchInput.focus(); } catch (_e) {}
+      }, 120);
+      document.addEventListener('keydown', onKeydown);
+
+      if (!(window.google && google.script && google.script.run)) {
+        updateStatus('Beneficiary picker is only available inside the Google Sheets web app.', 'error');
+        showEmpty('Open this sheet in the Google Sheets web app to induct released beneficiaries.');
+        return;
+      }
+
+      setLoading(true, 'Loading released beneficiaries…');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setLoading(false);
+          if (!res || res.ok === false) {
+            updateStatus(res && res.error ? res.error : 'Unable to load released beneficiaries.', 'error');
+            showEmpty('No released beneficiaries found.');
+            setReleasedCount(null);
+            allItems = [];
+            filteredItems = [];
+            updateCounts();
+            updateApplyState();
+            updateSelectAllState();
+            return;
+          }
+
+          if (typeof res.targetProject === 'string') currentContext.project = res.targetProject;
+          if (typeof res.targetTeam === 'string') currentContext.team = res.targetTeam;
+          updateSubtitle();
+
+          var total = (typeof res.total === 'number' && isFinite(res.total))
+            ? res.total
+            : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
+          setReleasedCount(total);
+
+          allItems = Array.isArray(res.beneficiaries) ? res.beneficiaries : [];
+          filteredItems = allItems.slice();
+          applyFilterNow();
+          if (!allItems.length) {
+            showEmpty('No released beneficiaries are available right now.');
+          }
+        })
+        .withFailureHandler(function(err) {
+          setLoading(false);
+          console.error('getReleasedBeneficiariesForInduction failed:', err);
+          updateStatus('Unable to load released beneficiaries. Please try again.', 'error');
+          showEmpty('No released beneficiaries found.');
+          setReleasedCount(null);
+          allItems = [];
+          filteredItems = [];
+          updateCounts();
+          updateApplyState();
+          updateSelectAllState();
+        })
+        .getReleasedBeneficiariesForInduction(currentContext.project, currentContext.team);
+    }
+
+    function onKeydown(e) {
+      if (e.key === 'Escape' && overlay.classList.contains('show')) {
+        close();
+      }
+    }
+
+    if (cancelBtn) cancelBtn.addEventListener('click', close);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) close();
     });
+
+    if (searchInput) searchInput.addEventListener('input', scheduleFilter);
+
+    if (selectAll) {
+      selectAll.addEventListener('change', function() {
+        if (loading) return;
+        var checked = !!selectAll.checked;
+        filteredItems.forEach(function(item) {
+          if (!item || !item.beneficiaryKey) return;
+          if (checked) {
+            selectedKeys.add(item.beneficiaryKey);
+          } else {
+            selectedKeys.delete(item.beneficiaryKey);
+          }
+        });
+        if (rowsTbody) {
+          Array.prototype.forEach.call(rowsTbody.querySelectorAll('input[type="checkbox"][data-key]'), function(box) {
+            box.checked = checked;
+            var row = box.closest('tr');
+            if (row) row.classList.toggle('selected', box.checked);
+          });
+        }
+        selectAll.indeterminate = false;
+        updateApplyState();
+      });
+    }
+
+    if (rowsTbody) {
+      rowsTbody.addEventListener('change', function(e) {
+        var cb = e.target.closest('input[type="checkbox"][data-key]');
+        if (!cb || loading) return;
+        var key = cb.dataset.key || '';
+        if (!key) return;
+        if (cb.checked) {
+          selectedKeys.add(key);
+        } else {
+          selectedKeys.delete(key);
+        }
+        var row = cb.closest('tr');
+        if (row) row.classList.toggle('selected', cb.checked);
+        updateApplyState();
+        updateSelectAllState();
+      });
+
+      rowsTbody.addEventListener('click', function(e) {
+        var row = e.target.closest('tr');
+        if (!row || loading) return;
+        var cb = row.querySelector('input[type="checkbox"][data-key]');
+        if (!cb || e.target === cb) return;
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+
+    if (applyBtn) applyBtn.addEventListener('click', performAdd);
+
+    window.FRTZ = window.FRTZ || {};
+    window.FRTZ.onReleasedBeneficiaryCountChange = onReleasedCountChange;
+    window.FRTZ.getReleasedBeneficiaryCount = function() { return releasedCount; };
+    window.FRTZ.refreshReleasedBeneficiaryCount = refreshReleasedCount;
+
+    return {
+      open: open,
+      close: close
+    };
+  })();
+
+
+  var TEAM_BLANK_VALUE = '__FRITZ_TEAM_BLANK__';
+
+  var newBeneficiaryModal = (function() {
+    var overlay = document.getElementById('newBeneficiaryModal');
+    if (!overlay) {
+      return {
+        open: function() {
+          alert('Add New Beneficiary dialog is unavailable.');
+        },
+        close: function() {}
+      };
+    }
+
+    var form = document.getElementById('newBeneficiaryForm');
+    var fields = {
+      name: document.getElementById('newBeneficiaryName'),
+      designation: document.getElementById('newBeneficiaryDesignation'),
+      defaultDa: document.getElementById('newBeneficiaryDa'),
+      project: document.getElementById('newBeneficiaryProject'),
+      team: document.getElementById('newBeneficiaryTeam'),
+      accountHolder: document.getElementById('newBeneficiaryAccount'),
+      nationality: document.getElementById('newBeneficiaryNationality')
+    };
+    var errorEls = {
+      name: overlay.querySelector('[data-error-for="name"]'),
+      designation: overlay.querySelector('[data-error-for="designation"]'),
+      defaultDa: overlay.querySelector('[data-error-for="defaultDa"]'),
+      project: overlay.querySelector('[data-error-for="project"]'),
+      team: overlay.querySelector('[data-error-for="team"]'),
+      accountHolder: overlay.querySelector('[data-error-for="accountHolder"]'),
+      nationality: overlay.querySelector('[data-error-for="nationality"]')
+    };
+    var statusEl = document.getElementById('newBeneficiaryStatus');
+    var submitBtn = document.getElementById('newBeneficiarySubmit');
+    var cancelBtn = document.getElementById('newBeneficiaryCancel');
+    var closeBtn = document.getElementById('newBeneficiaryClose');
+
+    var state = {
+      open: false,
+      loading: false,
+      submitting: false,
+      options: null,
+      context: {},
+      teamProvided: false
+    };
+
+    function ensureHiddenState() {
+      if (state.open) {
+        overlay.hidden = false;
+      } else {
+        overlay.hidden = true;
+      }
+    }
+
+    function setStatus(message, type) {
+      statusEl.textContent = message || '';
+      statusEl.classList.remove('error', 'success');
+      if (type === 'error') {
+        statusEl.classList.add('error');
+      } else if (type === 'success') {
+        statusEl.classList.add('success');
+      }
+    }
+
+    function setFieldError(key, message) {
+      var field = fields[key];
+      var wrapper = field ? field.closest('.new-beneficiary-field') : null;
+      if (wrapper) {
+        if (message) {
+          wrapper.classList.add('invalid');
+        } else {
+          wrapper.classList.remove('invalid');
+        }
+      }
+      if (errorEls[key]) {
+        errorEls[key].textContent = message || '';
+      }
+    }
+
+    function clearFieldError(key) {
+      setFieldError(key, '');
+    }
+
+    function clearErrors() {
+      Object.keys(errorEls).forEach(function(key) {
+        setFieldError(key, '');
+      });
+    }
+
+    function renderSelect(select, list, config) {
+      config = config || {};
+      var placeholder = config.placeholder || 'Select option';
+      select.innerHTML = '';
+      var placeholderOpt = document.createElement('option');
+      placeholderOpt.value = '';
+      placeholderOpt.textContent = placeholder;
+      placeholderOpt.disabled = true;
+      placeholderOpt.hidden = true;
+      placeholderOpt.selected = true;
+      select.appendChild(placeholderOpt);
+
+      var seen = new Set();
+
+      if (Array.isArray(list)) {
+        list.forEach(function(item) {
+          if (!item) return;
+          var isBlank = !!item.blank;
+          var value = isBlank ? '' : (item.value != null ? String(item.value) : '');
+          if (!isBlank && !value) return;
+          var label = item.label != null ? String(item.label) : (value || (isBlank ? 'Unassigned / Blank' : '—'));
+          var optionValue = isBlank ? TEAM_BLANK_VALUE : value;
+          var key = isBlank ? '__blank__' : optionValue.toLowerCase();
+          if (seen.has(key)) return;
+          seen.add(key);
+          var opt = document.createElement('option');
+          opt.value = optionValue;
+          opt.textContent = label || (isBlank ? 'Unassigned / Blank' : value || '—');
+          select.appendChild(opt);
+        });
+      }
+
+      if (config.includeBlank && !seen.has('__blank__')) {
+        var blankOpt = document.createElement('option');
+        blankOpt.value = TEAM_BLANK_VALUE;
+        blankOpt.textContent = config.blankLabel || 'Unassigned / Blank';
+        select.appendChild(blankOpt);
+      }
+
+      select.disabled = !!config.disabled;
+    }
+
+    function ensureOptionInSelect(select, value, label, opts) {
+      opts = opts || {};
+      if (!select) return;
+      var isBlank = opts.blank === true;
+      var normalizedValue = isBlank ? TEAM_BLANK_VALUE : (value != null ? String(value) : '');
+      if (!normalizedValue && !isBlank) return;
+      var exists = false;
+      Array.prototype.forEach.call(select.options, function(option) {
+        if (option.value === normalizedValue) {
+          exists = true;
+        }
+      });
+      if (!exists) {
+        var opt = document.createElement('option');
+        opt.value = normalizedValue;
+        opt.textContent = label != null ? label : (isBlank ? 'Unassigned / Blank' : (value != null ? String(value) : '—'));
+        select.appendChild(opt);
+      }
+    }
+
+    function setSelectValue(select, value, opts) {
+      opts = opts || {};
+      if (!select) return false;
+      var allowBlank = opts.allowBlank === true;
+      if (value == null || value === '') {
+        if (allowBlank) {
+          for (var i = 0; i < select.options.length; i++) {
+            if (select.options[i].value === TEAM_BLANK_VALUE) {
+              select.selectedIndex = i;
+              return true;
+            }
+          }
+        }
+        select.selectedIndex = 0;
+        return false;
+      }
+      var target = String(value);
+      for (var j = 0; j < select.options.length; j++) {
+        if (select.options[j].value === target) {
+          select.selectedIndex = j;
+          return true;
+        }
+      }
+      return false;
+    }
+
+    function setLoading(flag, message) {
+      state.loading = flag;
+      overlay.classList.toggle('loading', flag);
+      if (flag) {
+        submitBtn.disabled = true;
+        if (message) setStatus(message);
+      } else if (!state.submitting) {
+        submitBtn.disabled = false;
+      }
+    }
+
+    function setSubmitting(flag, message) {
+      state.submitting = flag;
+      overlay.classList.toggle('submitting', flag);
+      submitBtn.disabled = flag || state.loading;
+      cancelBtn.disabled = flag;
+      if (flag && message) {
+        setStatus(message);
+      }
+    }
+
+    function normalizeList(list) {
+      var seen = new Map();
+      if (Array.isArray(list)) {
+        list.forEach(function(item) {
+          if (!item) return;
+          var isBlank = !!item.blank;
+          var rawValue = '';
+          var label = '';
+          if (typeof item === 'string' || typeof item === 'number') {
+            rawValue = String(item).trim();
+            label = rawValue;
+          } else if (typeof item === 'object') {
+            if (item.value != null) rawValue = String(item.value).trim();
+            else if (item.id != null) rawValue = String(item.id).trim();
+            if (item.label != null) label = String(item.label).trim();
+            else if (item.name != null) label = String(item.name).trim();
+            if (item.blank) isBlank = true;
+          }
+          if (isBlank) rawValue = '';
+          if (!isBlank && !rawValue) return;
+          var key = isBlank ? '__blank__' : rawValue.toLowerCase();
+          if (!seen.has(key)) {
+            seen.set(key, {
+              value: rawValue,
+              label: label || (isBlank ? 'Unassigned / Blank' : rawValue),
+              blank: isBlank
+            });
+          }
+        });
+      }
+      var arr = Array.from(seen.values());
+      arr.sort(function(a, b) {
+        if (a.blank && !b.blank) return -1;
+        if (!a.blank && b.blank) return 1;
+        var labelA = a.label || '';
+        var labelB = b.label || '';
+        return labelA.localeCompare(labelB, undefined, { sensitivity: 'base' });
+      });
+      return arr;
+    }
+
+    function normalizeOptions(res) {
+      var normalized = {
+        designations: normalizeList(res && res.designations),
+        projects: normalizeList(res && res.projects),
+        accountHolders: normalizeList(res && res.accountHolders),
+        nationalities: normalizeList(res && res.nationalities),
+        teamsByProject: {}
+      };
+      if (res && res.teamsByProject && typeof res.teamsByProject === 'object') {
+        Object.keys(res.teamsByProject).forEach(function(projectKey) {
+          normalized.teamsByProject[projectKey] = normalizeList(res.teamsByProject[projectKey]);
+        });
+      }
+      return normalized;
+    }
+
+    function getCanonicalProject(projectValue) {
+      if (!state.options || !Array.isArray(state.options.projects) || !projectValue) return projectValue || '';
+      var lower = String(projectValue).toLowerCase();
+      for (var i = 0; i < state.options.projects.length; i++) {
+        var entry = state.options.projects[i];
+        if (entry && entry.value && entry.value.toLowerCase() === lower) {
+          return entry.value;
+        }
+      }
+      return projectValue;
+    }
+
+    function populateTeamOptions(projectValue, teamValue) {
+      var canonicalProject = getCanonicalProject(projectValue || '');
+      var teamList = [];
+      if (canonicalProject && state.options && state.options.teamsByProject) {
+        teamList = state.options.teamsByProject[canonicalProject] || state.options.teamsByProject[projectValue] || [];
+      }
+      var hasProject = !!canonicalProject;
+      var hasTeams = Array.isArray(teamList) && teamList.length > 0;
+      var placeholder = hasProject ? (hasTeams ? 'Select team' : 'No teams available') : 'Select project first';
+      renderSelect(fields.team, hasTeams ? teamList : [], {
+        placeholder: placeholder,
+        includeBlank: true,
+        blankLabel: 'Unassigned / Blank',
+        disabled: !hasProject
+      });
+      if (!hasProject) {
+        state.teamProvided = false;
+        fields.team.selectedIndex = 0;
+        return;
+      }
+      fields.team.disabled = false;
+      if (teamValue == null) {
+        state.teamProvided = false;
+        fields.team.selectedIndex = 0;
+        return;
+      }
+      var provided = setSelectValue(fields.team, teamValue, { allowBlank: true });
+      if (!provided) {
+        if (teamValue === '') {
+          ensureOptionInSelect(fields.team, '', 'Unassigned / Blank', { blank: true });
+          setSelectValue(fields.team, '', { allowBlank: true });
+          state.teamProvided = true;
+        } else {
+          ensureOptionInSelect(fields.team, teamValue, teamValue);
+          setSelectValue(fields.team, teamValue, { allowBlank: true });
+          state.teamProvided = true;
+        }
+      } else {
+        state.teamProvided = true;
+      }
+    }
+
+    function populateOptionsFromState() {
+      if (!state.options) return;
+      renderSelect(fields.designation, state.options.designations, { placeholder: 'Select designation' });
+      renderSelect(fields.project, state.options.projects, { placeholder: 'Select project' });
+      renderSelect(fields.accountHolder, state.options.accountHolders, { placeholder: 'Select account holder' });
+      renderSelect(fields.nationality, state.options.nationalities, { placeholder: 'Select nationality' });
+
+      var context = state.context || {};
+      if (context.designation) ensureOptionInSelect(fields.designation, context.designation, context.designation);
+      if (context.project) ensureOptionInSelect(fields.project, context.project, context.project);
+      if (context.accountHolder) ensureOptionInSelect(fields.accountHolder, context.accountHolder, context.accountHolder);
+      if (context.nationality) ensureOptionInSelect(fields.nationality, context.nationality, context.nationality);
+
+      setSelectValue(fields.designation, context.designation || '');
+      setSelectValue(fields.project, context.project || '');
+      setSelectValue(fields.accountHolder, context.accountHolder || '');
+      setSelectValue(fields.nationality, context.nationality || '');
+
+      fields.name.value = context.beneficiary || context.name || '';
+      fields.defaultDa.value = context.defaultDa != null ? context.defaultDa : '';
+
+      populateTeamOptions(context.project || '', context.team != null ? context.team : null);
+
+      setStatus('');
+      submitBtn.disabled = false;
+      focusName();
+    }
+
+    function initializePlaceholders() {
+      renderSelect(fields.designation, [], { placeholder: 'Select designation' });
+      renderSelect(fields.project, [], { placeholder: 'Select project' });
+      renderSelect(fields.accountHolder, [], { placeholder: 'Select account holder' });
+      renderSelect(fields.nationality, [], { placeholder: 'Select nationality' });
+      renderSelect(fields.team, [], { placeholder: 'Select project first', includeBlank: true, blankLabel: 'Unassigned / Blank', disabled: true });
+    }
+
+    function focusName() {
+      try {
+        fields.name.focus();
+      } catch (_e) {}
+    }
+
+    function loadOptions() {
+      if (!(window.google && google.script && google.script.run)) {
+        setStatus('Add New Beneficiary is only available inside the Google Sheets web app.', 'error');
+        submitBtn.disabled = true;
+        return;
+      }
+      setLoading(true, 'Loading options…');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setLoading(false);
+          if (!res || res.ok === false) {
+            setStatus(res && res.error ? res.error : 'Unable to load form options.', 'error');
+            submitBtn.disabled = true;
+            return;
+          }
+          state.options = normalizeOptions(res);
+          populateOptionsFromState();
+        })
+        .withFailureHandler(function(err) {
+          setLoading(false);
+          console.error('getNewBeneficiaryFormOptions failed:', err);
+          setStatus('Unable to load form options. Please try again.', 'error');
+          submitBtn.disabled = true;
+        })
+        .getNewBeneficiaryFormOptions();
+    }
+
+    function collectPayload() {
+      var name = (fields.name.value || '').trim();
+      var designation = fields.designation.value || '';
+      var defaultDaRaw = (fields.defaultDa.value || '').trim();
+      var project = fields.project.value || '';
+      var teamValue = fields.team.value || '';
+      var teamProvided = state.teamProvided || teamValue === TEAM_BLANK_VALUE || !!teamValue;
+      var accountHolder = fields.accountHolder.value || '';
+      var nationality = fields.nationality.value || '';
+      if (teamValue === TEAM_BLANK_VALUE) teamValue = '';
+      return {
+        beneficiary: name,
+        designation: designation,
+        defaultDaRaw: defaultDaRaw,
+        project: project,
+        team: teamValue,
+        teamProvided: teamProvided,
+        accountHolder: accountHolder,
+        nationality: nationality
+      };
+    }
+
+    function validatePayload(values) {
+      var errors = {};
+      if (!values.beneficiary) errors.name = 'Enter beneficiary name';
+      if (!values.designation) errors.designation = 'Select a designation';
+      if (!values.project) errors.project = 'Select a project';
+      if (!values.teamProvided) errors.team = 'Select a team';
+      if (!values.accountHolder) errors.accountHolder = 'Select an account holder';
+      if (!values.nationality) errors.nationality = 'Select a nationality';
+      var defaultDa = '';
+      if (values.defaultDaRaw) {
+        var parsed = Number(values.defaultDaRaw);
+        if (!isFinite(parsed)) {
+          errors.defaultDa = 'Enter a valid number';
+        } else if (parsed < 0) {
+          errors.defaultDa = 'Amount cannot be negative';
+        } else {
+          defaultDa = parsed;
+        }
+      }
+      return {
+        ok: Object.keys(errors).length === 0,
+        errors: errors,
+        request: {
+          beneficiary: values.beneficiary,
+          designation: values.designation,
+          project: values.project,
+          team: values.team,
+          teamProvided: values.teamProvided,
+          accountHolder: values.accountHolder,
+          nationality: values.nationality,
+          defaultDa: defaultDa
+        }
+      };
+    }
+
+    function mergeOption(list, value, label, isBlank) {
+      if (!Array.isArray(list)) return;
+      var text = (value != null ? String(value) : '').trim();
+      if (!text && !isBlank) return;
+      var key = isBlank ? '__blank__' : text.toLowerCase();
+      for (var i = 0; i < list.length; i++) {
+        var entry = list[i];
+        if (!entry) continue;
+        if ((isBlank && entry.blank) || (!isBlank && entry.value && entry.value.toLowerCase() === key)) {
+          return;
+        }
+      }
+      list.push({
+        value: isBlank ? '' : text,
+        label: label || (isBlank ? 'Unassigned / Blank' : text),
+        blank: !!isBlank
+      });
+      list.sort(function(a, b) {
+        if (a.blank && !b.blank) return -1;
+        if (!a.blank && b.blank) return 1;
+        return (a.label || '').localeCompare(b.label || '', undefined, { sensitivity: 'base' });
+      });
+    }
+
+    function mergeProject(project) {
+      if (!state.options) return;
+      var text = (project || '').trim();
+      if (!text) return;
+      mergeOption(state.options.projects, text, text, false);
+      if (!state.options.teamsByProject[text]) {
+        state.options.teamsByProject[text] = [];
+      }
+    }
+
+    function mergeTeam(project, team) {
+      if (!state.options) return;
+      var proj = (project || '').trim();
+      if (!proj) return;
+      if (!state.options.teamsByProject[proj]) {
+        state.options.teamsByProject[proj] = [];
+      }
+      var teamList = state.options.teamsByProject[proj];
+      var teamValue = team != null ? String(team).trim() : '';
+      mergeOption(teamList, teamValue, teamValue || 'Unassigned / Blank', teamValue === '');
+    }
+
+    function submitPayload(request) {
+      if (!(window.google && google.script && google.script.run)) {
+        setStatus('Adding beneficiaries is only available inside the Google Sheets web app.', 'error');
+        return;
+      }
+      setSubmitting(true, 'Submitting…');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setSubmitting(false);
+          if (!res || res.ok === false) {
+            setStatus(res && res.error ? res.error : 'Unable to add beneficiary.', 'error');
+            return;
+          }
+          var name = res.beneficiary || request.beneficiary;
+          setStatus((name ? name + ' ' : 'Beneficiary ') + 'added as released.', 'success');
+          var project = res.project || request.project;
+          var team = res.team !== undefined ? res.team : request.team;
+          if (state.options) {
+            mergeProject(project);
+            mergeTeam(project, team);
+            mergeOption(state.options.designations, res.designation || request.designation, res.designation || request.designation, false);
+            mergeOption(state.options.accountHolders, res.accountHolder || request.accountHolder, res.accountHolder || request.accountHolder, false);
+            mergeOption(state.options.nationalities, res.nationality || request.nationality, res.nationality || request.nationality, false);
+          }
+
+          ensureOptionInSelect(fields.project, project, project);
+          ensureOptionInSelect(fields.team, team || '', team || 'Unassigned / Blank', { blank: !team });
+          ensureOptionInSelect(fields.designation, res.designation || request.designation, res.designation || request.designation);
+          ensureOptionInSelect(fields.accountHolder, res.accountHolder || request.accountHolder, res.accountHolder || request.accountHolder);
+          ensureOptionInSelect(fields.nationality, res.nationality || request.nationality, res.nationality || request.nationality);
+
+          try {
+            document.dispatchEvent(new CustomEvent('frtz:new-beneficiary-created', {
+              detail: {
+                beneficiary: name,
+                project: project,
+                team: team,
+                designation: res.designation || request.designation,
+                accountHolder: res.accountHolder || request.accountHolder,
+                nationality: res.nationality || request.nationality
+              }
+            }));
+          } catch (_eventErr) {}
+
+          if (window.FRTZ && typeof window.FRTZ.refreshReleasedBeneficiaryCount === 'function') {
+            try {
+              window.FRTZ.refreshReleasedBeneficiaryCount(project, team);
+            } catch (_refreshErr) {}
+          }
+
+          setTimeout(function() {
+            close();
+          }, 900);
+        })
+        .withFailureHandler(function(err) {
+          setSubmitting(false);
+          console.error('createNewReleasedBeneficiary failed:', err);
+          setStatus('Unable to add beneficiary. Please try again.', 'error');
+        })
+        .createNewReleasedBeneficiary(request);
+    }
+
+    function handleSubmit(event) {
+      event.preventDefault();
+      if (state.loading || state.submitting) return;
+      clearErrors();
+      var values = collectPayload();
+      var validation = validatePayload(values);
+      if (!validation.ok) {
+        Object.keys(validation.errors).forEach(function(key) {
+          setFieldError(key, validation.errors[key]);
+        });
+        setStatus('Please fix the highlighted fields.', 'error');
+        return;
+      }
+      setStatus('');
+      var request = validation.request;
+      var confirmationMessage = request.beneficiary
+        ? 'Are you sure you want to add ' + request.beneficiary + ' as a released beneficiary?'
+        : 'Are you sure you want to add this beneficiary as released?';
+      showConfirmationModal({
+        title: 'Add new beneficiary?',
+        message: confirmationMessage,
+        yesText: 'Yes, Add',
+        noText: 'Cancel'
+      }).then(function(confirmed) {
+        if (!confirmed) return;
+        submitPayload(request);
+      });
+    }
+
+    function onOverlayClick(event) {
+      if (event.target === overlay && !state.submitting) {
+        close();
+      }
+    }
+
+    function onKeyDown(event) {
+      if (!state.open) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        if (!state.submitting) close();
+      }
+    }
+
+      var open = function(context) {
+        context = context || {};
+        state.context = context;
+        state.open = true;
+        overlay.classList.add('show');
+        ensureHiddenState();
+        clearErrors();
+        setStatus('');
+        fields.name.value = context.beneficiary || context.name || '';
+        fields.defaultDa.value = context.defaultDa != null ? context.defaultDa : '';
+        state.teamProvided = false;
+        submitBtn.disabled = true;
+        cancelBtn.disabled = false;
+        if (state.options) {
+          populateOptionsFromState();
+        } else {
+          initializePlaceholders();
+          loadOptions();
+        }
+        focusName();
+        document.addEventListener('keydown', onKeyDown, true);
+      };
+
+      var close = function() {
+        overlay.classList.remove('show');
+        state.open = false;
+        state.loading = false;
+        state.submitting = false;
+        submitBtn.disabled = false;
+        cancelBtn.disabled = false;
+        overlay.classList.remove('loading', 'submitting');
+        setTimeout(function() {
+          ensureHiddenState();
+        }, 220);
+        document.removeEventListener('keydown', onKeyDown, true);
+        setStatus('');
+        clearErrors();
+      };
+
+      if (form) {
+        form.addEventListener('submit', handleSubmit);
+      }
+
+      if (cancelBtn) {
+        cancelBtn.addEventListener('click', function() {
+          if (!state.submitting) {
+            close();
+          }
+        });
+      }
+
+      if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+          if (!state.submitting) {
+            close();
+          }
+        });
+      }
+
+    overlay.addEventListener('click', onOverlayClick);
+
+      if (fields.project) {
+        fields.project.addEventListener('change', function() {
+          clearFieldError('project');
+          var projectValue = fields.project.value || '';
+          populateTeamOptions(projectValue, null);
+        });
+      }
+
+      if (fields.team) {
+        fields.team.addEventListener('change', function() {
+          state.teamProvided = true;
+          clearFieldError('team');
+        });
+      }
+
+      if (fields.designation) {
+        fields.designation.addEventListener('change', function() {
+          clearFieldError('designation');
+        });
+      }
+
+      if (fields.accountHolder) {
+        fields.accountHolder.addEventListener('change', function() {
+          clearFieldError('accountHolder');
+        });
+      }
+
+      if (fields.nationality) {
+        fields.nationality.addEventListener('change', function() {
+          clearFieldError('nationality');
+        });
+      }
+
+      if (fields.name) {
+        fields.name.addEventListener('input', function() {
+          clearFieldError('name');
+        });
+      }
+
+      if (fields.defaultDa) {
+        fields.defaultDa.addEventListener('input', function() {
+          clearFieldError('defaultDa');
+        });
+      }
+
+    initializePlaceholders();
+    ensureHiddenState();
+
+    return {
+      open: open,
+      close: close
+    };
+  })();
+
+  window.FRTZ = window.FRTZ || {};
+  window.FRTZ.openNewBeneficiaryDialog = newBeneficiaryModal.open;
+  document.addEventListener('frtz:add-new-beneficiary', function(event) {
+    var detail = event && event.detail ? event.detail : {};
+    newBeneficiaryModal.open(detail);
+  });
+
+  function coerceCount(value) {
+    if (typeof value === 'number' && isFinite(value) && value >= 0) {
+      return Math.floor(value);
+    }
+    if (typeof value === 'string' && value.trim() !== '') {
+      var parsed = Number(value);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        return Math.floor(parsed);
+      }
+    }
+    return null;
+  }
+
+  function openAddBeneficiaryModal(context) {
+    try {
+      addBeneficiaryPicker.open(context || {});
+    } catch (err) {
+      console.error('openAddBeneficiaryModal failed:', err);
+      alert('Unable to open the Add Existing Beneficiary dialog. Please try again.');
+    }
+  }
+
+  function formatExistingBeneficiaryLabel(count) {
+    var normalized = coerceCount(count);
+    if (normalized === null) {
+      return 'Add Existing Beneficiary [—]';
+    }
+    return 'Add Existing Beneficiary [' + normalized + ']';
+  }
+
+  function updateExistingBeneficiaryButton(count) {
+    var text = formatExistingBeneficiaryLabel(count);
+    var normalized = coerceCount(count);
+    if (typeof window.updateConfirmationButton === 'function') {
+      window.updateConfirmationButton('add-existing', {
+        text: text,
+        dataset: { releasedCount: normalized != null ? normalized : '' }
+      });
+    } else {
+      var btn = document.querySelector('.confirmation-buttons button[data-button-id="add-existing"]');
+      if (btn) {
+        btn.textContent = text;
+        btn.dataset.originalText = text;
+        if (normalized == null) {
+          delete btn.dataset.releasedCount;
+        } else {
+          btn.dataset.releasedCount = normalized;
+        }
+      }
+    }
+  }
+
+  window.updateExistingBeneficiaryButton = updateExistingBeneficiaryButton;
+
+  function triggerAddNewBeneficiary(context) {
+    try {
+      var detail = context && typeof context === 'object' ? context : {};
+      document.dispatchEvent(new CustomEvent('frtz:add-new-beneficiary', { detail: detail }));
+    } catch (err) {
+      console.error('dispatch add-new-beneficiary event failed', err);
+    }
+
+    if (window.FRTZ && typeof window.FRTZ.openNewBeneficiaryDialog === 'function') {
+      window.FRTZ.openNewBeneficiaryDialog(context || {});
+      return;
+    }
+
+    if (window.FRTZ && window.FRTZ.addRowBtn) {
+      try {
+        window.FRTZ.addRowBtn.click();
+        return;
+      } catch (errClick) {
+        console.error('click addRowBtn failed', errClick);
+      }
+    }
+
+    alert('Please use the Add Rows button to add a new beneficiary.');
   }
 
   window.FRTZ = window.FRTZ || {};
@@ -1930,6 +4225,15 @@ document.addEventListener('keydown', function(event) {
   // Add click handler for row total pills
   tbody.addEventListener('click', function(e) {
     var totalInput = e.target.closest('input.amt[readonly]');
+    if (!totalInput) {
+      var totalCell = e.target.closest('.row-data .cell');
+      if (totalCell) {
+        var candidate = totalCell.querySelector('input.amt[readonly]');
+        if (candidate) {
+          totalInput = candidate;
+        }
+      }
+    }
     if (!totalInput) return;
     
     var row = totalInput.closest('.row-data');
@@ -1958,25 +4262,88 @@ document.addEventListener('keydown', function(event) {
       var scope = scopeParts.length ? ' (' + scopeParts.join(' • ') + ')' : '';
       var message = 'Choose how to proceed with ' + nameLabel + scope + '. Deactivate clears this row, Release removes them from the team and project.';
 
-      showConfirmationModal({
+      var existingCount = null;
+      if (window.FRTZ) {
+        if (typeof window.FRTZ.getReleasedBeneficiaryCount === 'function') {
+          existingCount = window.FRTZ.getReleasedBeneficiaryCount();
+        } else if (typeof window.FRTZ.releasedBeneficiaryCount !== 'undefined') {
+          existingCount = window.FRTZ.releasedBeneficiaryCount;
+        }
+      }
+      existingCount = coerceCount(existingCount);
+
+      var confirmationPromise = showConfirmationModal({
         title: 'Deactivate or release beneficiary?',
         message: message,
         buttons: [
           { text: 'Deactivate', value: 'deactivate', role: 'destructive', variant: 'destructive', feedback: false },
           { text: 'Release', value: 'release', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Continue' },
+          { text: formatExistingBeneficiaryLabel(existingCount), id: 'add-existing', value: 'add-existing', role: 'option', variant: 'success', feedback: true, successText: '✓ Opening' },
+          { text: 'Add New Beneficiary', id: 'add-new', value: 'add-new', role: 'option', variant: 'accent', feedback: true, successText: '✓ Opening' },
           { text: 'No, Keep Active', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
         ]
-      }).then(function(action) {
+      });
+
+      var removeCountWatcher = null;
+      if (window.FRTZ && typeof window.FRTZ.onReleasedBeneficiaryCountChange === 'function') {
+        removeCountWatcher = window.FRTZ.onReleasedBeneficiaryCountChange(function(count) {
+          updateExistingBeneficiaryButton(count);
+        });
+      }
+
+      setTimeout(function() {
+        updateExistingBeneficiaryButton(existingCount);
+      }, 0);
+
+      if (window.FRTZ && typeof window.FRTZ.refreshReleasedBeneficiaryCount === 'function') {
+        window.FRTZ.refreshReleasedBeneficiaryCount(context.project, context.team);
+      }
+
+      var cleanupWatcher = function() {
+        if (removeCountWatcher) {
+          try {
+            removeCountWatcher();
+          } catch (err) {
+            console.error('remove count watcher failed', err);
+          }
+          removeCountWatcher = null;
+        }
+      };
+
+      confirmationPromise.then(function(action) {
+        cleanupWatcher();
         if (action === 'deactivate') {
           deactivateRow(row);
         } else if (action === 'release') {
           confirmReleaseRow(row, context);
+        } else if (action === 'add-existing') {
+          openAddBeneficiaryModal(context);
+        } else if (action === 'add-new') {
+          triggerAddNewBeneficiary(context);
+        }
+      }).catch(function(err) {
+        cleanupWatcher();
+        if (err) {
+          console.error('confirmation dialog rejected', err);
         }
       });
     }
   });
 
   // Car number input click handler will be attached after modal is loaded
+
+    return true;
+  }
+
+  var initialTbody = document.getElementById('tbody');
+  if (!initTableModule(initialTbody)) {
+    document.addEventListener('DOMContentLoaded', function handleFRTZTableInit() {
+      var lateTbody = document.getElementById('tbody');
+      if (initTableModule(lateTbody)) {
+        document.removeEventListener('DOMContentLoaded', handleFRTZTableInit);
+      }
+    });
+  }
 
 })();
 
