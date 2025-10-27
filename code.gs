@@ -6780,9 +6780,15 @@ function releaseBeneficiary(payload) {
     const reviewText = typeof payload.review === 'string' ? payload.review.trim() : '';
     const remarksFallback = typeof payload.remarks === 'string' ? payload.remarks.trim() : '';
     const remarksValue = reviewText || remarksFallback;
-    if (idxRemarks >= 0 && remarksValue) {
+    if (idxRemarks >= 0) {
       newRow[idxRemarks] = remarksValue;
     }
+
+    const REVIEW_COLUMN_INDEX = 10; // Column K (1-indexed) stores release reviews
+    if (REVIEW_COLUMN_INDEX >= newRow.length) {
+      newRow.length = REVIEW_COLUMN_INDEX + 1;
+    }
+    newRow[REVIEW_COLUMN_INDEX] = remarksValue;
 
     newRow[idxStatus] = 'Release';
 
