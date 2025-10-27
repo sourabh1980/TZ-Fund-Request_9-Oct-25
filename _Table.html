@@ -2214,6 +2214,121 @@ document.addEventListener('keydown', function(event) {
     return name + suffix;
   }
 
+  function promptReactivateRow(row, context, totalText) {
+    if (!row) return;
+    var subject = describeBeneficiaryAction(context);
+    var hasSubject = subject && subject !== 'this beneficiary';
+    var title = hasSubject ? ('Reactivate ' + subject + '?') : 'Reactivate beneficiary?';
+    if (title && title.length > 80) {
+      title = 'Reactivate beneficiary?';
+    }
+    var note = totalText && totalText.trim() ? 'Row total is ' + totalText.trim() + '. ' : '';
+    var message = (note + "Re-enabling means you'll fund their expenses. Continue?").trim();
+
+    if (typeof showConfirmationModal !== 'function') {
+      reactivateRow(row);
+      return;
+    }
+
+    showConfirmationModal({
+      title: title,
+      message: message,
+      buttons: [
+        { text: 'Reactivate', value: true, role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Reactivated' },
+        { text: 'Keep Inactive', value: false, role: 'cancel', variant: 'secondary', feedback: false }
+      ]
+    }).then(function(choice) {
+      if (choice) {
+        reactivateRow(row);
+      }
+    }).catch(function(err) {
+      if (err && err !== false) {
+        console.error('Reactivate confirmation failed', err);
+      }
+    });
+  }
+
+  function promptRowAction(row, context, totalText) {
+    if (!row) return;
+
+    if (typeof showConfirmationModal !== 'function') {
+      console.warn('showConfirmationModal unavailable; skipping row action prompt.');
+      return;
+    }
+
+    var subject = describeBeneficiaryAction(context);
+    var totalLabel = totalText && totalText.trim() ? totalText.trim() : '0.00';
+    var message = (subject && subject !== 'this beneficiary')
+      ? 'Row total is ' + totalLabel + '. What would you like to do with ' + subject + '?'
+      : 'Row total is ' + totalLabel + '. What would you like to do with this beneficiary?';
+
+    var existingCount = null;
+    if (window.FRTZ) {
+      if (typeof window.FRTZ.getReleasedBeneficiaryCount === 'function') {
+        existingCount = window.FRTZ.getReleasedBeneficiaryCount();
+      } else if (typeof window.FRTZ.releasedBeneficiaryCount !== 'undefined') {
+        existingCount = window.FRTZ.releasedBeneficiaryCount;
+      }
+    }
+    existingCount = coerceCount(existingCount);
+
+    var confirmationPromise = showConfirmationModal({
+      title: 'Deactivate or release beneficiary?',
+      message: message,
+      buttons: [
+        { text: 'Deactivate', value: 'deactivate', role: 'destructive', variant: 'destructive', feedback: false },
+        { text: 'Release', value: 'release', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Continue' },
+        { text: formatExistingBeneficiaryLabel(existingCount), id: 'add-existing', value: 'add-existing', role: 'option', variant: 'success', feedback: true, successText: '✓ Opening' },
+        { text: 'Add New Beneficiary', id: 'add-new', value: 'add-new', role: 'option', variant: 'accent', feedback: true, successText: '✓ Opening' },
+        { text: 'No, Keep Active', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
+      ]
+    });
+
+    var removeCountWatcher = null;
+    if (window.FRTZ && typeof window.FRTZ.onReleasedBeneficiaryCountChange === 'function') {
+      removeCountWatcher = window.FRTZ.onReleasedBeneficiaryCountChange(function(count) {
+        updateExistingBeneficiaryButton(count);
+      });
+    }
+
+    setTimeout(function() {
+      updateExistingBeneficiaryButton(existingCount);
+    }, 0);
+
+    if (window.FRTZ && typeof window.FRTZ.refreshReleasedBeneficiaryCount === 'function') {
+      window.FRTZ.refreshReleasedBeneficiaryCount(context.project, context.team);
+    }
+
+    var cleanupWatcher = function() {
+      if (removeCountWatcher) {
+        try {
+          removeCountWatcher();
+        } catch (err) {
+          console.error('remove count watcher failed', err);
+        }
+        removeCountWatcher = null;
+      }
+    };
+
+    confirmationPromise.then(function(action) {
+      cleanupWatcher();
+      if (action === 'deactivate') {
+        deactivateRow(row);
+      } else if (action === 'release') {
+        confirmReleaseRow(row, context);
+      } else if (action === 'add-existing') {
+        openAddBeneficiaryModal(context);
+      } else if (action === 'add-new') {
+        triggerAddNewBeneficiary(context);
+      }
+    }).catch(function(err) {
+      cleanupWatcher();
+      if (err && err !== false) {
+        console.error('confirmation dialog rejected', err);
+      }
+    });
+  }
+
   function submitRelease(row, context) {
     if (row && row.classList.contains('row-action-pending')) {
       return;
@@ -3942,141 +4057,35 @@ document.addEventListener('keydown', function(event) {
   tbody.addEventListener('click', function(e) {
     var totalInput = e.target.closest('input.amt[readonly]');
     if (!totalInput) return;
-    
+
     var row = totalInput.closest('.row-data');
     if (!row) return;
-    
-    var isDeactivated = row.classList.contains('row-deactivated');
-    
-    if (isDeactivated) {
-      // Reactivation confirmation
-      showConfirmationModal({
-        title: 'Reactivate beneficiary?',
-        message: "Re-enabling means you'll fund their expenses. Continue?",
-        yesText: 'Yes, Reactivate',
-        noText: 'No, Keep Inactive'
-      }).then(function(confirmed) {
-        if (confirmed) {
-          reactivateRow(row);
-        }
-      });
+    if (row.classList.contains('row-action-pending')) return;
+
+    var context = buildReleaseContext(row);
+    var totalText = totalInput.value ? String(totalInput.value).trim() : '';
+
+    if (row.classList.contains('row-deactivated')) {
+      promptReactivateRow(row, context, totalText);
     } else {
-      var context = buildReleaseContext(row);
-      var nameLabel = context && context.beneficiary ? context.beneficiary : 'this beneficiary';
-      var scopeParts = [];
-      if (context && context.team) scopeParts.push(context.team);
-      if (context && context.project) scopeParts.push(context.project);
-      var scope = scopeParts.length ? ' (' + scopeParts.join(' • ') + ')' : '';
-      var message = 'Choose how to proceed with ' + nameLabel + scope + '. Deactivate clears this row, Release removes them from the team and project.';
-
-      var existingCount = null;
-      if (window.FRTZ) {
-        if (typeof window.FRTZ.getReleasedBeneficiaryCount === 'function') {
-          existingCount = window.FRTZ.getReleasedBeneficiaryCount();
-        } else if (typeof window.FRTZ.releasedBeneficiaryCount !== 'undefined') {
-          existingCount = window.FRTZ.releasedBeneficiaryCount;
-        }
-      }
-      existingCount = coerceCount(existingCount);
-
-      var confirmationPromise = showConfirmationModal({
-        title: 'Deactivate or release beneficiary?',
-        message: message,
-        buttons: [
-          { text: 'Deactivate', value: 'deactivate', role: 'destructive', variant: 'destructive', feedback: false },
-          { text: 'Release', value: 'release', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Continue' },
-          { text: formatExistingBeneficiaryLabel(existingCount), id: 'add-existing', value: 'add-existing', role: 'option', variant: 'success', feedback: true, successText: '✓ Opening' },
-          { text: 'Add New Beneficiary', id: 'add-new', value: 'add-new', role: 'option', variant: 'accent', feedback: true, successText: '✓ Opening' },
-          { text: 'No, Keep Active', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
-        ]
-      });
-
-      var removeCountWatcher = null;
-      if (window.FRTZ && typeof window.FRTZ.onReleasedBeneficiaryCountChange === 'function') {
-        removeCountWatcher = window.FRTZ.onReleasedBeneficiaryCountChange(function(count) {
-          updateExistingBeneficiaryButton(count);
-        });
-      }
-
-      setTimeout(function() {
-        updateExistingBeneficiaryButton(existingCount);
-      }, 0);
-
-      if (window.FRTZ && typeof window.FRTZ.refreshReleasedBeneficiaryCount === 'function') {
-        window.FRTZ.refreshReleasedBeneficiaryCount(context.project, context.team);
-      }
-
-      var cleanupWatcher = function() {
-        if (removeCountWatcher) {
-          try {
-            removeCountWatcher();
-          } catch (err) {
-            console.error('remove count watcher failed', err);
-          }
-          removeCountWatcher = null;
-        }
-      };
-
-      confirmationPromise.then(function(action) {
-        cleanupWatcher();
-        if (action === 'deactivate') {
-          deactivateRow(row);
-        } else if (action === 'release') {
-          confirmReleaseRow(row, context);
-        } else if (action === 'add-existing') {
-          openAddBeneficiaryModal(context);
-        } else if (action === 'add-new') {
-          triggerAddNewBeneficiary(context);
-        }
-      }).catch(function(err) {
-        cleanupWatcher();
-        if (err) {
-          console.error('confirmation dialog rejected', err);
-        }
-      });
+      promptRowAction(row, context, totalText);
     }
   });
 
   // Car number input click handler will be attached after modal is loaded
 
-    return true;
-  }
+  return true;
+}
 
-  var initialTbody = document.getElementById('tbody');
-  if (!initTableModule(initialTbody)) {
-    document.addEventListener('DOMContentLoaded', function handleFRTZTableInit() {
-      var lateTbody = document.getElementById('tbody');
-      if (initTableModule(lateTbody)) {
-        document.removeEventListener('DOMContentLoaded', handleFRTZTableInit);
-      }
-    });
-  }
-
-    return true;
-  }
-
-  var initialTbody = document.getElementById('tbody');
-  if (!initTableModule(initialTbody)) {
-    document.addEventListener('DOMContentLoaded', function handleFRTZTableInit() {
-      var lateTbody = document.getElementById('tbody');
-      if (initTableModule(lateTbody)) {
-        document.removeEventListener('DOMContentLoaded', handleFRTZTableInit);
-      }
-    });
-  }
-
-    return true;
-  }
-
-  var initialTbody = document.getElementById('tbody');
-  if (!initTableModule(initialTbody)) {
-    document.addEventListener('DOMContentLoaded', function handleFRTZTableInit() {
-      var lateTbody = document.getElementById('tbody');
-      if (initTableModule(lateTbody)) {
-        document.removeEventListener('DOMContentLoaded', handleFRTZTableInit);
-      }
-    });
-  }
+var initialTbody = document.getElementById('tbody');
+if (!initTableModule(initialTbody)) {
+  document.addEventListener('DOMContentLoaded', function handleFRTZTableInit() {
+    var lateTbody = document.getElementById('tbody');
+    if (initTableModule(lateTbody)) {
+      document.removeEventListener('DOMContentLoaded', handleFRTZTableInit);
+    }
+  });
+}
 
 })();
 
