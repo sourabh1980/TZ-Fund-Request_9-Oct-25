@@ -7837,10 +7837,64 @@ function getNewBeneficiaryFormOptions() {
       .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
       .map(value => ({ value: value, label: value }));
 
-    const designationsList = toOptionList(designations);
+    let designationsList = toOptionList(designations);
     const accountList = toOptionList(accountHolders);
-    const nationalityList = toOptionList(nationalities);
+    let nationalityList = toOptionList(nationalities);
     const projectList = toOptionList(projects);
+
+    try {
+      const sh = _openDataSheet_();
+      const totalRows = sh.getLastRow();
+      const totalCols = sh.getLastColumn();
+      if (totalRows >= 2 && totalCols >= 26) {
+        const readRows = totalRows - 1;
+        const readCols = Math.min(2, totalCols - 26 + 1); // Z + optional AA
+        if (readRows > 0 && readCols > 0) {
+          const values = sh.getRange(2, 26, readRows, readCols).getDisplayValues();
+          const seenDesignations = new Set();
+          const seenNationalities = new Set();
+          const designationOptions = [];
+          const nationalityOptions = [];
+
+          values.forEach(function(row) {
+            if (!row) return;
+            const designationRaw = row[0] != null ? String(row[0]).trim() : '';
+            if (designationRaw) {
+              const key = designationRaw.toLowerCase();
+              if (!seenDesignations.has(key)) {
+                seenDesignations.add(key);
+                designationOptions.push({ value: designationRaw, label: designationRaw });
+              }
+            }
+            if (readCols > 1) {
+              const nationalityRaw = row[1] != null ? String(row[1]).trim() : '';
+              if (nationalityRaw) {
+                const keyNat = nationalityRaw.toLowerCase();
+                if (!seenNationalities.has(keyNat)) {
+                  seenNationalities.add(keyNat);
+                  nationalityOptions.push({ value: nationalityRaw, label: nationalityRaw });
+                }
+              }
+            }
+          });
+
+          if (designationOptions.length) {
+            designationOptions.sort(function(a, b) {
+              return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+            });
+            designationsList = designationOptions;
+          }
+          if (readCols > 1 && nationalityOptions.length) {
+            nationalityOptions.sort(function(a, b) {
+              return a.label.localeCompare(b.label, undefined, { sensitivity: 'base' });
+            });
+            nationalityList = nationalityOptions;
+          }
+        }
+      }
+    } catch (sheetErr) {
+      console.warn('getNewBeneficiaryFormOptions: reference column fetch failed', sheetErr);
+    }
 
     const teamsObj = {};
     projects.forEach((projectValue, projKey) => {
