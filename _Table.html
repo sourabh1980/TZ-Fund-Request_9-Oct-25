@@ -2025,6 +2025,24 @@ document.addEventListener('keydown', function(event) {
     recalcAll();
   }, true);
 
+  tbody.addEventListener('click', function(e) {
+    const totalInput = e.target.closest('input.amt[readonly]');
+    if (!totalInput || !tbody.contains(totalInput)) return;
+
+    const row = totalInput.closest('.row-data');
+    if (!row) return;
+    if (row.classList.contains('row-action-pending')) return;
+
+    const context = buildReleaseContext(row);
+    const totalText = totalInput.value ? String(totalInput.value).trim() : '';
+
+    if (row.classList.contains('row-deactivated')) {
+      promptReactivateRow(row, context, totalText);
+    } else {
+      promptRowAction(row, context, totalText);
+    }
+  });
+
   // initial
   bindAll();
   recalcAll();
@@ -2154,6 +2172,124 @@ document.addEventListener('keydown', function(event) {
     if (context && context.project) segments.push(context.project);
     var suffix = segments.length ? ' (' + segments.join(' • ') + ')' : '';
     return name + suffix;
+  }
+
+  function promptReactivateRow(row, context, totalText) {
+    if (!row) return;
+    var subject = describeBeneficiaryAction(context);
+    var hasSubject = subject && subject !== 'this beneficiary';
+    var title = hasSubject ? ('Reactivate ' + subject + '?') : 'Reactivate beneficiary?';
+    if (title && title.length > 80) {
+      title = 'Reactivate beneficiary?';
+    }
+    var amountNote = totalText && totalText.trim() ? ' Row total is ' + totalText.trim() + '.' : '';
+    var message = amountNote + " Re-enabling means you'll fund their expenses. Continue?";
+
+    if (typeof showConfirmationModal !== 'function') {
+      reactivateRow(row);
+      return;
+    }
+
+    showConfirmationModal({
+      title: title,
+      message: message.trim(),
+      buttons: [
+        { text: 'Reactivate', value: 'reactivate', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Reactivated' },
+        { text: 'Keep Inactive', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
+      ]
+    }).then(function(choice) {
+      if (choice === 'reactivate') {
+        reactivateRow(row);
+      }
+    }).catch(function(err) {
+      if (err && err !== false) {
+        console.error('Reactivate confirmation failed', err);
+      }
+    });
+  }
+
+  function promptRowAction(row, context, totalText) {
+    if (!row) return;
+
+    if (typeof showConfirmationModal !== 'function') {
+      console.warn('showConfirmationModal unavailable; skipping row action prompt.');
+      return;
+    }
+
+    var subject = describeBeneficiaryAction(context);
+    var totalLabel = totalText && totalText.trim() ? totalText.trim() : '0.00';
+    var message;
+    if (subject && subject !== 'this beneficiary') {
+      message = 'Row total is ' + totalLabel + '. What would you like to do with ' + subject + '?';
+    } else {
+      message = 'Row total is ' + totalLabel + '. What would you like to do with this beneficiary?';
+    }
+
+    var existingCount = null;
+    if (window.FRTZ) {
+      if (typeof window.FRTZ.getReleasedBeneficiaryCount === 'function') {
+        existingCount = window.FRTZ.getReleasedBeneficiaryCount();
+      } else if (typeof window.FRTZ.releasedBeneficiaryCount !== 'undefined') {
+        existingCount = window.FRTZ.releasedBeneficiaryCount;
+      }
+    }
+    existingCount = coerceCount(existingCount);
+
+    var confirmationPromise = showConfirmationModal({
+      title: 'Deactivate or release beneficiary?',
+      message: message,
+      buttons: [
+        { text: 'Deactivate', value: 'deactivate', role: 'destructive', variant: 'destructive', feedback: false },
+        { text: 'Release', value: 'release', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Continue' },
+        { text: formatExistingBeneficiaryLabel(existingCount), id: 'add-existing', value: 'add-existing', role: 'option', variant: 'success', feedback: true, successText: '✓ Opening' },
+        { text: 'Add New Beneficiary', id: 'add-new', value: 'add-new', role: 'option', variant: 'accent', feedback: true, successText: '✓ Opening' },
+        { text: 'No, Keep Active', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
+      ]
+    });
+
+    var removeCountWatcher = null;
+    if (window.FRTZ && typeof window.FRTZ.onReleasedBeneficiaryCountChange === 'function') {
+      removeCountWatcher = window.FRTZ.onReleasedBeneficiaryCountChange(function(count) {
+        updateExistingBeneficiaryButton(count);
+      });
+    }
+
+    setTimeout(function() {
+      updateExistingBeneficiaryButton(existingCount);
+    }, 0);
+
+    if (window.FRTZ && typeof window.FRTZ.refreshReleasedBeneficiaryCount === 'function') {
+      window.FRTZ.refreshReleasedBeneficiaryCount(context.project, context.team);
+    }
+
+    var cleanupWatcher = function() {
+      if (removeCountWatcher) {
+        try {
+          removeCountWatcher();
+        } catch (err) {
+          console.error('remove count watcher failed', err);
+        }
+        removeCountWatcher = null;
+      }
+    };
+
+    confirmationPromise.then(function(action) {
+      cleanupWatcher();
+      if (action === 'deactivate') {
+        deactivateRow(row);
+      } else if (action === 'release') {
+        confirmReleaseRow(row, context);
+      } else if (action === 'add-existing') {
+        openAddBeneficiaryModal(context);
+      } else if (action === 'add-new') {
+        triggerAddNewBeneficiary(context);
+      }
+    }).catch(function(err) {
+      cleanupWatcher();
+      if (err && err !== false) {
+        console.error('confirmation dialog rejected', err);
+      }
+    });
   }
 
   function submitRelease(row, context) {
