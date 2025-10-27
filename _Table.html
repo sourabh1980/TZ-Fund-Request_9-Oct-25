@@ -1898,11 +1898,10 @@ document.addEventListener('keydown', function(event) {
 /* === Row totals + summary aggregation (per-row only; no cross-row mirroring) === */
 (function(){
   'use strict';
+  const tbody = document.getElementById('tbody');
+  if(!tbody) return;
 
-  function initTableModule(tbody){
-    if(!tbody) return false;
-
-    function parseAmt(v){
+  function parseAmt(v){
     if(v==null || v==='') return 0;
     if (typeof v === 'number') return v;
     var s = String(v).replace(/\u00A0/g,' ').trim();
@@ -2024,24 +2023,6 @@ document.addEventListener('keydown', function(event) {
     if(row) rowTotal(row);
     recalcAll();
   }, true);
-
-  tbody.addEventListener('click', function(e) {
-    const totalInput = e.target.closest('input.amt[readonly]');
-    if (!totalInput || !tbody.contains(totalInput)) return;
-
-    const row = totalInput.closest('.row-data');
-    if (!row) return;
-    if (row.classList.contains('row-action-pending')) return;
-
-    const context = buildReleaseContext(row);
-    const totalText = totalInput.value ? String(totalInput.value).trim() : '';
-
-    if (row.classList.contains('row-deactivated')) {
-      promptReactivateRow(row, context, totalText);
-    } else {
-      promptRowAction(row, context, totalText);
-    }
-  });
 
   // initial
   bindAll();
@@ -2172,124 +2153,6 @@ document.addEventListener('keydown', function(event) {
     if (context && context.project) segments.push(context.project);
     var suffix = segments.length ? ' (' + segments.join(' • ') + ')' : '';
     return name + suffix;
-  }
-
-  function promptReactivateRow(row, context, totalText) {
-    if (!row) return;
-    var subject = describeBeneficiaryAction(context);
-    var hasSubject = subject && subject !== 'this beneficiary';
-    var title = hasSubject ? ('Reactivate ' + subject + '?') : 'Reactivate beneficiary?';
-    if (title && title.length > 80) {
-      title = 'Reactivate beneficiary?';
-    }
-    var amountNote = totalText && totalText.trim() ? ' Row total is ' + totalText.trim() + '.' : '';
-    var message = amountNote + " Re-enabling means you'll fund their expenses. Continue?";
-
-    if (typeof showConfirmationModal !== 'function') {
-      reactivateRow(row);
-      return;
-    }
-
-    showConfirmationModal({
-      title: title,
-      message: message.trim(),
-      buttons: [
-        { text: 'Reactivate', value: 'reactivate', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Reactivated' },
-        { text: 'Keep Inactive', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
-      ]
-    }).then(function(choice) {
-      if (choice === 'reactivate') {
-        reactivateRow(row);
-      }
-    }).catch(function(err) {
-      if (err && err !== false) {
-        console.error('Reactivate confirmation failed', err);
-      }
-    });
-  }
-
-  function promptRowAction(row, context, totalText) {
-    if (!row) return;
-
-    if (typeof showConfirmationModal !== 'function') {
-      console.warn('showConfirmationModal unavailable; skipping row action prompt.');
-      return;
-    }
-
-    var subject = describeBeneficiaryAction(context);
-    var totalLabel = totalText && totalText.trim() ? totalText.trim() : '0.00';
-    var message;
-    if (subject && subject !== 'this beneficiary') {
-      message = 'Row total is ' + totalLabel + '. What would you like to do with ' + subject + '?';
-    } else {
-      message = 'Row total is ' + totalLabel + '. What would you like to do with this beneficiary?';
-    }
-
-    var existingCount = null;
-    if (window.FRTZ) {
-      if (typeof window.FRTZ.getReleasedBeneficiaryCount === 'function') {
-        existingCount = window.FRTZ.getReleasedBeneficiaryCount();
-      } else if (typeof window.FRTZ.releasedBeneficiaryCount !== 'undefined') {
-        existingCount = window.FRTZ.releasedBeneficiaryCount;
-      }
-    }
-    existingCount = coerceCount(existingCount);
-
-    var confirmationPromise = showConfirmationModal({
-      title: 'Deactivate or release beneficiary?',
-      message: message,
-      buttons: [
-        { text: 'Deactivate', value: 'deactivate', role: 'destructive', variant: 'destructive', feedback: false },
-        { text: 'Release', value: 'release', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Continue' },
-        { text: formatExistingBeneficiaryLabel(existingCount), id: 'add-existing', value: 'add-existing', role: 'option', variant: 'success', feedback: true, successText: '✓ Opening' },
-        { text: 'Add New Beneficiary', id: 'add-new', value: 'add-new', role: 'option', variant: 'accent', feedback: true, successText: '✓ Opening' },
-        { text: 'No, Keep Active', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
-      ]
-    });
-
-    var removeCountWatcher = null;
-    if (window.FRTZ && typeof window.FRTZ.onReleasedBeneficiaryCountChange === 'function') {
-      removeCountWatcher = window.FRTZ.onReleasedBeneficiaryCountChange(function(count) {
-        updateExistingBeneficiaryButton(count);
-      });
-    }
-
-    setTimeout(function() {
-      updateExistingBeneficiaryButton(existingCount);
-    }, 0);
-
-    if (window.FRTZ && typeof window.FRTZ.refreshReleasedBeneficiaryCount === 'function') {
-      window.FRTZ.refreshReleasedBeneficiaryCount(context.project, context.team);
-    }
-
-    var cleanupWatcher = function() {
-      if (removeCountWatcher) {
-        try {
-          removeCountWatcher();
-        } catch (err) {
-          console.error('remove count watcher failed', err);
-        }
-        removeCountWatcher = null;
-      }
-    };
-
-    confirmationPromise.then(function(action) {
-      cleanupWatcher();
-      if (action === 'deactivate') {
-        deactivateRow(row);
-      } else if (action === 'release') {
-        confirmReleaseRow(row, context);
-      } else if (action === 'add-existing') {
-        openAddBeneficiaryModal(context);
-      } else if (action === 'add-new') {
-        triggerAddNewBeneficiary(context);
-      }
-    }).catch(function(err) {
-      cleanupWatcher();
-      if (err && err !== false) {
-        console.error('confirmation dialog rejected', err);
-      }
-    });
   }
 
   function submitRelease(row, context) {
@@ -3351,147 +3214,701 @@ document.addEventListener('keydown', function(event) {
     alert('Please use the Add Rows button to add a new beneficiary.');
   }
 
-      function updateAllStars() {
-        ratingCategories.forEach(function(cat) {
-          updateStars(cat.key);
-        });
+  var addBeneficiaryPicker = (function() {
+    var overlay = document.getElementById('beneficiaryPickerModal');
+    if (!overlay) {
+      return {
+        open: function() {
+          alert('The Add Existing Beneficiary dialog is unavailable. Please reload the page.');
+        },
+        close: function() {}
+      };
+    }
+
+    var rowsTbody = document.getElementById('beneficiaryPickerRows');
+    var emptyEl = document.getElementById('beneficiaryPickerEmpty');
+    var searchInput = document.getElementById('beneficiaryPickerSearch');
+    var selectAll = document.getElementById('beneficiaryPickerSelectAll');
+    var applyBtn = document.getElementById('beneficiaryPickerApply');
+    var cancelBtn = document.getElementById('beneficiaryPickerCancel');
+    var closeBtn = overlay.querySelector('.beneficiary-picker-close');
+    var statusEl = document.getElementById('beneficiaryPickerStatus');
+    var countEl = document.getElementById('beneficiaryPickerCount');
+    var subtitleEl = document.getElementById('beneficiaryPickerSubtitle');
+
+    var allItems = [];
+    var filteredItems = [];
+    var selectedKeys = new Set();
+    var currentContext = { project: '', team: '' };
+    var searchTimer = null;
+    var loading = false;
+    var releasedCount = null;
+    var countListeners = new Set();
+    var inflightCountPromise = null;
+
+    function notifyCountListeners() {
+      countListeners.forEach(function(listener) {
+        try {
+          listener(releasedCount);
+        } catch (err) {
+          console.error('beneficiaryPicker count listener failed', err);
+        }
+      });
+    }
+
+    function setReleasedCount(countValue) {
+      var next = coerceCount(countValue);
+      releasedCount = next;
+      window.FRTZ = window.FRTZ || {};
+      window.FRTZ.releasedBeneficiaryCount = releasedCount;
+      try {
+        if (typeof window.updateExistingBeneficiaryButton === 'function') {
+          window.updateExistingBeneficiaryButton(releasedCount);
+        }
+      } catch (err) {
+        console.error('updateExistingBeneficiaryButton failed', err);
+      }
+      notifyCountListeners();
+    }
+
+    function onReleasedCountChange(listener) {
+      if (typeof listener !== 'function') {
+        return function() {};
+      }
+      countListeners.add(listener);
+      try {
+        listener(releasedCount);
+      } catch (err) {
+        console.error('initial count listener call failed', err);
+      }
+      return function() {
+        countListeners.delete(listener);
+      };
+    }
+
+    function updateStatus(message, tone) {
+      if (!statusEl) return;
+      statusEl.textContent = message || '';
+      statusEl.classList.remove('error', 'success');
+      if (tone) statusEl.classList.add(tone);
+    }
+
+    function refreshReleasedCount(projectOverride, teamOverride) {
+      if (!(window.google && google.script && google.script.run)) {
+        return Promise.resolve(null);
       }
 
-      ratingCategories.forEach(function(cat) {
-        var rowEl = document.createElement('div');
-        rowEl.className = 'release-rating-row';
-        rowEl.setAttribute('data-category', cat.key);
+      var project = typeof projectOverride === 'string' ? projectOverride : currentContext.project;
+      var team = typeof teamOverride === 'string' ? teamOverride : currentContext.team;
 
-        var labelEl = document.createElement('span');
-        labelEl.className = 'release-rating-label';
-        labelEl.textContent = cat.label;
-        rowEl.appendChild(labelEl);
+      if (inflightCountPromise) {
+        return inflightCountPromise;
+      }
 
-        var starsWrap = document.createElement('div');
-        starsWrap.className = 'release-rating-stars';
-
-        var catStars = [];
-        for (var i = 1; i <= 5; i++) {
-          (function(catKey, catLabel, value) {
-            var starBtn = document.createElement('button');
-            starBtn.type = 'button';
-            starBtn.className = 'release-star';
-            starBtn.dataset.value = String(value);
-            starBtn.setAttribute('aria-label', catLabel + ' ' + value + ' star' + (value === 1 ? '' : 's'));
-            starBtn.innerHTML = '★';
-            starBtn.addEventListener('mouseenter', function() {
-              hoverState[catKey] = value;
-              updateStars(catKey);
-            });
-            starBtn.addEventListener('mouseleave', function() {
-              hoverState[catKey] = 0;
-              updateStars(catKey);
-            });
-            starBtn.addEventListener('focus', function() {
-              hoverState[catKey] = value;
-              updateStars(catKey);
-            });
-            starBtn.addEventListener('blur', function() {
-              hoverState[catKey] = 0;
-              updateStars(catKey);
-            });
-            starBtn.addEventListener('click', function() {
-              ratingState[catKey] = value;
-              hoverState[catKey] = 0;
-              updateAllStars();
-              if (ratingsError.textContent) {
-                ratingsError.textContent = '';
-              }
-            });
-            starsWrap.appendChild(starBtn);
-            catStars.push(starBtn);
-          })(cat.key, cat.label, i);
-        }
-
-        starRefs[cat.key] = catStars;
-        rowEl.appendChild(starsWrap);
-        ratingsList.appendChild(rowEl);
+      inflightCountPromise = new Promise(function(resolve) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            inflightCountPromise = null;
+            if (res && res.ok !== false) {
+              if (typeof res.targetProject === 'string') currentContext.project = res.targetProject;
+              if (typeof res.targetTeam === 'string') currentContext.team = res.targetTeam;
+              var total = (typeof res.total === 'number' && isFinite(res.total))
+                ? res.total
+                : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
+              setReleasedCount(total);
+            } else {
+              setReleasedCount(null);
+            }
+            resolve(res || null);
+          })
+          .withFailureHandler(function(err) {
+            inflightCountPromise = null;
+            console.error('refreshReleasedBeneficiaryCount failed:', err);
+            setReleasedCount(null);
+            resolve(null);
+          })
+          .getReleasedBeneficiariesForInduction(project, team);
       });
 
-      updateAllStars();
+      return inflightCountPromise;
+    }
 
-      var reviewSection = document.createElement('div');
-      reviewSection.className = 'release-section';
-      var reviewLabel = document.createElement('label');
-      reviewLabel.className = 'release-section-title';
-      reviewLabel.setAttribute('for', 'releaseReviewInput');
-      reviewLabel.textContent = 'Review';
-      reviewSection.appendChild(reviewLabel);
-      var reviewHint = document.createElement('div');
-      reviewHint.className = 'release-section-hint';
-      reviewHint.textContent = 'Minimum 10 letters.';
-      reviewSection.appendChild(reviewHint);
-      var reviewInput = document.createElement('textarea');
-      reviewInput.id = 'releaseReviewInput';
-      reviewInput.className = 'release-review-input';
-      reviewInput.placeholder = 'Share a brief review…';
-      reviewInput.value = prefill && prefill.review ? prefill.review : '';
-      reviewSection.appendChild(reviewInput);
-      var reviewError = document.createElement('div');
-      reviewError.className = 'release-error';
-      reviewError.textContent = '';
-      reviewSection.appendChild(reviewError);
+    function setLoading(flag, message) {
+      loading = !!flag;
+      overlay.classList.toggle('loading', loading);
+      if (message) {
+        updateStatus(message);
+      }
+      if (loading && applyBtn) {
+        applyBtn.disabled = true;
+      }
+    }
 
-      reviewInput.addEventListener('input', function() {
-        if (reviewError.textContent && countNonSpace(reviewInput.value) >= 10) {
-          reviewError.textContent = '';
+    function updateSubtitle(projectOverride, teamOverride) {
+      if (!subtitleEl) return;
+      var proj = typeof projectOverride === 'string' ? projectOverride : currentContext.project;
+      var team = typeof teamOverride === 'string' ? teamOverride : currentContext.team;
+      if (!proj) {
+        subtitleEl.textContent = 'Project not detected for this row.';
+        return;
+      }
+      var parts = ['Project: ' + proj];
+      parts.push('Team: ' + (team ? team : 'Unassigned'));
+      subtitleEl.textContent = parts.join(' • ');
+    }
+
+    function showEmpty(message) {
+      if (!emptyEl) return;
+      emptyEl.textContent = message || 'No released beneficiaries found.';
+      emptyEl.hidden = false;
+    }
+
+    function hideEmpty() {
+      if (emptyEl) emptyEl.hidden = true;
+    }
+
+    function updateCounts() {
+      if (!countEl) return;
+      var total = allItems.length;
+      var visible = filteredItems.length;
+      if (!total && !visible) {
+        countEl.textContent = '';
+        return;
+      }
+      if (visible === total) {
+        countEl.textContent = visible === 1 ? 'Showing 1 beneficiary' : 'Showing ' + visible + ' beneficiaries';
+      } else {
+        countEl.textContent = 'Showing ' + visible + ' of ' + total + ' beneficiaries';
+      }
+    }
+
+    function updateApplyState() {
+      if (!applyBtn) return;
+      var count = selectedKeys.size;
+      applyBtn.disabled = loading || !count;
+      applyBtn.textContent = count ? ('Add Selected (' + count + ')') : 'Add Selected';
+    }
+
+    function updateSelectAllState() {
+      if (!selectAll) return;
+      if (loading || !filteredItems.length) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+        selectAll.disabled = loading || !filteredItems.length;
+        return;
+      }
+      var selectedInView = 0;
+      for (var i = 0; i < filteredItems.length; i++) {
+        var item = filteredItems[i];
+        if (item && selectedKeys.has(item.beneficiaryKey)) {
+          selectedInView++;
         }
-      });
+      }
+      selectAll.disabled = loading;
+      if (selectedInView === 0) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      } else if (selectedInView === filteredItems.length) {
+        selectAll.checked = true;
+        selectAll.indeterminate = false;
+      } else {
+        selectAll.checked = false;
+        selectAll.indeterminate = true;
+      }
+    }
 
-      content.appendChild(ratingsSection);
-      content.appendChild(reviewSection);
-
-      function validateForm() {
-        var missing = ratingCategories.filter(function(cat) {
-          return (ratingState[cat.key] || 0) <= 0;
-        });
-        if (missing.length) {
-          ratingsError.textContent = 'Please provide a rating for all categories.';
-        } else {
-          ratingsError.textContent = '';
+    function renderRows(list) {
+      if (!rowsTbody) return;
+      rowsTbody.innerHTML = '';
+      if (!Array.isArray(list) || !list.length) {
+        showEmpty('No released beneficiaries match your filters.');
+        updateSelectAllState();
+        return;
+      }
+      hideEmpty();
+      for (var i = 0; i < list.length; i++) {
+        var item = list[i];
+        if (!item) continue;
+        var tr = document.createElement('tr');
+        if (selectedKeys.has(item.beneficiaryKey)) {
+          tr.classList.add('selected');
         }
+        var tdCheck = document.createElement('td');
+        tdCheck.className = 'picker-checkbox';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.key = item.beneficiaryKey || '';
+        cb.checked = selectedKeys.has(item.beneficiaryKey);
+        cb.disabled = loading;
+        cb.setAttribute('aria-label', 'Select ' + (item.beneficiary || 'beneficiary'));
+        tdCheck.appendChild(cb);
+        tr.appendChild(tdCheck);
 
-        var reviewValue = reviewInput.value || '';
-        if (countNonSpace(reviewValue) < 10) {
-          reviewError.textContent = 'Review must be at least 10 letters.';
-        } else {
-          reviewError.textContent = '';
-        }
+        var tdIndex = document.createElement('td');
+        tdIndex.textContent = String(i + 1);
+        tr.appendChild(tdIndex);
 
-        if (missing.length) {
-          var firstKey = missing[0].key;
-          var focusStars = starRefs[firstKey];
-          if (focusStars && focusStars[0]) {
-            focusStars[0].focus();
+        var tdBeneficiary = document.createElement('td');
+        tdBeneficiary.textContent = item.beneficiary || '';
+        tr.appendChild(tdBeneficiary);
+
+        var tdDesignation = document.createElement('td');
+        tdDesignation.textContent = item.designation || '—';
+        tr.appendChild(tdDesignation);
+
+        var tdProject = document.createElement('td');
+        tdProject.textContent = item.project || '—';
+        tr.appendChild(tdProject);
+
+        var tdTeam = document.createElement('td');
+        tdTeam.textContent = item.team || '—';
+        tr.appendChild(tdTeam);
+
+        var tdAccount = document.createElement('td');
+        tdAccount.textContent = item.accountHolder || '—';
+        tr.appendChild(tdAccount);
+
+        var tdIdle = document.createElement('td');
+        tdIdle.className = 'numeric';
+        var idleText = (typeof item.idleDays === 'number' && item.idleDays >= 0) ? String(item.idleDays) : '—';
+        tdIdle.textContent = idleText;
+        if (item.releasedAt) {
+          var releaseDate = new Date(item.releasedAt);
+          if (!isNaN(releaseDate.getTime())) {
+            tdIdle.title = 'Released on ' + releaseDate.toLocaleString();
           }
-          return { ok: false };
         }
+        tr.appendChild(tdIdle);
 
-        if (countNonSpace(reviewValue) < 10) {
-          reviewInput.focus();
-          return { ok: false };
-        }
+        var tdNationality = document.createElement('td');
+        tdNationality.textContent = item.nationality || '—';
+        tr.appendChild(tdNationality);
 
-        var cleanedReview = reviewValue.trim();
-        var ratingValues = {};
-        ratingCategories.forEach(function(cat) {
-          ratingValues[cat.key] = ratingState[cat.key] || 0;
+        rowsTbody.appendChild(tr);
+      }
+      updateSelectAllState();
+    }
+
+    function applyFilterNow() {
+      var term = searchInput ? searchInput.value.trim().toLowerCase() : '';
+      if (!term) {
+        filteredItems = allItems.slice();
+      } else {
+        filteredItems = allItems.filter(function(item) {
+          if (!item) return false;
+          return [item.beneficiary, item.designation, item.project, item.team, item.accountHolder, item.nationality]
+            .some(function(part) {
+              return String(part || '').toLowerCase().indexOf(term) >= 0;
+            });
         });
+      }
+      renderRows(filteredItems);
+      updateCounts();
+      updateApplyState();
+    }
 
-        return {
-          ok: true,
-          review: cleanedReview,
-          ratingValues: ratingValues,
-          summary: formatRatingsSummary(ratingValues)
-        };
+    function scheduleFilter() {
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(applyFilterNow, 120);
+    }
+
+    function namesForKeys(keys) {
+      return keys.map(function(key) {
+        var match = allItems.find(function(item) {
+          return item && item.beneficiaryKey === key;
+        });
+        return match && match.beneficiary ? match.beneficiary : key;
+      }).filter(Boolean);
+    }
+
+    function executeAdd(keys) {
+      if (!(window.google && google.script && google.script.run)) {
+        updateStatus('Beneficiary updates are only available inside the Google Sheets environment.', 'error');
+        return;
+      }
+      setLoading(true, 'Adding beneficiaries…');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setLoading(false);
+          if (!res || res.ok === false) {
+            updateStatus(res && res.error ? res.error : 'Failed to induct beneficiaries.', 'error');
+            updateApplyState();
+            return;
+          }
+
+          if (typeof res.project === 'string') currentContext.project = res.project;
+          if (typeof res.team === 'string') currentContext.team = res.team;
+          updateSubtitle();
+
+          var addedKeys = Array.isArray(res.addedKeys) ? new Set(res.addedKeys) : new Set(keys);
+          if (addedKeys.size) {
+            allItems = allItems.filter(function(item) {
+              return !(item && addedKeys.has(item.beneficiaryKey));
+            });
+          }
+
+          filteredItems = allItems.slice();
+          selectedKeys.clear();
+          applyFilterNow();
+
+          if (res && typeof res.remaining === 'number' && isFinite(res.remaining)) {
+            setReleasedCount(res.remaining);
+          } else {
+            setReleasedCount(allItems.length);
+          }
+
+          var addedCount = res.inserted || addedKeys.size || 0;
+          var statusMsg = addedCount
+            ? ('Added ' + addedCount + ' beneficiary' + (addedCount === 1 ? '' : 'ies') + ' to ' + (currentContext.project || 'project') + (currentContext.team ? ' • ' + currentContext.team : '') + '.')
+            : 'No beneficiaries were added.';
+
+          if (Array.isArray(res.skipped) && res.skipped.length) {
+            var skippedKeys = res.skipped.map(function(info) { return info && info.key; }).filter(Boolean);
+            var skippedNames = namesForKeys(skippedKeys);
+            if (skippedNames.length) {
+              statusMsg += ' Skipped: ' + skippedNames.join(', ') + '.';
+            }
+          }
+
+          updateStatus(statusMsg, addedCount ? 'success' : null);
+          updateApplyState();
+
+          if (res && Array.isArray(res.beneficiaries) && res.beneficiaries.length && typeof window.appendRowsFromBeneficiaries === 'function') {
+            try {
+              window.appendRowsFromBeneficiaries(res.beneficiaries);
+            } catch (appendErr) {
+              console.warn('appendRowsFromBeneficiaries failed:', appendErr);
+            }
+          }
+
+          try {
+            document.dispatchEvent(new CustomEvent('frtz:beneficiary-inducted', {
+              detail: {
+                project: currentContext.project,
+                team: currentContext.team,
+                beneficiaries: res && res.beneficiaries ? res.beneficiaries : []
+              }
+            }));
+          } catch (_eventErr) {}
+        })
+        .withFailureHandler(function(err) {
+          setLoading(false);
+          console.error('inductReleasedBeneficiaries failed:', err);
+          updateStatus('Failed to induct beneficiaries. Please try again.', 'error');
+          updateApplyState();
+        })
+        .inductReleasedBeneficiaries({
+          project: currentContext.project,
+          team: currentContext.team,
+          beneficiaryKeys: keys
+        });
+    }
+
+    function performAdd() {
+      if (loading || !selectedKeys.size) return;
+      if (!currentContext.project) {
+        updateStatus('Project information is missing for this row.', 'error');
+        return;
+      }
+      var keys = Array.from(selectedKeys);
+      var names = namesForKeys(keys);
+      var targetLabel = currentContext.project + (currentContext.team ? ' • ' + currentContext.team : '');
+      var message = names.length === 1
+        ? 'Are you sure you want to induct ' + names[0] + ' into ' + targetLabel + '?'
+        : 'Are you sure you want to induct ' + names.length + ' beneficiaries into ' + targetLabel + '?';
+
+      showConfirmationModal({
+        title: 'Induct beneficiaries?',
+        message: message,
+        yesText: 'Yes, Induct',
+        noText: 'Cancel'
+      }).then(function(confirmed) {
+        if (!confirmed) return;
+        executeAdd(keys);
+      });
+    }
+
+    function close() {
+      overlay.classList.remove('show');
+      overlay.classList.remove('loading');
+      if (searchTimer) {
+        clearTimeout(searchTimer);
+        searchTimer = null;
+      }
+      document.removeEventListener('keydown', onKeydown);
+    }
+
+    function open(context) {
+      context = context || {};
+      currentContext.project = context.project ? String(context.project).trim() : '';
+      currentContext.team = context.team ? String(context.team).trim() : '';
+      selectedKeys.clear();
+      updateStatus('');
+      updateSubtitle();
+      hideEmpty();
+      if (searchInput) searchInput.value = '';
+      if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+        selectAll.disabled = true;
+      }
+      allItems = [];
+      filteredItems = [];
+      renderRows(filteredItems);
+      updateCounts();
+      updateApplyState();
+
+      overlay.classList.add('show');
+      setTimeout(function() {
+        try { if (searchInput) searchInput.focus(); } catch (_e) {}
+      }, 120);
+      document.addEventListener('keydown', onKeydown);
+
+      if (!(window.google && google.script && google.script.run)) {
+        updateStatus('Beneficiary picker is only available inside the Google Sheets web app.', 'error');
+        showEmpty('Open this sheet in the Google Sheets web app to induct released beneficiaries.');
+        return;
       }
 
-      var capturedResult = null;
+      setLoading(true, 'Loading released beneficiaries…');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setLoading(false);
+          if (!res || res.ok === false) {
+            updateStatus(res && res.error ? res.error : 'Unable to load released beneficiaries.', 'error');
+            showEmpty('No released beneficiaries found.');
+            setReleasedCount(null);
+            allItems = [];
+            filteredItems = [];
+            updateCounts();
+            updateApplyState();
+            updateSelectAllState();
+            return;
+          }
+
+          if (typeof res.targetProject === 'string') currentContext.project = res.targetProject;
+          if (typeof res.targetTeam === 'string') currentContext.team = res.targetTeam;
+          updateSubtitle();
+
+          var total = (typeof res.total === 'number' && isFinite(res.total))
+            ? res.total
+            : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
+          setReleasedCount(total);
+
+          allItems = Array.isArray(res.beneficiaries) ? res.beneficiaries : [];
+          filteredItems = allItems.slice();
+          applyFilterNow();
+          if (!allItems.length) {
+            showEmpty('No released beneficiaries are available right now.');
+          }
+        })
+        .withFailureHandler(function(err) {
+          setLoading(false);
+          console.error('getReleasedBeneficiariesForInduction failed:', err);
+          updateStatus('Unable to load released beneficiaries. Please try again.', 'error');
+          showEmpty('No released beneficiaries found.');
+          setReleasedCount(null);
+          allItems = [];
+          filteredItems = [];
+          updateCounts();
+          updateApplyState();
+          updateSelectAllState();
+        })
+        .getReleasedBeneficiariesForInduction(currentContext.project, currentContext.team);
+    }
+
+    function onKeydown(e) {
+      if (e.key === 'Escape' && overlay.classList.contains('show')) {
+        close();
+      }
+    }
+
+    if (cancelBtn) cancelBtn.addEventListener('click', close);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) close();
+    });
+
+    if (searchInput) searchInput.addEventListener('input', scheduleFilter);
+
+    if (selectAll) {
+      selectAll.addEventListener('change', function() {
+        if (loading) return;
+        var checked = !!selectAll.checked;
+        filteredItems.forEach(function(item) {
+          if (!item || !item.beneficiaryKey) return;
+          if (checked) {
+            selectedKeys.add(item.beneficiaryKey);
+          } else {
+            selectedKeys.delete(item.beneficiaryKey);
+          }
+        });
+        if (rowsTbody) {
+          Array.prototype.forEach.call(rowsTbody.querySelectorAll('input[type="checkbox"][data-key]'), function(box) {
+            box.checked = checked;
+            var row = box.closest('tr');
+            if (row) row.classList.toggle('selected', box.checked);
+          });
+        }
+        selectAll.indeterminate = false;
+        updateApplyState();
+      });
+    }
+
+    if (rowsTbody) {
+      rowsTbody.addEventListener('change', function(e) {
+        var cb = e.target.closest('input[type="checkbox"][data-key]');
+        if (!cb || loading) return;
+        var key = cb.dataset.key || '';
+        if (!key) return;
+        if (cb.checked) {
+          selectedKeys.add(key);
+        } else {
+          selectedKeys.delete(key);
+        }
+        var row = cb.closest('tr');
+        if (row) row.classList.toggle('selected', cb.checked);
+        updateApplyState();
+        updateSelectAllState();
+      });
+
+      rowsTbody.addEventListener('click', function(e) {
+        var row = e.target.closest('tr');
+        if (!row || loading) return;
+        var cb = row.querySelector('input[type="checkbox"][data-key]');
+        if (!cb || e.target === cb) return;
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+
+    if (applyBtn) applyBtn.addEventListener('click', performAdd);
+
+    window.FRTZ = window.FRTZ || {};
+    window.FRTZ.onReleasedBeneficiaryCountChange = onReleasedCountChange;
+    window.FRTZ.getReleasedBeneficiaryCount = function() { return releasedCount; };
+    window.FRTZ.refreshReleasedBeneficiaryCount = refreshReleasedCount;
+
+    return {
+      open: open,
+      close: close
+    };
+  })();
+
+  function coerceCount(value) {
+    if (typeof value === 'number' && isFinite(value) && value >= 0) {
+      return Math.floor(value);
+    }
+    if (typeof value === 'string' && value.trim() !== '') {
+      var parsed = Number(value);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        return Math.floor(parsed);
+      }
+    }
+    return null;
+  }
+
+  function openAddBeneficiaryModal(context) {
+    try {
+      addBeneficiaryPicker.open(context || {});
+    } catch (err) {
+      console.error('openAddBeneficiaryModal failed:', err);
+      alert('Unable to open the Add Existing Beneficiary dialog. Please try again.');
+    }
+  }
+
+  function formatExistingBeneficiaryLabel(count) {
+    var normalized = coerceCount(count);
+    if (normalized === null) {
+      return 'Add Existing Beneficiary [—]';
+    }
+    return 'Add Existing Beneficiary [' + normalized + ']';
+  }
+
+  function updateExistingBeneficiaryButton(count) {
+    var text = formatExistingBeneficiaryLabel(count);
+    var normalized = coerceCount(count);
+    if (typeof window.updateConfirmationButton === 'function') {
+      window.updateConfirmationButton('add-existing', {
+        text: text,
+        dataset: { releasedCount: normalized != null ? normalized : '' }
+      });
+    } else {
+      var btn = document.querySelector('.confirmation-buttons button[data-button-id="add-existing"]');
+      if (btn) {
+        btn.textContent = text;
+        btn.dataset.originalText = text;
+        if (normalized == null) {
+          delete btn.dataset.releasedCount;
+        } else {
+          btn.dataset.releasedCount = normalized;
+        }
+      }
+    }
+  }
+
+  window.updateExistingBeneficiaryButton = updateExistingBeneficiaryButton;
+
+  function triggerAddNewBeneficiary(context) {
+    try {
+      var detail = context && typeof context === 'object' ? context : {};
+      document.dispatchEvent(new CustomEvent('frtz:add-new-beneficiary', { detail: detail }));
+    } catch (err) {
+      console.error('dispatch add-new-beneficiary event failed', err);
+    }
+
+    if (window.FRTZ && typeof window.FRTZ.openNewBeneficiaryDialog === 'function') {
+      window.FRTZ.openNewBeneficiaryDialog(context || {});
+      return;
+    }
+
+    if (window.FRTZ && window.FRTZ.addRowBtn) {
+      try {
+        window.FRTZ.addRowBtn.click();
+        return;
+      } catch (errClick) {
+        console.error('click addRowBtn failed', errClick);
+      }
+    }
+
+    alert('Please use the Add Rows button to add a new beneficiary.');
+  }
+
+  window.FRTZ = window.FRTZ || {};
+  if (!window.FRTZ.buildReleaseContext) {
+    window.FRTZ.buildReleaseContext = buildReleaseContext;
+  }
+  
+  // Add click handler for row total pills
+  tbody.addEventListener('click', function(e) {
+    var totalInput = e.target.closest('input.amt[readonly]');
+    if (!totalInput) return;
+    
+    var row = totalInput.closest('.row-data');
+    if (!row) return;
+    
+    var isDeactivated = row.classList.contains('row-deactivated');
+    
+    if (isDeactivated) {
+      // Reactivation confirmation
+      showConfirmationModal({
+        title: 'Reactivate beneficiary?',
+        message: "Re-enabling means you'll fund their expenses. Continue?",
+        yesText: 'Yes, Reactivate',
+        noText: 'No, Keep Inactive'
+      }).then(function(confirmed) {
+        if (confirmed) {
+          reactivateRow(row);
+        }
+      });
+    } else {
+      var context = buildReleaseContext(row);
+      var nameLabel = context && context.beneficiary ? context.beneficiary : 'this beneficiary';
+      var scopeParts = [];
+      if (context && context.team) scopeParts.push(context.team);
+      if (context && context.project) scopeParts.push(context.project);
+      var scope = scopeParts.length ? ' (' + scopeParts.join(' • ') + ')' : '';
+      var message = 'Choose how to proceed with ' + nameLabel + scope + '. Deactivate clears this row, Release removes them from the team and project.';
 
       var existingCount = null;
       if (window.FRTZ) {
@@ -3562,19 +3979,6 @@ document.addEventListener('keydown', function(event) {
   });
 
   // Car number input click handler will be attached after modal is loaded
-
-    return true;
-  }
-
-  var initialTbody = document.getElementById('tbody');
-  if (!initTableModule(initialTbody)) {
-    document.addEventListener('DOMContentLoaded', function handleFRTZTableInit() {
-      var lateTbody = document.getElementById('tbody');
-      if (initTableModule(lateTbody)) {
-        document.removeEventListener('DOMContentLoaded', handleFRTZTableInit);
-      }
-    });
-  }
 
 })();
 
