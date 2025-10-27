@@ -6583,6 +6583,12 @@ function _readDD_compact_() {
   const iTeam   = IX.get(['Team','Team Name']);
   const iAcct   = IX.get(['Account Holder Name','Account Holder']);
   const iUse    = IX.get(['In Use / release','In Use','In Use/Release']);
+  let iNation = -1;
+  try {
+    iNation = IX.get(['Nationality', 'Country', 'Citizenship']);
+  } catch (_e) {
+    iNation = -1;
+  }
   let iDateTime = -1;
   try {
     iDateTime = IX.get(['Date and Time','Date & Time','Timestamp','Updated At','Date']);
@@ -6591,6 +6597,7 @@ function _readDD_compact_() {
   }
 
   const indices = [iName, iDesig, iDA, iProj, iTeam, iAcct, iUse];
+  if (iNation >= 0) indices.push(iNation);
   if (iDateTime >= 0) indices.push(iDateTime);
   const minIdx = Math.min.apply(null, indices);
   const maxIdx = Math.max.apply(null, indices);
@@ -6613,6 +6620,7 @@ function _readDD_compact_() {
       project:     _norm(get(iProj)),
       team:        teamValue,
       account:     _norm(get(iAcct)),
+      nationality: iNation >= 0 ? _norm(get(iNation)) : '',
       inuse:       _norm(get(iUse)),
       dateTime:    dateRaw,
       timestamp:   ts,
@@ -6667,6 +6675,7 @@ function releaseBeneficiary(payload) {
     let idxMobile = -1;
     let idxDisplay = -1;
     let idxWH = -1;
+    let idxRatings = -1;
     let idxRemarks = -1;
     let idxTimestamp = -1;
     let idxSubmitter = -1;
@@ -6678,6 +6687,7 @@ function releaseBeneficiary(payload) {
     try { idxMobile = IX.get(['Mob No', 'Mobile', 'Mobile Number', 'Mob']); } catch (_e) {}
     try { idxDisplay = IX.get(['Display Name']); } catch (_e) {}
     try { idxWH = IX.get(['W/H Charge', 'Withholding Charge', 'W/H']); } catch (_e) {}
+    try { idxRatings = IX.get(['Ratings', 'Rating', 'Stars']); } catch (_e) {}
     try { idxRemarks = IX.get(['Remarks', 'Comment', 'Comments', 'Notes']); } catch (_e) {}
     try { idxTimestamp = IX.get(['Date and Time', 'Date & Time', 'Timestamp', 'Updated At', 'Date']); } catch (_e) {}
     try { idxSubmitter = IX.get(['Submitter', 'Updated By', 'Entered By']); } catch (_e) {}
@@ -6723,7 +6733,62 @@ function releaseBeneficiary(payload) {
     assignIfPresent(idxMobile, payload.mobile);
     assignIfPresent(idxDisplay, payload.displayName);
     assignIfPresent(idxWH, payload.whCharge);
-    assignIfPresent(idxRemarks, payload.remarks);
+
+    const ratingKeys = ['coreKnowledge', 'discipline', 'honestyIntegrity', 'teamwork', 'attitudeBehaviour'];
+    const ratingLabels = {
+      coreKnowledge: 'Core Knowledge',
+      discipline: 'Discipline',
+      honestyIntegrity: 'Honesty and Integrity',
+      teamwork: 'Teamwork',
+      attitudeBehaviour: 'Attitude and Behaviour',
+      attitudeBehavior: 'Attitude and Behaviour'
+    };
+
+    const normalizeRatingValue = (val) => {
+      const num = Number(val);
+      if (!isFinite(num)) return 0;
+      if (num < 0) return 0;
+      if (num > 5) return 5;
+      return Math.round(num);
+    };
+
+    let ratingSummary = '';
+    if (payload && typeof payload.ratingSummary === 'string' && payload.ratingSummary.trim()) {
+      ratingSummary = payload.ratingSummary.trim();
+    } else if (payload && typeof payload.ratings === 'string' && payload.ratings.trim()) {
+      ratingSummary = String(payload.ratings).trim();
+    } else if (payload && payload.ratingValues && typeof payload.ratingValues === 'object') {
+      const parts = [];
+      const map = payload.ratingValues;
+      ratingKeys.forEach((key) => {
+        const altKey = key === 'attitudeBehaviour' ? 'attitudeBehavior' : key;
+        const raw = Object.prototype.hasOwnProperty.call(map, key)
+          ? map[key]
+          : (Object.prototype.hasOwnProperty.call(map, altKey) ? map[altKey] : null);
+        const rating = normalizeRatingValue(raw);
+        const label = ratingLabels[key] || ratingLabels[altKey] || key;
+        const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+        parts.push(`${label}: ${stars} (${rating}/5)`);
+      });
+      ratingSummary = parts.join(' | ');
+    }
+
+    if (idxRatings >= 0 && ratingSummary) {
+      newRow[idxRatings] = ratingSummary;
+    }
+
+    const reviewText = typeof payload.review === 'string' ? payload.review.trim() : '';
+    const remarksFallback = typeof payload.remarks === 'string' ? payload.remarks.trim() : '';
+    const remarksValue = reviewText || remarksFallback;
+    if (idxRemarks >= 0) {
+      newRow[idxRemarks] = remarksValue;
+    }
+
+    const REVIEW_COLUMN_INDEX = 10; // Column K (1-indexed) stores release reviews
+    if (REVIEW_COLUMN_INDEX >= newRow.length) {
+      newRow.length = REVIEW_COLUMN_INDEX + 1;
+    }
+    newRow[REVIEW_COLUMN_INDEX] = remarksValue;
 
     newRow[idxStatus] = 'Release';
 
@@ -7340,6 +7405,33 @@ function getTeams(projectId) {
   }
 }
 
+function _latestBeneficiaryEntries_(ddRows) {
+  const latestRows = new Map();
+  if (!Array.isArray(ddRows) || ddRows.length === 0) {
+    return latestRows;
+  }
+
+  for (let idx = 0; idx < ddRows.length; idx++) {
+    const row = ddRows[idx];
+    if (!row || !row.beneficiaryKey) continue;
+
+    const tsValue = Number(row.timestamp);
+    const ts = Number.isFinite(tsValue) ? tsValue : 0;
+    const sheetRow = idx + 2; // header row offset
+    const existing = latestRows.get(row.beneficiaryKey);
+
+    if (!existing || ts > existing.timestamp || (ts === existing.timestamp && sheetRow > existing.sheetRow)) {
+      latestRows.set(row.beneficiaryKey, {
+        row: row,
+        timestamp: ts,
+        sheetRow: sheetRow
+      });
+    }
+  }
+
+  return latestRows;
+}
+
 /** Beneficiaries */
 function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
   try {
@@ -7361,21 +7453,31 @@ function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
       return false;
     })(includeAllStatuses);
 
-    const rows = _readDD_compact_().filter(r => {
-      if (!includeAll && _up(r.inuse) !== 'IN USE') return false;
+    const ddRows = _readDD_compact_();
+    if (!Array.isArray(ddRows) || ddRows.length === 0) return [];
+
+    const latestRows = _latestBeneficiaryEntries_(ddRows);
+    
+    const rows = [];
+    latestRows.forEach(function(entry) {
+      const r = entry && entry.row;
+      if (!r || !r.beneficiary) return;
+
+      if (!includeAll && _up(r.inuse) !== 'IN USE') return;
       if (projKey) {
-        if (_normProjectKey(r.project) !== projKey) return false;
+        if (_normProjectKey(r.project) !== projKey) return;
       } else if (!haveTeams) {
-        return false;
+        return;
       }
       if (haveTeams) {
         const rowTeamNorm = _norm(r.team);
         const rowTeamAlias = _normTeamKey(r.team);
         const directMatch = teamSet.has(rowTeamNorm);
         const aliasMatch = rowTeamAlias ? teamAliasSet.has(rowTeamAlias) : false;
-        if (!directMatch && !aliasMatch) return false;
+        if (!directMatch && !aliasMatch) return;
       }
-      return !!r.beneficiary;
+
+      rows.push(r);
     });
 
     if (!proj && rows.length) {
@@ -7422,7 +7524,491 @@ function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
   }
 }
 
+function getReleasedBeneficiariesForInduction(targetProject, targetTeam) {
+  try {
+    const project = _norm(targetProject);
+    const team = _norm(targetTeam);
+    const ddRows = _readDD_compact_();
+    if (!Array.isArray(ddRows) || ddRows.length === 0) {
+      return { ok: true, targetProject: project, targetTeam: team, total: 0, beneficiaries: [] };
+    }
+
+    const latestRows = _latestBeneficiaryEntries_(ddRows);
+    const nowMs = Date.now();
+    const dayMs = 24 * 60 * 60 * 1000;
+    const list = [];
+
+    latestRows.forEach(function(entry, key) {
+      if (!entry || !entry.row) return;
+      const row = entry.row;
+      if (_normStatus_(row.inuse) !== 'RELEASE') return;
+
+      let idleDays = null;
+      if (entry.timestamp && Number.isFinite(entry.timestamp)) {
+        const diff = nowMs - entry.timestamp;
+        if (Number.isFinite(diff) && diff >= 0) {
+          const raw = Math.floor(diff / dayMs);
+          idleDays = raw >= 1 ? raw : 1;
+        } else if (Number.isFinite(diff)) {
+          idleDays = 1;
+        }
+      }
+
+      list.push({
+        beneficiary: row.beneficiary || '',
+        beneficiaryKey: key,
+        designation: row.designation || '',
+        project: row.project || '',
+        team: row.team || '',
+        accountHolder: row.account || '',
+        defaultDa: Number(row.defaultDa || 0) || 0,
+        nationality: row.nationality || '',
+        idleDays: idleDays,
+        releasedAt: entry.timestamp ? new Date(entry.timestamp).toISOString() : '',
+        sheetRow: entry.sheetRow || 0
+      });
+    });
+
+    list.sort(function(a, b) {
+      const aIdle = typeof a.idleDays === 'number' ? a.idleDays : -1;
+      const bIdle = typeof b.idleDays === 'number' ? b.idleDays : -1;
+      if (bIdle !== aIdle) return bIdle - aIdle;
+      return (a.beneficiary || '').localeCompare(b.beneficiary || '', undefined, { sensitivity: 'base' });
+    });
+
+    return {
+      ok: true,
+      targetProject: project,
+      targetTeam: team,
+      total: list.length,
+      beneficiaries: list
+    };
+  } catch (e) {
+    console.error('getReleasedBeneficiariesForInduction error', e);
+    return { ok: false, error: String(e) };
+  }
+}
+
+function inductReleasedBeneficiaries(payload) {
+  try {
+    if (!payload || typeof payload !== 'object') {
+      return { ok: false, error: 'Invalid payload' };
+    }
+
+    const project = _norm(payload.project);
+    if (!project) {
+      return { ok: false, error: 'Project is required to induct beneficiaries' };
+    }
+    const team = _norm(payload.team);
+
+    const rawKeys = Array.isArray(payload.beneficiaryKeys)
+      ? payload.beneficiaryKeys
+      : (Array.isArray(payload.beneficiaries) ? payload.beneficiaries : []);
+    const selectedKeys = [];
+    const seenKeys = new Set();
+    rawKeys.forEach(function(val) {
+      const key = _beneficiaryKey_(val);
+      if (!key || seenKeys.has(key)) return;
+      seenKeys.add(key);
+      selectedKeys.push(key);
+    });
+
+    if (!selectedKeys.length) {
+      return { ok: false, error: 'No beneficiaries selected for induction' };
+    }
+
+    const ddRows = _readDD_compact_();
+    if (!Array.isArray(ddRows) || ddRows.length === 0) {
+      return { ok: false, error: 'DD sheet is empty' };
+    }
+
+    const latestRows = _latestBeneficiaryEntries_(ddRows);
+    const eligible = [];
+    const skipped = [];
+
+    selectedKeys.forEach(function(key) {
+      const entry = latestRows.get(key);
+      if (!entry || !entry.row) {
+        skipped.push({ key: key, reason: 'not_found' });
+        return;
+      }
+      if (_normStatus_(entry.row.inuse) !== 'RELEASE') {
+        skipped.push({ key: key, reason: 'not_released' });
+        return;
+      }
+      eligible.push({ key: key, entry: entry });
+    });
+
+    if (!eligible.length) {
+      return { ok: false, error: 'Selected beneficiaries are no longer available for induction', skipped: skipped };
+    }
+
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sh = ss.getSheetByName(DATA_SHEET_NAME);
+    if (!sh) {
+      return { ok: false, error: 'Data sheet "DD" not found' };
+    }
+
+    const lastRow = sh.getLastRow();
+    const lastCol = sh.getLastColumn();
+    if (lastCol < 1) {
+      return { ok: false, error: 'DD sheet has no columns' };
+    }
+
+    const header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    const IX = _headerIndex_(header);
+
+    const idxName = IX.get(['Name of Beneficiary', 'Beneficiary', 'Beneficiary Name', 'Name']);
+    const idxStatus = IX.get(['In Use/Release', 'In Use / release', 'In Use', 'Status']);
+    let idxProject = -1;
+    let idxTeam = -1;
+    let idxAccount = -1;
+    let idxDesignation = -1;
+    let idxDefaultDa = -1;
+    let idxTimestamp = -1;
+    let idxSubmitter = -1;
+    let idxRemarks = -1;
+
+    try { idxProject = IX.get(['Project']); } catch (_e) {}
+    try { idxTeam = IX.get(['Team', 'Team Name']); } catch (_e) {}
+    try { idxAccount = IX.get(['Account Holder Name', 'Account Holder']); } catch (_e) {}
+    try { idxDesignation = IX.get(['Resource Designation', 'Designation']); } catch (_e) {}
+    try { idxDefaultDa = IX.get(['Default DA Amt', 'Default DA', 'DA Default']); } catch (_e) {}
+    try { idxTimestamp = IX.get(['Date and Time', 'Date & Time', 'Timestamp', 'Updated At', 'Date']); } catch (_e) {}
+    try { idxSubmitter = IX.get(['Submitter', 'Updated By', 'Entered By']); } catch (_e) {}
+    try { idxRemarks = IX.get(['Remarks', 'Comment', 'Comments', 'Notes']); } catch (_e) {}
+
+    const rowsToInsert = [];
+    const appendedItems = [];
+    const addedKeys = [];
+    const timestampNow = new Date();
+    let submitter = '';
+    try { submitter = Session.getActiveUser().getEmail() || ''; } catch (_ignore) { submitter = ''; }
+
+    eligible.forEach(function(item) {
+      const rowInfo = item.entry;
+      const row = rowInfo.row;
+      const sheetRow = rowInfo.sheetRow || 0;
+      let template = null;
+
+      if (sheetRow >= 2 && sheetRow <= lastRow) {
+        try {
+          const tpl = sh.getRange(sheetRow, 1, 1, lastCol).getValues()[0];
+          if (tpl && tpl.length) {
+            template = tpl.slice();
+          }
+        } catch (tplErr) {
+          console.warn('inductReleasedBeneficiaries: template fetch failed', tplErr);
+        }
+      }
+
+      if (!template) {
+        template = new Array(lastCol).fill('');
+      }
+
+      const setValue = function(idx, value) {
+        if (idx < 0) return;
+        template[idx] = value == null ? '' : value;
+      };
+
+      const setIfPresent = function(idx, value) {
+        if (idx < 0) return;
+        if (value == null || value === '') return;
+        template[idx] = value;
+      };
+
+      setValue(idxName, row.beneficiary);
+      setValue(idxProject, project);
+      setValue(idxTeam, team);
+      setIfPresent(idxAccount, row.account);
+      setIfPresent(idxDesignation, row.designation);
+      if (idxDefaultDa >= 0 && row.defaultDa !== undefined && row.defaultDa !== null && row.defaultDa !== '') {
+        template[idxDefaultDa] = row.defaultDa;
+      }
+      if (idxRemarks >= 0) {
+        template[idxRemarks] = '';
+      }
+      setValue(idxStatus, 'IN USE');
+      if (idxTimestamp >= 0) {
+        template[idxTimestamp] = new Date(timestampNow);
+      }
+      if (idxSubmitter >= 0 && submitter) {
+        template[idxSubmitter] = submitter;
+      }
+
+      rowsToInsert.push(template);
+      addedKeys.push(item.key);
+      appendedItems.push({
+        beneficiary: row.beneficiary || '',
+        accountHolder: row.account || '',
+        designation: row.designation || '',
+        erdaAmt: 0,
+        project: project,
+        projectName: project,
+        team: team,
+        teamId: team,
+        teamName: team,
+        diffNames: (row.beneficiary && row.account)
+          ? row.beneficiary.toLowerCase() !== row.account.toLowerCase()
+          : false
+      });
+    });
+
+    if (!rowsToInsert.length) {
+      return { ok: false, error: 'No entries to append', skipped: skipped };
+    }
+
+    const startRow = lastRow + 1;
+    sh.getRange(startRow, 1, rowsToInsert.length, lastCol).setValues(rowsToInsert);
+
+    try { bustDDCache(); } catch (cacheErr) { console.warn('inductReleasedBeneficiaries: bustDDCache failed', cacheErr); }
+    try { bustPTCache(); } catch (ptErr) { console.warn('inductReleasedBeneficiaries: bustPTCache failed', ptErr); }
+    try { bustTypeaheadCache(); } catch (taErr) { console.warn('inductReleasedBeneficiaries: bustTypeaheadCache failed', taErr); }
+
+    const addedKeySet = new Set(addedKeys);
+    let remainingRelease = 0;
+    latestRows.forEach(function(entry, key) {
+      if (!entry || !entry.row) return;
+      if (_normStatus_(entry.row.inuse) !== 'RELEASE') return;
+      if (addedKeySet.has(key)) return;
+      remainingRelease++;
+    });
+
+    return {
+      ok: true,
+      inserted: rowsToInsert.length,
+      project: project,
+      team: team,
+      addedKeys: addedKeys,
+      remaining: remainingRelease,
+      skipped: skipped,
+      beneficiaries: appendedItems
+    };
+  } catch (e) {
+    console.error('inductReleasedBeneficiaries error', e);
+    return { ok: false, error: String(e) };
+  }
+}
+
 /** Get project and team information for a specific beneficiary */
+function getNewBeneficiaryFormOptions() {
+  try {
+    const rows = _readDD_compact_();
+    const designations = new Map();
+    const accountHolders = new Map();
+    const nationalities = new Map();
+    const projects = new Map();
+    const teamsByProject = new Map();
+
+    const addUnique = (map, value) => {
+      const text = (value || '').toString().trim();
+      if (!text) return;
+      const key = text.toLowerCase();
+      if (!map.has(key)) map.set(key, text);
+    };
+
+    if (Array.isArray(rows)) {
+      rows.forEach(row => {
+        if (!row) return;
+        addUnique(designations, row.designation);
+        addUnique(accountHolders, row.account);
+        addUnique(nationalities, row.nationality);
+
+        const project = (row.project || '').toString().trim();
+        if (!project) return;
+        const projKey = project.toLowerCase();
+        if (!projects.has(projKey)) projects.set(projKey, project);
+
+        if (!teamsByProject.has(projKey)) teamsByProject.set(projKey, new Map());
+        const teamsMap = teamsByProject.get(projKey);
+        const teamValue = (row.team || '').toString().trim();
+        const teamKey = teamValue ? teamValue.toLowerCase() : '__blank__';
+        if (!teamsMap.has(teamKey)) {
+          teamsMap.set(teamKey, {
+            value: teamValue,
+            label: teamValue || 'Unassigned / Blank',
+            blank: !teamValue
+          });
+        }
+      });
+    }
+
+    const toOptionList = (map) => Array.from(map.values())
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+      .map(value => ({ value: value, label: value }));
+
+    const designationsList = toOptionList(designations);
+    const accountList = toOptionList(accountHolders);
+    const nationalityList = toOptionList(nationalities);
+    const projectList = toOptionList(projects);
+
+    const teamsObj = {};
+    projects.forEach((projectValue, projKey) => {
+      const teamEntries = teamsByProject.get(projKey);
+      if (!teamEntries) return;
+      const arr = Array.from(teamEntries.values());
+      arr.sort((a, b) => {
+        if (a.blank && !b.blank) return -1;
+        if (!a.blank && b.blank) return 1;
+        const labelA = a.label || '';
+        const labelB = b.label || '';
+        return labelA.localeCompare(labelB, undefined, { sensitivity: 'base' });
+      });
+      teamsObj[projectValue] = arr.map(entry => ({
+        value: entry.value,
+        label: entry.label,
+        blank: entry.blank === true
+      }));
+    });
+
+    return {
+      ok: true,
+      designations: designationsList,
+      projects: projectList,
+      accountHolders: accountList,
+      nationalities: nationalityList,
+      teamsByProject: teamsObj
+    };
+  } catch (err) {
+    console.error('getNewBeneficiaryFormOptions error', err);
+    return { ok: false, error: String(err) };
+  }
+}
+
+function createNewReleasedBeneficiary(payload) {
+  try {
+    if (!payload || typeof payload !== 'object') {
+      return { ok: false, error: 'Invalid payload' };
+    }
+
+    const name = (payload.beneficiary || payload.name || '').toString().trim();
+    if (!name) {
+      return { ok: false, error: 'Name of Beneficiary is required' };
+    }
+
+    const designation = (payload.designation || '').toString().trim();
+    if (!designation) {
+      return { ok: false, error: 'Resource designation is required' };
+    }
+
+    const project = (payload.project || '').toString().trim();
+    if (!project) {
+      return { ok: false, error: 'Project is required' };
+    }
+
+    const teamProvided = payload.teamProvided === true
+      || payload.team === ''
+      || (payload.team != null && String(payload.team).trim() !== '');
+    if (!teamProvided) {
+      return { ok: false, error: 'Team selection is required' };
+    }
+    const team = payload.team != null ? String(payload.team).trim() : '';
+
+    const accountHolder = (payload.accountHolder || '').toString().trim();
+    if (!accountHolder) {
+      return { ok: false, error: 'Account holder is required' };
+    }
+
+    const nationality = (payload.nationality || '').toString().trim();
+    if (!nationality) {
+      return { ok: false, error: 'Nationality is required' };
+    }
+
+    let defaultDa = '';
+    if (payload.defaultDa !== '' && payload.defaultDa !== null && payload.defaultDa !== undefined) {
+      const numeric = Number(payload.defaultDa);
+      if (!Number.isFinite(numeric) || numeric < 0) {
+        return { ok: false, error: 'Default DA Amt must be a non-negative number' };
+      }
+      defaultDa = numeric;
+    }
+
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sh = ss.getSheetByName(DATA_SHEET_NAME);
+    if (!sh) {
+      return { ok: false, error: 'Data sheet "DD" not found' };
+    }
+
+    const lastRow = sh.getLastRow();
+    const lastCol = sh.getLastColumn();
+    if (lastCol < 1) {
+      return { ok: false, error: 'DD sheet has no columns' };
+    }
+
+    const header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    const IX = _headerIndex_(header);
+
+    const idxName = IX.get(['Name of Beneficiary', 'Beneficiary', 'Beneficiary Name', 'Name']);
+    const idxStatus = IX.get(['In Use/Release', 'In Use / release', 'In Use', 'Status']);
+    let idxProject = -1;
+    let idxTeam = -1;
+    let idxAccount = -1;
+    let idxDesignation = -1;
+    let idxDefaultDa = -1;
+    let idxNationality = -1;
+    let idxTimestamp = -1;
+    let idxSubmitter = -1;
+
+    try { idxProject = IX.get(['Project']); } catch (_e) {}
+    try { idxTeam = IX.get(['Team', 'Team Name']); } catch (_e) {}
+    try { idxAccount = IX.get(['Account Holder Name', 'Account Holder']); } catch (_e) {}
+    try { idxDesignation = IX.get(['Resource Designation', 'Designation']); } catch (_e) {}
+    try { idxDefaultDa = IX.get(['Default DA Amt', 'Default DA', 'DA Default']); } catch (_e) {}
+    try { idxNationality = IX.get(['Nationality', 'Country', 'Citizenship']); } catch (_e) {}
+    try { idxTimestamp = IX.get(['Date and Time', 'Date & Time', 'Timestamp', 'Updated At', 'Date']); } catch (_e) {}
+    try { idxSubmitter = IX.get(['Submitter', 'Updated By', 'Entered By']); } catch (_e) {}
+
+    const newRow = new Array(lastCol).fill('');
+    const setValue = (idx, value) => { if (idx >= 0) newRow[idx] = value == null ? '' : value; };
+    const setIfPresent = (idx, value) => {
+      if (idx >= 0 && value != null && value !== '') {
+        newRow[idx] = value;
+      }
+    };
+
+    setValue(idxName, name);
+    setValue(idxStatus, 'RELEASE');
+    setIfPresent(idxProject, project);
+    setValue(idxTeam, team);
+    setIfPresent(idxAccount, accountHolder);
+    setIfPresent(idxDesignation, designation);
+    if (idxDefaultDa >= 0 && defaultDa !== '') {
+      newRow[idxDefaultDa] = defaultDa;
+    }
+    setIfPresent(idxNationality, nationality);
+
+    if (idxTimestamp >= 0) {
+      newRow[idxTimestamp] = new Date();
+    }
+
+    if (idxSubmitter >= 0) {
+      let email = '';
+      try { email = Session.getActiveUser().getEmail() || ''; } catch (_e) {}
+      if (email) newRow[idxSubmitter] = email;
+    }
+
+    sh.appendRow(newRow);
+
+    try { bustDDCache(); } catch (_e) {}
+    try { bustPTCache(); } catch (_e) {}
+    try { bustTypeaheadCache(); } catch (_e) {}
+
+    return {
+      ok: true,
+      beneficiary: name,
+      project: project,
+      team: team,
+      designation: designation,
+      accountHolder: accountHolder,
+      nationality: nationality
+    };
+  } catch (err) {
+    console.error('createNewReleasedBeneficiary error', err);
+    return { ok: false, error: String(err) };
+  }
+}
+
+
 function getProjectTeamFromDD(beneficiaryName) {
   try {
     const name = _norm(beneficiaryName);
