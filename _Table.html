@@ -828,30 +828,24 @@
   function populateNameSuggestions(list) {
     if (!nameDatalist) return;
     nameDatalist.innerHTML = '';
-    knownBeneficiaryNames.clear();
     if (!Array.isArray(list) || !list.length) {
-      hasNameDuplicate = false;
-      showNameDuplicateWarning('');
-      updateFormDisabledState();
       return;
     }
     const fragment = document.createDocumentFragment();
     const seen = new Set();
     list.forEach(function(name) {
       const value = name == null ? '' : String(name).trim();
-      const normalized = normalizeBeneficiaryName(value);
-      if (!normalized) return;
-      knownBeneficiaryNames.add(normalized);
-      if (seen.has(normalized)) {
+      if (!value) return;
+      if (seen.has(value.toLowerCase())) {
+        // Allow duplicates to be entered manually while avoiding redundant options.
         return;
       }
-      seen.add(normalized);
+      seen.add(value.toLowerCase());
       const option = document.createElement('option');
       option.value = value;
       fragment.appendChild(option);
     });
     nameDatalist.appendChild(fragment);
-    evaluateNameDuplicate();
   }
 
   function updateTeamOptions(projectValue, preferTeam) {
