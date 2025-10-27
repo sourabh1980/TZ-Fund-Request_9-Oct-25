@@ -258,7 +258,8 @@
         <div class="new-beneficiary-grid">
           <div class="new-beneficiary-field" data-field="name">
             <label for="newBeneficiaryName">Name of Beneficiary</label>
-            <input id="newBeneficiaryName" class="new-beneficiary-input" type="text" autocomplete="off" placeholder="Enter name" />
+            <input id="newBeneficiaryName" class="new-beneficiary-input" type="text" autocomplete="off" placeholder="Enter name" list="newBeneficiaryNameList" />
+            <datalist id="newBeneficiaryNameList"></datalist>
             <div class="new-beneficiary-field-error" data-error-for="name"></div>
           </div>
           <div class="new-beneficiary-field" data-field="designation">
@@ -597,12 +598,17 @@
   const statusEl = overlay.querySelector('#newBeneficiaryStatus');
 
   const nameInput = overlay.querySelector('#newBeneficiaryName');
+  const nameDatalist = overlay.querySelector('#newBeneficiaryNameList');
   const designationSelect = overlay.querySelector('#newBeneficiaryDesignation');
   const defaultDaInput = overlay.querySelector('#newBeneficiaryDa');
   const projectSelect = overlay.querySelector('#newBeneficiaryProject');
   const teamSelect = overlay.querySelector('#newBeneficiaryTeam');
   const accountSelect = overlay.querySelector('#newBeneficiaryAccount');
   const nationalitySelect = overlay.querySelector('#newBeneficiaryNationality');
+
+  const DUPLICATE_NAME_MESSAGE = 'Duplicate beneficiary name detected.';
+  const knownBeneficiaryNames = new Set();
+  let hasNameDuplicate = false;
 
   const fieldState = {};
   overlay.querySelectorAll('.new-beneficiary-field').forEach(function(field) {
@@ -613,6 +619,48 @@
       messageEl: field.querySelector('.new-beneficiary-field-error')
     };
   });
+
+  function normalizeBeneficiaryName(value) {
+    return value == null ? '' : String(value).trim().toLowerCase();
+  }
+
+  function isExistingBeneficiaryName(value) {
+    const normalized = normalizeBeneficiaryName(value);
+    if (!normalized) return false;
+    return knownBeneficiaryNames.has(normalized);
+  }
+
+  function showNameDuplicateWarning(message) {
+    const state = fieldState.name;
+    if (!state || !state.container) return;
+    if (message) {
+      if (state.container.dataset) {
+        state.container.dataset.errorType = 'duplicate';
+      }
+      state.container.classList.add('has-error');
+      if (state.messageEl) state.messageEl.textContent = message;
+    } else if (state.container.dataset && state.container.dataset.errorType === 'duplicate') {
+      state.container.classList.remove('has-error');
+      if (state.messageEl) state.messageEl.textContent = '';
+      delete state.container.dataset.errorType;
+    }
+  }
+
+  function evaluateNameDuplicate() {
+    if (!nameInput) {
+      hasNameDuplicate = false;
+      return false;
+    }
+    const duplicate = isExistingBeneficiaryName(nameInput.value);
+    hasNameDuplicate = duplicate;
+    if (duplicate) {
+      showNameDuplicateWarning(DUPLICATE_NAME_MESSAGE);
+    } else {
+      showNameDuplicateWarning('');
+    }
+    updateFormDisabledState();
+    return duplicate;
+  }
 
   let optionsCache = null;
   let optionsPromise = null;
@@ -644,12 +692,18 @@
       if (!state) return;
       state.container.classList.remove('has-error');
       if (state.messageEl) state.messageEl.textContent = '';
+      if (state.container && state.container.dataset) {
+        delete state.container.dataset.errorType;
+      }
     });
   }
 
   function showFieldError(field, message) {
     const state = fieldState[field];
     if (!state) return;
+    if (state.container && state.container.dataset) {
+      state.container.dataset.errorType = 'validation';
+    }
     state.container.classList.add('has-error');
     if (state.messageEl) state.messageEl.textContent = message || '';
   }
@@ -690,7 +744,13 @@
       teamSelect.disabled = disableInputs || !teamEnabled;
     }
     if (submitBtn) {
-      submitBtn.disabled = disableInputs || submitting;
+      const shouldDisable = disableInputs || submitting || hasNameDuplicate;
+      submitBtn.disabled = shouldDisable;
+      if (shouldDisable && hasNameDuplicate) {
+        submitBtn.setAttribute('aria-disabled-reason', 'duplicate-name');
+      } else {
+        submitBtn.removeAttribute('aria-disabled-reason');
+      }
     }
     if (cancelBtn) {
       cancelBtn.disabled = submitting;
@@ -763,6 +823,35 @@
     if (previous && setSelectValue(select, previous)) {
       placeholder.selected = false;
     }
+  }
+
+  function populateNameSuggestions(list) {
+    if (!nameDatalist) return;
+    nameDatalist.innerHTML = '';
+    knownBeneficiaryNames.clear();
+    if (!Array.isArray(list) || !list.length) {
+      hasNameDuplicate = false;
+      showNameDuplicateWarning('');
+      updateFormDisabledState();
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    const seen = new Set();
+    list.forEach(function(name) {
+      const value = name == null ? '' : String(name).trim();
+      const normalized = normalizeBeneficiaryName(value);
+      if (!normalized) return;
+      knownBeneficiaryNames.add(normalized);
+      if (seen.has(normalized)) {
+        return;
+      }
+      seen.add(normalized);
+      const option = document.createElement('option');
+      option.value = value;
+      fragment.appendChild(option);
+    });
+    nameDatalist.appendChild(fragment);
+    evaluateNameDuplicate();
   }
 
   function updateTeamOptions(projectValue, preferTeam) {
@@ -874,6 +963,7 @@
     populateSelect(accountSelect, opts.accountHolders || [], 'Select account holder');
     populateSelect(nationalitySelect, opts.nationalities || [], 'Select nationality');
     populateSelect(projectSelect, opts.projects || [], 'Select project');
+    populateNameSuggestions(opts.beneficiaryNames || []);
 
     if (defaultDaInput) {
       const ctxDa = openContext && Object.prototype.hasOwnProperty.call(openContext, 'defaultDa') ? openContext.defaultDa : '';
@@ -953,6 +1043,10 @@
       errors.push({ field: 'nationality', message: 'Select a nationality.' });
     }
 
+    if (isExistingBeneficiaryName(payload.beneficiary)) {
+      errors.push({ field: 'name', message: DUPLICATE_NAME_MESSAGE, duplicate: true });
+    }
+
     if (values.defaultDa !== '') {
       const numeric = Number(values.defaultDa);
       if (!Number.isFinite(numeric) || numeric < 0) {
@@ -999,6 +1093,9 @@
     }
     openContext = context && typeof context === 'object' ? context : {};
     pendingTeamValue = openContext && Object.prototype.hasOwnProperty.call(openContext, 'team') ? openContext.team : null;
+    knownBeneficiaryNames.clear();
+    hasNameDuplicate = false;
+    showNameDuplicateWarning('');
 
     lastActiveElement = document.activeElement;
     overlay.hidden = false;
@@ -1066,6 +1163,9 @@
     pendingTeamValue = null;
     if (form) form.reset();
     clearFieldErrors();
+    knownBeneficiaryNames.clear();
+    hasNameDuplicate = false;
+    showNameDuplicateWarning('');
     setStatus('', '');
     resetTeamSelect('Select a project first');
     if (submitBtn) {
@@ -1090,12 +1190,22 @@
     if (submitting) return;
     clearFieldErrors();
     setStatus('', '');
+    evaluateNameDuplicate();
 
     const result = validateForm();
     if (result.errors.length) {
+      let hasDuplicateError = false;
       result.errors.forEach(function(err) {
-        showFieldError(err.field, err.message);
+        if (err && err.duplicate) {
+          hasDuplicateError = true;
+          showNameDuplicateWarning(err.message);
+        } else {
+          showFieldError(err.field, err.message);
+        }
       });
+      if (!hasDuplicateError) {
+        showNameDuplicateWarning('');
+      }
       setStatus('Please resolve the highlighted fields.', 'error');
       focusFirstError(result.errors);
       return;
@@ -1173,6 +1283,11 @@
     cancelBtn.addEventListener('click', function() {
       if (!submitting) closeDialog();
     });
+  }
+
+  if (nameInput) {
+    nameInput.addEventListener('input', evaluateNameDuplicate);
+    nameInput.addEventListener('blur', evaluateNameDuplicate);
   }
 
   overlay.addEventListener('click', function(event) {

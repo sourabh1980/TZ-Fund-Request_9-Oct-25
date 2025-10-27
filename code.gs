@@ -7799,6 +7799,7 @@ function getNewBeneficiaryFormOptions() {
     const nationalities = new Map();
     const projects = new Map();
     const teamsByProject = new Map();
+    const beneficiaryNames = [];
 
     const addUnique = (map, value) => {
       const text = (value || '').toString().trim();
@@ -7810,6 +7811,10 @@ function getNewBeneficiaryFormOptions() {
     if (Array.isArray(rows)) {
       rows.forEach(row => {
         if (!row) return;
+        const beneficiaryName = row.beneficiary != null ? String(row.beneficiary).trim() : '';
+        if (beneficiaryName) {
+          beneficiaryNames.push(beneficiaryName);
+        }
         addUnique(designations, row.designation);
         addUnique(accountHolders, row.account);
         addUnique(nationalities, row.nationality);
@@ -7921,7 +7926,8 @@ function getNewBeneficiaryFormOptions() {
       projects: projectList,
       accountHolders: accountList,
       nationalities: nationalityList,
-      teamsByProject: teamsObj
+      teamsByProject: teamsObj,
+      beneficiaryNames: beneficiaryNames
     };
   } catch (err) {
     console.error('getNewBeneficiaryFormOptions error', err);
@@ -8011,6 +8017,22 @@ function createNewReleasedBeneficiary(payload) {
     try { idxNationality = IX.get(['Nationality', 'Country', 'Citizenship']); } catch (_e) {}
     try { idxTimestamp = IX.get(['Date and Time', 'Date & Time', 'Timestamp', 'Updated At', 'Date']); } catch (_e) {}
     try { idxSubmitter = IX.get(['Submitter', 'Updated By', 'Entered By']); } catch (_e) {}
+
+    if (idxName < 0) {
+      return { ok: false, error: 'Name of Beneficiary column not found' };
+    }
+
+    const normalizedTargetName = name.toLowerCase();
+    if (lastRow > 1) {
+      const existingNames = sh.getRange(2, idxName + 1, lastRow - 1, 1).getDisplayValues();
+      for (let r = 0; r < existingNames.length; r++) {
+        const cell = existingNames[r] && existingNames[r][0] != null ? String(existingNames[r][0]).trim() : '';
+        if (!cell) continue;
+        if (cell.toLowerCase() === normalizedTargetName) {
+          return { ok: false, error: 'Duplicate beneficiary name detected.' };
+        }
+      }
+    }
 
     const newRow = new Array(lastCol).fill('');
     const setValue = (idx, value) => { if (idx >= 0) newRow[idx] = value == null ? '' : value; };
