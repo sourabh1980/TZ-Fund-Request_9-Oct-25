@@ -16,6 +16,8 @@
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease, visibility 0.3s ease;
+    padding: 32px 16px;
+    overflow-y: auto;
   }
 
   .confirmation-overlay.show {
@@ -29,15 +31,17 @@
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-radius: 24px;
-    padding: 40px 32px;
-    max-width: 400px;
-    width: 90%;
+    padding: 40px 36px;
+    max-width: 560px;
+    width: min(96%, 560px);
+    max-height: min(92vh, 760px);
     text-align: center;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.15);
     transform: scale(0.7) translateY(50px);
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     position: relative;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
   .confirmation-overlay.show .confirmation-modal {
@@ -111,12 +115,15 @@
     display: flex;
     flex-direction: column;
     gap: 12px;
+    width: 100%;
   }
 
   @media (min-width: 520px) {
     .confirmation-buttons {
       flex-direction: row;
       justify-content: center;
+      flex-wrap: wrap;
+      gap: 16px;
     }
   }
 
@@ -130,6 +137,15 @@
     transition: all 0.3s ease;
     border: none;
     overflow: hidden;
+    flex: 1 1 220px;
+    min-width: 220px;
+  }
+
+  @media (max-width: 519.98px) {
+    .confirmation-btn {
+      width: 100%;
+      min-width: 0;
+    }
   }
 
   .confirmation-btn:focus-visible {
@@ -152,6 +168,21 @@
     transform: scale(0.98);
   }
 
+  .confirmation-btn.success {
+    background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+    color: #fff;
+    box-shadow: 0 12px 32px rgba(52, 211, 153, 0.35);
+  }
+
+  .confirmation-btn.success:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #22c55e 0%, #047857 100%);
+  }
+
+  .confirmation-btn.success:active {
+    transform: scale(0.98);
+  }
+
   .confirmation-btn.destructive {
     background: linear-gradient(135deg, #f56565 0%, #e11d48 100%);
     color: #fff;
@@ -165,6 +196,164 @@
 
   .confirmation-btn.destructive:active {
     transform: scale(0.98);
+  }
+
+  .confirmation-btn.accent {
+    background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+    color: #fff;
+    box-shadow: 0 12px 32px rgba(14, 165, 233, 0.3);
+  }
+
+  .confirmation-btn.accent:hover {
+    transform: translateY(-1px);
+    background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  }
+
+  .confirmation-btn.accent:active {
+    transform: scale(0.98);
+  }
+
+  .confirmation-message[hidden] {
+    display: none;
+  }
+
+  .confirmation-content {
+    margin: 0 0 28px;
+    text-align: left;
+  }
+
+  .confirmation-content[hidden] {
+    display: none;
+  }
+
+  .release-form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+  }
+
+  .release-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px 18px;
+  }
+
+  .release-info-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .release-info-label {
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #718096;
+  }
+
+  .release-info-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2d3748;
+    word-break: break-word;
+  }
+
+  .release-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .release-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: #2d3748;
+  }
+
+  .release-section-hint {
+    font-size: 13px;
+    color: #718096;
+  }
+
+  .release-ratings-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .release-rating-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .release-rating-label {
+    font-weight: 600;
+    color: #2d3748;
+    flex: 1 1 220px;
+  }
+
+  .release-rating-stars {
+    display: inline-flex;
+    gap: 6px;
+  }
+
+  .release-star {
+    background: transparent;
+    border: none;
+    color: #d5d9e5;
+    cursor: pointer;
+    font-size: 24px;
+    line-height: 1;
+    padding: 2px;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+
+  .release-star:hover,
+  .release-star:focus {
+    color: #f6ad55;
+    transform: translateY(-1px);
+    outline: none;
+  }
+
+  .release-star.filled {
+    color: #f59e0b;
+  }
+
+  .release-star.selected {
+    color: #d97706;
+  }
+
+  .release-star:focus-visible {
+    outline: 2px solid rgba(245, 158, 11, 0.45);
+    outline-offset: 2px;
+  }
+
+  .release-review-input {
+    width: 100%;
+    min-height: 110px;
+    border-radius: 14px;
+    border: 1px solid rgba(148, 163, 184, 0.65);
+    padding: 12px 14px;
+    font-size: 14px;
+    resize: vertical;
+    background: rgba(255, 255, 255, 0.95);
+    color: #1a202c;
+  }
+
+  .release-review-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+    outline: none;
+  }
+
+  .release-error {
+    font-size: 13px;
+    color: #e53e3e;
+    min-height: 18px;
   }
 
   .confirmation-btn.secondary {
@@ -264,7 +453,9 @@
     
     <h2 class="confirmation-title" id="confirmationTitle">Reactivate beneficiary?</h2>
     <p class="confirmation-message" id="confirmationMessage">Re-enabling means you'll fund their expenses. Continue?</p>
-    
+
+    <div class="confirmation-content" id="confirmationContent" hidden></div>
+
     <div class="confirmation-buttons" id="confirmationButtons"></div>
     
     <a href="#" class="confirmation-link" onclick="viewCostBreakdown()">View cost breakdown</a>
@@ -277,6 +468,64 @@
   let currentReject = null;
   let buttonConfigs = [];
   let buttonElements = [];
+  let currentOptions = {};
+  const DEFAULT_TITLE = 'Reactivate beneficiary?';
+  const DEFAULT_MESSAGE = "Re-enabling means you'll fund their expenses. Continue?";
+
+  function getContentSlot() {
+    return document.getElementById('confirmationContent');
+  }
+
+  function clearModalContent() {
+    const slot = getContentSlot();
+    if (!slot) return;
+    slot.innerHTML = '';
+    slot.hidden = true;
+  }
+
+  function resolveContentNode(contentOption) {
+    if (contentOption == null) {
+      return null;
+    }
+    if (typeof contentOption === 'function') {
+      try {
+        return contentOption();
+      } catch (err) {
+        console.error('showConfirmationModal content renderer failed', err);
+        return null;
+      }
+    }
+    return contentOption;
+  }
+
+  function applyModalContent(contentOption) {
+    const slot = getContentSlot();
+    if (!slot) return;
+    clearModalContent();
+    const node = resolveContentNode(contentOption);
+    if (!node && node !== '') {
+      return;
+    }
+    if (typeof node === 'string') {
+      slot.innerHTML = node;
+      slot.hidden = false;
+      return;
+    }
+    if (node instanceof Node) {
+      slot.appendChild(node);
+      slot.hidden = false;
+      return;
+    }
+    if (node && typeof node === 'object' && typeof node.nodeType === 'number') {
+      slot.appendChild(node);
+      slot.hidden = false;
+      return;
+    }
+    if (node === '') {
+      slot.innerHTML = '';
+      slot.hidden = false;
+    }
+  }
 
   function normalizeButtons(options = {}) {
     const supplied = Array.isArray(options.buttons) ? options.buttons.filter(Boolean) : [];
@@ -292,7 +541,8 @@
           variant,
           feedback: btn.feedback === undefined ? (variant === 'primary') : Boolean(btn.feedback),
           successText: btn.successText,
-          focus: btn.focus === true
+          focus: btn.focus === true,
+          id: btn.id ? String(btn.id) : ''
         };
       });
     }
@@ -340,6 +590,9 @@
       btn.textContent = config.text;
       btn.dataset.index = String(index);
       btn.dataset.originalText = config.text;
+      if (config.id) {
+        btn.dataset.buttonId = config.id;
+      }
       btn.addEventListener('click', () => selectButton(index));
       container.appendChild(btn);
       return btn;
@@ -351,7 +604,11 @@
     const btn = buttonElements[index];
     if (!config || !btn) return;
 
+    let didResolve = false;
+
     const finalize = () => {
+      if (didResolve) return;
+      didResolve = true;
       const resolver = currentResolve;
       currentResolve = null;
       if (typeof resolver === 'function') {
@@ -360,16 +617,54 @@
       closeConfirmationModal({ resolve: true });
     };
 
-    if (config.feedback && btn.classList.contains('with-feedback')) {
-      btn.classList.add('ripple');
-      setTimeout(() => {
-        btn.classList.add('success');
-        btn.textContent = config.successText || '✓ Confirmed';
-        setTimeout(finalize, 650);
-      }, 120);
-    } else {
-      finalize();
+    const proceed = () => {
+      if (didResolve) return;
+      if (config.feedback && btn.classList.contains('with-feedback')) {
+        btn.classList.add('ripple');
+        setTimeout(() => {
+          btn.classList.add('success');
+          btn.textContent = config.successText || '✓ Confirmed';
+          setTimeout(finalize, 650);
+        }, 120);
+      } else {
+        finalize();
+      }
+    };
+
+    let prevented = false;
+    const meta = {
+      button: btn,
+      config,
+      index,
+      preventDefault: () => { prevented = true; },
+      proceed,
+      close: finalize
+    };
+
+    if (currentOptions && typeof currentOptions.onSelect === 'function') {
+      try {
+        const result = currentOptions.onSelect(config.value, meta);
+        if (prevented || result === false) {
+          return;
+        }
+        if (result && typeof result.then === 'function') {
+          btn.disabled = true;
+          result.then(res => {
+            if (res === false) return;
+            proceed();
+          }).catch(err => {
+            console.error('showConfirmationModal onSelect promise rejected', err);
+          }).finally(() => {
+            btn.disabled = false;
+          });
+          return;
+        }
+      } catch (err) {
+        console.error('showConfirmationModal onSelect handler failed', err);
+      }
     }
+
+    proceed();
   }
 
   function focusInitialButton() {
@@ -386,26 +681,79 @@
     return new Promise((resolve, reject) => {
       currentResolve = resolve;
       currentReject = reject;
+      currentOptions = options || {};
 
       const modal = document.getElementById('confirmationModal');
       const title = document.getElementById('confirmationTitle');
       const message = document.getElementById('confirmationMessage');
 
-      title.textContent = options.title || 'Reactivate beneficiary?';
-      message.textContent = options.message || "Re-enabling means you'll fund their expenses. Continue?";
+      const nextTitle = Object.prototype.hasOwnProperty.call(currentOptions, 'title') && currentOptions.title
+        ? currentOptions.title
+        : DEFAULT_TITLE;
+      if (title) {
+        title.textContent = nextTitle;
+      }
 
-      buttonConfigs = normalizeButtons(options);
+      const messageProvided = Object.prototype.hasOwnProperty.call(currentOptions, 'message');
+      const nextMessage = messageProvided ? currentOptions.message : DEFAULT_MESSAGE;
+      if (message) {
+        if (typeof nextMessage === 'string' && nextMessage.trim()) {
+          message.textContent = nextMessage;
+          message.hidden = false;
+        } else if (typeof nextMessage === 'string') {
+          message.textContent = nextMessage;
+          message.hidden = true;
+        } else {
+          message.textContent = '';
+          message.hidden = true;
+        }
+      }
+
+      applyModalContent(currentOptions.content || currentOptions.html || null);
+
+      buttonConfigs = normalizeButtons(currentOptions);
       renderButtons(buttonConfigs);
 
-      modal.classList.add('show');
+      if (modal) {
+        modal.classList.add('show');
+      }
       setTimeout(focusInitialButton, 120);
     });
+  };
+
+  window.updateConfirmationButton = function(buttonId, props = {}) {
+    if (!buttonId) return;
+    const idx = buttonConfigs.findIndex(cfg => cfg && cfg.id === buttonId);
+    if (idx < 0) return;
+    const config = buttonConfigs[idx];
+    const btn = buttonElements[idx];
+    if (!config || !btn) return;
+
+    if (Object.prototype.hasOwnProperty.call(props, 'text')) {
+      const nextText = props.text == null ? '' : String(props.text);
+      config.text = nextText;
+      btn.textContent = nextText;
+      btn.dataset.originalText = nextText;
+    }
+
+    if (props && props.dataset && typeof props.dataset === 'object') {
+      Object.keys(props.dataset).forEach(key => {
+        const value = props.dataset[key];
+        if (value === undefined || value === null) {
+          delete btn.dataset[key];
+        } else {
+          btn.dataset[key] = value;
+        }
+      });
+    }
   };
 
   // Close confirmation modal
   window.closeConfirmationModal = function(options = {}) {
     const modal = document.getElementById('confirmationModal');
-    modal.classList.remove('show');
+    if (modal) {
+      modal.classList.remove('show');
+    }
 
     const resolved = options && options.resolve === true;
     if (!resolved && typeof currentReject === 'function') {
@@ -414,7 +762,9 @@
 
     currentResolve = null;
     currentReject = null;
+    currentOptions = {};
     resetButtons();
+    clearModalContent();
   };
 
   // Handle Yes button click
