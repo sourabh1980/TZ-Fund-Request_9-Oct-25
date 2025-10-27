@@ -258,7 +258,8 @@
         <div class="new-beneficiary-grid">
           <div class="new-beneficiary-field" data-field="name">
             <label for="newBeneficiaryName">Name of Beneficiary</label>
-            <input id="newBeneficiaryName" class="new-beneficiary-input" type="text" autocomplete="off" placeholder="Enter name" />
+            <input id="newBeneficiaryName" class="new-beneficiary-input" type="text" autocomplete="off" placeholder="Enter name" list="newBeneficiaryNameList" />
+            <datalist id="newBeneficiaryNameList"></datalist>
             <div class="new-beneficiary-field-error" data-error-for="name"></div>
           </div>
           <div class="new-beneficiary-field" data-field="designation">
@@ -597,6 +598,7 @@
   const statusEl = overlay.querySelector('#newBeneficiaryStatus');
 
   const nameInput = overlay.querySelector('#newBeneficiaryName');
+  const nameDatalist = overlay.querySelector('#newBeneficiaryNameList');
   const designationSelect = overlay.querySelector('#newBeneficiaryDesignation');
   const defaultDaInput = overlay.querySelector('#newBeneficiaryDa');
   const projectSelect = overlay.querySelector('#newBeneficiaryProject');
@@ -765,6 +767,29 @@
     }
   }
 
+  function populateNameSuggestions(list) {
+    if (!nameDatalist) return;
+    nameDatalist.innerHTML = '';
+    if (!Array.isArray(list) || !list.length) {
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    const seen = new Set();
+    list.forEach(function(name) {
+      const value = name == null ? '' : String(name).trim();
+      if (!value) return;
+      if (seen.has(value.toLowerCase())) {
+        // Allow duplicates to be entered manually while avoiding redundant options.
+        return;
+      }
+      seen.add(value.toLowerCase());
+      const option = document.createElement('option');
+      option.value = value;
+      fragment.appendChild(option);
+    });
+    nameDatalist.appendChild(fragment);
+  }
+
   function updateTeamOptions(projectValue, preferTeam) {
     if (!teamSelect) return;
     const trimmed = (projectValue || '').toString().trim();
@@ -874,6 +899,7 @@
     populateSelect(accountSelect, opts.accountHolders || [], 'Select account holder');
     populateSelect(nationalitySelect, opts.nationalities || [], 'Select nationality');
     populateSelect(projectSelect, opts.projects || [], 'Select project');
+    populateNameSuggestions(opts.beneficiaryNames || []);
 
     if (defaultDaInput) {
       const ctxDa = openContext && Object.prototype.hasOwnProperty.call(openContext, 'defaultDa') ? openContext.defaultDa : '';
