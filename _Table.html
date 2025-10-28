@@ -2562,6 +2562,36 @@ document.addEventListener('keydown', function(event) {
     color: #0f172a;
   }
 
+  .beneficiary-picker-table .picker-history {
+    min-width: 160px;
+    white-space: normal;
+  }
+
+  .beneficiary-picker-table .picker-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .beneficiary-picker-table .picker-history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.35;
+    color: #334155;
+  }
+
+  .beneficiary-picker-table .picker-history-index {
+    flex: 0 0 auto;
+    color: #94a3b8;
+    font-weight: 600;
+  }
+
+  .beneficiary-picker-table .picker-history-empty {
+    color: #94a3b8;
+    font-style: italic;
+  }
+
   .beneficiary-picker-empty {
     padding: 28px 16px;
     text-align: center;
@@ -2682,6 +2712,8 @@ document.addEventListener('keydown', function(event) {
               <th scope="col">Account Holder Name</th>
               <th scope="col" class="numeric">Idle since (days)</th>
               <th scope="col">Nationality</th>
+              <th scope="col">Last 3 Remarks</th>
+              <th scope="col">Last 3 Ratings</th>
             </tr>
           </thead>
           <tbody id="beneficiaryPickerRows"></tbody>
@@ -3957,6 +3989,51 @@ document.addEventListener('keydown', function(event) {
       }
     }
 
+    function normalizeHistoryValues(values) {
+      var entries = [];
+      if (Array.isArray(values)) {
+        for (var i = 0; i < values.length && entries.length < 3; i++) {
+          entries.push(values[i]);
+        }
+      }
+      return entries;
+    }
+
+    function renderHistoryCell(cell, values) {
+      if (!cell) return;
+      cell.textContent = '';
+      cell.classList.add('picker-history');
+      var entries = normalizeHistoryValues(values);
+      if (!entries.length) {
+        var emptyEl = document.createElement('div');
+        emptyEl.className = 'picker-history-empty';
+        emptyEl.textContent = '—';
+        cell.appendChild(emptyEl);
+        return;
+      }
+      var listEl = document.createElement('div');
+      listEl.className = 'picker-history-list';
+      entries.forEach(function(value, idx) {
+        var itemEl = document.createElement('div');
+        itemEl.className = 'picker-history-item';
+        var indexEl = document.createElement('span');
+        indexEl.className = 'picker-history-index';
+        indexEl.textContent = (idx + 1) + '.';
+        itemEl.appendChild(indexEl);
+        var textEl = document.createElement('span');
+        var text = value == null ? '' : String(value).trim();
+        if (!text) {
+          textEl.className = 'picker-history-empty';
+          textEl.textContent = '—';
+        } else {
+          textEl.textContent = text;
+        }
+        itemEl.appendChild(textEl);
+        listEl.appendChild(itemEl);
+      });
+      cell.appendChild(listEl);
+    }
+
     function renderRows(list) {
       if (!rowsTbody) return;
       rowsTbody.innerHTML = '';
@@ -4024,6 +4101,14 @@ document.addEventListener('keydown', function(event) {
         tdNationality.textContent = item.nationality || '—';
         tr.appendChild(tdNationality);
 
+        var tdRemarks = document.createElement('td');
+        renderHistoryCell(tdRemarks, item.lastRemarks);
+        tr.appendChild(tdRemarks);
+
+        var tdRatings = document.createElement('td');
+        renderHistoryCell(tdRatings, item.lastRatings);
+        tr.appendChild(tdRatings);
+
         rowsTbody.appendChild(tr);
       }
       updateSelectAllState();
@@ -4036,10 +4121,20 @@ document.addEventListener('keydown', function(event) {
       } else {
         filteredItems = allItems.filter(function(item) {
           if (!item) return false;
-          return [item.beneficiary, item.designation, item.project, item.team, item.accountHolder, item.nationality]
-            .some(function(part) {
-              return String(part || '').toLowerCase().indexOf(term) >= 0;
-            });
+          var remarkText = Array.isArray(item.lastRemarks) ? item.lastRemarks.join(' ') : '';
+          var ratingText = Array.isArray(item.lastRatings) ? item.lastRatings.join(' ') : '';
+          return [
+            item.beneficiary,
+            item.designation,
+            item.project,
+            item.team,
+            item.accountHolder,
+            item.nationality,
+            remarkText,
+            ratingText
+          ].some(function(part) {
+            return String(part || '').toLowerCase().indexOf(term) >= 0;
+          });
         });
       }
       renderRows(filteredItems);
@@ -4617,6 +4712,51 @@ document.addEventListener('keydown', function(event) {
       }
     }
 
+    function normalizeHistoryValues(values) {
+      var entries = [];
+      if (Array.isArray(values)) {
+        for (var i = 0; i < values.length && entries.length < 3; i++) {
+          entries.push(values[i]);
+        }
+      }
+      return entries;
+    }
+
+    function renderHistoryCell(cell, values) {
+      if (!cell) return;
+      cell.textContent = '';
+      cell.classList.add('picker-history');
+      var entries = normalizeHistoryValues(values);
+      if (!entries.length) {
+        var emptyEl = document.createElement('div');
+        emptyEl.className = 'picker-history-empty';
+        emptyEl.textContent = '—';
+        cell.appendChild(emptyEl);
+        return;
+      }
+      var listEl = document.createElement('div');
+      listEl.className = 'picker-history-list';
+      entries.forEach(function(value, idx) {
+        var itemEl = document.createElement('div');
+        itemEl.className = 'picker-history-item';
+        var indexEl = document.createElement('span');
+        indexEl.className = 'picker-history-index';
+        indexEl.textContent = (idx + 1) + '.';
+        itemEl.appendChild(indexEl);
+        var textEl = document.createElement('span');
+        var text = value == null ? '' : String(value).trim();
+        if (!text) {
+          textEl.className = 'picker-history-empty';
+          textEl.textContent = '—';
+        } else {
+          textEl.textContent = text;
+        }
+        itemEl.appendChild(textEl);
+        listEl.appendChild(itemEl);
+      });
+      cell.appendChild(listEl);
+    }
+
     function renderRows(list) {
       if (!rowsTbody) return;
       rowsTbody.innerHTML = '';
@@ -4684,6 +4824,14 @@ document.addEventListener('keydown', function(event) {
         tdNationality.textContent = item.nationality || '—';
         tr.appendChild(tdNationality);
 
+        var tdRemarks = document.createElement('td');
+        renderHistoryCell(tdRemarks, item.lastRemarks);
+        tr.appendChild(tdRemarks);
+
+        var tdRatings = document.createElement('td');
+        renderHistoryCell(tdRatings, item.lastRatings);
+        tr.appendChild(tdRatings);
+
         rowsTbody.appendChild(tr);
       }
       updateSelectAllState();
@@ -4696,10 +4844,20 @@ document.addEventListener('keydown', function(event) {
       } else {
         filteredItems = allItems.filter(function(item) {
           if (!item) return false;
-          return [item.beneficiary, item.designation, item.project, item.team, item.accountHolder, item.nationality]
-            .some(function(part) {
-              return String(part || '').toLowerCase().indexOf(term) >= 0;
-            });
+          var remarkText = Array.isArray(item.lastRemarks) ? item.lastRemarks.join(' ') : '';
+          var ratingText = Array.isArray(item.lastRatings) ? item.lastRatings.join(' ') : '';
+          return [
+            item.beneficiary,
+            item.designation,
+            item.project,
+            item.team,
+            item.accountHolder,
+            item.nationality,
+            remarkText,
+            ratingText
+          ].some(function(part) {
+            return String(part || '').toLowerCase().indexOf(term) >= 0;
+          });
         });
       }
       renderRows(filteredItems);

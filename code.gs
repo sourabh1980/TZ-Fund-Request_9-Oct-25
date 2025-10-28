@@ -6589,6 +6589,18 @@ function _readDD_compact_() {
   } catch (_e) {
     iNation = -1;
   }
+  let iRemarks = -1;
+  try {
+    iRemarks = IX.get(['Remarks', 'Comment', 'Comments', 'Notes']);
+  } catch (_e) {
+    iRemarks = -1;
+  }
+  let iRating = -1;
+  try {
+    iRating = IX.get(['Ratings', 'Rating', 'Stars']);
+  } catch (_e) {
+    iRating = -1;
+  }
   let iDateTime = -1;
   try {
     iDateTime = IX.get(['Date and Time','Date & Time','Timestamp','Updated At','Date']);
@@ -6598,6 +6610,8 @@ function _readDD_compact_() {
 
   const indices = [iName, iDesig, iDA, iProj, iTeam, iAcct, iUse];
   if (iNation >= 0) indices.push(iNation);
+  if (iRemarks >= 0) indices.push(iRemarks);
+  if (iRating >= 0) indices.push(iRating);
   if (iDateTime >= 0) indices.push(iDateTime);
   const minIdx = Math.min.apply(null, indices);
   const maxIdx = Math.max.apply(null, indices);
@@ -6622,6 +6636,8 @@ function _readDD_compact_() {
       account:     _norm(get(iAcct)),
       nationality: iNation >= 0 ? _norm(get(iNation)) : '',
       inuse:       _norm(get(iUse)),
+      releaseRemarks: iRemarks >= 0 ? String(get(iRemarks) == null ? '' : get(iRemarks)).trim() : '',
+      releaseRating:  iRating >= 0 ? String(get(iRating) == null ? '' : get(iRating)).trim() : '',
       dateTime:    dateRaw,
       timestamp:   ts,
       teamKey:     _normTeamKey(teamValue),
@@ -7432,6 +7448,49 @@ function _latestBeneficiaryEntries_(ddRows) {
   return latestRows;
 }
 
+function _collectReleaseHistory_(ddRows, limit) {
+  const history = new Map();
+  if (!Array.isArray(ddRows) || ddRows.length === 0) {
+    return history;
+  }
+
+  const maxItems = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : null;
+
+  for (let idx = 0; idx < ddRows.length; idx++) {
+    const row = ddRows[idx];
+    if (!row || !row.beneficiaryKey) continue;
+    if (_normStatus_(row.inuse) !== 'RELEASE') continue;
+
+    const key = row.beneficiaryKey;
+    const tsValue = Number(row.timestamp);
+    const ts = Number.isFinite(tsValue) ? tsValue : 0;
+    const entry = {
+      timestamp: ts,
+      sheetRow: idx + 2,
+      remarks: typeof row.releaseRemarks === 'string' ? row.releaseRemarks : (row.remarks || ''),
+      rating: row.releaseRating != null ? String(row.releaseRating).trim() : ''
+    };
+
+    if (!history.has(key)) {
+      history.set(key, [entry]);
+    } else {
+      history.get(key).push(entry);
+    }
+  }
+
+  history.forEach(function(list, key) {
+    list.sort(function(a, b) {
+      if (b.timestamp !== a.timestamp) return b.timestamp - a.timestamp;
+      return b.sheetRow - a.sheetRow;
+    });
+    if (maxItems != null && list.length > maxItems) {
+      list.length = maxItems;
+    }
+  });
+
+  return history;
+}
+
 /** Beneficiaries */
 function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
   try {
@@ -7534,6 +7593,7 @@ function getReleasedBeneficiariesForInduction(targetProject, targetTeam) {
     }
 
     const latestRows = _latestBeneficiaryEntries_(ddRows);
+    const releaseHistory = _collectReleaseHistory_(ddRows, 3);
     const nowMs = Date.now();
     const dayMs = 24 * 60 * 60 * 1000;
     const list = [];
@@ -7542,6 +7602,15 @@ function getReleasedBeneficiariesForInduction(targetProject, targetTeam) {
       if (!entry || !entry.row) return;
       const row = entry.row;
       if (_normStatus_(row.inuse) !== 'RELEASE') return;
+
+      const history = releaseHistory.get(key) || [];
+      const lastRemarks = [];
+      const lastRatings = [];
+      for (let h = 0; h < history.length && h < 3; h++) {
+        const release = history[h] || {};
+        lastRemarks.push(release.remarks != null ? String(release.remarks).trim() : '');
+        lastRatings.push(release.rating != null ? String(release.rating).trim() : '');
+      }
 
       let idleDays = null;
       if (entry.timestamp && Number.isFinite(entry.timestamp)) {
@@ -7565,7 +7634,9 @@ function getReleasedBeneficiariesForInduction(targetProject, targetTeam) {
         nationality: row.nationality || '',
         idleDays: idleDays,
         releasedAt: entry.timestamp ? new Date(entry.timestamp).toISOString() : '',
-        sheetRow: entry.sheetRow || 0
+        sheetRow: entry.sheetRow || 0,
+        lastRemarks: lastRemarks,
+        lastRatings: lastRatings
       });
     });
 
