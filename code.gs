@@ -6591,18 +6591,7 @@ function _readDD_compact_() {
   }
   let iRemarks = -1;
   try {
-    iRemarks = IX.get([
-      'Remarks',
-      'Comment',
-      'Comments',
-      'Notes',
-      'Review',
-      'Reviews',
-      'Release Review',
-      'Release Remarks',
-      'Release Remark',
-      'Last Review'
-    ]);
+    iRemarks = IX.get(['Remarks', 'Comment', 'Comments', 'Notes']);
   } catch (_e) {
     iRemarks = -1;
   }

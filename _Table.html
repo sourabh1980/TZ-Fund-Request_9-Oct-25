@@ -2563,12 +2563,8 @@ document.addEventListener('keydown', function(event) {
   }
 
   .beneficiary-picker-table .picker-history {
-    min-width: 200px;
+    min-width: 160px;
     white-space: normal;
-  }
-
-  .beneficiary-picker-table .picker-history.picker-rating {
-    min-width: 240px;
   }
 
   .beneficiary-picker-table .picker-history-list {
@@ -2585,10 +2581,6 @@ document.addEventListener('keydown', function(event) {
     color: #334155;
   }
 
-  .beneficiary-picker-table .picker-history-item.picker-rating-item {
-    gap: 10px;
-  }
-
   .beneficiary-picker-table .picker-history-index {
     flex: 0 0 auto;
     color: #94a3b8;
@@ -2598,53 +2590,6 @@ document.addEventListener('keydown', function(event) {
   .beneficiary-picker-table .picker-history-empty {
     color: #94a3b8;
     font-style: italic;
-  }
-
-  .beneficiary-picker-table .picker-rating-content {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-  }
-
-  .beneficiary-picker-table .picker-rating-header {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .beneficiary-picker-table .picker-rating-label {
-    font-weight: 600;
-    color: #1e293b;
-  }
-
-  .beneficiary-picker-table .picker-rating-stars {
-    font-family: 'Segoe UI Symbol', 'Apple Color Emoji', sans-serif;
-    letter-spacing: 1px;
-    font-size: 15px;
-  }
-
-  .beneficiary-picker-table .picker-rating-stars.rating-low {
-    color: #dc2626;
-  }
-
-  .beneficiary-picker-table .picker-rating-stars.rating-mid {
-    color: #f59e0b;
-  }
-
-  .beneficiary-picker-table .picker-rating-stars.rating-high {
-    color: #16a34a;
-  }
-
-  .beneficiary-picker-table .picker-rating-value {
-    font-size: 13px;
-    color: #475569;
-  }
-
-  .beneficiary-picker-table .picker-rating-extra {
-    font-size: 12px;
-    color: #64748b;
-    white-space: normal;
   }
 
   .beneficiary-picker-empty {
@@ -4050,19 +3995,11 @@ document.addEventListener('keydown', function(event) {
         for (var i = 0; i < values.length && entries.length < 3; i++) {
           entries.push(values[i]);
         }
-      } else if (values != null && values !== '') {
-        entries.push(values);
       }
       return entries;
     }
 
-    function historySearchText(values) {
-      return normalizeHistoryValues(values).map(function(value) {
-        return value == null ? '' : String(value);
-      }).join(' ');
-    }
-
-    function renderRemarkHistoryCell(cell, values) {
+    function renderHistoryCell(cell, values) {
       if (!cell) return;
       cell.textContent = '';
       cell.classList.add('picker-history');
@@ -4092,180 +4029,6 @@ document.addEventListener('keydown', function(event) {
           textEl.textContent = text;
         }
         itemEl.appendChild(textEl);
-        listEl.appendChild(itemEl);
-      });
-      cell.appendChild(listEl);
-    }
-
-    function parseRatingEntry(value) {
-      if (value == null) return null;
-      var original = String(value).trim();
-      if (!original) return null;
-      var label = '';
-      var content = original;
-      var colonIndex = content.indexOf(':');
-      if (colonIndex >= 0) {
-        label = content.slice(0, colonIndex).trim();
-        content = content.slice(colonIndex + 1).trim();
-      }
-
-      var ratingValue = null;
-      var ratingOutOf = 5;
-      var fractionMatch = content.match(/(-?\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)/);
-      if (fractionMatch) {
-        ratingValue = parseFloat(fractionMatch[1]);
-        ratingOutOf = parseFloat(fractionMatch[2]) || 5;
-        content = (content.slice(0, fractionMatch.index) + content.slice(fractionMatch.index + fractionMatch[0].length)).trim();
-      } else {
-        var numberMatch = content.match(/(-?\d+(?:\.\d+)?)/);
-        if (numberMatch) {
-          ratingValue = parseFloat(numberMatch[1]);
-          content = (content.slice(0, numberMatch.index) + content.slice(numberMatch.index + numberMatch[0].length)).trim();
-        }
-      }
-
-      if ((ratingValue == null || !isFinite(ratingValue)) && /★/.test(original)) {
-        var starCount = (original.match(/★/g) || []).length;
-        if (starCount > 0) {
-          ratingValue = starCount;
-          ratingOutOf = Math.max(ratingOutOf, 5, starCount);
-        }
-      }
-
-      if (!isFinite(ratingValue)) ratingValue = null;
-      if (!isFinite(ratingOutOf) || ratingOutOf <= 0) ratingOutOf = 5;
-
-      content = content.replace(/★/g, ' ');
-      content = content.replace(/☆/g, ' ');
-      content = content.replace(/\(\s*\)/g, ' ');
-      var extra = content.replace(/\s+/g, ' ').trim();
-      if (extra.charAt(0) === ':') {
-        extra = extra.slice(1).trim();
-      }
-      if (extra === '-' || extra === '–') extra = '';
-
-      return {
-        label: label,
-        value: ratingValue,
-        outOf: ratingOutOf,
-        extra: extra,
-        original: original
-      };
-    }
-
-    function ratingClassForStars(starCount) {
-      if (!isFinite(starCount)) return '';
-      if (starCount < 3) return 'rating-low';
-      if (starCount === 3) return 'rating-mid';
-      if (starCount > 3) return 'rating-high';
-      return '';
-    }
-
-    function formatRatingValue(value, outOf) {
-      if (!isFinite(value)) return '';
-      var formatted = (Math.abs(value % 1) < 0.001) ? String(Math.round(value)) : value.toFixed(1);
-      var total = (!isFinite(outOf) || outOf <= 0) ? 5 : outOf;
-      var totalText = (Math.abs(total % 1) < 0.001) ? String(Math.round(total)) : total.toFixed(1);
-      return formatted + '/' + totalText;
-    }
-
-    function renderRatingHistoryCell(cell, values) {
-      if (!cell) return;
-      cell.textContent = '';
-      cell.classList.add('picker-history', 'picker-rating');
-      var entries = normalizeHistoryValues(values);
-      if (!entries.length) {
-        var emptyEl = document.createElement('div');
-        emptyEl.className = 'picker-history-empty';
-        emptyEl.textContent = '—';
-        cell.appendChild(emptyEl);
-        return;
-      }
-      var listEl = document.createElement('div');
-      listEl.className = 'picker-history-list';
-      entries.forEach(function(value, idx) {
-        var itemEl = document.createElement('div');
-        itemEl.className = 'picker-history-item picker-rating-item';
-        var indexEl = document.createElement('span');
-        indexEl.className = 'picker-history-index';
-        indexEl.textContent = (idx + 1) + '.';
-        itemEl.appendChild(indexEl);
-
-        var contentEl = document.createElement('div');
-        contentEl.className = 'picker-rating-content';
-        var parsed = parseRatingEntry(value);
-
-        if (!parsed) {
-          var fallback = document.createElement('span');
-          var fallbackText = value == null ? '' : String(value).trim();
-          if (!fallbackText) {
-            fallback.className = 'picker-history-empty';
-            fallback.textContent = '—';
-          } else {
-            fallback.textContent = fallbackText;
-          }
-          contentEl.appendChild(fallback);
-        } else if (parsed.value != null) {
-          var normalized = parsed.outOf ? (parsed.value / parsed.outOf) * 5 : parsed.value;
-          if (!isFinite(normalized)) normalized = parsed.value;
-          if (!isFinite(normalized)) normalized = 0;
-          if (normalized < 0) normalized = 0;
-          if (normalized > 5) normalized = 5;
-          var starCount = Math.round(normalized);
-          if (!isFinite(starCount)) starCount = 0;
-          starCount = Math.max(0, Math.min(5, starCount));
-          var starsText = '';
-          for (var s = 0; s < starCount; s++) starsText += '★';
-          for (var e = starCount; e < 5; e++) starsText += '☆';
-
-          var headerEl = document.createElement('div');
-          headerEl.className = 'picker-rating-header';
-          if (parsed.label) {
-            var labelEl = document.createElement('span');
-            labelEl.className = 'picker-rating-label';
-            labelEl.textContent = parsed.label + ':';
-            headerEl.appendChild(labelEl);
-          }
-
-          var starsEl = document.createElement('span');
-          var ratingClass = ratingClassForStars(starCount);
-          starsEl.className = 'picker-rating-stars' + (ratingClass ? (' ' + ratingClass) : '');
-          starsEl.textContent = starsText;
-          headerEl.appendChild(starsEl);
-
-          var valueEl = document.createElement('span');
-          valueEl.className = 'picker-rating-value';
-          valueEl.textContent = '(' + formatRatingValue(parsed.value, parsed.outOf) + ')';
-          headerEl.appendChild(valueEl);
-
-          contentEl.appendChild(headerEl);
-
-          if (parsed.extra) {
-            var extraEl = document.createElement('span');
-            extraEl.className = 'picker-rating-extra';
-            extraEl.textContent = parsed.extra;
-            contentEl.appendChild(extraEl);
-          }
-        } else {
-          if (parsed.extra) {
-            if (parsed.label) {
-              var labelOnly = document.createElement('span');
-              labelOnly.className = 'picker-rating-label';
-              labelOnly.textContent = parsed.label + ':';
-              contentEl.appendChild(labelOnly);
-            }
-            var extraOnly = document.createElement('span');
-            extraOnly.className = 'picker-rating-extra';
-            extraOnly.textContent = parsed.extra;
-            contentEl.appendChild(extraOnly);
-          } else {
-            var fallbackOriginal = document.createElement('span');
-            fallbackOriginal.textContent = parsed.original;
-            contentEl.appendChild(fallbackOriginal);
-          }
-        }
-
-        itemEl.appendChild(contentEl);
         listEl.appendChild(itemEl);
       });
       cell.appendChild(listEl);
@@ -4339,11 +4102,11 @@ document.addEventListener('keydown', function(event) {
         tr.appendChild(tdNationality);
 
         var tdRemarks = document.createElement('td');
-        renderRemarkHistoryCell(tdRemarks, item.lastRemarks);
+        renderHistoryCell(tdRemarks, item.lastRemarks);
         tr.appendChild(tdRemarks);
 
         var tdRatings = document.createElement('td');
-        renderRatingHistoryCell(tdRatings, item.lastRatings);
+        renderHistoryCell(tdRatings, item.lastRatings);
         tr.appendChild(tdRatings);
 
         rowsTbody.appendChild(tr);
@@ -4358,8 +4121,8 @@ document.addEventListener('keydown', function(event) {
       } else {
         filteredItems = allItems.filter(function(item) {
           if (!item) return false;
-          var remarkText = historySearchText(item.lastRemarks);
-          var ratingText = historySearchText(item.lastRatings);
+          var remarkText = Array.isArray(item.lastRemarks) ? item.lastRemarks.join(' ') : '';
+          var ratingText = Array.isArray(item.lastRatings) ? item.lastRatings.join(' ') : '';
           return [
             item.beneficiary,
             item.designation,
@@ -4949,6 +4712,51 @@ document.addEventListener('keydown', function(event) {
       }
     }
 
+    function normalizeHistoryValues(values) {
+      var entries = [];
+      if (Array.isArray(values)) {
+        for (var i = 0; i < values.length && entries.length < 3; i++) {
+          entries.push(values[i]);
+        }
+      }
+      return entries;
+    }
+
+    function renderHistoryCell(cell, values) {
+      if (!cell) return;
+      cell.textContent = '';
+      cell.classList.add('picker-history');
+      var entries = normalizeHistoryValues(values);
+      if (!entries.length) {
+        var emptyEl = document.createElement('div');
+        emptyEl.className = 'picker-history-empty';
+        emptyEl.textContent = '—';
+        cell.appendChild(emptyEl);
+        return;
+      }
+      var listEl = document.createElement('div');
+      listEl.className = 'picker-history-list';
+      entries.forEach(function(value, idx) {
+        var itemEl = document.createElement('div');
+        itemEl.className = 'picker-history-item';
+        var indexEl = document.createElement('span');
+        indexEl.className = 'picker-history-index';
+        indexEl.textContent = (idx + 1) + '.';
+        itemEl.appendChild(indexEl);
+        var textEl = document.createElement('span');
+        var text = value == null ? '' : String(value).trim();
+        if (!text) {
+          textEl.className = 'picker-history-empty';
+          textEl.textContent = '—';
+        } else {
+          textEl.textContent = text;
+        }
+        itemEl.appendChild(textEl);
+        listEl.appendChild(itemEl);
+      });
+      cell.appendChild(listEl);
+    }
+
     function renderRows(list) {
       if (!rowsTbody) return;
       rowsTbody.innerHTML = '';
@@ -5017,11 +4825,11 @@ document.addEventListener('keydown', function(event) {
         tr.appendChild(tdNationality);
 
         var tdRemarks = document.createElement('td');
-        renderRemarkHistoryCell(tdRemarks, item.lastRemarks);
+        renderHistoryCell(tdRemarks, item.lastRemarks);
         tr.appendChild(tdRemarks);
 
         var tdRatings = document.createElement('td');
-        renderRatingHistoryCell(tdRatings, item.lastRatings);
+        renderHistoryCell(tdRatings, item.lastRatings);
         tr.appendChild(tdRatings);
 
         rowsTbody.appendChild(tr);
@@ -5036,8 +4844,8 @@ document.addEventListener('keydown', function(event) {
       } else {
         filteredItems = allItems.filter(function(item) {
           if (!item) return false;
-          var remarkText = historySearchText(item.lastRemarks);
-          var ratingText = historySearchText(item.lastRatings);
+          var remarkText = Array.isArray(item.lastRemarks) ? item.lastRemarks.join(' ') : '';
+          var ratingText = Array.isArray(item.lastRatings) ? item.lastRatings.join(' ') : '';
           return [
             item.beneficiary,
             item.designation,
