@@ -2734,8 +2734,8 @@ document.addEventListener('keydown', function(event) {
   }
 
   .picker-rating-stars {
-    font-size: 14px;
-    letter-spacing: 1px;
+    font-size: 13px;
+    letter-spacing: 0.8px;
   }
 
   .picker-rating-stars--low {
@@ -2765,8 +2765,8 @@ document.addEventListener('keydown', function(event) {
 
   .picker-rating-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(208px, 1fr));
-    gap: 14px;
+    grid-template-columns: repeat(5, minmax(232px, 1fr));
+    gap: 16px;
     width: 100%;
   }
 
@@ -2778,11 +2778,11 @@ document.addEventListener('keydown', function(event) {
     min-width: 0;
     background: rgba(148, 163, 184, 0.12);
     border: 1px solid rgba(148, 163, 184, 0.24);
-    border-radius: 16px;
-    padding: 12px 14px;
+    border-radius: 18px;
+    padding: 16px 18px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     transition: box-shadow 0.2s ease, transform 0.2s ease;
   }
 
@@ -2826,37 +2826,38 @@ document.addEventListener('keydown', function(event) {
     color: #1e293b;
     margin: 0;
     white-space: nowrap;
+    font-size: 13px;
   }
 
   .picker-rating-stars-line {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     font-variant-numeric: tabular-nums;
     flex: 0 1 auto;
   }
 
   @media (max-width: 1240px) {
     .picker-rating-grid {
-      grid-template-columns: repeat(4, minmax(208px, 1fr));
+      grid-template-columns: repeat(4, minmax(232px, 1fr));
     }
   }
 
   @media (max-width: 1024px) {
     .picker-rating-grid {
-      grid-template-columns: repeat(3, minmax(208px, 1fr));
+      grid-template-columns: repeat(3, minmax(232px, 1fr));
     }
   }
 
   @media (max-width: 768px) {
     .picker-rating-grid {
-      grid-template-columns: repeat(2, minmax(208px, 1fr));
+      grid-template-columns: repeat(2, minmax(232px, 1fr));
     }
   }
 
   @media (max-width: 520px) {
     .picker-rating-grid {
-      grid-template-columns: repeat(1, minmax(208px, 1fr));
+      grid-template-columns: repeat(1, minmax(232px, 1fr));
     }
   }
 
