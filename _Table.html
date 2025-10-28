@@ -246,6 +246,1090 @@
   </div>
 </div>
 
+<div class="new-beneficiary-overlay" id="newBeneficiaryModal" role="dialog" aria-modal="true" aria-labelledby="newBeneficiaryTitle" hidden>
+  <div class="new-beneficiary-card">
+    <button type="button" class="new-beneficiary-close" id="newBeneficiaryClose" aria-label="Close add new beneficiary dialog">×</button>
+    <div class="new-beneficiary-header">
+      <h3 class="new-beneficiary-title" id="newBeneficiaryTitle">Add New Beneficiary</h3>
+      <p class="new-beneficiary-subtitle" id="newBeneficiarySubtitle">Provide details to create a released beneficiary record.</p>
+    </div>
+    <form class="new-beneficiary-form" id="newBeneficiaryForm" novalidate>
+      <div class="new-beneficiary-scroll">
+        <div class="new-beneficiary-grid">
+          <div class="new-beneficiary-field" data-field="name">
+            <label for="newBeneficiaryName">Name of Beneficiary</label>
+            <input id="newBeneficiaryName" class="new-beneficiary-input" type="text" autocomplete="off" placeholder="Enter name" list="newBeneficiaryNameList" />
+            <datalist id="newBeneficiaryNameList"></datalist>
+            <div class="new-beneficiary-field-error" data-error-for="name"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="designation">
+            <label for="newBeneficiaryDesignation">Resource Designation</label>
+            <select id="newBeneficiaryDesignation" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="designation"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="defaultDa">
+            <label for="newBeneficiaryDa">Default DA Amt</label>
+            <input id="newBeneficiaryDa" class="new-beneficiary-input" type="number" step="0.01" min="0" placeholder="Enter amount" />
+            <div class="new-beneficiary-field-error" data-error-for="defaultDa"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="project">
+            <label for="newBeneficiaryProject">Project</label>
+            <select id="newBeneficiaryProject" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="project"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="team">
+            <label for="newBeneficiaryTeam">Team</label>
+            <select id="newBeneficiaryTeam" class="new-beneficiary-select" disabled></select>
+            <div class="new-beneficiary-field-error" data-error-for="team"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="accountHolder">
+            <label for="newBeneficiaryAccount">Account Holder Name</label>
+            <select id="newBeneficiaryAccount" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="accountHolder"></div>
+          </div>
+          <div class="new-beneficiary-field" data-field="nationality">
+            <label for="newBeneficiaryNationality">Nationality</label>
+            <select id="newBeneficiaryNationality" class="new-beneficiary-select"></select>
+            <div class="new-beneficiary-field-error" data-error-for="nationality"></div>
+          </div>
+        </div>
+      </div>
+      <div class="new-beneficiary-footer">
+        <div class="new-beneficiary-status" id="newBeneficiaryStatus" aria-live="polite"></div>
+        <div class="new-beneficiary-actions">
+          <button type="button" class="new-beneficiary-btn secondary" id="newBeneficiaryCancel">Cancel</button>
+          <button type="submit" class="new-beneficiary-btn primary" id="newBeneficiarySubmit">Ok</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+  .new-beneficiary-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    background: rgba(15, 23, 42, 0.58);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    z-index: 11000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.24s ease;
+  }
+
+  .new-beneficiary-overlay[hidden] {
+    display: none;
+  }
+
+  .new-beneficiary-overlay.show {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .new-beneficiary-card {
+    width: min(940px, 98vw);
+    max-height: min(90vh, 720px);
+    background: rgba(255, 255, 255, 0.96);
+    border-radius: 20px;
+    box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    transform: translateY(24px) scale(0.97);
+    transition: transform 0.28s ease, opacity 0.28s ease;
+  }
+
+  .new-beneficiary-overlay.show .new-beneficiary-card {
+    transform: translateY(0) scale(1);
+  }
+
+  .new-beneficiary-close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(15, 23, 42, 0.08);
+    color: #1f2937;
+    font-size: 22px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .new-beneficiary-close:hover {
+    background: rgba(79, 70, 229, 0.12);
+    color: #4338ca;
+  }
+
+  .new-beneficiary-close:focus-visible {
+    outline: 3px solid rgba(79, 70, 229, 0.35);
+    outline-offset: 2px;
+  }
+
+  .new-beneficiary-header {
+    padding: 32px 40px 0;
+  }
+
+  .new-beneficiary-title {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 700;
+    color: #1f2937;
+  }
+
+  .new-beneficiary-subtitle {
+    margin: 10px 0 0;
+    font-size: 15px;
+    color: #475569;
+  }
+
+  .new-beneficiary-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    padding: 0 40px 36px;
+    gap: 28px;
+  }
+
+  .new-beneficiary-scroll {
+    flex: 1 1 auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-top: 24px;
+  }
+
+  .new-beneficiary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px 28px;
+    align-items: flex-start;
+  }
+
+  @media (min-width: 1180px) {
+    .new-beneficiary-grid {
+      grid-template-columns: repeat(3, minmax(220px, 1fr));
+    }
+  }
+
+  .new-beneficiary-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .new-beneficiary-field label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .new-beneficiary-input,
+  .new-beneficiary-select {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    background: rgba(248, 250, 252, 0.92);
+    padding: 12px 14px;
+    font-size: 15px;
+    color: #0f172a;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    min-height: 44px;
+    box-sizing: border-box;
+  }
+
+  .new-beneficiary-input:focus-visible,
+  .new-beneficiary-select:focus-visible {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.24);
+    background: #fff;
+  }
+
+  .new-beneficiary-select:disabled,
+  .new-beneficiary-input:disabled {
+    background: rgba(241, 245, 249, 0.9);
+    cursor: not-allowed;
+    color: #64748b;
+  }
+
+  .new-beneficiary-field-error {
+    min-height: 18px;
+    font-size: 12px;
+    color: #dc2626;
+    font-weight: 500;
+  }
+
+  .new-beneficiary-field.has-error .new-beneficiary-input,
+  .new-beneficiary-field.has-error .new-beneficiary-select {
+    border-color: #f97316;
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.16);
+    background: rgba(255, 247, 237, 0.9);
+  }
+
+  .new-beneficiary-footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .new-beneficiary-status {
+    flex: 1 1 auto;
+    min-height: 20px;
+    font-size: 14px;
+    color: #475569;
+    font-weight: 500;
+  }
+
+  .new-beneficiary-status.error {
+    color: #dc2626;
+  }
+
+  .new-beneficiary-status.success {
+    color: #15803d;
+  }
+
+  .new-beneficiary-status.info {
+    color: #2563eb;
+  }
+
+  .new-beneficiary-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    justify-content: flex-end;
+  }
+
+  .new-beneficiary-btn {
+    border-radius: 999px;
+    border: none;
+    padding: 12px 26px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  }
+
+  .new-beneficiary-btn.primary {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #fff;
+    box-shadow: 0 14px 32px rgba(99, 102, 241, 0.28);
+  }
+
+  .new-beneficiary-btn.primary:hover {
+    transform: translateY(-1px);
+  }
+
+  .new-beneficiary-btn.secondary {
+    background: rgba(226, 232, 240, 0.85);
+    color: #0f172a;
+  }
+
+  .new-beneficiary-btn.secondary:hover {
+    background: rgba(203, 213, 225, 0.95);
+  }
+
+  .new-beneficiary-btn[disabled] {
+    opacity: 0.6;
+    cursor: wait;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .new-beneficiary-overlay.new-beneficiary-loading .new-beneficiary-status {
+    color: #2563eb;
+  }
+
+  @media (max-width: 720px) {
+    .new-beneficiary-card {
+      width: min(100%, 96vw);
+      padding-top: 40px;
+    }
+
+    .new-beneficiary-header {
+      padding: 24px 24px 0;
+    }
+
+    .new-beneficiary-form {
+      padding: 0 24px 28px;
+    }
+
+    .new-beneficiary-grid {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 18px;
+    }
+
+    .new-beneficiary-footer {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .new-beneficiary-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+</style>
+<script>
+(function(){
+  'use strict';
+
+  const overlay = document.getElementById('newBeneficiaryModal');
+  if (!overlay) return;
+
+  const form = overlay.querySelector('#newBeneficiaryForm');
+  const closeBtn = overlay.querySelector('#newBeneficiaryClose');
+  const cancelBtn = overlay.querySelector('#newBeneficiaryCancel');
+  const submitBtn = overlay.querySelector('#newBeneficiarySubmit');
+  const statusEl = overlay.querySelector('#newBeneficiaryStatus');
+
+  const nameInput = overlay.querySelector('#newBeneficiaryName');
+  const nameDatalist = overlay.querySelector('#newBeneficiaryNameList');
+  const designationSelect = overlay.querySelector('#newBeneficiaryDesignation');
+  const defaultDaInput = overlay.querySelector('#newBeneficiaryDa');
+  const projectSelect = overlay.querySelector('#newBeneficiaryProject');
+  const teamSelect = overlay.querySelector('#newBeneficiaryTeam');
+  const accountSelect = overlay.querySelector('#newBeneficiaryAccount');
+  const nationalitySelect = overlay.querySelector('#newBeneficiaryNationality');
+
+  const DUPLICATE_NAME_MESSAGE = 'Duplicate beneficiary name detected.';
+  const knownBeneficiaryNames = new Set();
+  let hasNameDuplicate = false;
+
+  const fieldState = {};
+  overlay.querySelectorAll('.new-beneficiary-field').forEach(function(field) {
+    const key = field.getAttribute('data-field');
+    if (!key) return;
+    fieldState[key] = {
+      container: field,
+      messageEl: field.querySelector('.new-beneficiary-field-error')
+    };
+  });
+
+  function normalizeBeneficiaryName(value) {
+    return value == null ? '' : String(value).trim().toLowerCase();
+  }
+
+  function isExistingBeneficiaryName(value) {
+    const normalized = normalizeBeneficiaryName(value);
+    if (!normalized) return false;
+    return knownBeneficiaryNames.has(normalized);
+  }
+
+  function showNameDuplicateWarning(message) {
+    const state = fieldState.name;
+    if (!state || !state.container) return;
+    if (message) {
+      if (state.container.dataset) {
+        state.container.dataset.errorType = 'duplicate';
+      }
+      state.container.classList.add('has-error');
+      if (state.messageEl) state.messageEl.textContent = message;
+    } else if (state.container.dataset && state.container.dataset.errorType === 'duplicate') {
+      state.container.classList.remove('has-error');
+      if (state.messageEl) state.messageEl.textContent = '';
+      delete state.container.dataset.errorType;
+    }
+  }
+
+  function evaluateNameDuplicate() {
+    if (!nameInput) {
+      hasNameDuplicate = false;
+      return false;
+    }
+    const duplicate = isExistingBeneficiaryName(nameInput.value);
+    hasNameDuplicate = duplicate;
+    if (duplicate) {
+      showNameDuplicateWarning(DUPLICATE_NAME_MESSAGE);
+    } else {
+      showNameDuplicateWarning('');
+    }
+    updateFormDisabledState();
+    return duplicate;
+  }
+
+  let optionsCache = null;
+  let optionsPromise = null;
+  let teamsByProject = {};
+  let pendingTeamValue = null;
+  let optionsReady = false;
+  let loadingOptions = false;
+  let submitting = false;
+  let teamEnabled = false;
+  let isOpen = false;
+  let lastActiveElement = null;
+  let openContext = {};
+  const submitOriginalText = submitBtn ? submitBtn.textContent : '';
+  const PLACEHOLDER_VALUE = '__placeholder__';
+
+  function setStatus(message, tone) {
+    if (!statusEl) return;
+    const text = message || '';
+    statusEl.textContent = text;
+    statusEl.classList.remove('error', 'success', 'info');
+    if (text) {
+      statusEl.classList.add(tone || 'info');
+    }
+  }
+
+  function clearFieldErrors() {
+    Object.keys(fieldState).forEach(function(key) {
+      const state = fieldState[key];
+      if (!state) return;
+      state.container.classList.remove('has-error');
+      if (state.messageEl) state.messageEl.textContent = '';
+      if (state.container && state.container.dataset) {
+        delete state.container.dataset.errorType;
+      }
+    });
+  }
+
+  function showFieldError(field, message) {
+    const state = fieldState[field];
+    if (!state) return;
+    if (state.container && state.container.dataset) {
+      state.container.dataset.errorType = 'validation';
+    }
+    state.container.classList.add('has-error');
+    if (state.messageEl) state.messageEl.textContent = message || '';
+  }
+
+  function focusFirstError(errors) {
+    if (!Array.isArray(errors)) return;
+    for (let i = 0; i < errors.length; i++) {
+      const state = fieldState[errors[i].field];
+      if (!state || !state.container) continue;
+      const el = state.container.querySelector('input, select, textarea, button');
+      if (el && typeof el.focus === 'function') {
+        el.focus();
+        break;
+      }
+    }
+  }
+
+  function resetTeamSelect(message) {
+    if (!teamSelect) return;
+    teamSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = PLACEHOLDER_VALUE;
+    placeholder.textContent = message;
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    teamSelect.appendChild(placeholder);
+    teamSelect.dataset.userSet = 'false';
+    teamEnabled = false;
+  }
+
+  function updateFormDisabledState() {
+    const disableInputs = loadingOptions || submitting || !optionsReady;
+    [nameInput, designationSelect, defaultDaInput, projectSelect, accountSelect, nationalitySelect].forEach(function(el) {
+      if (!el) return;
+      el.disabled = disableInputs;
+    });
+    if (teamSelect) {
+      teamSelect.disabled = disableInputs || !teamEnabled;
+    }
+    if (submitBtn) {
+      const shouldDisable = disableInputs || submitting || hasNameDuplicate;
+      submitBtn.disabled = shouldDisable;
+      if (shouldDisable && hasNameDuplicate) {
+        submitBtn.setAttribute('aria-disabled-reason', 'duplicate-name');
+      } else {
+        submitBtn.removeAttribute('aria-disabled-reason');
+      }
+    }
+    if (cancelBtn) {
+      cancelBtn.disabled = submitting;
+    }
+    if (closeBtn) {
+      closeBtn.disabled = submitting;
+    }
+  }
+
+  function setLoading(flag) {
+    loadingOptions = flag;
+    overlay.classList.toggle('new-beneficiary-loading', flag);
+    if (flag) {
+      resetTeamSelect('Loading options…');
+    }
+    updateFormDisabledState();
+  }
+
+  function setSubmitting(flag) {
+    submitting = flag;
+    overlay.classList.toggle('new-beneficiary-submitting', flag);
+    if (submitBtn) {
+      submitBtn.textContent = flag ? 'Saving…' : submitOriginalText;
+    }
+    updateFormDisabledState();
+  }
+
+  function setSelectValue(select, value) {
+    if (!select) return false;
+    const target = value == null ? '' : String(value);
+    const len = select.options.length;
+    for (let i = 0; i < len; i++) {
+      const opt = select.options[i];
+      if (opt.value === target) {
+        select.selectedIndex = i;
+        return true;
+      }
+    }
+    const normalized = target.trim().toLowerCase();
+    if (!normalized) return false;
+    for (let i = 0; i < len; i++) {
+      const opt = select.options[i];
+      if (opt.value.trim().toLowerCase() === normalized) {
+        select.selectedIndex = i;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function populateSelect(select, list, placeholderText) {
+    if (!select) return;
+    const previous = select.value;
+    select.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = placeholderText;
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    select.appendChild(placeholder);
+    if (Array.isArray(list)) {
+      list.forEach(function(item) {
+        const option = document.createElement('option');
+        const val = item && item.value != null ? String(item.value) : '';
+        option.value = val;
+        option.textContent = item && item.label != null ? item.label : val;
+        select.appendChild(option);
+      });
+    }
+    if (previous && setSelectValue(select, previous)) {
+      placeholder.selected = false;
+    }
+  }
+
+  function populateNameSuggestions(list) {
+    if (!nameDatalist) return;
+    nameDatalist.innerHTML = '';
+    if (!Array.isArray(list) || !list.length) {
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    const seen = new Set();
+    list.forEach(function(name) {
+      const value = name == null ? '' : String(name).trim();
+      if (!value) return;
+      if (seen.has(value.toLowerCase())) {
+        // Allow duplicates to be entered manually while avoiding redundant options.
+        return;
+      }
+      seen.add(value.toLowerCase());
+      const option = document.createElement('option');
+      option.value = value;
+      fragment.appendChild(option);
+    });
+    nameDatalist.appendChild(fragment);
+  }
+
+  function updateTeamOptions(projectValue, preferTeam) {
+    if (!teamSelect) return;
+    const trimmed = (projectValue || '').toString().trim();
+    teamSelect.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = PLACEHOLDER_VALUE;
+    placeholder.textContent = trimmed ? 'Select team' : 'Select a project first';
+    placeholder.disabled = true;
+    placeholder.selected = true;
+    teamSelect.appendChild(placeholder);
+    teamSelect.dataset.userSet = 'false';
+
+    if (!trimmed) {
+      teamEnabled = false;
+      updateFormDisabledState();
+      return;
+    }
+
+    let list = (teamsByProject && (teamsByProject[projectValue] || teamsByProject[trimmed])) || null;
+    if (!list && teamsByProject) {
+      const lower = trimmed.toLowerCase();
+      Object.keys(teamsByProject).some(function(key) {
+        if (key && key.toLowerCase() === lower) {
+          list = teamsByProject[key];
+          return true;
+        }
+        return false;
+      });
+    }
+
+    if (!Array.isArray(list) || list.length === 0) {
+      placeholder.textContent = 'No teams found for project';
+      placeholder.disabled = true;
+      teamEnabled = false;
+      updateFormDisabledState();
+      return;
+    }
+
+    list.forEach(function(item) {
+      const option = document.createElement('option');
+      const val = item && item.value != null ? String(item.value) : '';
+      option.value = val;
+      option.textContent = item && item.label ? item.label : (val || 'Unassigned / Blank');
+      if (item && item.blank) {
+        option.dataset.blank = 'true';
+      }
+      teamSelect.appendChild(option);
+    });
+
+    teamEnabled = true;
+    updateFormDisabledState();
+
+    const desired = preferTeam != null ? preferTeam : pendingTeamValue;
+    if (desired != null) {
+      if (desired === '') {
+        const blankOption = Array.from(teamSelect.options).find(function(opt) {
+          return opt.value === '' && !opt.disabled;
+        });
+        if (blankOption) {
+          blankOption.selected = true;
+          placeholder.selected = false;
+          teamSelect.dataset.userSet = 'true';
+        }
+      } else if (setSelectValue(teamSelect, desired)) {
+        placeholder.selected = false;
+        teamSelect.dataset.userSet = 'true';
+      }
+    }
+    pendingTeamValue = null;
+  }
+
+  function ensureOptions() {
+    if (optionsCache) {
+      return Promise.resolve(optionsCache);
+    }
+    if (optionsPromise) {
+      return optionsPromise;
+    }
+    if (!(window.google && google.script && google.script.run)) {
+      return Promise.reject(new Error('Beneficiary options can only be loaded inside Google Sheets.'));
+    }
+    optionsPromise = new Promise(function(resolve, reject) {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          optionsPromise = null;
+          if (!res || res.ok === false) {
+            reject(new Error(res && res.error ? res.error : 'Unable to load beneficiary options.'));
+            return;
+          }
+          optionsCache = res;
+          resolve(res);
+        })
+        .withFailureHandler(function(err) {
+          optionsPromise = null;
+          const message = err && err.message ? err.message : 'Unable to load beneficiary options.';
+          reject(new Error(message));
+        })
+        .getNewBeneficiaryFormOptions();
+    });
+    return optionsPromise;
+  }
+
+  function applyOptions(opts) {
+    if (!opts) return;
+    teamsByProject = opts.teamsByProject || {};
+    populateSelect(designationSelect, opts.designations || [], 'Select designation');
+    populateSelect(accountSelect, opts.accountHolders || [], 'Select account holder');
+    populateSelect(nationalitySelect, opts.nationalities || [], 'Select nationality');
+    populateSelect(projectSelect, opts.projects || [], 'Select project');
+    populateNameSuggestions(opts.beneficiaryNames || []);
+
+    if (defaultDaInput) {
+      const ctxDa = openContext && Object.prototype.hasOwnProperty.call(openContext, 'defaultDa') ? openContext.defaultDa : '';
+      defaultDaInput.value = ctxDa == null ? '' : ctxDa;
+    }
+
+    pendingTeamValue = openContext && Object.prototype.hasOwnProperty.call(openContext, 'team') ? openContext.team : null;
+
+    if (projectSelect) {
+      const ctxProject = openContext && openContext.project ? openContext.project : '';
+      if (ctxProject) {
+        if (!setSelectValue(projectSelect, ctxProject)) {
+          pendingTeamValue = null;
+        }
+      } else {
+        projectSelect.selectedIndex = 0;
+      }
+    }
+
+    updateTeamOptions(projectSelect ? projectSelect.value : '', pendingTeamValue);
+    if (openContext && openContext.accountHolder) setSelectValue(accountSelect, openContext.accountHolder);
+    if (openContext && openContext.nationality) setSelectValue(nationalitySelect, openContext.nationality);
+    if (openContext && openContext.designation) setSelectValue(designationSelect, openContext.designation);
+  }
+
+  function collectValues() {
+    return {
+      name: nameInput ? nameInput.value.trim() : '',
+      designation: designationSelect ? designationSelect.value : '',
+      defaultDa: defaultDaInput ? defaultDaInput.value.trim() : '',
+      project: projectSelect ? projectSelect.value : '',
+      teamRaw: teamSelect ? teamSelect.value : PLACEHOLDER_VALUE,
+      accountHolder: accountSelect ? accountSelect.value : '',
+      nationality: nationalitySelect ? nationalitySelect.value : ''
+    };
+  }
+
+  function validateForm() {
+    const values = collectValues();
+    const errors = [];
+    const payload = {
+      beneficiary: values.name,
+      designation: values.designation,
+      project: values.project,
+      accountHolder: values.accountHolder,
+      nationality: values.nationality,
+      team: '',
+      teamProvided: false
+    };
+
+    if (!payload.beneficiary) {
+      errors.push({ field: 'name', message: 'Enter the beneficiary name.' });
+    }
+    if (!payload.designation) {
+      errors.push({ field: 'designation', message: 'Select a resource designation.' });
+    }
+    if (!payload.project) {
+      errors.push({ field: 'project', message: 'Select a project.' });
+    }
+
+    if (teamSelect) {
+      if (!teamEnabled) {
+        payload.team = '';
+        payload.teamProvided = true;
+      } else if (values.teamRaw !== PLACEHOLDER_VALUE) {
+        payload.team = values.teamRaw == null ? '' : values.teamRaw;
+        payload.teamProvided = true;
+      } else {
+        errors.push({ field: 'team', message: 'Select a team or choose the blank option.' });
+      }
+    }
+
+    if (!payload.accountHolder) {
+      errors.push({ field: 'accountHolder', message: 'Select an account holder name.' });
+    }
+    if (!payload.nationality) {
+      errors.push({ field: 'nationality', message: 'Select a nationality.' });
+    }
+
+    if (isExistingBeneficiaryName(payload.beneficiary)) {
+      errors.push({ field: 'name', message: DUPLICATE_NAME_MESSAGE, duplicate: true });
+    }
+
+    if (values.defaultDa !== '') {
+      const numeric = Number(values.defaultDa);
+      if (!Number.isFinite(numeric) || numeric < 0) {
+        errors.push({ field: 'defaultDa', message: 'Enter a non-negative amount.' });
+      } else {
+        payload.defaultDa = numeric;
+      }
+    }
+
+    return { errors: errors, payload: payload };
+  }
+
+  function buildConfirmation(payload) {
+    const project = payload.project || '—';
+    const team = payload.team ? payload.team : 'Unassigned / Blank';
+    const designation = payload.designation || '—';
+    const accountHolder = payload.accountHolder || '—';
+    return [
+      'Create and mark this beneficiary as RELEASE?',
+      'Name: ' + payload.beneficiary,
+      'Designation: ' + designation,
+      'Project: ' + project,
+      'Team: ' + team,
+      'Account Holder: ' + accountHolder
+    ].join('\n');
+  }
+
+  function focusFirstField() {
+    if (!isOpen) return;
+    if (nameInput && !nameInput.disabled) {
+      nameInput.focus();
+      nameInput.select && nameInput.select();
+      return;
+    }
+    const focusable = overlay.querySelector('input:not([disabled]), select:not([disabled])');
+    if (focusable && typeof focusable.focus === 'function') {
+      focusable.focus();
+    }
+  }
+
+  function openDialog(context) {
+    if (isOpen && !submitting) {
+      closeDialog();
+    }
+    openContext = context && typeof context === 'object' ? context : {};
+    pendingTeamValue = openContext && Object.prototype.hasOwnProperty.call(openContext, 'team') ? openContext.team : null;
+    knownBeneficiaryNames.clear();
+    hasNameDuplicate = false;
+    showNameDuplicateWarning('');
+
+    lastActiveElement = document.activeElement;
+    overlay.hidden = false;
+    overlay.classList.add('show');
+    overlay.setAttribute('aria-hidden', 'false');
+    isOpen = true;
+
+    if (form) form.reset();
+    clearFieldErrors();
+    if (optionsCache) {
+      setStatus('', '');
+    } else {
+      setStatus('Loading beneficiary options…', 'info');
+    }
+
+    if (defaultDaInput) {
+      defaultDaInput.value = openContext && Object.prototype.hasOwnProperty.call(openContext, 'defaultDa')
+        ? (openContext.defaultDa == null ? '' : openContext.defaultDa)
+        : '';
+    }
+
+    optionsReady = false;
+    setLoading(!optionsCache);
+    updateFormDisabledState();
+
+    if (optionsCache) {
+      applyOptions(optionsCache);
+      optionsReady = true;
+      setLoading(false);
+      updateFormDisabledState();
+      setTimeout(focusFirstField, 80);
+    }
+
+    ensureOptions().then(function(opts) {
+      if (!isOpen) return;
+      applyOptions(opts);
+      optionsReady = true;
+      setLoading(false);
+      setStatus('', '');
+      updateFormDisabledState();
+      setTimeout(focusFirstField, 60);
+    }).catch(function(err) {
+      if (!isOpen) return;
+      setLoading(false);
+      optionsReady = false;
+      const message = err && err.message ? err.message : 'Failed to load beneficiary options. Close and try again.';
+      setStatus(message, 'error');
+      resetTeamSelect('Unable to load teams');
+      updateFormDisabledState();
+    });
+  }
+
+  function closeDialog() {
+    if (!isOpen) return;
+    if (submitting) return;
+    overlay.classList.remove('show');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.classList.remove('new-beneficiary-loading', 'new-beneficiary-submitting');
+    overlay.hidden = true;
+    isOpen = false;
+    loadingOptions = false;
+    submitting = false;
+    optionsReady = !!optionsCache;
+    teamEnabled = false;
+    pendingTeamValue = null;
+    if (form) form.reset();
+    clearFieldErrors();
+    knownBeneficiaryNames.clear();
+    hasNameDuplicate = false;
+    showNameDuplicateWarning('');
+    setStatus('', '');
+    resetTeamSelect('Select a project first');
+    if (submitBtn) {
+      submitBtn.textContent = submitOriginalText;
+      submitBtn.disabled = false;
+    }
+    if (cancelBtn) {
+      cancelBtn.disabled = false;
+    }
+    if (closeBtn) {
+      closeBtn.disabled = false;
+    }
+    updateFormDisabledState();
+    if (lastActiveElement && typeof lastActiveElement.focus === 'function') {
+      try { lastActiveElement.focus(); } catch (_focusErr) {}
+    }
+    lastActiveElement = null;
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (submitting) return;
+    clearFieldErrors();
+    setStatus('', '');
+    evaluateNameDuplicate();
+
+    const result = validateForm();
+    if (result.errors.length) {
+      let hasDuplicateError = false;
+      result.errors.forEach(function(err) {
+        if (err && err.duplicate) {
+          hasDuplicateError = true;
+          showNameDuplicateWarning(err.message);
+        } else {
+          showFieldError(err.field, err.message);
+        }
+      });
+      if (!hasDuplicateError) {
+        showNameDuplicateWarning('');
+      }
+      setStatus('Please resolve the highlighted fields.', 'error');
+      focusFirstError(result.errors);
+      return;
+    }
+
+    const payload = result.payload;
+    const message = buildConfirmation(payload);
+    if (typeof window.confirm === 'function' && !window.confirm(message)) {
+      return;
+    }
+
+    if (!(window.google && google.script && google.script.run)) {
+      setStatus('Saving beneficiaries is only available inside Google Sheets.', 'error');
+      return;
+    }
+
+    setSubmitting(true);
+    setStatus('Saving new beneficiary…', 'info');
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (!isOpen) {
+          setSubmitting(false);
+          return;
+        }
+        if (!res || res.ok === false) {
+          setSubmitting(false);
+          const errMsg = res && res.error ? res.error : 'Failed to create new beneficiary.';
+          setStatus(errMsg, 'error');
+          return;
+        }
+        setStatus('Beneficiary created successfully.', 'success');
+        setSubmitting(false);
+        const detail = res;
+        optionsCache = null;
+        optionsReady = false;
+        teamsByProject = {};
+        setTimeout(function() {
+          closeDialog();
+          try {
+            document.dispatchEvent(new CustomEvent('frtz:new-beneficiary-created', { detail: detail }));
+          } catch (_evtErr) {}
+          if (window.FRTZ && typeof window.FRTZ.refreshReleasedBeneficiaryCount === 'function') {
+            try {
+              window.FRTZ.refreshReleasedBeneficiaryCount(detail.project, detail.team);
+            } catch (refreshErr) {
+              console.warn('refreshReleasedBeneficiaryCount failed', refreshErr);
+            }
+          }
+        }, 600);
+      })
+      .withFailureHandler(function(err) {
+        if (!isOpen) {
+          setSubmitting(false);
+          return;
+        }
+        setSubmitting(false);
+        const message = err && err.message ? err.message : 'Failed to create new beneficiary.';
+        setStatus(message, 'error');
+      })
+      .createNewReleasedBeneficiary(payload);
+  }
+
+  if (form) {
+    form.addEventListener('submit', handleSubmit);
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function() {
+      if (!submitting) closeDialog();
+    });
+  }
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function() {
+      if (!submitting) closeDialog();
+    });
+  }
+
+  if (nameInput) {
+    nameInput.addEventListener('input', evaluateNameDuplicate);
+    nameInput.addEventListener('blur', evaluateNameDuplicate);
+  }
+
+  overlay.addEventListener('click', function(event) {
+    if (event.target === overlay && !submitting) {
+      closeDialog();
+    }
+  });
+
+  document.addEventListener('keydown', function(event) {
+    if (!isOpen || submitting) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      closeDialog();
+    }
+  });
+
+  if (projectSelect) {
+    projectSelect.addEventListener('change', function() {
+      if (!isOpen) return;
+      pendingTeamValue = null;
+      updateTeamOptions(projectSelect.value, null);
+    });
+  }
+
+  if (teamSelect) {
+    teamSelect.addEventListener('change', function() {
+      if (!isOpen) return;
+      if (teamSelect.value !== PLACEHOLDER_VALUE) {
+        teamSelect.dataset.userSet = 'true';
+      }
+    });
+  }
+
+  window.FRTZ = window.FRTZ || {};
+  window.FRTZ.openNewBeneficiaryDialog = openDialog;
+  window.FRTZ.closeNewBeneficiaryDialog = closeDialog;
+  window.FRTZ.invalidateNewBeneficiaryOptions = function() {
+    optionsCache = null;
+    optionsReady = false;
+  };
+
+  document.addEventListener('frtz:add-new-beneficiary', function(event) {
+    const context = event && event.detail ? event.detail : {};
+    openDialog(context);
+  });
+})();
+</script>
+
 <script>
 (function(){
   const tableWrap = document.querySelector('.table-wrap');
@@ -1296,6 +2380,595 @@ document.addEventListener('keydown', function(event) {
   </div>
 </div>
 
+<!-- Released Beneficiary Picker Modal -->
+<style>
+  #beneficiaryPickerModal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 9985;
+    padding: 20px;
+  }
+
+  #beneficiaryPickerModal.show {
+    display: flex;
+  }
+
+  #beneficiaryPickerModal.loading .beneficiary-picker-table-wrapper {
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  .beneficiary-picker-card {
+    width: min(1280px, 96vw);
+    max-height: 88vh;
+    background: rgba(255, 255, 255, 0.97);
+    border-radius: 22px;
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.28);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .beneficiary-picker-header {
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .beneficiary-picker-header-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .beneficiary-picker-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  .beneficiary-picker-subtitle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: #64748b;
+    min-height: 20px;
+  }
+
+  .beneficiary-picker-subtitle.beneficiary-picker-subtitle--empty {
+    display: block;
+  }
+
+  .picker-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.18);
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .picker-pill-label {
+    text-transform: uppercase;
+    font-size: 11px;
+    color: rgba(15, 23, 42, 0.66);
+  }
+
+  .picker-pill-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .picker-pill--project {
+    background: rgba(56, 189, 248, 0.18);
+    color: #0f172a;
+  }
+
+  .picker-pill--project .picker-pill-label {
+    color: rgba(8, 47, 73, 0.75);
+  }
+
+  .picker-pill--project .picker-pill-value {
+    color: #0c4a6e;
+  }
+
+  .picker-pill--team {
+    background: rgba(196, 181, 253, 0.2);
+    color: #0f172a;
+  }
+
+  .picker-pill--team .picker-pill-label {
+    color: rgba(76, 29, 149, 0.75);
+  }
+
+  .picker-pill--team .picker-pill-value {
+    color: #4c1d95;
+  }
+
+  .beneficiary-picker-close {
+    appearance: none;
+    border: 0;
+    background: rgba(148, 163, 184, 0.18);
+    color: #1e293b;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 20px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, background 0.2s ease;
+  }
+
+  .beneficiary-picker-close:hover {
+    background: rgba(148, 163, 184, 0.32);
+    transform: rotate(90deg);
+  }
+
+  .beneficiary-picker-body {
+    padding: 16px 24px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+    flex: 1 1 auto;
+  }
+
+  .beneficiary-picker-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+  }
+
+  .beneficiary-picker-search {
+    flex: 1 1 280px;
+    min-width: 220px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid #cbd5f5;
+    background: #f8fafc;
+    font-size: 14px;
+    color: #1e293b;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .beneficiary-picker-search:focus {
+    outline: none;
+    border-color: #6366f1;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+  }
+
+  .beneficiary-picker-count {
+    font-size: 13px;
+    color: #475569;
+  }
+
+  .beneficiary-picker-table-wrapper {
+    flex: 1 1 auto;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    overflow: auto;
+    background: #ffffff;
+  }
+
+  .beneficiary-picker-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  .beneficiary-picker-table thead th {
+    position: sticky;
+    top: 0;
+    background: #f1f5f9;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 11px;
+    font-weight: 700;
+    color: #0f172a;
+    padding: 8px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    z-index: 1;
+    white-space: nowrap;
+  }
+
+  .beneficiary-picker-table tbody td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #e2e8f0;
+    color: #1f2937;
+    background: #ffffff;
+    font-size: 12px;
+  }
+
+  .beneficiary-picker-table tbody tr:hover {
+    background: #f8fafc;
+  }
+
+  .beneficiary-picker-table tbody tr.selected {
+    background: #ecfdf5;
+  }
+
+  .beneficiary-picker-table .picker-checkbox {
+    width: 52px;
+    text-align: center;
+  }
+
+  .beneficiary-picker-table .picker-checkbox input {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+  }
+
+  .beneficiary-picker-table .numeric {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: #0f172a;
+  }
+
+  .beneficiary-picker-table .picker-history {
+    min-width: 140px;
+    white-space: normal;
+  }
+
+  .beneficiary-picker-table .picker-history.picker-history-remarks {
+    min-width: 180px;
+  }
+
+  .beneficiary-picker-table .picker-history.picker-history-ratings {
+    min-width: 300px;
+  }
+
+  .beneficiary-picker-table .picker-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .beneficiary-picker-table .picker-history-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    line-height: 1.35;
+    color: #334155;
+  }
+
+  .beneficiary-picker-table .picker-history-index {
+    flex: 0 0 auto;
+    color: #94a3b8;
+    font-weight: 600;
+  }
+
+  .beneficiary-picker-table .picker-history-empty {
+    color: #94a3b8;
+    font-style: italic;
+  }
+
+  .picker-rating-list {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  .beneficiary-picker-table thead th:nth-child(1),
+  .beneficiary-picker-table tbody td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: #f8fafc;
+    min-width: 52px;
+    width: 52px;
+  }
+
+  .beneficiary-picker-table thead th:nth-child(2),
+  .beneficiary-picker-table tbody td:nth-child(2) {
+    position: sticky;
+    left: 56px;
+    z-index: 3;
+    background: #f8fafc;
+    min-width: 64px;
+    width: 64px;
+    text-align: center;
+  }
+
+  .beneficiary-picker-table thead th:nth-child(3),
+  .beneficiary-picker-table tbody td:nth-child(3) {
+    position: sticky;
+    left: 116px;
+    z-index: 2;
+    background: #ffffff;
+    box-shadow: 1px 0 0 rgba(15, 23, 42, 0.06);
+    min-width: 200px;
+  }
+
+  .beneficiary-picker-table tbody td:nth-child(1),
+  .beneficiary-picker-table tbody td:nth-child(2),
+  .beneficiary-picker-table tbody td:nth-child(3) {
+    border-right: 1px solid rgba(226, 232, 240, 0.7);
+  }
+
+  .picker-rating-entry {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+
+  .picker-rating-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1 1 auto;
+  }
+
+  .picker-rating-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  .picker-rating-label {
+    font-weight: 600;
+    color: #1e293b;
+  }
+
+  .picker-rating-stars {
+    font-size: 12px;
+    letter-spacing: 0.6px;
+  }
+
+  .picker-rating-stars--low {
+    color: #dc2626;
+  }
+
+  .picker-rating-stars--mid {
+    color: #d97706;
+  }
+
+  .picker-rating-stars--high {
+    color: #16a34a;
+  }
+
+  .picker-rating-line--raw {
+    color: #475569;
+    font-style: italic;
+    grid-column: 1 / -1;
+  }
+
+  .picker-rating-grid {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    width: 100%;
+    align-items: stretch;
+    overflow-x: auto;
+  }
+
+  .picker-rating-grid--empty {
+    display: block;
+  }
+
+  .picker-rating-grid-cell {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 14px;
+    padding: 8px 12px;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .picker-rating-grid-cell:hover {
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .picker-rating-grid-cell--core-knowledge {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.22);
+  }
+
+  .picker-rating-grid-cell--discipline {
+    background: rgba(249, 115, 22, 0.12);
+    border-color: rgba(249, 115, 22, 0.22);
+  }
+
+  .picker-rating-grid-cell--honesty-and-integrity {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.22);
+  }
+
+  .picker-rating-grid-cell--teamwork {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.22);
+  }
+
+  .picker-rating-grid-cell--attitude-and-behaviour {
+    background: rgba(236, 72, 153, 0.12);
+    border-color: rgba(236, 72, 153, 0.22);
+  }
+
+  .picker-rating-grid-cell--empty {
+    display: none;
+  }
+
+  .picker-rating-grid-label {
+    font-weight: 600;
+    color: #1e293b;
+    margin: 0;
+    font-size: 12px;
+  }
+
+  .picker-rating-stars-line {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .beneficiary-picker-empty {
+    padding: 28px 16px;
+    text-align: center;
+    font-size: 14px;
+    color: #64748b;
+  }
+
+  .beneficiary-picker-footer {
+    padding: 16px 24px 20px;
+    border-top: 1px solid rgba(226, 232, 240, 0.8);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .beneficiary-picker-status {
+    font-size: 13px;
+    color: #475569;
+    min-height: 18px;
+  }
+
+  .beneficiary-picker-status.error {
+    color: #dc2626;
+  }
+
+  .beneficiary-picker-status.success {
+    color: #047857;
+  }
+
+  .beneficiary-picker-actions {
+    display: flex;
+    gap: 10px;
+  }
+
+  .picker-btn {
+    border: none;
+    border-radius: 12px;
+    padding: 10px 20px;
+    font-weight: 600;
+    cursor: pointer;
+    font-size: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .picker-btn.primary {
+    background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+    color: #ffffff;
+    box-shadow: 0 12px 28px rgba(52, 211, 153, 0.32);
+  }
+
+  .picker-btn.primary:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+
+  .picker-btn.primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .picker-btn.secondary {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+
+  .picker-btn.secondary:hover {
+    background: #cbd5f5;
+  }
+
+  @media (max-width: 720px) {
+    .beneficiary-picker-card {
+      width: 100%;
+      max-height: 92vh;
+    }
+
+    .beneficiary-picker-footer {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .beneficiary-picker-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+
+    .picker-btn {
+      width: 100%;
+    }
+  }
+</style>
+
+<div id="beneficiaryPickerModal" role="dialog" aria-modal="true" aria-labelledby="beneficiaryPickerTitle">
+  <div class="beneficiary-picker-card">
+    <div class="beneficiary-picker-header">
+      <div class="beneficiary-picker-header-group">
+        <h3 class="beneficiary-picker-title" id="beneficiaryPickerTitle">Add Existing Beneficiaries</h3>
+        <div class="beneficiary-picker-subtitle" id="beneficiaryPickerSubtitle"></div>
+      </div>
+      <button type="button" class="beneficiary-picker-close" aria-label="Close add existing beneficiary dialog">×</button>
+    </div>
+    <div class="beneficiary-picker-body">
+      <div class="beneficiary-picker-controls">
+        <input type="search" id="beneficiaryPickerSearch" class="beneficiary-picker-search" placeholder="Search by name, project, team, account holder, or nationality" autocomplete="off">
+        <div class="beneficiary-picker-count" id="beneficiaryPickerCount"></div>
+      </div>
+      <div class="beneficiary-picker-table-wrapper">
+        <table class="beneficiary-picker-table" role="grid" aria-describedby="beneficiaryPickerCount">
+          <thead>
+            <tr>
+              <th scope="col" class="picker-checkbox"><input type="checkbox" id="beneficiaryPickerSelectAll" aria-label="Select all visible beneficiaries"></th>
+              <th scope="col">S.No</th>
+              <th scope="col">Name of Beneficiary</th>
+              <th scope="col">Resource Designation</th>
+              <th scope="col">Project</th>
+              <th scope="col">Team</th>
+              <th scope="col">Account Holder Name</th>
+              <th scope="col" class="numeric">Idle since (days)</th>
+              <th scope="col">Nationality</th>
+              <th scope="col">Last 3 Remarks</th>
+              <th scope="col">Last 3 Ratings</th>
+            </tr>
+          </thead>
+          <tbody id="beneficiaryPickerRows"></tbody>
+        </table>
+        <div class="beneficiary-picker-empty" id="beneficiaryPickerEmpty" hidden>No released beneficiaries are available right now.</div>
+      </div>
+    </div>
+    <div class="beneficiary-picker-footer">
+      <div class="beneficiary-picker-status" id="beneficiaryPickerStatus"></div>
+      <div class="beneficiary-picker-actions">
+        <button type="button" class="picker-btn secondary" id="beneficiaryPickerCancel">Cancel</button>
+        <button type="button" class="picker-btn primary" id="beneficiaryPickerApply" disabled>Add Selected</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
   const isMobInput = (el)=>{
@@ -1579,10 +3252,11 @@ document.addEventListener('keydown', function(event) {
 /* === Row totals + summary aggregation (per-row only; no cross-row mirroring) === */
 (function(){
   'use strict';
-  const tbody = document.getElementById('tbody');
-  if(!tbody) return;
 
-  function parseAmt(v){
+  function initTableModule(tbody){
+    if(!tbody) return false;
+
+    function parseAmt(v){
     if(v==null || v==='') return 0;
     if (typeof v === 'number') return v;
     var s = String(v).replace(/\u00A0/g,' ').trim();
@@ -1836,6 +3510,317 @@ document.addEventListener('keydown', function(event) {
     return name + suffix;
   }
 
+  function getCachedReleasedBeneficiaries() {
+    if (window.FRTZ && Array.isArray(window.FRTZ.latestReleasedBeneficiaries)) {
+      return window.FRTZ.latestReleasedBeneficiaries.slice();
+    }
+    return [];
+  }
+
+  var IDLE_HEADER_LABELS = (function() {
+    var normalize = function(value) {
+      return value.toString().trim().replace(/\s+/g, ' ').toLowerCase();
+    };
+
+    var makeSet = function(values) {
+      var map = Object.create(null);
+      for (var i = 0; i < values.length; i++) {
+        map[normalize(values[i])] = true;
+      }
+      return {
+        has: function(value) {
+          if (value == null) return false;
+          return !!map[normalize(String(value))];
+        }
+      };
+    };
+
+    return {
+      beneficiary: makeSet(['beneficiary', 'beneficiary name', 'name of beneficiary']),
+      designation: makeSet(['designation', 'resource designation', 'designation/title']),
+      idle: makeSet(['idle (days)', 'idle days', 'idle since (days)', 'idle since days', 'idle'])
+    };
+  })();
+
+  function looksLikeIdleSidebarHeader(entry) {
+    if (!entry || typeof entry !== 'object') {
+      return false;
+    }
+
+    if (!IDLE_HEADER_LABELS.beneficiary.has(entry.beneficiary)) {
+      return false;
+    }
+
+    if (entry.designation && !IDLE_HEADER_LABELS.designation.has(entry.designation)) {
+      return false;
+    }
+
+    var rawIdle = entry.idleDays;
+    if (rawIdle == null) {
+      return true;
+    }
+
+    if (typeof rawIdle === 'number') {
+      return false;
+    }
+
+    if (!IDLE_HEADER_LABELS.idle.has(rawIdle)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function looksLikeIdleSidebarHeaderTexts(name, designation, idle) {
+    if (!IDLE_HEADER_LABELS.beneficiary.has(name)) {
+      return false;
+    }
+
+    if (designation && !IDLE_HEADER_LABELS.designation.has(designation)) {
+      return false;
+    }
+
+    if (idle && !IDLE_HEADER_LABELS.idle.has(idle)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function prepareTopIdleBeneficiaries(list) {
+    if (!Array.isArray(list)) {
+      return [];
+    }
+
+    var filtered = list.filter(function(entry) {
+      return !looksLikeIdleSidebarHeader(entry);
+    });
+
+    var sorted = filtered.slice().sort(function(a, b) {
+      var aIdle = (a && typeof a.idleDays === 'number' && isFinite(a.idleDays)) ? a.idleDays : -1;
+      var bIdle = (b && typeof b.idleDays === 'number' && isFinite(b.idleDays)) ? b.idleDays : -1;
+      if (bIdle !== aIdle) return bIdle - aIdle;
+      var aName = a && a.beneficiary ? a.beneficiary : '';
+      var bName = b && b.beneficiary ? b.beneficiary : '';
+      return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+    });
+
+    var top = [];
+    for (var i = 0; i < sorted.length && top.length < 10; i++) {
+      var entry = sorted[i] || {};
+      top.push({
+        beneficiary: entry.beneficiary || '',
+        designation: entry.designation || '',
+        idleDays: (typeof entry.idleDays === 'number' && isFinite(entry.idleDays) && entry.idleDays >= 0)
+          ? entry.idleDays
+          : null
+      });
+    }
+    return top;
+  }
+
+  function buildIdleBeneficiarySidebar(items) {
+    var container = document.createElement('div');
+    container.className = 'idle-sidebar';
+
+    if (!Array.isArray(items) || !items.length) {
+      var empty = document.createElement('p');
+      empty.className = 'idle-sidebar-empty';
+      empty.textContent = 'No idle beneficiaries to display.';
+      container.appendChild(empty);
+      return container;
+    }
+
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i] || {};
+      var nameTextValue = (item.beneficiary || '').toString().trim();
+      var designationTextValue = (item.designation || '').toString().trim();
+      var idleTextValue = (typeof item.idleDays === 'number' && item.idleDays >= 0)
+        ? String(item.idleDays)
+        : (item.idleDays == null ? '' : String(item.idleDays));
+
+      if (looksLikeIdleSidebarHeaderTexts(nameTextValue, designationTextValue, idleTextValue)) {
+        continue;
+      }
+
+      var appendedCount = container.children.length;
+      var row = document.createElement('div');
+      row.className = 'idle-sidebar-row';
+      if (appendedCount % 2 === 1) {
+        row.classList.add('idle-sidebar-row--alt');
+      }
+
+      var nameCol = document.createElement('span');
+      nameCol.className = 'idle-sidebar-col idle-sidebar-col--name';
+      var rank = document.createElement('span');
+      rank.className = 'idle-sidebar-rank';
+      rank.textContent = (appendedCount + 1) + '.';
+      nameCol.appendChild(rank);
+      var nameText = document.createElement('span');
+      nameText.textContent = nameTextValue || '—';
+      nameCol.appendChild(nameText);
+      row.appendChild(nameCol);
+
+      var designationCol = document.createElement('span');
+      designationCol.className = 'idle-sidebar-col idle-sidebar-col--designation';
+      designationCol.textContent = designationTextValue ? designationTextValue : '—';
+      row.appendChild(designationCol);
+
+      var idleCol = document.createElement('span');
+      idleCol.className = 'idle-sidebar-col idle-sidebar-col--idle';
+      idleCol.textContent = (typeof item.idleDays === 'number' && item.idleDays >= 0)
+        ? String(item.idleDays)
+        : (idleTextValue ? idleTextValue : '—');
+      row.appendChild(idleCol);
+
+      container.appendChild(row);
+    }
+
+    return container;
+  }
+
+  window.FRTZ = window.FRTZ || {};
+  if (!Array.isArray(window.FRTZ.latestReleasedBeneficiaries)) {
+    window.FRTZ.latestReleasedBeneficiaries = [];
+  }
+
+  function promptReactivateRow(row, context, totalText) {
+    if (!row) return;
+    var subject = describeBeneficiaryAction(context);
+    var hasSubject = subject && subject !== 'this beneficiary';
+    var title = hasSubject ? ('Reactivate ' + subject + '?') : 'Reactivate beneficiary?';
+    if (title && title.length > 80) {
+      title = 'Reactivate beneficiary?';
+    }
+    var note = totalText && totalText.trim() ? 'Row total is ' + totalText.trim() + '. ' : '';
+    var message = (note + "Re-enabling means you'll fund their expenses. Continue?").trim();
+
+    if (typeof showConfirmationModal !== 'function') {
+      reactivateRow(row);
+      return;
+    }
+
+    showConfirmationModal({
+      title: title,
+      message: message,
+      buttons: [
+        { text: 'Reactivate', value: true, role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Reactivated' },
+        { text: 'Keep Inactive', value: false, role: 'cancel', variant: 'secondary', feedback: false }
+      ]
+    }).then(function(choice) {
+      if (choice) {
+        reactivateRow(row);
+      }
+    }).catch(function(err) {
+      if (err && err !== false) {
+        console.error('Reactivate confirmation failed', err);
+      }
+    });
+  }
+
+  function promptRowAction(row, context, totalText) {
+    if (!row) return;
+
+    if (typeof showConfirmationModal !== 'function') {
+      console.warn('showConfirmationModal unavailable; skipping row action prompt.');
+      return;
+    }
+
+    var subject = describeBeneficiaryAction(context);
+    var message = (subject && subject !== 'this beneficiary')
+      ? 'What would you like to do with ' + subject + '?'
+      : 'What would you like to do with this beneficiary?';
+
+    var existingCount = null;
+    if (window.FRTZ) {
+      if (typeof window.FRTZ.getReleasedBeneficiaryCount === 'function') {
+        existingCount = window.FRTZ.getReleasedBeneficiaryCount();
+      } else if (typeof window.FRTZ.releasedBeneficiaryCount !== 'undefined') {
+        existingCount = window.FRTZ.releasedBeneficiaryCount;
+      }
+    }
+    existingCount = coerceCount(existingCount);
+
+    var confirmationPromise = showConfirmationModal({
+      title: 'Deactivate or Release or Add Beneficiary?',
+      message: message,
+      centerButtons: true,
+      sidebar: function() {
+        return buildIdleBeneficiarySidebar(prepareTopIdleBeneficiaries(getCachedReleasedBeneficiaries()));
+      },
+      buttons: [
+        { text: 'Deactivate', value: 'deactivate', role: 'destructive', variant: 'destructive', feedback: false },
+        { text: 'Release', value: 'release', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Continue' },
+        { text: formatExistingBeneficiaryLabel(existingCount), id: 'add-existing', value: 'add-existing', role: 'option', variant: 'success', feedback: true, successText: '✓ Opening' },
+        { text: 'Add New Beneficiary', id: 'add-new', value: 'add-new', role: 'option', variant: 'accent', feedback: true, successText: '✓ Opening' },
+        { text: 'No, Keep Active', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
+      ]
+    });
+
+    var removeCountWatcher = null;
+    if (window.FRTZ && typeof window.FRTZ.onReleasedBeneficiaryCountChange === 'function') {
+      removeCountWatcher = window.FRTZ.onReleasedBeneficiaryCountChange(function(count) {
+        updateExistingBeneficiaryButton(count);
+      });
+    }
+
+    setTimeout(function() {
+      updateExistingBeneficiaryButton(existingCount);
+    }, 0);
+
+    if (window.FRTZ && typeof window.FRTZ.refreshReleasedBeneficiaryCount === 'function') {
+      try {
+        var refreshPromise = window.FRTZ.refreshReleasedBeneficiaryCount(context.project, context.team);
+        if (refreshPromise && typeof refreshPromise.then === 'function') {
+          refreshPromise.then(function(res) {
+            var sourceList = (res && Array.isArray(res.beneficiaries))
+              ? res.beneficiaries
+              : getCachedReleasedBeneficiaries();
+            var topIdle = prepareTopIdleBeneficiaries(sourceList);
+            if (typeof window.updateConfirmationSidebar === 'function') {
+              window.updateConfirmationSidebar(function() {
+                return buildIdleBeneficiarySidebar(topIdle);
+              });
+            }
+          }).catch(function(err) {
+            console.error('refreshReleasedBeneficiaryCount update failed', err);
+          });
+        }
+      } catch (err) {
+        console.error('refreshReleasedBeneficiaryCount invocation failed', err);
+      }
+    }
+
+    var cleanupWatcher = function() {
+      if (removeCountWatcher) {
+        try {
+          removeCountWatcher();
+        } catch (err) {
+          console.error('remove count watcher failed', err);
+        }
+        removeCountWatcher = null;
+      }
+    };
+
+    confirmationPromise.then(function(action) {
+      cleanupWatcher();
+      if (action === 'deactivate') {
+        deactivateRow(row);
+      } else if (action === 'release') {
+        confirmReleaseRow(row, context);
+      } else if (action === 'add-existing') {
+        openAddBeneficiaryModal(context);
+      } else if (action === 'add-new') {
+        triggerAddNewBeneficiary(context);
+      }
+    }).catch(function(err) {
+      cleanupWatcher();
+      if (err && err !== false) {
+        console.error('confirmation dialog rejected', err);
+      }
+    });
+  }
+
   function submitRelease(row, context) {
     if (row && row.classList.contains('row-action-pending')) {
       return;
@@ -1847,6 +3832,7 @@ document.addEventListener('keydown', function(event) {
 
     setRowPending(row, true);
 
+    var reviewText = context && context.releaseReview ? String(context.releaseReview).trim() : '';
     var payload = {
       beneficiary: context.beneficiary,
       project: context.project,
@@ -1856,8 +3842,18 @@ document.addEventListener('keydown', function(event) {
       mobile: context.mobile,
       displayName: context.displayName,
       whCharge: context.whCharge,
-      remarks: context.remarks
+      remarks: reviewText || context.remarks || ''
     };
+
+    if (reviewText) {
+      payload.review = reviewText;
+    }
+    if (context && context.releaseRatings) {
+      payload.ratingSummary = context.releaseRatings;
+    }
+    if (context && context.releaseRatingValues) {
+      payload.ratingValues = context.releaseRatingValues;
+    }
 
     google.script.run
       .withSuccessHandler(function(res) {
@@ -1908,18 +3904,2106 @@ document.addEventListener('keydown', function(event) {
     var context = baseContext || buildReleaseContext(row);
     var subject = describeBeneficiaryAction(context);
 
-    showConfirmationModal({
-      title: 'Release beneficiary?',
-      message: 'This will remove ' + subject + ' and log a Release entry. Continue?',
-      buttons: [
-        { text: 'Yes, Release', value: true, role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Releasing' },
-        { text: 'Cancel', value: false, role: 'cancel', variant: 'secondary', feedback: false }
-      ]
-    }).then(function(confirmed) {
-      if (confirmed) {
-        submitRelease(row, context);
+    var ratingCategories = [
+      { key: 'coreKnowledge', label: 'Core Knowledge' },
+      { key: 'discipline', label: 'Discipline' },
+      { key: 'honestyIntegrity', label: 'Honesty and Integrity' },
+      { key: 'teamwork', label: 'Teamwork' },
+      { key: 'attitudeBehaviour', label: 'Attitude and Behaviour' }
+    ];
+
+    function clampRating(value) {
+      var num = Number(value);
+      if (!isFinite(num)) return 0;
+      if (num < 0) return 0;
+      if (num > 5) return 5;
+      return Math.round(num);
+    }
+
+    function countNonSpace(str) {
+      return String(str || '').replace(/\s/g, '').length;
+    }
+
+    function displayValue(value) {
+      var text = value == null ? '' : String(value).trim();
+      return text ? text : '—';
+    }
+
+    function formatRatingsSummary(ratingValues) {
+      var parts = [];
+      ratingCategories.forEach(function(cat) {
+        var rating = clampRating(ratingValues && ratingValues[cat.key]);
+        if (rating > 0) {
+          var stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+          parts.push(cat.label + ': ' + stars);
+        } else {
+          parts.push(cat.label + ': ☆☆☆☆☆');
+        }
+      });
+      return parts.join(' | ');
+    }
+
+    function openReleaseForm(prefill) {
+      var ratingState = {};
+      var hoverState = {};
+      var initialRatings = prefill && prefill.ratingValues && typeof prefill.ratingValues === 'object'
+        ? prefill.ratingValues
+        : null;
+
+      ratingCategories.forEach(function(cat) {
+        var initial = initialRatings ? clampRating(initialRatings[cat.key]) : 0;
+        ratingState[cat.key] = initial;
+        hoverState[cat.key] = 0;
+      });
+
+      var content = document.createElement('div');
+      content.className = 'release-form';
+
+      var infoGrid = document.createElement('div');
+      infoGrid.className = 'release-info-grid';
+      [
+        { label: 'Name of Beneficiary', value: context.beneficiary },
+        { label: 'Resource Designation', value: context.designation },
+        { label: 'Project', value: context.project },
+        { label: 'Team', value: context.team }
+      ].forEach(function(field) {
+        var fieldEl = document.createElement('div');
+        fieldEl.className = 'release-info-field';
+        var labelEl = document.createElement('span');
+        labelEl.className = 'release-info-label';
+        labelEl.textContent = field.label;
+        var valueEl = document.createElement('span');
+        valueEl.className = 'release-info-value';
+        valueEl.textContent = displayValue(field.value);
+        fieldEl.appendChild(labelEl);
+        fieldEl.appendChild(valueEl);
+        infoGrid.appendChild(fieldEl);
+      });
+      content.appendChild(infoGrid);
+
+      var ratingsSection = document.createElement('div');
+      ratingsSection.className = 'release-section';
+      var ratingsTitle = document.createElement('div');
+      ratingsTitle.className = 'release-section-title';
+      ratingsTitle.textContent = 'Ratings';
+      ratingsSection.appendChild(ratingsTitle);
+      var ratingsHint = document.createElement('div');
+      ratingsHint.className = 'release-section-hint';
+      ratingsHint.textContent = 'Tap a star (1–5) for each category.';
+      ratingsSection.appendChild(ratingsHint);
+
+      var ratingsList = document.createElement('div');
+      ratingsList.className = 'release-ratings-list';
+      ratingsSection.appendChild(ratingsList);
+
+      var ratingsError = document.createElement('div');
+      ratingsError.className = 'release-error';
+      ratingsError.textContent = '';
+      ratingsSection.appendChild(ratingsError);
+
+      var starRefs = {};
+
+      function updateStars(catKey) {
+        var stars = starRefs[catKey] || [];
+        var hover = hoverState[catKey] || 0;
+        var active = ratingState[catKey] || 0;
+        var highlight = hover > 0 ? hover : active;
+        stars.forEach(function(star) {
+          var value = Number(star.dataset.value);
+          var filled = value <= highlight;
+          var selected = value <= active;
+          star.classList.toggle('filled', filled);
+          star.classList.toggle('selected', selected);
+          star.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
       }
+
+      function updateAllStars() {
+        ratingCategories.forEach(function(cat) {
+          updateStars(cat.key);
+        });
+      }
+
+      ratingCategories.forEach(function(cat) {
+        var rowEl = document.createElement('div');
+        rowEl.className = 'release-rating-row';
+        rowEl.setAttribute('data-category', cat.key);
+
+        var labelEl = document.createElement('span');
+        labelEl.className = 'release-rating-label';
+        labelEl.textContent = cat.label;
+        rowEl.appendChild(labelEl);
+
+        var starsWrap = document.createElement('div');
+        starsWrap.className = 'release-rating-stars';
+
+        var catStars = [];
+        for (var i = 1; i <= 5; i++) {
+          (function(catKey, catLabel, value) {
+            var starBtn = document.createElement('button');
+            starBtn.type = 'button';
+            starBtn.className = 'release-star';
+            starBtn.dataset.value = String(value);
+            starBtn.setAttribute('aria-label', catLabel + ' ' + value + ' star' + (value === 1 ? '' : 's'));
+            starBtn.innerHTML = '★';
+            starBtn.addEventListener('mouseenter', function() {
+              hoverState[catKey] = value;
+              updateStars(catKey);
+            });
+            starBtn.addEventListener('mouseleave', function() {
+              hoverState[catKey] = 0;
+              updateStars(catKey);
+            });
+            starBtn.addEventListener('focus', function() {
+              hoverState[catKey] = value;
+              updateStars(catKey);
+            });
+            starBtn.addEventListener('blur', function() {
+              hoverState[catKey] = 0;
+              updateStars(catKey);
+            });
+            starBtn.addEventListener('click', function() {
+              ratingState[catKey] = value;
+              hoverState[catKey] = 0;
+              updateAllStars();
+              if (ratingsError.textContent) {
+                ratingsError.textContent = '';
+              }
+            });
+            starsWrap.appendChild(starBtn);
+            catStars.push(starBtn);
+          })(cat.key, cat.label, i);
+        }
+
+        starRefs[cat.key] = catStars;
+        rowEl.appendChild(starsWrap);
+        ratingsList.appendChild(rowEl);
+      });
+
+      updateAllStars();
+
+      var reviewSection = document.createElement('div');
+      reviewSection.className = 'release-section';
+      var reviewLabel = document.createElement('label');
+      reviewLabel.className = 'release-section-title';
+      reviewLabel.setAttribute('for', 'releaseReviewInput');
+      reviewLabel.textContent = 'Review';
+      reviewSection.appendChild(reviewLabel);
+      var reviewHint = document.createElement('div');
+      reviewHint.className = 'release-section-hint';
+      reviewHint.textContent = 'Minimum 10 letters.';
+      reviewSection.appendChild(reviewHint);
+      var reviewInput = document.createElement('textarea');
+      reviewInput.id = 'releaseReviewInput';
+      reviewInput.className = 'release-review-input';
+      reviewInput.placeholder = 'Share a brief review…';
+      reviewInput.value = prefill && prefill.review ? prefill.review : '';
+      reviewSection.appendChild(reviewInput);
+      var reviewError = document.createElement('div');
+      reviewError.className = 'release-error';
+      reviewError.textContent = '';
+      reviewSection.appendChild(reviewError);
+
+      reviewInput.addEventListener('input', function() {
+        if (reviewError.textContent && countNonSpace(reviewInput.value) >= 10) {
+          reviewError.textContent = '';
+        }
+      });
+
+      content.appendChild(ratingsSection);
+      content.appendChild(reviewSection);
+
+      function validateForm() {
+        var missing = ratingCategories.filter(function(cat) {
+          return (ratingState[cat.key] || 0) <= 0;
+        });
+        if (missing.length) {
+          ratingsError.textContent = 'Please provide a rating for all categories.';
+        } else {
+          ratingsError.textContent = '';
+        }
+
+        var reviewValue = reviewInput.value || '';
+        if (countNonSpace(reviewValue) < 10) {
+          reviewError.textContent = 'Review must be at least 10 letters.';
+        } else {
+          reviewError.textContent = '';
+        }
+
+        if (missing.length) {
+          var firstKey = missing[0].key;
+          var focusStars = starRefs[firstKey];
+          if (focusStars && focusStars[0]) {
+            focusStars[0].focus();
+          }
+          return { ok: false };
+        }
+
+        if (countNonSpace(reviewValue) < 10) {
+          reviewInput.focus();
+          return { ok: false };
+        }
+
+        var cleanedReview = reviewValue.trim();
+        var ratingValues = {};
+        ratingCategories.forEach(function(cat) {
+          ratingValues[cat.key] = ratingState[cat.key] || 0;
+        });
+
+        return {
+          ok: true,
+          review: cleanedReview,
+          ratingValues: ratingValues,
+          summary: formatRatingsSummary(ratingValues)
+        };
+      }
+
+      var capturedResult = null;
+
+      showConfirmationModal({
+        title: 'Release beneficiary',
+        message: 'Complete the ratings and add a review before releasing.',
+        content: content,
+        buttons: [
+          { text: 'Cancel', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false },
+          { text: 'Submit Review', value: 'submit', role: 'confirm', variant: 'primary', feedback: false }
+        ],
+        onSelect: function(value) {
+          if (value === 'submit') {
+            var result = validateForm();
+            if (!result.ok) {
+              return false;
+            }
+            capturedResult = result;
+          } else {
+            capturedResult = null;
+          }
+          return true;
+        }
+      }).then(function(choice) {
+        if (choice === 'submit' && capturedResult) {
+          showConfirmationModal({
+            title: 'Confirm release',
+            message: 'Are you sure you want to release ' + subject + ' with the submitted review?',
+            buttons: [
+              { text: 'Yes, Release', value: true, role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Releasing' },
+              { text: 'No, Go Back', value: false, role: 'cancel', variant: 'secondary', feedback: false }
+            ]
+          }).then(function(confirmed) {
+            if (confirmed) {
+              var releaseContext = {};
+              for (var key in context) {
+                if (Object.prototype.hasOwnProperty.call(context, key)) {
+                  releaseContext[key] = context[key];
+                }
+              }
+              releaseContext.releaseReview = capturedResult.review;
+              releaseContext.releaseRatings = capturedResult.summary;
+              releaseContext.releaseRatingValues = capturedResult.ratingValues;
+              submitRelease(row, releaseContext);
+            } else {
+              openReleaseForm(capturedResult);
+            }
+          }).catch(function(err) {
+            if (err && err !== false) {
+              console.error('Release confirmation dialog failed', err);
+            }
+          });
+        }
+      }).catch(function(err) {
+        if (err && err !== false) {
+          console.error('Release form dialog failed', err);
+        }
+      });
+    }
+
+    openReleaseForm();
+  }
+
+  var addBeneficiaryPicker = (function() {
+    var overlay = document.getElementById('beneficiaryPickerModal');
+    if (!overlay) {
+      return {
+        open: function() {
+          alert('The Add Existing Beneficiary dialog is unavailable. Please reload the page.');
+        },
+        close: function() {}
+      };
+    }
+
+    var rowsTbody = document.getElementById('beneficiaryPickerRows');
+    var emptyEl = document.getElementById('beneficiaryPickerEmpty');
+    var searchInput = document.getElementById('beneficiaryPickerSearch');
+    var selectAll = document.getElementById('beneficiaryPickerSelectAll');
+    var applyBtn = document.getElementById('beneficiaryPickerApply');
+    var cancelBtn = document.getElementById('beneficiaryPickerCancel');
+    var closeBtn = overlay.querySelector('.beneficiary-picker-close');
+    var statusEl = document.getElementById('beneficiaryPickerStatus');
+    var countEl = document.getElementById('beneficiaryPickerCount');
+    var subtitleEl = document.getElementById('beneficiaryPickerSubtitle');
+
+    var allItems = [];
+    var filteredItems = [];
+    var selectedKeys = new Set();
+    var currentContext = { project: '', team: '' };
+    var searchTimer = null;
+    var loading = false;
+    var releasedCount = null;
+    var countListeners = new Set();
+    var inflightCountPromise = null;
+
+    function notifyCountListeners() {
+      countListeners.forEach(function(listener) {
+        try {
+          listener(releasedCount);
+        } catch (err) {
+          console.error('beneficiaryPicker count listener failed', err);
+        }
+      });
+    }
+
+    function setReleasedCount(countValue) {
+      var next = coerceCount(countValue);
+      releasedCount = next;
+      window.FRTZ = window.FRTZ || {};
+      window.FRTZ.releasedBeneficiaryCount = releasedCount;
+      try {
+        if (typeof window.updateExistingBeneficiaryButton === 'function') {
+          window.updateExistingBeneficiaryButton(releasedCount);
+        }
+      } catch (err) {
+        console.error('updateExistingBeneficiaryButton failed', err);
+      }
+      notifyCountListeners();
+    }
+
+    function onReleasedCountChange(listener) {
+      if (typeof listener !== 'function') {
+        return function() {};
+      }
+      countListeners.add(listener);
+      try {
+        listener(releasedCount);
+      } catch (err) {
+        console.error('initial count listener call failed', err);
+      }
+      return function() {
+        countListeners.delete(listener);
+      };
+    }
+
+    function updateStatus(message, tone) {
+      if (!statusEl) return;
+      statusEl.textContent = message || '';
+      statusEl.classList.remove('error', 'success');
+      if (tone) statusEl.classList.add(tone);
+    }
+
+    function refreshReleasedCount(projectOverride, teamOverride) {
+      if (!(window.google && google.script && google.script.run)) {
+        return Promise.resolve(null);
+      }
+
+      var project = typeof projectOverride === 'string' ? projectOverride : currentContext.project;
+      var team = typeof teamOverride === 'string' ? teamOverride : currentContext.team;
+
+      if (inflightCountPromise) {
+        return inflightCountPromise;
+      }
+
+      inflightCountPromise = new Promise(function(resolve) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            inflightCountPromise = null;
+            if (res && res.ok !== false) {
+              if (typeof res.targetProject === 'string') currentContext.project = res.targetProject;
+              if (typeof res.targetTeam === 'string') currentContext.team = res.targetTeam;
+              var total = (typeof res.total === 'number' && isFinite(res.total))
+                ? res.total
+                : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
+              setReleasedCount(total);
+              window.FRTZ = window.FRTZ || {};
+              window.FRTZ.latestReleasedBeneficiaries = Array.isArray(res.beneficiaries)
+                ? res.beneficiaries.slice()
+                : [];
+            } else {
+              setReleasedCount(null);
+              if (window.FRTZ) {
+                window.FRTZ.latestReleasedBeneficiaries = [];
+              }
+            }
+            resolve(res || null);
+          })
+          .withFailureHandler(function(err) {
+            inflightCountPromise = null;
+            console.error('refreshReleasedBeneficiaryCount failed:', err);
+            setReleasedCount(null);
+            if (window.FRTZ) {
+              window.FRTZ.latestReleasedBeneficiaries = [];
+            }
+            resolve(null);
+          })
+          .getReleasedBeneficiariesForInduction(project, team);
+      });
+
+      return inflightCountPromise;
+    }
+
+    function setLoading(flag, message) {
+      loading = !!flag;
+      overlay.classList.toggle('loading', loading);
+      if (message) {
+        updateStatus(message);
+      }
+      if (loading && applyBtn) {
+        applyBtn.disabled = true;
+      }
+    }
+
+    function createSubtitlePill(kind, label, value) {
+      var pill = document.createElement('span');
+      pill.className = 'picker-pill picker-pill--' + kind;
+      var labelEl = document.createElement('span');
+      labelEl.className = 'picker-pill-label';
+      labelEl.textContent = label;
+      var valueEl = document.createElement('span');
+      valueEl.className = 'picker-pill-value';
+      valueEl.textContent = value;
+      pill.appendChild(labelEl);
+      pill.appendChild(valueEl);
+      return pill;
+    }
+
+    function updateSubtitle(projectOverride, teamOverride) {
+      if (!subtitleEl) return;
+      var proj = typeof projectOverride === 'string' ? projectOverride : currentContext.project;
+      var team = typeof teamOverride === 'string' ? teamOverride : currentContext.team;
+      subtitleEl.innerHTML = '';
+      if (!proj) {
+        subtitleEl.classList.add('beneficiary-picker-subtitle--empty');
+        subtitleEl.textContent = 'Project not detected for this row.';
+        return;
+      }
+      subtitleEl.classList.remove('beneficiary-picker-subtitle--empty');
+      var fragment = document.createDocumentFragment();
+      fragment.appendChild(createSubtitlePill('project', 'Project', proj));
+      fragment.appendChild(createSubtitlePill('team', 'Team', team ? team : 'Unassigned'));
+      subtitleEl.appendChild(fragment);
+    }
+
+    function showEmpty(message) {
+      if (!emptyEl) return;
+      emptyEl.textContent = message || 'No released beneficiaries found.';
+      emptyEl.hidden = false;
+    }
+
+    function hideEmpty() {
+      if (emptyEl) emptyEl.hidden = true;
+    }
+
+    function updateCounts() {
+      if (!countEl) return;
+      var total = allItems.length;
+      var visible = filteredItems.length;
+      if (!total && !visible) {
+        countEl.textContent = '';
+        return;
+      }
+      if (visible === total) {
+        countEl.textContent = visible === 1 ? 'Showing 1 beneficiary' : 'Showing ' + visible + ' beneficiaries';
+      } else {
+        countEl.textContent = 'Showing ' + visible + ' of ' + total + ' beneficiaries';
+      }
+    }
+
+    function updateApplyState() {
+      if (!applyBtn) return;
+      var count = selectedKeys.size;
+      applyBtn.disabled = loading || !count;
+      applyBtn.textContent = count ? ('Add Selected (' + count + ')') : 'Add Selected';
+    }
+
+    function updateSelectAllState() {
+      if (!selectAll) return;
+      if (loading || !filteredItems.length) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+        selectAll.disabled = loading || !filteredItems.length;
+        return;
+      }
+      var selectedInView = 0;
+      for (var i = 0; i < filteredItems.length; i++) {
+        var item = filteredItems[i];
+        if (item && selectedKeys.has(item.beneficiaryKey)) {
+          selectedInView++;
+        }
+      }
+      selectAll.disabled = loading;
+      if (selectedInView === 0) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      } else if (selectedInView === filteredItems.length) {
+        selectAll.checked = true;
+        selectAll.indeterminate = false;
+      } else {
+        selectAll.checked = false;
+        selectAll.indeterminate = true;
+      }
+    }
+
+    function normalizeHistoryValues(values) {
+      var entries = [];
+      if (Array.isArray(values)) {
+        for (var i = 0; i < values.length && entries.length < 3; i++) {
+          entries.push(values[i]);
+        }
+      }
+      return entries;
+    }
+
+    function parseRatingCategories(raw) {
+      if (raw == null) return [];
+      var parts = String(raw).split('|').map(function(part) {
+        return part.trim();
+      }).filter(Boolean);
+      if (!parts.length) return [];
+      var categories = [];
+      parts.forEach(function(part) {
+        var label = part;
+        var detail = '';
+        var colon = part.indexOf(':');
+        if (colon >= 0) {
+          label = part.slice(0, colon).trim();
+          detail = part.slice(colon + 1).trim();
+        } else {
+          detail = part.trim();
+        }
+        var score = null;
+        var ratio = detail.match(/(\d+(?:\.\d+)?)\s*\/\s*5/);
+        if (ratio) {
+          score = Number(ratio[1]);
+        }
+        if (!Number.isFinite(score)) {
+          var starCount = (detail.match(/★/g) || []).length;
+          if (starCount > 0) score = starCount;
+        }
+        if (!Number.isFinite(score)) {
+          var digit = detail.match(/\b([0-5])\b/);
+          if (digit) score = Number(digit[1]);
+        }
+        if (Number.isFinite(score)) {
+          score = Math.max(0, Math.min(5, Math.round(score)));
+        } else {
+          score = null;
+        }
+        categories.push({
+          label: label || 'Rating',
+          score: score,
+          text: detail
+        });
+      });
+      return categories;
+    }
+
+    function renderRatingsHistory(cell, entries) {
+      var listEl = document.createElement('div');
+      listEl.className = 'picker-history-list picker-rating-list';
+
+      entries.forEach(function(raw, idx) {
+        var itemEl = document.createElement('div');
+        itemEl.className = 'picker-rating-entry';
+
+        var indexEl = document.createElement('span');
+        indexEl.className = 'picker-history-index';
+        indexEl.textContent = (idx + 1) + '.';
+        itemEl.appendChild(indexEl);
+
+        var gridEl = document.createElement('div');
+        gridEl.className = 'picker-rating-grid';
+
+        var categories = parseRatingCategories(raw);
+        if (!categories.length) {
+          var rawLine = document.createElement('div');
+          rawLine.className = 'picker-rating-line picker-rating-line--raw';
+          rawLine.textContent = raw || '—';
+          gridEl.classList.add('picker-rating-grid--empty');
+          gridEl.appendChild(rawLine);
+        } else {
+          var normalized = Array.isArray(categories) ? categories : [];
+          normalized.forEach(function(catItem) {
+            gridEl.appendChild(buildRatingCell(catItem));
+          });
+        }
+
+        itemEl.appendChild(gridEl);
+        listEl.appendChild(itemEl);
+      });
+
+      cell.appendChild(listEl);
+
+      function buildRatingCell(category) {
+        var cellEl = document.createElement('div');
+        cellEl.className = 'picker-rating-grid-cell';
+
+        if (!category) {
+          cellEl.classList.add('picker-rating-grid-cell--empty');
+          cellEl.setAttribute('aria-hidden', 'true');
+          return cellEl;
+        }
+
+        if (category.score == null) {
+          var rawEl = document.createElement('div');
+          rawEl.className = 'picker-rating-line picker-rating-line--raw';
+          rawEl.textContent = category.text ? category.text : '—';
+          cellEl.appendChild(rawEl);
+          return cellEl;
+        }
+
+        var score = Math.max(0, Math.min(5, category.score));
+        if (category.label) {
+          var slug = category.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          if (slug) {
+            cellEl.classList.add('picker-rating-grid-cell--' + slug);
+          }
+        }
+        var lineEl = document.createElement('div');
+        lineEl.className = 'picker-rating-line';
+
+        var labelEl = document.createElement('span');
+        labelEl.className = 'picker-rating-grid-label';
+        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
+        lineEl.appendChild(labelEl);
+
+        var starsLineEl = document.createElement('span');
+        starsLineEl.className = 'picker-rating-stars-line';
+
+        var starsEl = document.createElement('span');
+        var colorClass = score < 3 ? 'picker-rating-stars--low'
+          : (score === 3 ? 'picker-rating-stars--mid' : 'picker-rating-stars--high');
+        starsEl.className = 'picker-rating-stars ' + colorClass;
+        starsEl.textContent = '★'.repeat(score) + '☆'.repeat(5 - score);
+        starsLineEl.appendChild(starsEl);
+
+        lineEl.appendChild(starsLineEl);
+        cellEl.appendChild(lineEl);
+        return cellEl;
+      }
+    }
+
+    function renderHistoryCell(cell, values, options) {
+      if (!cell) return;
+      cell.textContent = '';
+      cell.classList.remove('picker-history-remarks', 'picker-history-ratings');
+      cell.classList.add('picker-history');
+
+      options = options || {};
+      var entries = normalizeHistoryValues(values).map(function(value) {
+        return value == null ? '' : String(value).trim();
+      });
+      var hasContent = entries.some(function(text) { return text; });
+      if (!hasContent) {
+        var emptyEl = document.createElement('div');
+        emptyEl.className = 'picker-history-empty';
+        emptyEl.textContent = '—';
+        cell.appendChild(emptyEl);
+        return;
+      }
+
+      if (options.type === 'ratings') {
+        cell.classList.add('picker-history-ratings');
+        renderRatingsHistory(cell, entries);
+        return;
+      }
+
+      cell.classList.add('picker-history-remarks');
+      var listEl = document.createElement('div');
+      listEl.className = 'picker-history-list';
+      entries.forEach(function(text, idx) {
+        var itemEl = document.createElement('div');
+        itemEl.className = 'picker-history-item';
+        var indexEl = document.createElement('span');
+        indexEl.className = 'picker-history-index';
+        indexEl.textContent = (idx + 1) + '.';
+        itemEl.appendChild(indexEl);
+        var textEl = document.createElement('span');
+        if (!text) {
+          textEl.className = 'picker-history-empty';
+          textEl.textContent = '—';
+        } else {
+          textEl.textContent = text;
+        }
+        itemEl.appendChild(textEl);
+        listEl.appendChild(itemEl);
+      });
+      cell.appendChild(listEl);
+    }
+
+    function renderRows(list) {
+      if (!rowsTbody) return;
+      rowsTbody.innerHTML = '';
+      if (!Array.isArray(list) || !list.length) {
+        showEmpty('No released beneficiaries match your filters.');
+        updateSelectAllState();
+        return;
+      }
+      hideEmpty();
+      for (var i = 0; i < list.length; i++) {
+        var item = list[i];
+        if (!item) continue;
+        var tr = document.createElement('tr');
+        if (selectedKeys.has(item.beneficiaryKey)) {
+          tr.classList.add('selected');
+        }
+        var tdCheck = document.createElement('td');
+        tdCheck.className = 'picker-checkbox';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.key = item.beneficiaryKey || '';
+        cb.checked = selectedKeys.has(item.beneficiaryKey);
+        cb.disabled = loading;
+        cb.setAttribute('aria-label', 'Select ' + (item.beneficiary || 'beneficiary'));
+        tdCheck.appendChild(cb);
+        tr.appendChild(tdCheck);
+
+        var tdIndex = document.createElement('td');
+        tdIndex.textContent = String(i + 1);
+        tr.appendChild(tdIndex);
+
+        var tdBeneficiary = document.createElement('td');
+        tdBeneficiary.textContent = item.beneficiary || '';
+        tr.appendChild(tdBeneficiary);
+
+        var tdDesignation = document.createElement('td');
+        tdDesignation.textContent = item.designation || '—';
+        tr.appendChild(tdDesignation);
+
+        var tdProject = document.createElement('td');
+        tdProject.textContent = item.project || '—';
+        tr.appendChild(tdProject);
+
+        var tdTeam = document.createElement('td');
+        tdTeam.textContent = item.team || '—';
+        tr.appendChild(tdTeam);
+
+        var tdAccount = document.createElement('td');
+        tdAccount.textContent = item.accountHolder || '—';
+        tr.appendChild(tdAccount);
+
+        var tdIdle = document.createElement('td');
+        tdIdle.className = 'numeric';
+        var idleText = (typeof item.idleDays === 'number' && item.idleDays >= 0) ? String(item.idleDays) : '—';
+        tdIdle.textContent = idleText;
+        if (item.releasedAt) {
+          var releaseDate = new Date(item.releasedAt);
+          if (!isNaN(releaseDate.getTime())) {
+            tdIdle.title = 'Released on ' + releaseDate.toLocaleString();
+          }
+        }
+        tr.appendChild(tdIdle);
+
+        var tdNationality = document.createElement('td');
+        tdNationality.textContent = item.nationality || '—';
+        tr.appendChild(tdNationality);
+
+        var tdRemarks = document.createElement('td');
+        renderHistoryCell(tdRemarks, item.lastRemarks, { type: 'remarks' });
+        tr.appendChild(tdRemarks);
+
+        var tdRatings = document.createElement('td');
+        renderHistoryCell(tdRatings, item.lastRatings, { type: 'ratings' });
+        tr.appendChild(tdRatings);
+
+        rowsTbody.appendChild(tr);
+      }
+      updateSelectAllState();
+    }
+
+    function applyFilterNow() {
+      var term = searchInput ? searchInput.value.trim().toLowerCase() : '';
+      if (!term) {
+        filteredItems = allItems.slice();
+      } else {
+        filteredItems = allItems.filter(function(item) {
+          if (!item) return false;
+          var remarkText = Array.isArray(item.lastRemarks) ? item.lastRemarks.join(' ') : '';
+          var ratingText = Array.isArray(item.lastRatings) ? item.lastRatings.join(' ') : '';
+          return [
+            item.beneficiary,
+            item.designation,
+            item.project,
+            item.team,
+            item.accountHolder,
+            item.nationality,
+            remarkText,
+            ratingText
+          ].some(function(part) {
+            return String(part || '').toLowerCase().indexOf(term) >= 0;
+          });
+        });
+      }
+      renderRows(filteredItems);
+      updateCounts();
+      updateApplyState();
+    }
+
+    function scheduleFilter() {
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(applyFilterNow, 120);
+    }
+
+    function namesForKeys(keys) {
+      return keys.map(function(key) {
+        var match = allItems.find(function(item) {
+          return item && item.beneficiaryKey === key;
+        });
+        return match && match.beneficiary ? match.beneficiary : key;
+      }).filter(Boolean);
+    }
+
+    function executeAdd(keys) {
+      if (!(window.google && google.script && google.script.run)) {
+        updateStatus('Beneficiary updates are only available inside the Google Sheets environment.', 'error');
+        return;
+      }
+      setLoading(true, 'Adding beneficiaries…');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setLoading(false);
+          if (!res || res.ok === false) {
+            updateStatus(res && res.error ? res.error : 'Failed to induct beneficiaries.', 'error');
+            updateApplyState();
+            return;
+          }
+
+          if (typeof res.project === 'string') currentContext.project = res.project;
+          if (typeof res.team === 'string') currentContext.team = res.team;
+          updateSubtitle();
+
+          var addedKeys = Array.isArray(res.addedKeys) ? new Set(res.addedKeys) : new Set(keys);
+          if (addedKeys.size) {
+            allItems = allItems.filter(function(item) {
+              return !(item && addedKeys.has(item.beneficiaryKey));
+            });
+          }
+
+          filteredItems = allItems.slice();
+          selectedKeys.clear();
+          applyFilterNow();
+
+          if (res && typeof res.remaining === 'number' && isFinite(res.remaining)) {
+            setReleasedCount(res.remaining);
+          } else {
+            setReleasedCount(allItems.length);
+          }
+
+          var addedCount = res.inserted || addedKeys.size || 0;
+          var statusMsg = addedCount
+            ? ('Added ' + addedCount + ' beneficiary' + (addedCount === 1 ? '' : 'ies') + ' to ' + (currentContext.project || 'project') + (currentContext.team ? ' • ' + currentContext.team : '') + '.')
+            : 'No beneficiaries were added.';
+
+          if (Array.isArray(res.skipped) && res.skipped.length) {
+            var skippedKeys = res.skipped.map(function(info) { return info && info.key; }).filter(Boolean);
+            var skippedNames = namesForKeys(skippedKeys);
+            if (skippedNames.length) {
+              statusMsg += ' Skipped: ' + skippedNames.join(', ') + '.';
+            }
+          }
+
+          updateStatus(statusMsg, addedCount ? 'success' : null);
+          updateApplyState();
+
+          if (res && Array.isArray(res.beneficiaries) && res.beneficiaries.length && typeof window.appendRowsFromBeneficiaries === 'function') {
+            try {
+              window.appendRowsFromBeneficiaries(res.beneficiaries);
+            } catch (appendErr) {
+              console.warn('appendRowsFromBeneficiaries failed:', appendErr);
+            }
+          }
+
+          try {
+            document.dispatchEvent(new CustomEvent('frtz:beneficiary-inducted', {
+              detail: {
+                project: currentContext.project,
+                team: currentContext.team,
+                beneficiaries: res && res.beneficiaries ? res.beneficiaries : []
+              }
+            }));
+          } catch (_eventErr) {}
+        })
+        .withFailureHandler(function(err) {
+          setLoading(false);
+          console.error('inductReleasedBeneficiaries failed:', err);
+          updateStatus('Failed to induct beneficiaries. Please try again.', 'error');
+          updateApplyState();
+        })
+        .inductReleasedBeneficiaries({
+          project: currentContext.project,
+          team: currentContext.team,
+          beneficiaryKeys: keys
+        });
+    }
+
+    function performAdd() {
+      if (loading || !selectedKeys.size) return;
+      if (!currentContext.project) {
+        updateStatus('Project information is missing for this row.', 'error');
+        return;
+      }
+      var keys = Array.from(selectedKeys);
+      var names = namesForKeys(keys);
+      var targetLabel = currentContext.project + (currentContext.team ? ' • ' + currentContext.team : '');
+      var message = names.length === 1
+        ? 'Are you sure you want to induct ' + names[0] + ' into ' + targetLabel + '?'
+        : 'Are you sure you want to induct ' + names.length + ' beneficiaries into ' + targetLabel + '?';
+
+      showConfirmationModal({
+        title: 'Induct beneficiaries?',
+        message: message,
+        yesText: 'Yes, Induct',
+        noText: 'Cancel'
+      }).then(function(confirmed) {
+        if (!confirmed) return;
+        executeAdd(keys);
+      });
+    }
+
+    function close() {
+      overlay.classList.remove('show');
+      overlay.classList.remove('loading');
+      if (searchTimer) {
+        clearTimeout(searchTimer);
+        searchTimer = null;
+      }
+      document.removeEventListener('keydown', onKeydown);
+    }
+
+    function open(context) {
+      context = context || {};
+      currentContext.project = context.project ? String(context.project).trim() : '';
+      currentContext.team = context.team ? String(context.team).trim() : '';
+      selectedKeys.clear();
+      updateStatus('');
+      updateSubtitle();
+      hideEmpty();
+      if (searchInput) searchInput.value = '';
+      if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+        selectAll.disabled = true;
+      }
+      allItems = [];
+      filteredItems = [];
+      renderRows(filteredItems);
+      updateCounts();
+      updateApplyState();
+
+      overlay.classList.add('show');
+      setTimeout(function() {
+        try { if (searchInput) searchInput.focus(); } catch (_e) {}
+      }, 120);
+      document.addEventListener('keydown', onKeydown);
+
+      if (!(window.google && google.script && google.script.run)) {
+        updateStatus('Beneficiary picker is only available inside the Google Sheets web app.', 'error');
+        showEmpty('Open this sheet in the Google Sheets web app to induct released beneficiaries.');
+        return;
+      }
+
+      setLoading(true, 'Loading released beneficiaries…');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setLoading(false);
+          if (!res || res.ok === false) {
+            updateStatus(res && res.error ? res.error : 'Unable to load released beneficiaries.', 'error');
+            showEmpty('No released beneficiaries found.');
+            setReleasedCount(null);
+            allItems = [];
+            filteredItems = [];
+            updateCounts();
+            updateApplyState();
+            updateSelectAllState();
+            return;
+          }
+
+          if (typeof res.targetProject === 'string') currentContext.project = res.targetProject;
+          if (typeof res.targetTeam === 'string') currentContext.team = res.targetTeam;
+          updateSubtitle();
+
+          var total = (typeof res.total === 'number' && isFinite(res.total))
+            ? res.total
+            : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
+          setReleasedCount(total);
+
+          allItems = Array.isArray(res.beneficiaries) ? res.beneficiaries : [];
+          filteredItems = allItems.slice();
+          applyFilterNow();
+          if (!allItems.length) {
+            showEmpty('No released beneficiaries are available right now.');
+          }
+        })
+        .withFailureHandler(function(err) {
+          setLoading(false);
+          console.error('getReleasedBeneficiariesForInduction failed:', err);
+          updateStatus('Unable to load released beneficiaries. Please try again.', 'error');
+          showEmpty('No released beneficiaries found.');
+          setReleasedCount(null);
+          allItems = [];
+          filteredItems = [];
+          updateCounts();
+          updateApplyState();
+          updateSelectAllState();
+        })
+        .getReleasedBeneficiariesForInduction(currentContext.project, currentContext.team);
+    }
+
+    function onKeydown(e) {
+      if (e.key === 'Escape' && overlay.classList.contains('show')) {
+        close();
+      }
+    }
+
+    if (cancelBtn) cancelBtn.addEventListener('click', close);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) close();
     });
+
+    if (searchInput) searchInput.addEventListener('input', scheduleFilter);
+
+    if (selectAll) {
+      selectAll.addEventListener('change', function() {
+        if (loading) return;
+        var checked = !!selectAll.checked;
+        filteredItems.forEach(function(item) {
+          if (!item || !item.beneficiaryKey) return;
+          if (checked) {
+            selectedKeys.add(item.beneficiaryKey);
+          } else {
+            selectedKeys.delete(item.beneficiaryKey);
+          }
+        });
+        if (rowsTbody) {
+          Array.prototype.forEach.call(rowsTbody.querySelectorAll('input[type="checkbox"][data-key]'), function(box) {
+            box.checked = checked;
+            var row = box.closest('tr');
+            if (row) row.classList.toggle('selected', box.checked);
+          });
+        }
+        selectAll.indeterminate = false;
+        updateApplyState();
+      });
+    }
+
+    if (rowsTbody) {
+      rowsTbody.addEventListener('change', function(e) {
+        var cb = e.target.closest('input[type="checkbox"][data-key]');
+        if (!cb || loading) return;
+        var key = cb.dataset.key || '';
+        if (!key) return;
+        if (cb.checked) {
+          selectedKeys.add(key);
+        } else {
+          selectedKeys.delete(key);
+        }
+        var row = cb.closest('tr');
+        if (row) row.classList.toggle('selected', cb.checked);
+        updateApplyState();
+        updateSelectAllState();
+      });
+
+      rowsTbody.addEventListener('click', function(e) {
+        var row = e.target.closest('tr');
+        if (!row || loading) return;
+        var cb = row.querySelector('input[type="checkbox"][data-key]');
+        if (!cb || e.target === cb) return;
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+
+    if (applyBtn) applyBtn.addEventListener('click', performAdd);
+
+    window.FRTZ = window.FRTZ || {};
+    window.FRTZ.onReleasedBeneficiaryCountChange = onReleasedCountChange;
+    window.FRTZ.getReleasedBeneficiaryCount = function() { return releasedCount; };
+    window.FRTZ.refreshReleasedBeneficiaryCount = refreshReleasedCount;
+
+    return {
+      open: open,
+      close: close
+    };
+  })();
+
+  function coerceCount(value) {
+    if (typeof value === 'number' && isFinite(value) && value >= 0) {
+      return Math.floor(value);
+    }
+    if (typeof value === 'string' && value.trim() !== '') {
+      var parsed = Number(value);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        return Math.floor(parsed);
+      }
+    }
+    return null;
+  }
+
+  function openAddBeneficiaryModal(context) {
+    try {
+      addBeneficiaryPicker.open(context || {});
+    } catch (err) {
+      console.error('openAddBeneficiaryModal failed:', err);
+      alert('Unable to open the Add Existing Beneficiary dialog. Please try again.');
+    }
+  }
+
+  function formatExistingBeneficiaryLabel(count) {
+    var normalized = coerceCount(count);
+    if (normalized === null) {
+      return 'Add Existing Beneficiary [—]';
+    }
+    return 'Add Existing Beneficiary [' + normalized + ']';
+  }
+
+  function updateExistingBeneficiaryButton(count) {
+    var text = formatExistingBeneficiaryLabel(count);
+    var normalized = coerceCount(count);
+    if (typeof window.updateConfirmationButton === 'function') {
+      window.updateConfirmationButton('add-existing', {
+        text: text,
+        dataset: { releasedCount: normalized != null ? normalized : '' }
+      });
+    } else {
+      var btn = document.querySelector('.confirmation-buttons button[data-button-id="add-existing"]');
+      if (btn) {
+        btn.textContent = text;
+        btn.dataset.originalText = text;
+        if (normalized == null) {
+          delete btn.dataset.releasedCount;
+        } else {
+          btn.dataset.releasedCount = normalized;
+        }
+      }
+    }
+  }
+
+  window.updateExistingBeneficiaryButton = updateExistingBeneficiaryButton;
+
+  function triggerAddNewBeneficiary(context) {
+    try {
+      var detail = context && typeof context === 'object' ? context : {};
+      document.dispatchEvent(new CustomEvent('frtz:add-new-beneficiary', { detail: detail }));
+    } catch (err) {
+      console.error('dispatch add-new-beneficiary event failed', err);
+    }
+
+    if (window.FRTZ && typeof window.FRTZ.openNewBeneficiaryDialog === 'function') {
+      window.FRTZ.openNewBeneficiaryDialog(context || {});
+      return;
+    }
+
+    if (window.FRTZ && window.FRTZ.addRowBtn) {
+      try {
+        window.FRTZ.addRowBtn.click();
+        return;
+      } catch (errClick) {
+        console.error('click addRowBtn failed', errClick);
+      }
+    }
+
+    alert('Please use the Add Rows button to add a new beneficiary.');
+  }
+
+  var addBeneficiaryPicker = (function() {
+    var overlay = document.getElementById('beneficiaryPickerModal');
+    if (!overlay) {
+      return {
+        open: function() {
+          alert('The Add Existing Beneficiary dialog is unavailable. Please reload the page.');
+        },
+        close: function() {}
+      };
+    }
+
+    var rowsTbody = document.getElementById('beneficiaryPickerRows');
+    var emptyEl = document.getElementById('beneficiaryPickerEmpty');
+    var searchInput = document.getElementById('beneficiaryPickerSearch');
+    var selectAll = document.getElementById('beneficiaryPickerSelectAll');
+    var applyBtn = document.getElementById('beneficiaryPickerApply');
+    var cancelBtn = document.getElementById('beneficiaryPickerCancel');
+    var closeBtn = overlay.querySelector('.beneficiary-picker-close');
+    var statusEl = document.getElementById('beneficiaryPickerStatus');
+    var countEl = document.getElementById('beneficiaryPickerCount');
+    var subtitleEl = document.getElementById('beneficiaryPickerSubtitle');
+
+    var allItems = [];
+    var filteredItems = [];
+    var selectedKeys = new Set();
+    var currentContext = { project: '', team: '' };
+    var searchTimer = null;
+    var loading = false;
+    var releasedCount = null;
+    var countListeners = new Set();
+    var inflightCountPromise = null;
+
+    function notifyCountListeners() {
+      countListeners.forEach(function(listener) {
+        try {
+          listener(releasedCount);
+        } catch (err) {
+          console.error('beneficiaryPicker count listener failed', err);
+        }
+      });
+    }
+
+    function setReleasedCount(countValue) {
+      var next = coerceCount(countValue);
+      releasedCount = next;
+      window.FRTZ = window.FRTZ || {};
+      window.FRTZ.releasedBeneficiaryCount = releasedCount;
+      try {
+        if (typeof window.updateExistingBeneficiaryButton === 'function') {
+          window.updateExistingBeneficiaryButton(releasedCount);
+        }
+      } catch (err) {
+        console.error('updateExistingBeneficiaryButton failed', err);
+      }
+      notifyCountListeners();
+    }
+
+    function onReleasedCountChange(listener) {
+      if (typeof listener !== 'function') {
+        return function() {};
+      }
+      countListeners.add(listener);
+      try {
+        listener(releasedCount);
+      } catch (err) {
+        console.error('initial count listener call failed', err);
+      }
+      return function() {
+        countListeners.delete(listener);
+      };
+    }
+
+    function updateStatus(message, tone) {
+      if (!statusEl) return;
+      statusEl.textContent = message || '';
+      statusEl.classList.remove('error', 'success');
+      if (tone) statusEl.classList.add(tone);
+    }
+
+    function refreshReleasedCount(projectOverride, teamOverride) {
+      if (!(window.google && google.script && google.script.run)) {
+        return Promise.resolve(null);
+      }
+
+      var project = typeof projectOverride === 'string' ? projectOverride : currentContext.project;
+      var team = typeof teamOverride === 'string' ? teamOverride : currentContext.team;
+
+      if (inflightCountPromise) {
+        return inflightCountPromise;
+      }
+
+      inflightCountPromise = new Promise(function(resolve) {
+        google.script.run
+          .withSuccessHandler(function(res) {
+            inflightCountPromise = null;
+            if (res && res.ok !== false) {
+              if (typeof res.targetProject === 'string') currentContext.project = res.targetProject;
+              if (typeof res.targetTeam === 'string') currentContext.team = res.targetTeam;
+              var total = (typeof res.total === 'number' && isFinite(res.total))
+                ? res.total
+                : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
+              setReleasedCount(total);
+              window.FRTZ = window.FRTZ || {};
+              window.FRTZ.latestReleasedBeneficiaries = Array.isArray(res.beneficiaries)
+                ? res.beneficiaries.slice()
+                : [];
+            } else {
+              setReleasedCount(null);
+              if (window.FRTZ) {
+                window.FRTZ.latestReleasedBeneficiaries = [];
+              }
+            }
+            resolve(res || null);
+          })
+          .withFailureHandler(function(err) {
+            inflightCountPromise = null;
+            console.error('refreshReleasedBeneficiaryCount failed:', err);
+            setReleasedCount(null);
+            if (window.FRTZ) {
+              window.FRTZ.latestReleasedBeneficiaries = [];
+            }
+            resolve(null);
+          })
+          .getReleasedBeneficiariesForInduction(project, team);
+      });
+
+      return inflightCountPromise;
+    }
+
+    function setLoading(flag, message) {
+      loading = !!flag;
+      overlay.classList.toggle('loading', loading);
+      if (message) {
+        updateStatus(message);
+      }
+      if (loading && applyBtn) {
+        applyBtn.disabled = true;
+      }
+    }
+
+    function createSubtitlePill(kind, label, value) {
+      var pill = document.createElement('span');
+      pill.className = 'picker-pill picker-pill--' + kind;
+      var labelEl = document.createElement('span');
+      labelEl.className = 'picker-pill-label';
+      labelEl.textContent = label;
+      var valueEl = document.createElement('span');
+      valueEl.className = 'picker-pill-value';
+      valueEl.textContent = value;
+      pill.appendChild(labelEl);
+      pill.appendChild(valueEl);
+      return pill;
+    }
+
+    function updateSubtitle(projectOverride, teamOverride) {
+      if (!subtitleEl) return;
+      var proj = typeof projectOverride === 'string' ? projectOverride : currentContext.project;
+      var team = typeof teamOverride === 'string' ? teamOverride : currentContext.team;
+      subtitleEl.innerHTML = '';
+      if (!proj) {
+        subtitleEl.classList.add('beneficiary-picker-subtitle--empty');
+        subtitleEl.textContent = 'Project not detected for this row.';
+        return;
+      }
+      subtitleEl.classList.remove('beneficiary-picker-subtitle--empty');
+      var fragment = document.createDocumentFragment();
+      fragment.appendChild(createSubtitlePill('project', 'Project', proj));
+      fragment.appendChild(createSubtitlePill('team', 'Team', team ? team : 'Unassigned'));
+      subtitleEl.appendChild(fragment);
+    }
+
+    function showEmpty(message) {
+      if (!emptyEl) return;
+      emptyEl.textContent = message || 'No released beneficiaries found.';
+      emptyEl.hidden = false;
+    }
+
+    function hideEmpty() {
+      if (emptyEl) emptyEl.hidden = true;
+    }
+
+    function updateCounts() {
+      if (!countEl) return;
+      var total = allItems.length;
+      var visible = filteredItems.length;
+      if (!total && !visible) {
+        countEl.textContent = '';
+        return;
+      }
+      if (visible === total) {
+        countEl.textContent = visible === 1 ? 'Showing 1 beneficiary' : 'Showing ' + visible + ' beneficiaries';
+      } else {
+        countEl.textContent = 'Showing ' + visible + ' of ' + total + ' beneficiaries';
+      }
+    }
+
+    function updateApplyState() {
+      if (!applyBtn) return;
+      var count = selectedKeys.size;
+      applyBtn.disabled = loading || !count;
+      applyBtn.textContent = count ? ('Add Selected (' + count + ')') : 'Add Selected';
+    }
+
+    function updateSelectAllState() {
+      if (!selectAll) return;
+      if (loading || !filteredItems.length) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+        selectAll.disabled = loading || !filteredItems.length;
+        return;
+      }
+      var selectedInView = 0;
+      for (var i = 0; i < filteredItems.length; i++) {
+        var item = filteredItems[i];
+        if (item && selectedKeys.has(item.beneficiaryKey)) {
+          selectedInView++;
+        }
+      }
+      selectAll.disabled = loading;
+      if (selectedInView === 0) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      } else if (selectedInView === filteredItems.length) {
+        selectAll.checked = true;
+        selectAll.indeterminate = false;
+      } else {
+        selectAll.checked = false;
+        selectAll.indeterminate = true;
+      }
+    }
+
+    function normalizeHistoryValues(values) {
+      var entries = [];
+      if (Array.isArray(values)) {
+        for (var i = 0; i < values.length && entries.length < 3; i++) {
+          entries.push(values[i]);
+        }
+      }
+      return entries;
+    }
+
+    function parseRatingCategories(raw) {
+      if (raw == null) return [];
+      var parts = String(raw).split('|').map(function(part) {
+        return part.trim();
+      }).filter(Boolean);
+      if (!parts.length) return [];
+      var categories = [];
+      parts.forEach(function(part) {
+        var label = part;
+        var detail = '';
+        var colon = part.indexOf(':');
+        if (colon >= 0) {
+          label = part.slice(0, colon).trim();
+          detail = part.slice(colon + 1).trim();
+        } else {
+          detail = part.trim();
+        }
+        var score = null;
+        var ratio = detail.match(/(\d+(?:\.\d+)?)\s*\/\s*5/);
+        if (ratio) {
+          score = Number(ratio[1]);
+        }
+        if (!Number.isFinite(score)) {
+          var starCount = (detail.match(/★/g) || []).length;
+          if (starCount > 0) score = starCount;
+        }
+        if (!Number.isFinite(score)) {
+          var digit = detail.match(/\b([0-5])\b/);
+          if (digit) score = Number(digit[1]);
+        }
+        if (Number.isFinite(score)) {
+          score = Math.max(0, Math.min(5, Math.round(score)));
+        } else {
+          score = null;
+        }
+        categories.push({
+          label: label || 'Rating',
+          score: score,
+          text: detail
+        });
+      });
+      return categories;
+    }
+
+    function renderRatingsHistory(cell, entries) {
+      var listEl = document.createElement('div');
+      listEl.className = 'picker-history-list picker-rating-list';
+
+      entries.forEach(function(raw, idx) {
+        var itemEl = document.createElement('div');
+        itemEl.className = 'picker-rating-entry';
+
+        var indexEl = document.createElement('span');
+        indexEl.className = 'picker-history-index';
+        indexEl.textContent = (idx + 1) + '.';
+        itemEl.appendChild(indexEl);
+
+        var gridEl = document.createElement('div');
+        gridEl.className = 'picker-rating-grid';
+
+        var categories = parseRatingCategories(raw);
+        if (!categories.length) {
+          var rawLine = document.createElement('div');
+          rawLine.className = 'picker-rating-line picker-rating-line--raw';
+          rawLine.textContent = raw || '—';
+          gridEl.classList.add('picker-rating-grid--empty');
+          gridEl.appendChild(rawLine);
+        } else {
+          var normalized = Array.isArray(categories) ? categories : [];
+          normalized.forEach(function(catItem) {
+            gridEl.appendChild(buildRatingCell(catItem));
+          });
+        }
+
+        itemEl.appendChild(gridEl);
+        listEl.appendChild(itemEl);
+      });
+
+      cell.appendChild(listEl);
+
+      function buildRatingCell(category) {
+        var cellEl = document.createElement('div');
+        cellEl.className = 'picker-rating-grid-cell';
+
+        if (!category) {
+          cellEl.classList.add('picker-rating-grid-cell--empty');
+          cellEl.setAttribute('aria-hidden', 'true');
+          return cellEl;
+        }
+
+        if (category.score == null) {
+          var rawEl = document.createElement('div');
+          rawEl.className = 'picker-rating-line picker-rating-line--raw';
+          rawEl.textContent = category.text ? category.text : '—';
+          cellEl.appendChild(rawEl);
+          return cellEl;
+        }
+
+        var score = Math.max(0, Math.min(5, category.score));
+        if (category.label) {
+          var slug = category.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          if (slug) {
+            cellEl.classList.add('picker-rating-grid-cell--' + slug);
+          }
+        }
+        var lineEl = document.createElement('div');
+        lineEl.className = 'picker-rating-line';
+
+        var labelEl = document.createElement('span');
+        labelEl.className = 'picker-rating-grid-label';
+        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
+        lineEl.appendChild(labelEl);
+
+        var starsLineEl = document.createElement('span');
+        starsLineEl.className = 'picker-rating-stars-line';
+
+        var starsEl = document.createElement('span');
+        var colorClass = score < 3 ? 'picker-rating-stars--low'
+          : (score === 3 ? 'picker-rating-stars--mid' : 'picker-rating-stars--high');
+        starsEl.className = 'picker-rating-stars ' + colorClass;
+        starsEl.textContent = '★'.repeat(score) + '☆'.repeat(5 - score);
+        starsLineEl.appendChild(starsEl);
+
+        lineEl.appendChild(starsLineEl);
+        cellEl.appendChild(lineEl);
+        return cellEl;
+      }
+    }
+
+    function renderHistoryCell(cell, values, options) {
+      if (!cell) return;
+      cell.textContent = '';
+      cell.classList.remove('picker-history-remarks', 'picker-history-ratings');
+      cell.classList.add('picker-history');
+
+      options = options || {};
+      var entries = normalizeHistoryValues(values).map(function(value) {
+        return value == null ? '' : String(value).trim();
+      });
+      var hasContent = entries.some(function(text) { return text; });
+      if (!hasContent) {
+        var emptyEl = document.createElement('div');
+        emptyEl.className = 'picker-history-empty';
+        emptyEl.textContent = '—';
+        cell.appendChild(emptyEl);
+        return;
+      }
+
+      if (options.type === 'ratings') {
+        cell.classList.add('picker-history-ratings');
+        renderRatingsHistory(cell, entries);
+        return;
+      }
+
+      cell.classList.add('picker-history-remarks');
+      var listEl = document.createElement('div');
+      listEl.className = 'picker-history-list';
+      entries.forEach(function(text, idx) {
+        var itemEl = document.createElement('div');
+        itemEl.className = 'picker-history-item';
+        var indexEl = document.createElement('span');
+        indexEl.className = 'picker-history-index';
+        indexEl.textContent = (idx + 1) + '.';
+        itemEl.appendChild(indexEl);
+        var textEl = document.createElement('span');
+        if (!text) {
+          textEl.className = 'picker-history-empty';
+          textEl.textContent = '—';
+        } else {
+          textEl.textContent = text;
+        }
+        itemEl.appendChild(textEl);
+        listEl.appendChild(itemEl);
+      });
+      cell.appendChild(listEl);
+    }
+
+    function renderRows(list) {
+      if (!rowsTbody) return;
+      rowsTbody.innerHTML = '';
+      if (!Array.isArray(list) || !list.length) {
+        showEmpty('No released beneficiaries match your filters.');
+        updateSelectAllState();
+        return;
+      }
+      hideEmpty();
+      for (var i = 0; i < list.length; i++) {
+        var item = list[i];
+        if (!item) continue;
+        var tr = document.createElement('tr');
+        if (selectedKeys.has(item.beneficiaryKey)) {
+          tr.classList.add('selected');
+        }
+        var tdCheck = document.createElement('td');
+        tdCheck.className = 'picker-checkbox';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.key = item.beneficiaryKey || '';
+        cb.checked = selectedKeys.has(item.beneficiaryKey);
+        cb.disabled = loading;
+        cb.setAttribute('aria-label', 'Select ' + (item.beneficiary || 'beneficiary'));
+        tdCheck.appendChild(cb);
+        tr.appendChild(tdCheck);
+
+        var tdIndex = document.createElement('td');
+        tdIndex.textContent = String(i + 1);
+        tr.appendChild(tdIndex);
+
+        var tdBeneficiary = document.createElement('td');
+        tdBeneficiary.textContent = item.beneficiary || '';
+        tr.appendChild(tdBeneficiary);
+
+        var tdDesignation = document.createElement('td');
+        tdDesignation.textContent = item.designation || '—';
+        tr.appendChild(tdDesignation);
+
+        var tdProject = document.createElement('td');
+        tdProject.textContent = item.project || '—';
+        tr.appendChild(tdProject);
+
+        var tdTeam = document.createElement('td');
+        tdTeam.textContent = item.team || '—';
+        tr.appendChild(tdTeam);
+
+        var tdAccount = document.createElement('td');
+        tdAccount.textContent = item.accountHolder || '—';
+        tr.appendChild(tdAccount);
+
+        var tdIdle = document.createElement('td');
+        tdIdle.className = 'numeric';
+        var idleText = (typeof item.idleDays === 'number' && item.idleDays >= 0) ? String(item.idleDays) : '—';
+        tdIdle.textContent = idleText;
+        if (item.releasedAt) {
+          var releaseDate = new Date(item.releasedAt);
+          if (!isNaN(releaseDate.getTime())) {
+            tdIdle.title = 'Released on ' + releaseDate.toLocaleString();
+          }
+        }
+        tr.appendChild(tdIdle);
+
+        var tdNationality = document.createElement('td');
+        tdNationality.textContent = item.nationality || '—';
+        tr.appendChild(tdNationality);
+
+        var tdRemarks = document.createElement('td');
+        renderHistoryCell(tdRemarks, item.lastRemarks, { type: 'remarks' });
+        tr.appendChild(tdRemarks);
+
+        var tdRatings = document.createElement('td');
+        renderHistoryCell(tdRatings, item.lastRatings, { type: 'ratings' });
+        tr.appendChild(tdRatings);
+
+        rowsTbody.appendChild(tr);
+      }
+      updateSelectAllState();
+    }
+
+    function applyFilterNow() {
+      var term = searchInput ? searchInput.value.trim().toLowerCase() : '';
+      if (!term) {
+        filteredItems = allItems.slice();
+      } else {
+        filteredItems = allItems.filter(function(item) {
+          if (!item) return false;
+          var remarkText = Array.isArray(item.lastRemarks) ? item.lastRemarks.join(' ') : '';
+          var ratingText = Array.isArray(item.lastRatings) ? item.lastRatings.join(' ') : '';
+          return [
+            item.beneficiary,
+            item.designation,
+            item.project,
+            item.team,
+            item.accountHolder,
+            item.nationality,
+            remarkText,
+            ratingText
+          ].some(function(part) {
+            return String(part || '').toLowerCase().indexOf(term) >= 0;
+          });
+        });
+      }
+      renderRows(filteredItems);
+      updateCounts();
+      updateApplyState();
+    }
+
+    function scheduleFilter() {
+      if (searchTimer) clearTimeout(searchTimer);
+      searchTimer = setTimeout(applyFilterNow, 120);
+    }
+
+    function namesForKeys(keys) {
+      return keys.map(function(key) {
+        var match = allItems.find(function(item) {
+          return item && item.beneficiaryKey === key;
+        });
+        return match && match.beneficiary ? match.beneficiary : key;
+      }).filter(Boolean);
+    }
+
+    function executeAdd(keys) {
+      if (!(window.google && google.script && google.script.run)) {
+        updateStatus('Beneficiary updates are only available inside the Google Sheets environment.', 'error');
+        return;
+      }
+      setLoading(true, 'Adding beneficiaries…');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setLoading(false);
+          if (!res || res.ok === false) {
+            updateStatus(res && res.error ? res.error : 'Failed to induct beneficiaries.', 'error');
+            updateApplyState();
+            return;
+          }
+
+          if (typeof res.project === 'string') currentContext.project = res.project;
+          if (typeof res.team === 'string') currentContext.team = res.team;
+          updateSubtitle();
+
+          var addedKeys = Array.isArray(res.addedKeys) ? new Set(res.addedKeys) : new Set(keys);
+          if (addedKeys.size) {
+            allItems = allItems.filter(function(item) {
+              return !(item && addedKeys.has(item.beneficiaryKey));
+            });
+          }
+
+          filteredItems = allItems.slice();
+          selectedKeys.clear();
+          applyFilterNow();
+
+          if (res && typeof res.remaining === 'number' && isFinite(res.remaining)) {
+            setReleasedCount(res.remaining);
+          } else {
+            setReleasedCount(allItems.length);
+          }
+
+          var addedCount = res.inserted || addedKeys.size || 0;
+          var statusMsg = addedCount
+            ? ('Added ' + addedCount + ' beneficiary' + (addedCount === 1 ? '' : 'ies') + ' to ' + (currentContext.project || 'project') + (currentContext.team ? ' • ' + currentContext.team : '') + '.')
+            : 'No beneficiaries were added.';
+
+          if (Array.isArray(res.skipped) && res.skipped.length) {
+            var skippedKeys = res.skipped.map(function(info) { return info && info.key; }).filter(Boolean);
+            var skippedNames = namesForKeys(skippedKeys);
+            if (skippedNames.length) {
+              statusMsg += ' Skipped: ' + skippedNames.join(', ') + '.';
+            }
+          }
+
+          updateStatus(statusMsg, addedCount ? 'success' : null);
+          updateApplyState();
+
+          if (res && Array.isArray(res.beneficiaries) && res.beneficiaries.length && typeof window.appendRowsFromBeneficiaries === 'function') {
+            try {
+              window.appendRowsFromBeneficiaries(res.beneficiaries);
+            } catch (appendErr) {
+              console.warn('appendRowsFromBeneficiaries failed:', appendErr);
+            }
+          }
+
+          try {
+            document.dispatchEvent(new CustomEvent('frtz:beneficiary-inducted', {
+              detail: {
+                project: currentContext.project,
+                team: currentContext.team,
+                beneficiaries: res && res.beneficiaries ? res.beneficiaries : []
+              }
+            }));
+          } catch (_eventErr) {}
+        })
+        .withFailureHandler(function(err) {
+          setLoading(false);
+          console.error('inductReleasedBeneficiaries failed:', err);
+          updateStatus('Failed to induct beneficiaries. Please try again.', 'error');
+          updateApplyState();
+        })
+        .inductReleasedBeneficiaries({
+          project: currentContext.project,
+          team: currentContext.team,
+          beneficiaryKeys: keys
+        });
+    }
+
+    function performAdd() {
+      if (loading || !selectedKeys.size) return;
+      if (!currentContext.project) {
+        updateStatus('Project information is missing for this row.', 'error');
+        return;
+      }
+      var keys = Array.from(selectedKeys);
+      var names = namesForKeys(keys);
+      var targetLabel = currentContext.project + (currentContext.team ? ' • ' + currentContext.team : '');
+      var message = names.length === 1
+        ? 'Are you sure you want to induct ' + names[0] + ' into ' + targetLabel + '?'
+        : 'Are you sure you want to induct ' + names.length + ' beneficiaries into ' + targetLabel + '?';
+
+      showConfirmationModal({
+        title: 'Induct beneficiaries?',
+        message: message,
+        yesText: 'Yes, Induct',
+        noText: 'Cancel'
+      }).then(function(confirmed) {
+        if (!confirmed) return;
+        executeAdd(keys);
+      });
+    }
+
+    function close() {
+      overlay.classList.remove('show');
+      overlay.classList.remove('loading');
+      if (searchTimer) {
+        clearTimeout(searchTimer);
+        searchTimer = null;
+      }
+      document.removeEventListener('keydown', onKeydown);
+    }
+
+    function open(context) {
+      context = context || {};
+      currentContext.project = context.project ? String(context.project).trim() : '';
+      currentContext.team = context.team ? String(context.team).trim() : '';
+      selectedKeys.clear();
+      updateStatus('');
+      updateSubtitle();
+      hideEmpty();
+      if (searchInput) searchInput.value = '';
+      if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+        selectAll.disabled = true;
+      }
+      allItems = [];
+      filteredItems = [];
+      renderRows(filteredItems);
+      updateCounts();
+      updateApplyState();
+
+      overlay.classList.add('show');
+      setTimeout(function() {
+        try { if (searchInput) searchInput.focus(); } catch (_e) {}
+      }, 120);
+      document.addEventListener('keydown', onKeydown);
+
+      if (!(window.google && google.script && google.script.run)) {
+        updateStatus('Beneficiary picker is only available inside the Google Sheets web app.', 'error');
+        showEmpty('Open this sheet in the Google Sheets web app to induct released beneficiaries.');
+        return;
+      }
+
+      setLoading(true, 'Loading released beneficiaries…');
+      google.script.run
+        .withSuccessHandler(function(res) {
+          setLoading(false);
+          if (!res || res.ok === false) {
+            updateStatus(res && res.error ? res.error : 'Unable to load released beneficiaries.', 'error');
+            showEmpty('No released beneficiaries found.');
+            setReleasedCount(null);
+            allItems = [];
+            filteredItems = [];
+            updateCounts();
+            updateApplyState();
+            updateSelectAllState();
+            return;
+          }
+
+          if (typeof res.targetProject === 'string') currentContext.project = res.targetProject;
+          if (typeof res.targetTeam === 'string') currentContext.team = res.targetTeam;
+          updateSubtitle();
+
+          var total = (typeof res.total === 'number' && isFinite(res.total))
+            ? res.total
+            : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
+          setReleasedCount(total);
+
+          allItems = Array.isArray(res.beneficiaries) ? res.beneficiaries : [];
+          filteredItems = allItems.slice();
+          applyFilterNow();
+          if (!allItems.length) {
+            showEmpty('No released beneficiaries are available right now.');
+          }
+        })
+        .withFailureHandler(function(err) {
+          setLoading(false);
+          console.error('getReleasedBeneficiariesForInduction failed:', err);
+          updateStatus('Unable to load released beneficiaries. Please try again.', 'error');
+          showEmpty('No released beneficiaries found.');
+          setReleasedCount(null);
+          allItems = [];
+          filteredItems = [];
+          updateCounts();
+          updateApplyState();
+          updateSelectAllState();
+        })
+        .getReleasedBeneficiariesForInduction(currentContext.project, currentContext.team);
+    }
+
+    function onKeydown(e) {
+      if (e.key === 'Escape' && overlay.classList.contains('show')) {
+        close();
+      }
+    }
+
+    if (cancelBtn) cancelBtn.addEventListener('click', close);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    overlay.addEventListener('click', function(e) {
+      if (e.target === overlay) close();
+    });
+
+    if (searchInput) searchInput.addEventListener('input', scheduleFilter);
+
+    if (selectAll) {
+      selectAll.addEventListener('change', function() {
+        if (loading) return;
+        var checked = !!selectAll.checked;
+        filteredItems.forEach(function(item) {
+          if (!item || !item.beneficiaryKey) return;
+          if (checked) {
+            selectedKeys.add(item.beneficiaryKey);
+          } else {
+            selectedKeys.delete(item.beneficiaryKey);
+          }
+        });
+        if (rowsTbody) {
+          Array.prototype.forEach.call(rowsTbody.querySelectorAll('input[type="checkbox"][data-key]'), function(box) {
+            box.checked = checked;
+            var row = box.closest('tr');
+            if (row) row.classList.toggle('selected', box.checked);
+          });
+        }
+        selectAll.indeterminate = false;
+        updateApplyState();
+      });
+    }
+
+    if (rowsTbody) {
+      rowsTbody.addEventListener('change', function(e) {
+        var cb = e.target.closest('input[type="checkbox"][data-key]');
+        if (!cb || loading) return;
+        var key = cb.dataset.key || '';
+        if (!key) return;
+        if (cb.checked) {
+          selectedKeys.add(key);
+        } else {
+          selectedKeys.delete(key);
+        }
+        var row = cb.closest('tr');
+        if (row) row.classList.toggle('selected', cb.checked);
+        updateApplyState();
+        updateSelectAllState();
+      });
+
+      rowsTbody.addEventListener('click', function(e) {
+        var row = e.target.closest('tr');
+        if (!row || loading) return;
+        var cb = row.querySelector('input[type="checkbox"][data-key]');
+        if (!cb || e.target === cb) return;
+        cb.checked = !cb.checked;
+        cb.dispatchEvent(new Event('change', { bubbles: true }));
+      });
+    }
+
+    if (applyBtn) applyBtn.addEventListener('click', performAdd);
+
+    window.FRTZ = window.FRTZ || {};
+    window.FRTZ.onReleasedBeneficiaryCountChange = onReleasedCountChange;
+    window.FRTZ.getReleasedBeneficiaryCount = function() { return releasedCount; };
+    window.FRTZ.refreshReleasedBeneficiaryCount = refreshReleasedCount;
+
+    return {
+      open: open,
+      close: close
+    };
+  })();
+
+  function coerceCount(value) {
+    if (typeof value === 'number' && isFinite(value) && value >= 0) {
+      return Math.floor(value);
+    }
+    if (typeof value === 'string' && value.trim() !== '') {
+      var parsed = Number(value);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        return Math.floor(parsed);
+      }
+    }
+    return null;
+  }
+
+  function openAddBeneficiaryModal(context) {
+    try {
+      addBeneficiaryPicker.open(context || {});
+    } catch (err) {
+      console.error('openAddBeneficiaryModal failed:', err);
+      alert('Unable to open the Add Existing Beneficiary dialog. Please try again.');
+    }
+  }
+
+  function formatExistingBeneficiaryLabel(count) {
+    var normalized = coerceCount(count);
+    if (normalized === null) {
+      return 'Add Existing Beneficiary [—]';
+    }
+    return 'Add Existing Beneficiary [' + normalized + ']';
+  }
+
+  function updateExistingBeneficiaryButton(count) {
+    var text = formatExistingBeneficiaryLabel(count);
+    var normalized = coerceCount(count);
+    if (typeof window.updateConfirmationButton === 'function') {
+      window.updateConfirmationButton('add-existing', {
+        text: text,
+        dataset: { releasedCount: normalized != null ? normalized : '' }
+      });
+    } else {
+      var btn = document.querySelector('.confirmation-buttons button[data-button-id="add-existing"]');
+      if (btn) {
+        btn.textContent = text;
+        btn.dataset.originalText = text;
+        if (normalized == null) {
+          delete btn.dataset.releasedCount;
+        } else {
+          btn.dataset.releasedCount = normalized;
+        }
+      }
+    }
+  }
+
+  window.updateExistingBeneficiaryButton = updateExistingBeneficiaryButton;
+
+  function triggerAddNewBeneficiary(context) {
+    try {
+      var detail = context && typeof context === 'object' ? context : {};
+      document.dispatchEvent(new CustomEvent('frtz:add-new-beneficiary', { detail: detail }));
+    } catch (err) {
+      console.error('dispatch add-new-beneficiary event failed', err);
+    }
+
+    if (window.FRTZ && typeof window.FRTZ.openNewBeneficiaryDialog === 'function') {
+      window.FRTZ.openNewBeneficiaryDialog(context || {});
+      return;
+    }
+
+    if (window.FRTZ && window.FRTZ.addRowBtn) {
+      try {
+        window.FRTZ.addRowBtn.click();
+        return;
+      } catch (errClick) {
+        console.error('click addRowBtn failed', errClick);
+      }
+    }
+
+    alert('Please use the Add Rows button to add a new beneficiary.');
   }
 
   window.FRTZ = window.FRTZ || {};
@@ -1931,52 +6015,35 @@ document.addEventListener('keydown', function(event) {
   tbody.addEventListener('click', function(e) {
     var totalInput = e.target.closest('input.amt[readonly]');
     if (!totalInput) return;
-    
+
     var row = totalInput.closest('.row-data');
     if (!row) return;
-    
-    var isDeactivated = row.classList.contains('row-deactivated');
-    
-    if (isDeactivated) {
-      // Reactivation confirmation
-      showConfirmationModal({
-        title: 'Reactivate beneficiary?',
-        message: "Re-enabling means you'll fund their expenses. Continue?",
-        yesText: 'Yes, Reactivate',
-        noText: 'No, Keep Inactive'
-      }).then(function(confirmed) {
-        if (confirmed) {
-          reactivateRow(row);
-        }
-      });
-    } else {
-      var context = buildReleaseContext(row);
-      var nameLabel = context && context.beneficiary ? context.beneficiary : 'this beneficiary';
-      var scopeParts = [];
-      if (context && context.team) scopeParts.push(context.team);
-      if (context && context.project) scopeParts.push(context.project);
-      var scope = scopeParts.length ? ' (' + scopeParts.join(' • ') + ')' : '';
-      var message = 'Choose how to proceed with ' + nameLabel + scope + '. Deactivate clears this row, Release removes them from the team and project.';
+    if (row.classList.contains('row-action-pending')) return;
 
-      showConfirmationModal({
-        title: 'Deactivate or release beneficiary?',
-        message: message,
-        buttons: [
-          { text: 'Deactivate', value: 'deactivate', role: 'destructive', variant: 'destructive', feedback: false },
-          { text: 'Release', value: 'release', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Continue' },
-          { text: 'No, Keep Active', value: 'cancel', role: 'cancel', variant: 'secondary', feedback: false }
-        ]
-      }).then(function(action) {
-        if (action === 'deactivate') {
-          deactivateRow(row);
-        } else if (action === 'release') {
-          confirmReleaseRow(row, context);
-        }
-      });
+    var context = buildReleaseContext(row);
+    var totalText = totalInput.value ? String(totalInput.value).trim() : '';
+
+    if (row.classList.contains('row-deactivated')) {
+      promptReactivateRow(row, context, totalText);
+    } else {
+      promptRowAction(row, context, totalText);
     }
   });
 
   // Car number input click handler will be attached after modal is loaded
+
+  return true;
+}
+
+var initialTbody = document.getElementById('tbody');
+if (!initTableModule(initialTbody)) {
+  document.addEventListener('DOMContentLoaded', function handleFRTZTableInit() {
+    var lateTbody = document.getElementById('tbody');
+    if (initTableModule(lateTbody)) {
+      document.removeEventListener('DOMContentLoaded', handleFRTZTableInit);
+    }
+  });
+}
 
 })();
 
