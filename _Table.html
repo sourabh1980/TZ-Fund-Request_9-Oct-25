@@ -2765,8 +2765,8 @@ document.addEventListener('keydown', function(event) {
 
   .picker-rating-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(128px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(5, minmax(208px, 1fr));
+    gap: 14px;
     width: 100%;
   }
 
@@ -2776,12 +2776,44 @@ document.addEventListener('keydown', function(event) {
 
   .picker-rating-grid-cell {
     min-width: 0;
-    background: rgba(148, 163, 184, 0.14);
-    border-radius: 14px;
-    padding: 10px 12px;
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 16px;
+    padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 6px;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .picker-rating-grid-cell:hover {
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .picker-rating-grid-cell--core-knowledge {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.24);
+  }
+
+  .picker-rating-grid-cell--discipline {
+    background: rgba(249, 115, 22, 0.12);
+    border-color: rgba(249, 115, 22, 0.22);
+  }
+
+  .picker-rating-grid-cell--honesty-and-integrity {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.24);
+  }
+
+  .picker-rating-grid-cell--teamwork {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.24);
+  }
+
+  .picker-rating-grid-cell--attitude-and-behaviour {
+    background: rgba(236, 72, 153, 0.12);
+    border-color: rgba(236, 72, 153, 0.24);
   }
 
   .picker-rating-grid-cell--empty {
@@ -2806,19 +2838,25 @@ document.addEventListener('keydown', function(event) {
 
   @media (max-width: 1240px) {
     .picker-rating-grid {
-      grid-template-columns: repeat(4, minmax(140px, 1fr));
+      grid-template-columns: repeat(4, minmax(208px, 1fr));
     }
   }
 
-  @media (max-width: 960px) {
+  @media (max-width: 1024px) {
     .picker-rating-grid {
-      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      grid-template-columns: repeat(3, minmax(208px, 1fr));
     }
   }
 
-  @media (max-width: 720px) {
+  @media (max-width: 768px) {
     .picker-rating-grid {
-      grid-template-columns: repeat(2, minmax(160px, 1fr));
+      grid-template-columns: repeat(2, minmax(208px, 1fr));
+    }
+  }
+
+  @media (max-width: 520px) {
+    .picker-rating-grid {
+      grid-template-columns: repeat(1, minmax(208px, 1fr));
     }
   }
 
@@ -4560,6 +4598,12 @@ document.addEventListener('keydown', function(event) {
         }
 
         var score = Math.max(0, Math.min(5, category.score));
+        if (category.label) {
+          var slug = category.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          if (slug) {
+            cellEl.classList.add('picker-rating-grid-cell--' + slug);
+          }
+        }
         var lineEl = document.createElement('div');
         lineEl.className = 'picker-rating-line';
 
@@ -5451,11 +5495,6 @@ document.addEventListener('keydown', function(event) {
           return cellEl;
         }
 
-        var labelEl = document.createElement('div');
-        labelEl.className = 'picker-rating-grid-label';
-        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
-        cellEl.appendChild(labelEl);
-
         if (category.score == null) {
           var rawEl = document.createElement('div');
           rawEl.className = 'picker-rating-line picker-rating-line--raw';
@@ -5465,21 +5504,36 @@ document.addEventListener('keydown', function(event) {
         }
 
         var score = Math.max(0, Math.min(5, category.score));
+        if (category.label) {
+          var slug = category.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          if (slug) {
+            cellEl.classList.add('picker-rating-grid-cell--' + slug);
+          }
+        }
         var lineEl = document.createElement('div');
-        lineEl.className = 'picker-rating-stars-line';
+        lineEl.className = 'picker-rating-line';
+
+        var labelEl = document.createElement('span');
+        labelEl.className = 'picker-rating-grid-label';
+        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
+        lineEl.appendChild(labelEl);
+
+        var starsLineEl = document.createElement('div');
+        starsLineEl.className = 'picker-rating-stars-line';
 
         var starsEl = document.createElement('span');
         var colorClass = score < 3 ? 'picker-rating-stars--low'
           : (score === 3 ? 'picker-rating-stars--mid' : 'picker-rating-stars--high');
         starsEl.className = 'picker-rating-stars ' + colorClass;
         starsEl.textContent = '★'.repeat(score) + '☆'.repeat(5 - score);
-        lineEl.appendChild(starsEl);
+        starsLineEl.appendChild(starsEl);
 
         var scoreEl = document.createElement('span');
         scoreEl.className = 'picker-rating-score';
         scoreEl.textContent = '(' + score + '/5)';
-        lineEl.appendChild(scoreEl);
+        starsLineEl.appendChild(scoreEl);
 
+        lineEl.appendChild(starsLineEl);
         cellEl.appendChild(lineEl);
         return cellEl;
       }
