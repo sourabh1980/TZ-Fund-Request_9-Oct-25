@@ -2722,7 +2722,8 @@ document.addEventListener('keydown', function(event) {
   .picker-rating-line {
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    gap: 8px;
     line-height: 1.35;
     flex-wrap: nowrap;
     width: 100%;
@@ -2814,6 +2815,9 @@ document.addEventListener('keydown', function(event) {
   .picker-rating-grid-cell--teamwork {
     padding: 14px 16px;
     gap: 6px;
+    width: 224px;
+    max-width: 100%;
+    justify-self: center;
   }
 
   .picker-rating-grid-cell--core-knowledge .picker-rating-grid-label,
