@@ -32,16 +32,18 @@
     -webkit-backdrop-filter: blur(20px);
     border-radius: 24px;
     padding: 40px 36px;
-    max-width: 560px;
-    width: min(96%, 560px);
+    max-width: 940px;
+    width: min(96%, 940px);
     max-height: min(92vh, 760px);
-    text-align: center;
+    text-align: left;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 8px 32px rgba(0, 0, 0, 0.15);
     transform: scale(0.7) translateY(50px);
     transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
     position: relative;
     overflow-y: auto;
     overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   .confirmation-overlay.show .confirmation-modal {
@@ -55,6 +57,7 @@
     color: #2d3748;
     margin-bottom: 12px;
     line-height: 1.2;
+    text-align: left;
   }
 
   .confirmation-message {
@@ -62,6 +65,7 @@
     color: #718096;
     margin-bottom: 32px;
     line-height: 1.5;
+    text-align: left;
   }
 
   /* Button container */
@@ -70,6 +74,7 @@
     flex-direction: column;
     gap: 12px;
     width: 100%;
+    margin-top: auto;
   }
 
   @media (min-width: 520px) {
@@ -178,6 +183,135 @@
 
   .confirmation-content[hidden] {
     display: none;
+  }
+
+  .confirmation-body {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    flex: 1 1 auto;
+  }
+
+  .confirmation-main {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1 1 auto;
+    justify-content: flex-start;
+  }
+
+  .confirmation-main--centered {
+    justify-content: center;
+  }
+
+  .confirmation-main--centered .confirmation-buttons {
+    margin-top: 28px;
+  }
+
+  .confirmation-sidebar {
+    display: none;
+    flex: 0 0 320px;
+    background: rgba(247, 250, 252, 0.9);
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    border-radius: 20px;
+    padding: 24px 24px 20px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
+
+  .confirmation-sidebar.show {
+    display: block;
+  }
+
+  .confirmation-sidebar-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #2d3748;
+    margin-bottom: 16px;
+    text-align: left;
+  }
+
+  .idle-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .idle-sidebar-header,
+  .idle-sidebar-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr minmax(68px, auto);
+    gap: 12px;
+    align-items: center;
+  }
+
+  .idle-sidebar-header {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #4a5568;
+    opacity: 0.9;
+  }
+
+  .idle-sidebar-row {
+    font-size: 14px;
+    color: #2d3748;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 1px 0 rgba(226, 232, 240, 0.8);
+  }
+
+  .idle-sidebar-row--alt {
+    background: rgba(236, 248, 255, 0.65);
+  }
+
+  .idle-sidebar-rank {
+    font-weight: 700;
+    color: #5a67d8;
+    margin-right: 6px;
+  }
+
+  .idle-sidebar-col {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .idle-sidebar-col--name {
+    font-weight: 600;
+    color: #2d3748;
+  }
+
+  .idle-sidebar-col--designation {
+    color: #4a5568;
+    font-size: 13px;
+  }
+
+  .idle-sidebar-col--idle {
+    justify-content: flex-end;
+    text-align: right;
+    font-weight: 600;
+    color: #2c5282;
+  }
+
+  .idle-sidebar-empty {
+    font-size: 14px;
+    color: #718096;
+    line-height: 1.5;
+  }
+
+  @media (min-width: 768px) {
+    .confirmation-body {
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    .confirmation-main {
+      flex: 1 1 auto;
+      padding-right: 12px;
+    }
   }
 
   .release-form {
@@ -361,22 +495,6 @@
     }
   }
 
-  /* View cost breakdown link */
-  .confirmation-link {
-    color: #667eea;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    margin-top: 16px;
-    display: inline-block;
-    transition: color 0.3s ease;
-  }
-
-  .confirmation-link:hover {
-    color: #5a67d8;
-    text-decoration: underline;
-  }
-
   /* Close indicator */
   .confirmation-close {
     position: absolute;
@@ -398,15 +516,22 @@
 <div class="confirmation-overlay" id="confirmationModal">
   <div class="confirmation-modal">
     <div class="confirmation-close" onclick="closeConfirmationModal()"></div>
-    
-    <h2 class="confirmation-title" id="confirmationTitle">Reactivate beneficiary?</h2>
-    <p class="confirmation-message" id="confirmationMessage">Re-enabling means you'll fund their expenses. Continue?</p>
 
-    <div class="confirmation-content" id="confirmationContent" hidden></div>
+    <div class="confirmation-body">
+      <div class="confirmation-main" id="confirmationMain">
+        <h2 class="confirmation-title" id="confirmationTitle">Reactivate beneficiary?</h2>
+        <p class="confirmation-message" id="confirmationMessage">Re-enabling means you'll fund their expenses. Continue?</p>
 
-    <div class="confirmation-buttons" id="confirmationButtons"></div>
-    
-    <a href="#" class="confirmation-link" onclick="viewCostBreakdown()">View cost breakdown</a>
+        <div class="confirmation-content" id="confirmationContent" hidden></div>
+
+        <div class="confirmation-buttons" id="confirmationButtons"></div>
+      </div>
+
+      <aside class="confirmation-sidebar" id="confirmationSidebar" hidden>
+        <h3 class="confirmation-sidebar-title">Top 10 Idle Beneficiaries</h3>
+        <div class="confirmation-sidebar-content" id="confirmationSidebarContent"></div>
+      </aside>
+    </div>
   </div>
 </div>
 
@@ -429,6 +554,26 @@
     if (!slot) return;
     slot.innerHTML = '';
     slot.hidden = true;
+  }
+
+  function getSidebarContainer() {
+    return document.getElementById('confirmationSidebar');
+  }
+
+  function getSidebarContentSlot() {
+    return document.getElementById('confirmationSidebarContent');
+  }
+
+  function clearSidebarContent() {
+    const container = getSidebarContainer();
+    const slot = getSidebarContentSlot();
+    if (slot) {
+      slot.innerHTML = '';
+    }
+    if (container) {
+      container.hidden = true;
+      container.classList.remove('show');
+    }
   }
 
   function resolveContentNode(contentOption) {
@@ -472,6 +617,53 @@
     if (node === '') {
       slot.innerHTML = '';
       slot.hidden = false;
+    }
+  }
+
+  function applySidebarContent(sidebarOption) {
+    const container = getSidebarContainer();
+    const slot = getSidebarContentSlot();
+    if (!container || !slot) return;
+
+    clearSidebarContent();
+
+    if (sidebarOption == null) {
+      return;
+    }
+
+    const node = resolveContentNode(sidebarOption);
+
+    if (!node && node !== '' && typeof node !== 'string') {
+      return;
+    }
+
+    if (typeof node === 'string') {
+      if (node.trim().length) {
+        slot.innerHTML = node;
+        container.hidden = false;
+        container.classList.add('show');
+      }
+      return;
+    }
+
+    if (node === '') {
+      slot.innerHTML = '';
+      container.hidden = false;
+      container.classList.add('show');
+      return;
+    }
+
+    if (node instanceof Node) {
+      slot.appendChild(node);
+      container.hidden = false;
+      container.classList.add('show');
+      return;
+    }
+
+    if (node && typeof node === 'object' && typeof node.nodeType === 'number') {
+      slot.appendChild(node);
+      container.hidden = false;
+      container.classList.add('show');
     }
   }
 
@@ -634,6 +826,7 @@
       const modal = document.getElementById('confirmationModal');
       const title = document.getElementById('confirmationTitle');
       const message = document.getElementById('confirmationMessage');
+      const mainSection = document.getElementById('confirmationMain');
 
       const nextTitle = Object.prototype.hasOwnProperty.call(currentOptions, 'title') && currentOptions.title
         ? currentOptions.title
@@ -657,7 +850,16 @@
         }
       }
 
+      if (mainSection) {
+        if (currentOptions.centerButtons) {
+          mainSection.classList.add('confirmation-main--centered');
+        } else {
+          mainSection.classList.remove('confirmation-main--centered');
+        }
+      }
+
       applyModalContent(currentOptions.content || currentOptions.html || null);
+      applySidebarContent(currentOptions.sidebar || null);
 
       buttonConfigs = normalizeButtons(currentOptions);
       renderButtons(buttonConfigs);
@@ -696,6 +898,16 @@
     }
   };
 
+  window.updateConfirmationSidebar = function(sidebarOption) {
+    if (arguments.length === 0 && currentOptions) {
+      applySidebarContent(currentOptions.sidebar || null);
+      return;
+    }
+    currentOptions = currentOptions || {};
+    currentOptions.sidebar = sidebarOption;
+    applySidebarContent(sidebarOption || null);
+  };
+
   // Close confirmation modal
   window.closeConfirmationModal = function(options = {}) {
     const modal = document.getElementById('confirmationModal');
@@ -713,6 +925,12 @@
     currentOptions = {};
     resetButtons();
     clearModalContent();
+    clearSidebarContent();
+
+    const mainSection = document.getElementById('confirmationMain');
+    if (mainSection) {
+      mainSection.classList.remove('confirmation-main--centered');
+    }
   };
 
   // Handle Yes button click
@@ -729,12 +947,6 @@
     } else {
       closeConfirmationModal();
     }
-  };
-
-  // View cost breakdown (placeholder)
-  window.viewCostBreakdown = function() {
-    console.log('View cost breakdown clicked');
-    // Implement cost breakdown functionality here
   };
 
   // Keyboard support
