@@ -2721,10 +2721,11 @@ document.addEventListener('keydown', function(event) {
 
   .picker-rating-line {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
     align-items: center;
+    gap: 10px;
     line-height: 1.35;
+    flex-wrap: nowrap;
+    width: 100%;
   }
 
   .picker-rating-label {
@@ -2791,7 +2792,8 @@ document.addEventListener('keydown', function(event) {
   .picker-rating-grid-label {
     font-weight: 600;
     color: #1e293b;
-    margin-bottom: 2px;
+    margin: 0;
+    white-space: nowrap;
   }
 
   .picker-rating-stars-line {
@@ -2799,6 +2801,7 @@ document.addEventListener('keydown', function(event) {
     align-items: center;
     gap: 4px;
     font-variant-numeric: tabular-nums;
+    flex: 0 1 auto;
   }
 
   @media (max-width: 1240px) {
@@ -4548,11 +4551,6 @@ document.addEventListener('keydown', function(event) {
           return cellEl;
         }
 
-        var labelEl = document.createElement('div');
-        labelEl.className = 'picker-rating-grid-label';
-        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
-        cellEl.appendChild(labelEl);
-
         if (category.score == null) {
           var rawEl = document.createElement('div');
           rawEl.className = 'picker-rating-line picker-rating-line--raw';
@@ -4563,20 +4561,29 @@ document.addEventListener('keydown', function(event) {
 
         var score = Math.max(0, Math.min(5, category.score));
         var lineEl = document.createElement('div');
-        lineEl.className = 'picker-rating-stars-line';
+        lineEl.className = 'picker-rating-line';
+
+        var labelEl = document.createElement('span');
+        labelEl.className = 'picker-rating-grid-label';
+        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
+        lineEl.appendChild(labelEl);
+
+        var starsLineEl = document.createElement('div');
+        starsLineEl.className = 'picker-rating-stars-line';
 
         var starsEl = document.createElement('span');
         var colorClass = score < 3 ? 'picker-rating-stars--low'
           : (score === 3 ? 'picker-rating-stars--mid' : 'picker-rating-stars--high');
         starsEl.className = 'picker-rating-stars ' + colorClass;
         starsEl.textContent = '★'.repeat(score) + '☆'.repeat(5 - score);
-        lineEl.appendChild(starsEl);
+        starsLineEl.appendChild(starsEl);
 
         var scoreEl = document.createElement('span');
         scoreEl.className = 'picker-rating-score';
         scoreEl.textContent = '(' + score + '/5)';
-        lineEl.appendChild(scoreEl);
+        starsLineEl.appendChild(scoreEl);
 
+        lineEl.appendChild(starsLineEl);
         cellEl.appendChild(lineEl);
         return cellEl;
       }
