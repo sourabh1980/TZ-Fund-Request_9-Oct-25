@@ -2721,10 +2721,12 @@ document.addEventListener('keydown', function(event) {
 
   .picker-rating-line {
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
     align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     line-height: 1.35;
+    flex-wrap: nowrap;
+    width: 100%;
   }
 
   .picker-rating-label {
@@ -2733,8 +2735,8 @@ document.addEventListener('keydown', function(event) {
   }
 
   .picker-rating-stars {
-    font-size: 14px;
-    letter-spacing: 1px;
+    font-size: 12px;
+    letter-spacing: 0.6px;
   }
 
   .picker-rating-stars--low {
@@ -2749,13 +2751,6 @@ document.addEventListener('keydown', function(event) {
     color: #16a34a;
   }
 
-  .picker-rating-score {
-    font-size: 12px;
-    color: #475569;
-    font-weight: 500;
-    margin-left: 2px;
-  }
-
   .picker-rating-line--raw {
     color: #475569;
     font-style: italic;
@@ -2764,8 +2759,8 @@ document.addEventListener('keydown', function(event) {
 
   .picker-rating-grid {
     display: grid;
-    grid-template-columns: repeat(5, minmax(128px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(5, minmax(248px, 1fr));
+    gap: 16px;
     width: 100%;
   }
 
@@ -2775,12 +2770,74 @@ document.addEventListener('keydown', function(event) {
 
   .picker-rating-grid-cell {
     min-width: 0;
-    background: rgba(148, 163, 184, 0.14);
-    border-radius: 14px;
-    padding: 10px 12px;
+    background: rgba(148, 163, 184, 0.12);
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 18px;
+    padding: 18px 20px;
     display: flex;
     flex-direction: column;
+    gap: 8px;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .picker-rating-grid-cell:hover {
+    box-shadow: 0 8px 16px rgba(15, 23, 42, 0.08);
+    transform: translateY(-1px);
+  }
+
+  .picker-rating-grid-cell--core-knowledge {
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.24);
+  }
+
+  .picker-rating-grid-cell--discipline {
+    background: rgba(249, 115, 22, 0.12);
+    border-color: rgba(249, 115, 22, 0.22);
+  }
+
+  .picker-rating-grid-cell--honesty-and-integrity {
+    background: rgba(16, 185, 129, 0.12);
+    border-color: rgba(16, 185, 129, 0.24);
+  }
+
+  .picker-rating-grid-cell--teamwork {
+    background: rgba(99, 102, 241, 0.12);
+    border-color: rgba(99, 102, 241, 0.24);
+  }
+
+  .picker-rating-grid-cell--attitude-and-behaviour {
+    background: rgba(236, 72, 153, 0.12);
+    border-color: rgba(236, 72, 153, 0.24);
+  }
+
+  .picker-rating-grid-cell--core-knowledge,
+  .picker-rating-grid-cell--discipline,
+  .picker-rating-grid-cell--teamwork {
+    padding: 14px 16px;
     gap: 6px;
+    width: 224px;
+    max-width: 100%;
+    justify-self: center;
+  }
+
+  .picker-rating-grid-cell--core-knowledge .picker-rating-grid-label,
+  .picker-rating-grid-cell--discipline .picker-rating-grid-label,
+  .picker-rating-grid-cell--teamwork .picker-rating-grid-label {
+    font-size: 11px;
+  }
+
+  .picker-rating-grid-cell--core-knowledge .picker-rating-line,
+  .picker-rating-grid-cell--discipline .picker-rating-line,
+  .picker-rating-grid-cell--teamwork .picker-rating-line {
+    justify-content: flex-start;
+    gap: 4px;
+  }
+
+  .picker-rating-grid-cell--core-knowledge .picker-rating-stars,
+  .picker-rating-grid-cell--discipline .picker-rating-stars,
+  .picker-rating-grid-cell--teamwork .picker-rating-stars {
+    font-size: 11px;
+    letter-spacing: 0.4px;
   }
 
   .picker-rating-grid-cell--empty {
@@ -2791,31 +2848,40 @@ document.addEventListener('keydown', function(event) {
   .picker-rating-grid-label {
     font-weight: 600;
     color: #1e293b;
-    margin-bottom: 2px;
+    margin: 0;
+    white-space: nowrap;
+    font-size: 12px;
   }
 
   .picker-rating-stars-line {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
     font-variant-numeric: tabular-nums;
+    flex: 0 1 auto;
   }
 
   @media (max-width: 1240px) {
     .picker-rating-grid {
-      grid-template-columns: repeat(4, minmax(140px, 1fr));
+      grid-template-columns: repeat(4, minmax(248px, 1fr));
     }
   }
 
-  @media (max-width: 960px) {
+  @media (max-width: 1024px) {
     .picker-rating-grid {
-      grid-template-columns: repeat(3, minmax(160px, 1fr));
+      grid-template-columns: repeat(3, minmax(248px, 1fr));
     }
   }
 
-  @media (max-width: 720px) {
+  @media (max-width: 768px) {
     .picker-rating-grid {
-      grid-template-columns: repeat(2, minmax(160px, 1fr));
+      grid-template-columns: repeat(2, minmax(248px, 1fr));
+    }
+  }
+
+  @media (max-width: 520px) {
+    .picker-rating-grid {
+      grid-template-columns: repeat(1, minmax(248px, 1fr));
     }
   }
 
@@ -3924,9 +3990,9 @@ document.addEventListener('keydown', function(event) {
         var rating = clampRating(ratingValues && ratingValues[cat.key]);
         if (rating > 0) {
           var stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
-          parts.push(cat.label + ': ' + stars + ' (' + rating + '/5)');
+          parts.push(cat.label + ': ' + stars);
         } else {
-          parts.push(cat.label + ': ☆☆☆☆☆ (0/5)');
+          parts.push(cat.label + ': ☆☆☆☆☆');
         }
       });
       return parts.join(' | ');
@@ -4548,11 +4614,6 @@ document.addEventListener('keydown', function(event) {
           return cellEl;
         }
 
-        var labelEl = document.createElement('div');
-        labelEl.className = 'picker-rating-grid-label';
-        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
-        cellEl.appendChild(labelEl);
-
         if (category.score == null) {
           var rawEl = document.createElement('div');
           rawEl.className = 'picker-rating-line picker-rating-line--raw';
@@ -4562,21 +4623,31 @@ document.addEventListener('keydown', function(event) {
         }
 
         var score = Math.max(0, Math.min(5, category.score));
+        if (category.label) {
+          var slug = category.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          if (slug) {
+            cellEl.classList.add('picker-rating-grid-cell--' + slug);
+          }
+        }
         var lineEl = document.createElement('div');
-        lineEl.className = 'picker-rating-stars-line';
+        lineEl.className = 'picker-rating-line';
+
+        var labelEl = document.createElement('span');
+        labelEl.className = 'picker-rating-grid-label';
+        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
+        lineEl.appendChild(labelEl);
+
+        var starsLineEl = document.createElement('div');
+        starsLineEl.className = 'picker-rating-stars-line';
 
         var starsEl = document.createElement('span');
         var colorClass = score < 3 ? 'picker-rating-stars--low'
           : (score === 3 ? 'picker-rating-stars--mid' : 'picker-rating-stars--high');
         starsEl.className = 'picker-rating-stars ' + colorClass;
         starsEl.textContent = '★'.repeat(score) + '☆'.repeat(5 - score);
-        lineEl.appendChild(starsEl);
+        starsLineEl.appendChild(starsEl);
 
-        var scoreEl = document.createElement('span');
-        scoreEl.className = 'picker-rating-score';
-        scoreEl.textContent = '(' + score + '/5)';
-        lineEl.appendChild(scoreEl);
-
+        lineEl.appendChild(starsLineEl);
         cellEl.appendChild(lineEl);
         return cellEl;
       }
@@ -5444,11 +5515,6 @@ document.addEventListener('keydown', function(event) {
           return cellEl;
         }
 
-        var labelEl = document.createElement('div');
-        labelEl.className = 'picker-rating-grid-label';
-        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
-        cellEl.appendChild(labelEl);
-
         if (category.score == null) {
           var rawEl = document.createElement('div');
           rawEl.className = 'picker-rating-line picker-rating-line--raw';
@@ -5458,21 +5524,31 @@ document.addEventListener('keydown', function(event) {
         }
 
         var score = Math.max(0, Math.min(5, category.score));
+        if (category.label) {
+          var slug = category.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+          if (slug) {
+            cellEl.classList.add('picker-rating-grid-cell--' + slug);
+          }
+        }
         var lineEl = document.createElement('div');
-        lineEl.className = 'picker-rating-stars-line';
+        lineEl.className = 'picker-rating-line';
+
+        var labelEl = document.createElement('span');
+        labelEl.className = 'picker-rating-grid-label';
+        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
+        lineEl.appendChild(labelEl);
+
+        var starsLineEl = document.createElement('div');
+        starsLineEl.className = 'picker-rating-stars-line';
 
         var starsEl = document.createElement('span');
         var colorClass = score < 3 ? 'picker-rating-stars--low'
           : (score === 3 ? 'picker-rating-stars--mid' : 'picker-rating-stars--high');
         starsEl.className = 'picker-rating-stars ' + colorClass;
         starsEl.textContent = '★'.repeat(score) + '☆'.repeat(5 - score);
-        lineEl.appendChild(starsEl);
+        starsLineEl.appendChild(starsEl);
 
-        var scoreEl = document.createElement('span');
-        scoreEl.className = 'picker-rating-score';
-        scoreEl.textContent = '(' + score + '/5)';
-        lineEl.appendChild(scoreEl);
-
+        lineEl.appendChild(starsLineEl);
         cellEl.appendChild(lineEl);
         return cellEl;
       }
