@@ -2438,8 +2438,68 @@ document.addEventListener('keydown', function(event) {
   }
 
   .beneficiary-picker-subtitle {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
     font-size: 13px;
     color: #64748b;
+    min-height: 20px;
+  }
+
+  .beneficiary-picker-subtitle.beneficiary-picker-subtitle--empty {
+    display: block;
+  }
+
+  .picker-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.18);
+    color: #0f172a;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+
+  .picker-pill-label {
+    text-transform: uppercase;
+    font-size: 11px;
+    color: rgba(15, 23, 42, 0.66);
+  }
+
+  .picker-pill-value {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  .picker-pill--project {
+    background: rgba(56, 189, 248, 0.18);
+    color: #0f172a;
+  }
+
+  .picker-pill--project .picker-pill-label {
+    color: rgba(8, 47, 73, 0.75);
+  }
+
+  .picker-pill--project .picker-pill-value {
+    color: #0c4a6e;
+  }
+
+  .picker-pill--team {
+    background: rgba(196, 181, 253, 0.2);
+    color: #0f172a;
+  }
+
+  .picker-pill--team .picker-pill-label {
+    color: rgba(76, 29, 149, 0.75);
+  }
+
+  .picker-pill--team .picker-pill-value {
+    color: #4c1d95;
   }
 
   .beneficiary-picker-close {
@@ -2523,18 +2583,21 @@ document.addEventListener('keydown', function(event) {
     background: #f1f5f9;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     color: #0f172a;
-    padding: 10px 12px;
+    padding: 8px 10px;
     border-bottom: 1px solid #e2e8f0;
     z-index: 1;
+    white-space: nowrap;
   }
 
   .beneficiary-picker-table tbody td {
-    padding: 10px 12px;
+    padding: 8px 10px;
     border-bottom: 1px solid #e2e8f0;
     color: #1f2937;
+    background: #ffffff;
+    font-size: 12px;
   }
 
   .beneficiary-picker-table tbody tr:hover {
@@ -2546,7 +2609,7 @@ document.addEventListener('keydown', function(event) {
   }
 
   .beneficiary-picker-table .picker-checkbox {
-    width: 44px;
+    width: 52px;
     text-align: center;
   }
 
@@ -2563,16 +2626,16 @@ document.addEventListener('keydown', function(event) {
   }
 
   .beneficiary-picker-table .picker-history {
-    min-width: 170px;
+    min-width: 140px;
     white-space: normal;
   }
 
   .beneficiary-picker-table .picker-history.picker-history-remarks {
-    min-width: 210px;
+    min-width: 180px;
   }
 
   .beneficiary-picker-table .picker-history.picker-history-ratings {
-    min-width: 320px;
+    min-width: 300px;
   }
 
   .beneficiary-picker-table .picker-history-list {
@@ -2604,6 +2667,43 @@ document.addEventListener('keydown', function(event) {
     display: flex;
     flex-direction: column;
     gap: 8px;
+  }
+
+  .beneficiary-picker-table thead th:nth-child(1),
+  .beneficiary-picker-table tbody td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: #f8fafc;
+    min-width: 52px;
+    width: 52px;
+  }
+
+  .beneficiary-picker-table thead th:nth-child(2),
+  .beneficiary-picker-table tbody td:nth-child(2) {
+    position: sticky;
+    left: 56px;
+    z-index: 3;
+    background: #f8fafc;
+    min-width: 64px;
+    width: 64px;
+    text-align: center;
+  }
+
+  .beneficiary-picker-table thead th:nth-child(3),
+  .beneficiary-picker-table tbody td:nth-child(3) {
+    position: sticky;
+    left: 116px;
+    z-index: 2;
+    background: #ffffff;
+    box-shadow: 1px 0 0 rgba(15, 23, 42, 0.06);
+    min-width: 200px;
+  }
+
+  .beneficiary-picker-table tbody td:nth-child(1),
+  .beneficiary-picker-table tbody td:nth-child(2),
+  .beneficiary-picker-table tbody td:nth-child(3) {
+    border-right: 1px solid rgba(226, 232, 240, 0.7);
   }
 
   .picker-rating-entry {
@@ -2653,11 +2753,70 @@ document.addEventListener('keydown', function(event) {
     font-size: 12px;
     color: #475569;
     font-weight: 500;
+    margin-left: 2px;
   }
 
   .picker-rating-line--raw {
     color: #475569;
     font-style: italic;
+    grid-column: 1 / -1;
+  }
+
+  .picker-rating-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(128px, 1fr));
+    gap: 12px;
+    width: 100%;
+  }
+
+  .picker-rating-grid--empty {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .picker-rating-grid-cell {
+    min-width: 0;
+    background: rgba(148, 163, 184, 0.14);
+    border-radius: 14px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .picker-rating-grid-cell--empty {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .picker-rating-grid-label {
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 2px;
+  }
+
+  .picker-rating-stars-line {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  @media (max-width: 1240px) {
+    .picker-rating-grid {
+      grid-template-columns: repeat(4, minmax(140px, 1fr));
+    }
+  }
+
+  @media (max-width: 960px) {
+    .picker-rating-grid {
+      grid-template-columns: repeat(3, minmax(160px, 1fr));
+    }
+  }
+
+  @media (max-width: 720px) {
+    .picker-rating-grid {
+      grid-template-columns: repeat(2, minmax(160px, 1fr));
+    }
   }
 
   .beneficiary-picker-empty {
@@ -3984,17 +4143,35 @@ document.addEventListener('keydown', function(event) {
       }
     }
 
+    function createSubtitlePill(kind, label, value) {
+      var pill = document.createElement('span');
+      pill.className = 'picker-pill picker-pill--' + kind;
+      var labelEl = document.createElement('span');
+      labelEl.className = 'picker-pill-label';
+      labelEl.textContent = label;
+      var valueEl = document.createElement('span');
+      valueEl.className = 'picker-pill-value';
+      valueEl.textContent = value;
+      pill.appendChild(labelEl);
+      pill.appendChild(valueEl);
+      return pill;
+    }
+
     function updateSubtitle(projectOverride, teamOverride) {
       if (!subtitleEl) return;
       var proj = typeof projectOverride === 'string' ? projectOverride : currentContext.project;
       var team = typeof teamOverride === 'string' ? teamOverride : currentContext.team;
+      subtitleEl.innerHTML = '';
       if (!proj) {
+        subtitleEl.classList.add('beneficiary-picker-subtitle--empty');
         subtitleEl.textContent = 'Project not detected for this row.';
         return;
       }
-      var parts = ['Project: ' + proj];
-      parts.push('Team: ' + (team ? team : 'Unassigned'));
-      subtitleEl.textContent = parts.join(' • ');
+      subtitleEl.classList.remove('beneficiary-picker-subtitle--empty');
+      var fragment = document.createDocumentFragment();
+      fragment.appendChild(createSubtitlePill('project', 'Project', proj));
+      fragment.appendChild(createSubtitlePill('team', 'Team', team ? team : 'Unassigned'));
+      subtitleEl.appendChild(fragment);
     }
 
     function showEmpty(message) {
@@ -4124,54 +4301,79 @@ document.addEventListener('keydown', function(event) {
         indexEl.textContent = (idx + 1) + '.';
         itemEl.appendChild(indexEl);
 
-        var categoriesEl = document.createElement('div');
-        categoriesEl.className = 'picker-rating-categories';
+        var gridEl = document.createElement('div');
+        gridEl.className = 'picker-rating-grid';
 
         var categories = parseRatingCategories(raw);
         if (!categories.length) {
           var rawLine = document.createElement('div');
           rawLine.className = 'picker-rating-line picker-rating-line--raw';
           rawLine.textContent = raw || '—';
-          categoriesEl.appendChild(rawLine);
+          gridEl.classList.add('picker-rating-grid--empty');
+          gridEl.appendChild(rawLine);
         } else {
-          categories.forEach(function(category) {
-            var line = document.createElement('div');
-            line.className = 'picker-rating-line';
-
-            var labelEl = document.createElement('span');
-            labelEl.className = 'picker-rating-label';
-            labelEl.textContent = (category.label || 'Rating') + ':';
-            line.appendChild(labelEl);
-
-            if (category.score == null) {
-              line.classList.add('picker-rating-line--raw');
-              var rawEl = document.createElement('span');
-              rawEl.textContent = category.text || '—';
-              line.appendChild(rawEl);
-            } else {
-              var score = Math.max(0, Math.min(5, category.score));
-              var starsEl = document.createElement('span');
-              var colorClass = score < 3 ? 'picker-rating-stars--low'
-                : (score === 3 ? 'picker-rating-stars--mid' : 'picker-rating-stars--high');
-              starsEl.className = 'picker-rating-stars ' + colorClass;
-              starsEl.textContent = '★'.repeat(score) + '☆'.repeat(5 - score);
-              line.appendChild(starsEl);
-
-              var scoreEl = document.createElement('span');
-              scoreEl.className = 'picker-rating-score';
-              scoreEl.textContent = '(' + score + '/5)';
-              line.appendChild(scoreEl);
+          var normalized = Array.isArray(categories) ? categories.slice() : [];
+          for (var i = 0; i < normalized.length; i++) {
+            gridEl.appendChild(buildRatingCell(normalized[i]));
+          }
+          if (normalized.length % 5 !== 0) {
+            var placeholders = 5 - (normalized.length % 5);
+            if (placeholders < 5) {
+              for (var p = 0; p < placeholders; p++) {
+                gridEl.appendChild(buildRatingCell(null));
+              }
             }
-
-            categoriesEl.appendChild(line);
-          });
+          }
         }
 
-        itemEl.appendChild(categoriesEl);
+        itemEl.appendChild(gridEl);
         listEl.appendChild(itemEl);
       });
 
       cell.appendChild(listEl);
+
+      function buildRatingCell(category) {
+        var cellEl = document.createElement('div');
+        cellEl.className = 'picker-rating-grid-cell';
+
+        if (!category) {
+          cellEl.classList.add('picker-rating-grid-cell--empty');
+          cellEl.setAttribute('aria-hidden', 'true');
+          return cellEl;
+        }
+
+        var labelEl = document.createElement('div');
+        labelEl.className = 'picker-rating-grid-label';
+        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
+        cellEl.appendChild(labelEl);
+
+        if (category.score == null) {
+          var rawEl = document.createElement('div');
+          rawEl.className = 'picker-rating-line picker-rating-line--raw';
+          rawEl.textContent = category.text ? category.text : '—';
+          cellEl.appendChild(rawEl);
+          return cellEl;
+        }
+
+        var score = Math.max(0, Math.min(5, category.score));
+        var lineEl = document.createElement('div');
+        lineEl.className = 'picker-rating-stars-line';
+
+        var starsEl = document.createElement('span');
+        var colorClass = score < 3 ? 'picker-rating-stars--low'
+          : (score === 3 ? 'picker-rating-stars--mid' : 'picker-rating-stars--high');
+        starsEl.className = 'picker-rating-stars ' + colorClass;
+        starsEl.textContent = '★'.repeat(score) + '☆'.repeat(5 - score);
+        lineEl.appendChild(starsEl);
+
+        var scoreEl = document.createElement('span');
+        scoreEl.className = 'picker-rating-score';
+        scoreEl.textContent = '(' + score + '/5)';
+        lineEl.appendChild(scoreEl);
+
+        cellEl.appendChild(lineEl);
+        return cellEl;
+      }
     }
 
     function renderHistoryCell(cell, values, options) {
@@ -4827,17 +5029,35 @@ document.addEventListener('keydown', function(event) {
       }
     }
 
+    function createSubtitlePill(kind, label, value) {
+      var pill = document.createElement('span');
+      pill.className = 'picker-pill picker-pill--' + kind;
+      var labelEl = document.createElement('span');
+      labelEl.className = 'picker-pill-label';
+      labelEl.textContent = label;
+      var valueEl = document.createElement('span');
+      valueEl.className = 'picker-pill-value';
+      valueEl.textContent = value;
+      pill.appendChild(labelEl);
+      pill.appendChild(valueEl);
+      return pill;
+    }
+
     function updateSubtitle(projectOverride, teamOverride) {
       if (!subtitleEl) return;
       var proj = typeof projectOverride === 'string' ? projectOverride : currentContext.project;
       var team = typeof teamOverride === 'string' ? teamOverride : currentContext.team;
+      subtitleEl.innerHTML = '';
       if (!proj) {
+        subtitleEl.classList.add('beneficiary-picker-subtitle--empty');
         subtitleEl.textContent = 'Project not detected for this row.';
         return;
       }
-      var parts = ['Project: ' + proj];
-      parts.push('Team: ' + (team ? team : 'Unassigned'));
-      subtitleEl.textContent = parts.join(' • ');
+      subtitleEl.classList.remove('beneficiary-picker-subtitle--empty');
+      var fragment = document.createDocumentFragment();
+      fragment.appendChild(createSubtitlePill('project', 'Project', proj));
+      fragment.appendChild(createSubtitlePill('team', 'Team', team ? team : 'Unassigned'));
+      subtitleEl.appendChild(fragment);
     }
 
     function showEmpty(message) {
@@ -4967,54 +5187,79 @@ document.addEventListener('keydown', function(event) {
         indexEl.textContent = (idx + 1) + '.';
         itemEl.appendChild(indexEl);
 
-        var categoriesEl = document.createElement('div');
-        categoriesEl.className = 'picker-rating-categories';
+        var gridEl = document.createElement('div');
+        gridEl.className = 'picker-rating-grid';
 
         var categories = parseRatingCategories(raw);
         if (!categories.length) {
           var rawLine = document.createElement('div');
           rawLine.className = 'picker-rating-line picker-rating-line--raw';
           rawLine.textContent = raw || '—';
-          categoriesEl.appendChild(rawLine);
+          gridEl.classList.add('picker-rating-grid--empty');
+          gridEl.appendChild(rawLine);
         } else {
-          categories.forEach(function(category) {
-            var line = document.createElement('div');
-            line.className = 'picker-rating-line';
-
-            var labelEl = document.createElement('span');
-            labelEl.className = 'picker-rating-label';
-            labelEl.textContent = (category.label || 'Rating') + ':';
-            line.appendChild(labelEl);
-
-            if (category.score == null) {
-              line.classList.add('picker-rating-line--raw');
-              var rawEl = document.createElement('span');
-              rawEl.textContent = category.text || '—';
-              line.appendChild(rawEl);
-            } else {
-              var score = Math.max(0, Math.min(5, category.score));
-              var starsEl = document.createElement('span');
-              var colorClass = score < 3 ? 'picker-rating-stars--low'
-                : (score === 3 ? 'picker-rating-stars--mid' : 'picker-rating-stars--high');
-              starsEl.className = 'picker-rating-stars ' + colorClass;
-              starsEl.textContent = '★'.repeat(score) + '☆'.repeat(5 - score);
-              line.appendChild(starsEl);
-
-              var scoreEl = document.createElement('span');
-              scoreEl.className = 'picker-rating-score';
-              scoreEl.textContent = '(' + score + '/5)';
-              line.appendChild(scoreEl);
+          var normalized = Array.isArray(categories) ? categories.slice() : [];
+          for (var i = 0; i < normalized.length; i++) {
+            gridEl.appendChild(buildRatingCell(normalized[i]));
+          }
+          if (normalized.length % 5 !== 0) {
+            var placeholders = 5 - (normalized.length % 5);
+            if (placeholders < 5) {
+              for (var p = 0; p < placeholders; p++) {
+                gridEl.appendChild(buildRatingCell(null));
+              }
             }
-
-            categoriesEl.appendChild(line);
-          });
+          }
         }
 
-        itemEl.appendChild(categoriesEl);
+        itemEl.appendChild(gridEl);
         listEl.appendChild(itemEl);
       });
 
       cell.appendChild(listEl);
+
+      function buildRatingCell(category) {
+        var cellEl = document.createElement('div');
+        cellEl.className = 'picker-rating-grid-cell';
+
+        if (!category) {
+          cellEl.classList.add('picker-rating-grid-cell--empty');
+          cellEl.setAttribute('aria-hidden', 'true');
+          return cellEl;
+        }
+
+        var labelEl = document.createElement('div');
+        labelEl.className = 'picker-rating-grid-label';
+        labelEl.textContent = (category.label ? category.label : 'Rating') + ':';
+        cellEl.appendChild(labelEl);
+
+        if (category.score == null) {
+          var rawEl = document.createElement('div');
+          rawEl.className = 'picker-rating-line picker-rating-line--raw';
+          rawEl.textContent = category.text ? category.text : '—';
+          cellEl.appendChild(rawEl);
+          return cellEl;
+        }
+
+        var score = Math.max(0, Math.min(5, category.score));
+        var lineEl = document.createElement('div');
+        lineEl.className = 'picker-rating-stars-line';
+
+        var starsEl = document.createElement('span');
+        var colorClass = score < 3 ? 'picker-rating-stars--low'
+          : (score === 3 ? 'picker-rating-stars--mid' : 'picker-rating-stars--high');
+        starsEl.className = 'picker-rating-stars ' + colorClass;
+        starsEl.textContent = '★'.repeat(score) + '☆'.repeat(5 - score);
+        lineEl.appendChild(starsEl);
+
+        var scoreEl = document.createElement('span');
+        scoreEl.className = 'picker-rating-score';
+        scoreEl.textContent = '(' + score + '/5)';
+        lineEl.appendChild(scoreEl);
+
+        cellEl.appendChild(lineEl);
+        return cellEl;
+      }
     }
 
     function renderHistoryCell(cell, values, options) {
