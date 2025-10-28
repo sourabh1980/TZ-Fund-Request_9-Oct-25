@@ -3546,6 +3546,26 @@ document.addEventListener('keydown', function(event) {
       return container;
     }
 
+    var header = document.createElement('div');
+    header.className = 'idle-sidebar-header';
+
+    var nameHeader = document.createElement('span');
+    nameHeader.className = 'idle-sidebar-col idle-sidebar-col--name';
+    nameHeader.textContent = 'Beneficiary';
+    header.appendChild(nameHeader);
+
+    var designationHeader = document.createElement('span');
+    designationHeader.className = 'idle-sidebar-col idle-sidebar-col--designation';
+    designationHeader.textContent = 'Designation';
+    header.appendChild(designationHeader);
+
+    var idleHeader = document.createElement('span');
+    idleHeader.className = 'idle-sidebar-col idle-sidebar-col--idle';
+    idleHeader.textContent = 'Idle (days)';
+    header.appendChild(idleHeader);
+
+    container.appendChild(header);
+
     for (var i = 0; i < items.length; i++) {
       var item = items[i] || {};
       var row = document.createElement('div');
