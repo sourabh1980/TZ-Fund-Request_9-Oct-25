@@ -6583,6 +6583,18 @@ function _readDD_compact_() {
   const iTeam   = IX.get(['Team','Team Name']);
   const iAcct   = IX.get(['Account Holder Name','Account Holder']);
   const iUse    = IX.get(['In Use / release','In Use','In Use/Release']);
+  let iRemark = -1;
+  let iRating = -1;
+  try {
+    iRemark = IX.get(['Remarks', 'Remark', 'Comments']);
+  } catch (_e) {
+    iRemark = -1;
+  }
+  try {
+    iRating = IX.get(['Rating', 'Ratings', 'Overall Rating']);
+  } catch (_e) {
+    iRating = -1;
+  }
   let iNation = -1;
   try {
     iNation = IX.get(['Nationality', 'Country', 'Citizenship']);
@@ -6597,6 +6609,8 @@ function _readDD_compact_() {
   }
 
   const indices = [iName, iDesig, iDA, iProj, iTeam, iAcct, iUse];
+  if (iRemark >= 0) indices.push(iRemark);
+  if (iRating >= 0) indices.push(iRating);
   if (iNation >= 0) indices.push(iNation);
   if (iDateTime >= 0) indices.push(iDateTime);
   const minIdx = Math.min.apply(null, indices);
@@ -6621,6 +6635,8 @@ function _readDD_compact_() {
       team:        teamValue,
       account:     _norm(get(iAcct)),
       nationality: iNation >= 0 ? _norm(get(iNation)) : '',
+      remark: iRemark >= 0 ? _norm(get(iRemark)) : '',
+      rating: iRating >= 0 ? _norm(get(iRating)) : '',
       inuse:       _norm(get(iUse)),
       dateTime:    dateRaw,
       timestamp:   ts,
@@ -7457,7 +7473,6 @@ function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
     if (!Array.isArray(ddRows) || ddRows.length === 0) return [];
 
     const latestRows = _latestBeneficiaryEntries_(ddRows);
-    
     const rows = [];
     latestRows.forEach(function(entry) {
       const r = entry && entry.row;
@@ -7533,6 +7548,34 @@ function getReleasedBeneficiariesForInduction(targetProject, targetTeam) {
       return { ok: true, targetProject: project, targetTeam: team, total: 0, beneficiaries: [] };
     }
 
+    const releaseHistory = new Map();
+
+    ddRows.forEach(function(row, idx) {
+      if (!row || !row.beneficiaryKey) return;
+      if (_normStatus_(row.inuse) !== 'RELEASE') return;
+      const historyEntry = {
+        remark: row.remark || '',
+        rating: row.rating || '',
+        timestamp: Number.isFinite(row.timestamp) ? row.timestamp : 0,
+        sheetRow: idx + 2
+      };
+      const key = row.beneficiaryKey;
+      if (!releaseHistory.has(key)) {
+        releaseHistory.set(key, [historyEntry]);
+      } else {
+        releaseHistory.get(key).push(historyEntry);
+      }
+    });
+
+    releaseHistory.forEach(function(entries) {
+      entries.sort(function(a, b) {
+        if (b.timestamp !== a.timestamp) {
+          return b.timestamp - a.timestamp;
+        }
+        return b.sheetRow - a.sheetRow;
+      });
+    });
+
     const latestRows = _latestBeneficiaryEntries_(ddRows);
     const nowMs = Date.now();
     const dayMs = 24 * 60 * 60 * 1000;
@@ -7554,6 +7597,14 @@ function getReleasedBeneficiariesForInduction(targetProject, targetTeam) {
         }
       }
 
+      const history = releaseHistory.get(key) || [];
+      const lastRemarks = history.slice(0, 3).map(function(h) {
+        return h && h.remark ? h.remark : '';
+      });
+      const lastRatings = history.slice(0, 3).map(function(h) {
+        return h && h.rating ? h.rating : '';
+      });
+
       list.push({
         beneficiary: row.beneficiary || '',
         beneficiaryKey: key,
@@ -7565,7 +7616,9 @@ function getReleasedBeneficiariesForInduction(targetProject, targetTeam) {
         nationality: row.nationality || '',
         idleDays: idleDays,
         releasedAt: entry.timestamp ? new Date(entry.timestamp).toISOString() : '',
-        sheetRow: entry.sheetRow || 0
+        sheetRow: entry.sheetRow || 0,
+        lastReleaseRemarks: lastRemarks,
+        lastReleaseRatings: lastRatings
       });
     });
 

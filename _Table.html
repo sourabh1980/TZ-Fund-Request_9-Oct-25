@@ -585,6 +585,24 @@
   }
 </style>
 <script>
+function buildHistoryCell(values) {
+  var td = document.createElement('td');
+  td.className = 'history-cell';
+  if (Array.isArray(values) && values.length) {
+    var limited = values.slice(0, 3);
+    for (var i = 0; i < limited.length; i++) {
+      var raw = limited[i];
+      var text = raw == null || raw === '' ? '—' : String(raw);
+      var line = document.createElement('div');
+      line.textContent = text;
+      td.appendChild(line);
+    }
+  } else {
+    td.textContent = '—';
+  }
+  return td;
+}
+
 (function(){
   'use strict';
 
@@ -2562,6 +2580,21 @@ document.addEventListener('keydown', function(event) {
     color: #0f172a;
   }
 
+  .beneficiary-picker-table .history-col {
+    min-width: 160px;
+  }
+
+  .beneficiary-picker-table td.history-cell {
+    font-size: 12px;
+    color: #475569;
+    line-height: 1.4;
+    white-space: normal;
+  }
+
+  .beneficiary-picker-table td.history-cell div + div {
+    margin-top: 4px;
+  }
+
   .beneficiary-picker-empty {
     padding: 28px 16px;
     text-align: center;
@@ -2682,6 +2715,8 @@ document.addEventListener('keydown', function(event) {
               <th scope="col">Account Holder Name</th>
               <th scope="col" class="numeric">Idle since (days)</th>
               <th scope="col">Nationality</th>
+              <th scope="col" class="history-col">Last 3 Remarks</th>
+              <th scope="col" class="history-col">Last 3 Ratings</th>
             </tr>
           </thead>
           <tbody id="beneficiaryPickerRows"></tbody>
@@ -4024,6 +4059,9 @@ document.addEventListener('keydown', function(event) {
         tdNationality.textContent = item.nationality || '—';
         tr.appendChild(tdNationality);
 
+        tr.appendChild(buildHistoryCell(item.lastReleaseRemarks));
+        tr.appendChild(buildHistoryCell(item.lastReleaseRatings));
+
         rowsTbody.appendChild(tr);
       }
       updateSelectAllState();
@@ -4036,10 +4074,12 @@ document.addEventListener('keydown', function(event) {
       } else {
         filteredItems = allItems.filter(function(item) {
           if (!item) return false;
-          return [item.beneficiary, item.designation, item.project, item.team, item.accountHolder, item.nationality]
-            .some(function(part) {
-              return String(part || '').toLowerCase().indexOf(term) >= 0;
-            });
+          var parts = [item.beneficiary, item.designation, item.project, item.team, item.accountHolder, item.nationality];
+          if (Array.isArray(item.lastReleaseRemarks)) parts = parts.concat(item.lastReleaseRemarks);
+          if (Array.isArray(item.lastReleaseRatings)) parts = parts.concat(item.lastReleaseRatings);
+          return parts.some(function(part) {
+            return String(part || '').toLowerCase().indexOf(term) >= 0;
+          });
         });
       }
       renderRows(filteredItems);
@@ -4684,6 +4724,9 @@ document.addEventListener('keydown', function(event) {
         tdNationality.textContent = item.nationality || '—';
         tr.appendChild(tdNationality);
 
+        tr.appendChild(buildHistoryCell(item.lastReleaseRemarks));
+        tr.appendChild(buildHistoryCell(item.lastReleaseRatings));
+
         rowsTbody.appendChild(tr);
       }
       updateSelectAllState();
@@ -4696,10 +4739,12 @@ document.addEventListener('keydown', function(event) {
       } else {
         filteredItems = allItems.filter(function(item) {
           if (!item) return false;
-          return [item.beneficiary, item.designation, item.project, item.team, item.accountHolder, item.nationality]
-            .some(function(part) {
-              return String(part || '').toLowerCase().indexOf(term) >= 0;
-            });
+          var parts = [item.beneficiary, item.designation, item.project, item.team, item.accountHolder, item.nationality];
+          if (Array.isArray(item.lastReleaseRemarks)) parts = parts.concat(item.lastReleaseRemarks);
+          if (Array.isArray(item.lastReleaseRatings)) parts = parts.concat(item.lastReleaseRatings);
+          return parts.some(function(part) {
+            return String(part || '').toLowerCase().indexOf(term) >= 0;
+          });
         });
       }
       renderRows(filteredItems);
