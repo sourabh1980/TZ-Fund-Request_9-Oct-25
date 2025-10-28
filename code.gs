@@ -6556,7 +6556,7 @@ function debugProjectTeams() {
  */
 function _readDD_compact_() {
   const cache = CacheService.getScriptCache();
-  const key = 'DD_COMPACT_V3_' + _cacheVersion_();
+  const key = 'DD_COMPACT_V4_' + _cacheVersion_();
   try {
     const cached = cache.get(key);
     if (cached) return JSON.parse(cached);
@@ -6617,7 +6617,17 @@ function _readDD_compact_() {
   const maxIdx = Math.max.apply(null, indices);
   const width  = maxIdx - minIdx + 1;
 
-  const shBody = sh.getRange(2, minIdx + 1, lastRow - 1, width).getValues();
+  const bodyRowCount = lastRow - 1;
+  const shBody = sh.getRange(2, minIdx + 1, bodyRowCount, width).getValues();
+  let reviewColumnValues = null;
+  if (lastCol >= 11 && bodyRowCount > 0) {
+    try {
+      reviewColumnValues = sh.getRange(2, 11, bodyRowCount, 1).getDisplayValues();
+    } catch (err) {
+      console.warn('Failed to read DD column K (Review):', err);
+      reviewColumnValues = null;
+    }
+  }
 
   const out = new Array(shBody.length);
   for (let r = 0; r < shBody.length; r++) {
@@ -6627,6 +6637,12 @@ function _readDD_compact_() {
     const teamValue = _norm(get(iTeam));
     const dateRaw = iDateTime >= 0 ? get(iDateTime) : '';
     const ts = iDateTime >= 0 ? _parseTs_(dateRaw) : 0;
+    const remarksRaw = iRemarks >= 0 ? get(iRemarks) : '';
+    const remarksText = remarksRaw == null ? '' : String(remarksRaw).trim();
+    const reviewRaw = reviewColumnValues && reviewColumnValues[r] ? reviewColumnValues[r][0] : '';
+    const reviewText = reviewRaw == null ? '' : String(reviewRaw).trim();
+    const preferredReview = reviewText !== '' ? reviewText : remarksText;
+
     out[r] = {
       beneficiary: beneficiaryValue,
       designation: _norm(get(iDesig)),
@@ -6636,7 +6652,9 @@ function _readDD_compact_() {
       account:     _norm(get(iAcct)),
       nationality: iNation >= 0 ? _norm(get(iNation)) : '',
       inuse:       _norm(get(iUse)),
-      releaseRemarks: iRemarks >= 0 ? String(get(iRemarks) == null ? '' : get(iRemarks)).trim() : '',
+      releaseReview: preferredReview,
+      releaseRemarks: preferredReview,
+      releaseRemarksSource: reviewText !== '' ? 'DD!K' : (remarksText !== '' ? 'remarks' : ''),
       releaseRating:  iRating >= 0 ? String(get(iRating) == null ? '' : get(iRating)).trim() : '',
       dateTime:    dateRaw,
       timestamp:   ts,
@@ -7464,10 +7482,12 @@ function _collectReleaseHistory_(ddRows, limit) {
     const key = row.beneficiaryKey;
     const tsValue = Number(row.timestamp);
     const ts = Number.isFinite(tsValue) ? tsValue : 0;
+    const reviewStr = row && row.releaseReview != null ? String(row.releaseReview).trim() : '';
+    const fallbackRemark = typeof row.releaseRemarks === 'string' ? row.releaseRemarks : (row && row.remarks ? String(row.remarks).trim() : '');
     const entry = {
       timestamp: ts,
       sheetRow: idx + 2,
-      remarks: typeof row.releaseRemarks === 'string' ? row.releaseRemarks : (row.remarks || ''),
+      remarks: reviewStr || fallbackRemark,
       rating: row.releaseRating != null ? String(row.releaseRating).trim() : ''
     };
 
