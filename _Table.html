@@ -3499,6 +3499,128 @@ document.addEventListener('keydown', function(event) {
     return name + suffix;
   }
 
+  function getCachedReleasedBeneficiaries() {
+    if (window.FRTZ && Array.isArray(window.FRTZ.latestReleasedBeneficiaries)) {
+      return window.FRTZ.latestReleasedBeneficiaries.slice();
+    }
+    return [];
+  }
+
+  function looksLikeIdleSidebarHeader(entry) {
+    if (!entry || typeof entry !== 'object') {
+      return false;
+    }
+
+    var beneficiary = (entry.beneficiary || '').toString().trim().toLowerCase();
+    if (beneficiary !== 'beneficiary') {
+      return false;
+    }
+
+    var designation = (entry.designation || '').toString().trim().toLowerCase();
+    if (designation && designation !== 'designation') {
+      return false;
+    }
+
+    var rawIdle = entry.idleDays;
+    if (rawIdle == null) {
+      return true;
+    }
+
+    var idleText = rawIdle;
+    if (typeof idleText === 'number') {
+      return false;
+    }
+
+    idleText = idleText.toString().trim().toLowerCase();
+    return !idleText || idleText === 'idle (days)' || idleText === 'idle days';
+  }
+
+  function prepareTopIdleBeneficiaries(list) {
+    if (!Array.isArray(list)) {
+      return [];
+    }
+
+    var filtered = list.filter(function(entry) {
+      return !looksLikeIdleSidebarHeader(entry);
+    });
+
+    var sorted = filtered.slice().sort(function(a, b) {
+      var aIdle = (a && typeof a.idleDays === 'number' && isFinite(a.idleDays)) ? a.idleDays : -1;
+      var bIdle = (b && typeof b.idleDays === 'number' && isFinite(b.idleDays)) ? b.idleDays : -1;
+      if (bIdle !== aIdle) return bIdle - aIdle;
+      var aName = a && a.beneficiary ? a.beneficiary : '';
+      var bName = b && b.beneficiary ? b.beneficiary : '';
+      return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+    });
+
+    var top = [];
+    for (var i = 0; i < sorted.length && top.length < 10; i++) {
+      var entry = sorted[i] || {};
+      top.push({
+        beneficiary: entry.beneficiary || '',
+        designation: entry.designation || '',
+        idleDays: (typeof entry.idleDays === 'number' && isFinite(entry.idleDays) && entry.idleDays >= 0)
+          ? entry.idleDays
+          : null
+      });
+    }
+    return top;
+  }
+
+  function buildIdleBeneficiarySidebar(items) {
+    var container = document.createElement('div');
+    container.className = 'idle-sidebar';
+
+    if (!Array.isArray(items) || !items.length) {
+      var empty = document.createElement('p');
+      empty.className = 'idle-sidebar-empty';
+      empty.textContent = 'No idle beneficiaries to display.';
+      container.appendChild(empty);
+      return container;
+    }
+
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i] || {};
+      var row = document.createElement('div');
+      row.className = 'idle-sidebar-row';
+      if (i % 2 === 1) {
+        row.classList.add('idle-sidebar-row--alt');
+      }
+
+      var nameCol = document.createElement('span');
+      nameCol.className = 'idle-sidebar-col idle-sidebar-col--name';
+      var rank = document.createElement('span');
+      rank.className = 'idle-sidebar-rank';
+      rank.textContent = (i + 1) + '.';
+      nameCol.appendChild(rank);
+      var nameText = document.createElement('span');
+      nameText.textContent = item.beneficiary || '—';
+      nameCol.appendChild(nameText);
+      row.appendChild(nameCol);
+
+      var designationCol = document.createElement('span');
+      designationCol.className = 'idle-sidebar-col idle-sidebar-col--designation';
+      designationCol.textContent = item.designation ? item.designation : '—';
+      row.appendChild(designationCol);
+
+      var idleCol = document.createElement('span');
+      idleCol.className = 'idle-sidebar-col idle-sidebar-col--idle';
+      idleCol.textContent = (typeof item.idleDays === 'number' && item.idleDays >= 0)
+        ? String(item.idleDays)
+        : '—';
+      row.appendChild(idleCol);
+
+      container.appendChild(row);
+    }
+
+    return container;
+  }
+
+  window.FRTZ = window.FRTZ || {};
+  if (!Array.isArray(window.FRTZ.latestReleasedBeneficiaries)) {
+    window.FRTZ.latestReleasedBeneficiaries = [];
+  }
+
   function promptReactivateRow(row, context, totalText) {
     if (!row) return;
     var subject = describeBeneficiaryAction(context);
@@ -3542,10 +3664,9 @@ document.addEventListener('keydown', function(event) {
     }
 
     var subject = describeBeneficiaryAction(context);
-    var totalLabel = totalText && totalText.trim() ? totalText.trim() : '0.00';
     var message = (subject && subject !== 'this beneficiary')
-      ? 'Row total is ' + totalLabel + '. What would you like to do with ' + subject + '?'
-      : 'Row total is ' + totalLabel + '. What would you like to do with this beneficiary?';
+      ? 'What would you like to do with ' + subject + '?'
+      : 'What would you like to do with this beneficiary?';
 
     var existingCount = null;
     if (window.FRTZ) {
@@ -3558,8 +3679,12 @@ document.addEventListener('keydown', function(event) {
     existingCount = coerceCount(existingCount);
 
     var confirmationPromise = showConfirmationModal({
-      title: 'Deactivate or release beneficiary?',
+      title: 'Deactivate or Release or Add Beneficiary?',
       message: message,
+      centerButtons: true,
+      sidebar: function() {
+        return buildIdleBeneficiarySidebar(prepareTopIdleBeneficiaries(getCachedReleasedBeneficiaries()));
+      },
       buttons: [
         { text: 'Deactivate', value: 'deactivate', role: 'destructive', variant: 'destructive', feedback: false },
         { text: 'Release', value: 'release', role: 'confirm', variant: 'primary', feedback: true, successText: '✓ Continue' },
@@ -3581,7 +3706,26 @@ document.addEventListener('keydown', function(event) {
     }, 0);
 
     if (window.FRTZ && typeof window.FRTZ.refreshReleasedBeneficiaryCount === 'function') {
-      window.FRTZ.refreshReleasedBeneficiaryCount(context.project, context.team);
+      try {
+        var refreshPromise = window.FRTZ.refreshReleasedBeneficiaryCount(context.project, context.team);
+        if (refreshPromise && typeof refreshPromise.then === 'function') {
+          refreshPromise.then(function(res) {
+            var sourceList = (res && Array.isArray(res.beneficiaries))
+              ? res.beneficiaries
+              : getCachedReleasedBeneficiaries();
+            var topIdle = prepareTopIdleBeneficiaries(sourceList);
+            if (typeof window.updateConfirmationSidebar === 'function') {
+              window.updateConfirmationSidebar(function() {
+                return buildIdleBeneficiarySidebar(topIdle);
+              });
+            }
+          }).catch(function(err) {
+            console.error('refreshReleasedBeneficiaryCount update failed', err);
+          });
+        }
+      } catch (err) {
+        console.error('refreshReleasedBeneficiaryCount invocation failed', err);
+      }
     }
 
     var cleanupWatcher = function() {
@@ -4115,8 +4259,15 @@ document.addEventListener('keydown', function(event) {
                 ? res.total
                 : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
               setReleasedCount(total);
+              window.FRTZ = window.FRTZ || {};
+              window.FRTZ.latestReleasedBeneficiaries = Array.isArray(res.beneficiaries)
+                ? res.beneficiaries.slice()
+                : [];
             } else {
               setReleasedCount(null);
+              if (window.FRTZ) {
+                window.FRTZ.latestReleasedBeneficiaries = [];
+              }
             }
             resolve(res || null);
           })
@@ -4124,6 +4275,9 @@ document.addEventListener('keydown', function(event) {
             inflightCountPromise = null;
             console.error('refreshReleasedBeneficiaryCount failed:', err);
             setReleasedCount(null);
+            if (window.FRTZ) {
+              window.FRTZ.latestReleasedBeneficiaries = [];
+            }
             resolve(null);
           })
           .getReleasedBeneficiariesForInduction(project, team);
@@ -5001,8 +5155,15 @@ document.addEventListener('keydown', function(event) {
                 ? res.total
                 : (Array.isArray(res.beneficiaries) ? res.beneficiaries.length : null);
               setReleasedCount(total);
+              window.FRTZ = window.FRTZ || {};
+              window.FRTZ.latestReleasedBeneficiaries = Array.isArray(res.beneficiaries)
+                ? res.beneficiaries.slice()
+                : [];
             } else {
               setReleasedCount(null);
+              if (window.FRTZ) {
+                window.FRTZ.latestReleasedBeneficiaries = [];
+              }
             }
             resolve(res || null);
           })
@@ -5010,6 +5171,9 @@ document.addEventListener('keydown', function(event) {
             inflightCountPromise = null;
             console.error('refreshReleasedBeneficiaryCount failed:', err);
             setReleasedCount(null);
+            if (window.FRTZ) {
+              window.FRTZ.latestReleasedBeneficiaries = [];
+            }
             resolve(null);
           })
           .getReleasedBeneficiariesForInduction(project, team);
