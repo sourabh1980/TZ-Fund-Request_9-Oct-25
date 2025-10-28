@@ -3506,45 +3506,12 @@ document.addEventListener('keydown', function(event) {
     return [];
   }
 
-  function looksLikeIdleSidebarHeader(entry) {
-    if (!entry || typeof entry !== 'object') {
-      return false;
-    }
-
-    var beneficiary = (entry.beneficiary || '').toString().trim().toLowerCase();
-    if (beneficiary !== 'beneficiary') {
-      return false;
-    }
-
-    var designation = (entry.designation || '').toString().trim().toLowerCase();
-    if (designation && designation !== 'designation') {
-      return false;
-    }
-
-    var rawIdle = entry.idleDays;
-    if (rawIdle == null) {
-      return true;
-    }
-
-    var idleText = rawIdle;
-    if (typeof idleText === 'number') {
-      return false;
-    }
-
-    idleText = idleText.toString().trim().toLowerCase();
-    return !idleText || idleText === 'idle (days)' || idleText === 'idle days';
-  }
-
   function prepareTopIdleBeneficiaries(list) {
     if (!Array.isArray(list)) {
       return [];
     }
 
-    var filtered = list.filter(function(entry) {
-      return !looksLikeIdleSidebarHeader(entry);
-    });
-
-    var sorted = filtered.slice().sort(function(a, b) {
+    var sorted = list.slice().sort(function(a, b) {
       var aIdle = (a && typeof a.idleDays === 'number' && isFinite(a.idleDays)) ? a.idleDays : -1;
       var bIdle = (b && typeof b.idleDays === 'number' && isFinite(b.idleDays)) ? b.idleDays : -1;
       if (bIdle !== aIdle) return bIdle - aIdle;
@@ -3578,6 +3545,26 @@ document.addEventListener('keydown', function(event) {
       container.appendChild(empty);
       return container;
     }
+
+    var header = document.createElement('div');
+    header.className = 'idle-sidebar-header';
+
+    var nameHeader = document.createElement('span');
+    nameHeader.className = 'idle-sidebar-col idle-sidebar-col--name';
+    nameHeader.textContent = 'Beneficiary';
+    header.appendChild(nameHeader);
+
+    var designationHeader = document.createElement('span');
+    designationHeader.className = 'idle-sidebar-col idle-sidebar-col--designation';
+    designationHeader.textContent = 'Designation';
+    header.appendChild(designationHeader);
+
+    var idleHeader = document.createElement('span');
+    idleHeader.className = 'idle-sidebar-col idle-sidebar-col--idle';
+    idleHeader.textContent = 'Idle (days)';
+    header.appendChild(idleHeader);
+
+    container.appendChild(header);
 
     for (var i = 0; i < items.length; i++) {
       var item = items[i] || {};
