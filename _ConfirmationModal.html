@@ -236,25 +236,24 @@
     gap: 12px;
   }
 
-  .idle-sidebar-header {
+  .idle-sidebar-header,
+  .idle-sidebar-row {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(70px, auto);
+    grid-template-columns: 1fr 1fr minmax(68px, auto);
     gap: 12px;
-    align-items: flex-start;
+    align-items: center;
+  }
+
+  .idle-sidebar-header {
     font-size: 12px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #4a5568;
     opacity: 0.9;
-    line-height: 1.4;
   }
 
   .idle-sidebar-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(70px, auto);
-    gap: 12px;
-    align-items: center;
     font-size: 14px;
     color: #2d3748;
     padding: 10px 12px;
@@ -278,11 +277,6 @@
     align-items: center;
     gap: 6px;
     min-width: 0;
-  }
-
-  .idle-sidebar-header .idle-sidebar-col {
-    display: block;
-    line-height: 1.4;
   }
 
   .idle-sidebar-col--name {
