@@ -3506,12 +3506,86 @@ document.addEventListener('keydown', function(event) {
     return [];
   }
 
+  var IDLE_HEADER_LABELS = (function() {
+    var normalize = function(value) {
+      return value.toString().trim().replace(/\s+/g, ' ').toLowerCase();
+    };
+
+    var makeSet = function(values) {
+      var map = Object.create(null);
+      for (var i = 0; i < values.length; i++) {
+        map[normalize(values[i])] = true;
+      }
+      return {
+        has: function(value) {
+          if (value == null) return false;
+          return !!map[normalize(String(value))];
+        }
+      };
+    };
+
+    return {
+      beneficiary: makeSet(['beneficiary', 'beneficiary name', 'name of beneficiary']),
+      designation: makeSet(['designation', 'resource designation', 'designation/title']),
+      idle: makeSet(['idle (days)', 'idle days', 'idle since (days)', 'idle since days', 'idle'])
+    };
+  })();
+
+  function looksLikeIdleSidebarHeader(entry) {
+    if (!entry || typeof entry !== 'object') {
+      return false;
+    }
+
+    if (!IDLE_HEADER_LABELS.beneficiary.has(entry.beneficiary)) {
+      return false;
+    }
+
+    if (entry.designation && !IDLE_HEADER_LABELS.designation.has(entry.designation)) {
+      return false;
+    }
+
+    var rawIdle = entry.idleDays;
+    if (rawIdle == null) {
+      return true;
+    }
+
+    if (typeof rawIdle === 'number') {
+      return false;
+    }
+
+    if (!IDLE_HEADER_LABELS.idle.has(rawIdle)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  function looksLikeIdleSidebarHeaderTexts(name, designation, idle) {
+    if (!IDLE_HEADER_LABELS.beneficiary.has(name)) {
+      return false;
+    }
+
+    if (designation && !IDLE_HEADER_LABELS.designation.has(designation)) {
+      return false;
+    }
+
+    if (idle && !IDLE_HEADER_LABELS.idle.has(idle)) {
+      return false;
+    }
+
+    return true;
+  }
+
   function prepareTopIdleBeneficiaries(list) {
     if (!Array.isArray(list)) {
       return [];
     }
 
-    var sorted = list.slice().sort(function(a, b) {
+    var filtered = list.filter(function(entry) {
+      return !looksLikeIdleSidebarHeader(entry);
+    });
+
+    var sorted = filtered.slice().sort(function(a, b) {
       var aIdle = (a && typeof a.idleDays === 'number' && isFinite(a.idleDays)) ? a.idleDays : -1;
       var bIdle = (b && typeof b.idleDays === 'number' && isFinite(b.idleDays)) ? b.idleDays : -1;
       if (bIdle !== aIdle) return bIdle - aIdle;
@@ -3546,31 +3620,22 @@ document.addEventListener('keydown', function(event) {
       return container;
     }
 
-    var header = document.createElement('div');
-    header.className = 'idle-sidebar-header';
-
-    var nameHeader = document.createElement('span');
-    nameHeader.className = 'idle-sidebar-col idle-sidebar-col--name';
-    nameHeader.textContent = 'Beneficiary';
-    header.appendChild(nameHeader);
-
-    var designationHeader = document.createElement('span');
-    designationHeader.className = 'idle-sidebar-col idle-sidebar-col--designation';
-    designationHeader.textContent = 'Designation';
-    header.appendChild(designationHeader);
-
-    var idleHeader = document.createElement('span');
-    idleHeader.className = 'idle-sidebar-col idle-sidebar-col--idle';
-    idleHeader.textContent = 'Idle (days)';
-    header.appendChild(idleHeader);
-
-    container.appendChild(header);
-
     for (var i = 0; i < items.length; i++) {
       var item = items[i] || {};
+      var nameTextValue = (item.beneficiary || '').toString().trim();
+      var designationTextValue = (item.designation || '').toString().trim();
+      var idleTextValue = (typeof item.idleDays === 'number' && item.idleDays >= 0)
+        ? String(item.idleDays)
+        : (item.idleDays == null ? '' : String(item.idleDays));
+
+      if (looksLikeIdleSidebarHeaderTexts(nameTextValue, designationTextValue, idleTextValue)) {
+        continue;
+      }
+
+      var appendedCount = container.children.length;
       var row = document.createElement('div');
       row.className = 'idle-sidebar-row';
-      if (i % 2 === 1) {
+      if (appendedCount % 2 === 1) {
         row.classList.add('idle-sidebar-row--alt');
       }
 
@@ -3578,23 +3643,23 @@ document.addEventListener('keydown', function(event) {
       nameCol.className = 'idle-sidebar-col idle-sidebar-col--name';
       var rank = document.createElement('span');
       rank.className = 'idle-sidebar-rank';
-      rank.textContent = (i + 1) + '.';
+      rank.textContent = (appendedCount + 1) + '.';
       nameCol.appendChild(rank);
       var nameText = document.createElement('span');
-      nameText.textContent = item.beneficiary || '—';
+      nameText.textContent = nameTextValue || '—';
       nameCol.appendChild(nameText);
       row.appendChild(nameCol);
 
       var designationCol = document.createElement('span');
       designationCol.className = 'idle-sidebar-col idle-sidebar-col--designation';
-      designationCol.textContent = item.designation ? item.designation : '—';
+      designationCol.textContent = designationTextValue ? designationTextValue : '—';
       row.appendChild(designationCol);
 
       var idleCol = document.createElement('span');
       idleCol.className = 'idle-sidebar-col idle-sidebar-col--idle';
       idleCol.textContent = (typeof item.idleDays === 'number' && item.idleDays >= 0)
         ? String(item.idleDays)
-        : '—';
+        : (idleTextValue ? idleTextValue : '—');
       row.appendChild(idleCol);
 
       container.appendChild(row);
