@@ -140,7 +140,7 @@
         <div class="cell"><input class="txt" placeholder="0XXXXXXXXX" /></div>
         <div class="cell"><input class="txt" placeholder="Display Name" /></div>
         <div class="cell"><input class="amt" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="wh" /></div>
-        <div class="cell"><input class="txt" placeholder="Remarks" /></div>
+        <div class="cell"><input class="txt remarks-input" placeholder="Remarks" /></div>
       </div>
     </div>
     
@@ -163,7 +163,7 @@
         <div class="cell"><input class="txt" placeholder="0XXXXXXXXX" /></div>
         <div class="cell"><input class="txt" placeholder="Display Name" /></div>
         <div class="cell"><input class="amt" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="wh" /></div>
-        <div class="cell"><input class="txt" placeholder="Remarks" /></div>
+        <div class="cell"><input class="txt remarks-input" placeholder="Remarks" /></div>
       </div>
     </div>
     
@@ -185,7 +185,7 @@
         <div class="cell"><input class="txt" placeholder="0XXXXXXXXX" /></div>
         <div class="cell"><input class="txt" placeholder="Display Name" /></div>
         <div class="cell"><input class="amt" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="wh" /></div>
-        <div class="cell"><input class="txt" placeholder="Remarks" /></div>
+        <div class="cell"><input class="txt remarks-input" placeholder="Remarks" /></div>
       </div>
     </div>
     
@@ -208,7 +208,7 @@
         <div class="cell"><input class="txt" placeholder="0XXXXXXXXX" /></div>
         <div class="cell"><input class="txt" placeholder="Display Name" /></div>
         <div class="cell"><input class="amt" placeholder="0.00" autocomplete="off" inputmode="decimal" data-field="wh" /></div>
-        <div class="cell"><input class="txt" placeholder="Remarks" /></div>
+        <div class="cell"><input class="txt remarks-input" placeholder="Remarks" /></div>
       </div>
     </div>
   </div>
@@ -1894,12 +1894,10 @@ document.addEventListener('keydown', function(event) {
     --c11:88px;   /* Mob No */
     --c12:132px;  /* Display Name */
     --c13:100px;  /* W/H Charges (shifted right) */
-    --c14:90px;   /* (spare) */
-    --c15:132px;  /* (spare) */
-    --c16:148px;  /* Remarks */
+    --c14:clamp(440px, 52vw, 720px);  /* Remarks (expanded for long text) */
 
     /* RECOMPOSE to ensure children pick up local values */
-    --table-cols: var(--c1) var(--c2) var(--c3) var(--c4) var(--c5) var(--c6) var(--c7) var(--c8) var(--c9) var(--c10) var(--c11) var(--c12) var(--c13) var(--c14) var(--c15) var(--c16);
+    --table-cols: var(--c1) var(--c2) var(--c3) var(--c4) var(--c5) var(--c6) var(--c7) var(--c8) var(--c9) var(--c10) var(--c11) var(--c12) var(--c13) var(--c14);
   }
 
   /* 1) Transport headers gradient (match Transport card) */
@@ -1932,6 +1930,30 @@ document.addEventListener('keydown', function(event) {
   /* Larger digits for editable amount inputs; keep Row Total slightly smaller */
   .tbody .cell input.amt:not([readonly]){ font-size:13px !important; }
   .tbody .cell input.amt[readonly]{ font-size:12px !important; font-weight:900; }
+
+  .table-wrap .thead .th:nth-child(14),
+  .table-wrap .tbody .cells > .cell:nth-child(14){
+    min-width: clamp(440px, 48vw, 700px) !important;
+  }
+
+  .table-wrap .tbody .cells > .cell:nth-child(14){
+    overflow: visible !important;
+  }
+
+  .table-wrap .tbody .cell .txt.remarks-input,
+  .table-wrap .tbody .cells > .cell:nth-child(14) .txt{
+    width: 100%;
+    height: 22px !important;
+    line-height: 22px !important;
+    padding: 0 18px !important;
+    border-radius: 999px !important;
+    font-size: 12px !important;
+    transform: scaleY(1.35);
+    transform-origin: center;
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
+    position: relative;
+    z-index: 1;
+  }
   
   /* Vertical alignment for Name of Beneficiary, Account Holder, Row Total, and Designation cells */
   .tbody .cell:nth-child(1),  /* Name of Beneficiary */
