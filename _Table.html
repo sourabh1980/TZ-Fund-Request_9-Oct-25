@@ -2981,20 +2981,30 @@ document.addEventListener('keydown', function(event) {
 
 <script>
 (function(){
-  const isMobInput = (el)=>{
-    if(!el || el.tagName !== 'INPUT') return false;
-    if (el.dataset && el.dataset.field && el.dataset.field.toLowerCase() === 'mob') return true;
+  const INPUT_TYPES = { MOB: 'mob', DISPLAY: 'display' };
+
+  function getMobChangeType(el){
+    if(!el || el.tagName !== 'INPUT') return null;
+    const datasetField = el.dataset && el.dataset.field ? el.dataset.field.toLowerCase() : '';
+    if(datasetField === 'mob') return INPUT_TYPES.MOB;
+    if(datasetField === 'display') return INPUT_TYPES.DISPLAY;
     const ph = (el.getAttribute('placeholder')||'').toLowerCase();
-    return ph.includes('0xxxx') || ph.includes('0xxxxxxxxx') || ph.includes('mob');
-  };
+    if(ph.includes('display name')) return INPUT_TYPES.DISPLAY;
+    if(ph.includes('0xxxx') || ph.includes('0xxxxxxxxx') || ph.includes('mob')) return INPUT_TYPES.MOB;
+    return null;
+  }
+
+  const isMobInput = (el)=>getMobChangeType(el) === INPUT_TYPES.MOB;
+  const isDisplayInput = (el)=>getMobChangeType(el) === INPUT_TYPES.DISPLAY;
 
   const mobPattern = /^0\d{8}$/; // 9 digits total, starting with 0
 
   let mobFlowActive = false;
 
-  function markMobInputs(){
+  function markMobChangeInputs(){
     document.querySelectorAll('.tbody input').forEach(inp=>{
-      if(!isMobInput(inp)) return;
+      const type = getMobChangeType(inp);
+      if(!type) return;
       if(!inp.dataset.mobPrepared){
         inp.dataset.mobPrepared = '1';
         inp.setAttribute('title', 'Click to change the Mobile Money Number');
@@ -3004,12 +3014,24 @@ document.addEventListener('keydown', function(event) {
     });
   }
 
+  function findInputOfType(row, type){
+    if(!row) return null;
+    const inputs = row.querySelectorAll('input');
+    for(const candidate of inputs){
+      if(getMobChangeType(candidate) === type) return candidate;
+    }
+    return null;
+  }
+
   function beginMobChangeFlow(inp){
-    if(!inp || mobFlowActive) return;
+    if(!inp || mobFlowActive || !getMobChangeType(inp)) return;
     mobFlowActive = true;
     const row = inp.closest('.row-data');
     const accHolder = row ? (row.querySelector('.account-holder-input')?.value || '') : '';
-    const mobNow = (inp.value || '').trim();
+    const mobInput = findInputOfType(row, INPUT_TYPES.MOB) || (isMobInput(inp) ? inp : null);
+    const displayInput = findInputOfType(row, INPUT_TYPES.DISPLAY) || (isDisplayInput(inp) ? inp : null);
+    const mobNow = mobInput ? (mobInput.value || '').trim() : '';
+    const displayNow = displayInput ? (displayInput.value || '').trim() : '';
 
     const finish = ()=>{ mobFlowActive = false; };
 
@@ -3021,7 +3043,7 @@ document.addEventListener('keydown', function(event) {
       if(!confirmed){ finish(); return; }
       pickChangeType().then(type=>{
         if(!type){ finish(); return; }
-        openOpsEntry({ type, accHolder, mobNow, row, input: inp })
+        openOpsEntry({ type, accHolder, mobNow, displayNow, row, mobInput, displayInput })
           .then(()=>finish())
           .catch(()=>finish());
       }).catch(()=>finish());
@@ -3030,23 +3052,23 @@ document.addEventListener('keydown', function(event) {
 
   document.addEventListener('click', (e)=>{
     const inp = e.target.closest('input');
-    if(!isMobInput(inp) || !inp.closest('.tbody')) return;
+    if(!inp || !getMobChangeType(inp) || !inp.closest('.tbody')) return;
     e.preventDefault();
     beginMobChangeFlow(inp);
   });
 
   document.addEventListener('keydown', (e)=>{
-    if((e.key === 'Enter' || e.key === ' ') && isMobInput(e.target) && e.target.closest('.tbody')){
+    if((e.key === 'Enter' || e.key === ' ') && getMobChangeType(e.target) && e.target.closest('.tbody')){
       e.preventDefault();
       beginMobChangeFlow(e.target);
     }
   });
 
   function initMobFlow(){
-    markMobInputs();
+    markMobChangeInputs();
     const tbody = document.getElementById('tbody');
     if(!tbody) return;
-    const observer = new MutationObserver(()=>{ markMobInputs(); });
+    const observer = new MutationObserver(()=>{ markMobChangeInputs(); });
     observer.observe(tbody, { childList:true, subtree:true });
   }
 
@@ -3134,7 +3156,7 @@ document.addEventListener('keydown', function(event) {
       // Prefill
       acc.value = ctx.accHolder || '';
       mob.value = ctx.mobNow || '';
-      disp.value = '';
+      disp.value = ctx.displayNow || '';
       req.value = '';
 
       // Initial loading state
@@ -3188,8 +3210,9 @@ document.addEventListener('keydown', function(event) {
       function onSubmit(){
         if(submitting || btnSubmit.disabled) return;
         const vMob = mob.value.trim();
+        const vDisp = disp.value.trim();
         if(!mobPattern.test(vMob)){ alert('Invalid Mobile Number. It must start with 0 and be exactly 9 digits.'); return; }
-        if(!disp.value.trim()){ alert('Please enter a Display Name.'); return; }
+        if(!vDisp){ alert('Please enter a Display Name.'); return; }
         if(!opr.value){ alert('Please select an Operator.'); return; }
 
         const msg = ctx.type === 'Permanent' ? 'Submit to Ops_P?' : 'Submit to Ops_T?';
@@ -3207,7 +3230,8 @@ document.addEventListener('keydown', function(event) {
               .withSuccessHandler(function(res){
                 btnSubmit.disabled = false; btnSubmit.textContent = prevText; submitting = false;
                 if(res && res.ok){
-                  if(ctx.input){ ctx.input.value = vMob; }
+                  if(ctx.mobInput){ ctx.mobInput.value = vMob; }
+                  if(ctx.displayInput){ ctx.displayInput.value = vDisp; }
                   close();
                   settle(true);
                 }
@@ -3217,7 +3241,7 @@ document.addEventListener('keydown', function(event) {
                 btnSubmit.disabled = false; btnSubmit.textContent = prevText; submitting = false;
                 alert('Save failed: ' + (err && err.message ? err.message : err));
               })
-              .saveOpsChange({ type: ctx.type, accountHolder: acc.value, mobNo: vMob, displayName: disp.value.trim(), operator: opr.value });
+              .saveOpsChange({ type: ctx.type, accountHolder: acc.value, mobNo: vMob, displayName: vDisp, operator: opr.value });
           }catch(err){ alert('Save failed. Please try again.'); submitting = false; }
         });
       }
