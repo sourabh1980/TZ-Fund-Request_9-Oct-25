@@ -2628,14 +2628,69 @@
         inputs.forEach(function(inp){ inp.style.backgroundColor = tintIn; });
       });
     }catch(e){ /* silent */ }
+    scheduleMobDisplayHighlight();
   }
 
   function repaintTeams(orderedTeamList){
     if (window.FRTZ && typeof window.FRTZ.applyTeamTints === 'function'){
-      try{ window.FRTZ.applyTeamTints(); return; }catch(e){ /* fall through */ }
+      try{ window.FRTZ.applyTeamTints(); scheduleMobDisplayHighlight(); return; }catch(e){ /* fall through */ }
     }
     miniPaintByTeam(orderedTeamList);
   }
+
+  const MOB_INPUT_SELECTOR = '.tbody .cells > .cell:nth-child(11) input';
+  const DISPLAY_INPUT_SELECTOR = '.tbody .cells > .cell:nth-child(12) input';
+  const MOB_DISPLAY_EMPTY_CLASS = 'mob-display-empty';
+  let mobDisplayHighlightScheduled = false;
+
+  function isMobDisplayField(el){
+    if (!el || typeof el.matches !== 'function') return false;
+    return el.matches(MOB_INPUT_SELECTOR) || el.matches(DISPLAY_INPUT_SELECTOR);
+  }
+
+  function updateMobDisplayHighlight(el){
+    if (!el) return;
+    const hasValue = String(el.value || '').trim().length > 0;
+    if (hasValue) {
+      el.classList.remove(MOB_DISPLAY_EMPTY_CLASS);
+    } else {
+      el.classList.add(MOB_DISPLAY_EMPTY_CLASS);
+    }
+  }
+
+  function refreshMobDisplayHighlights(){
+    const nodes = document.querySelectorAll(MOB_INPUT_SELECTOR + ', ' + DISPLAY_INPUT_SELECTOR);
+    nodes.forEach(updateMobDisplayHighlight);
+  }
+
+  function scheduleMobDisplayHighlight(){
+    if (mobDisplayHighlightScheduled) return;
+    mobDisplayHighlightScheduled = true;
+    onNextFrame(function(){
+      mobDisplayHighlightScheduled = false;
+      refreshMobDisplayHighlights();
+    });
+  }
+
+  document.addEventListener('input', function(evt){
+    const target = evt.target;
+    if (!target || target.tagName !== 'INPUT') return;
+    if (!isMobDisplayField(target)) return;
+    updateMobDisplayHighlight(target);
+  });
+
+  document.addEventListener('change', function(evt){
+    const target = evt.target;
+    if (!target || target.tagName !== 'INPUT') return;
+    if (!isMobDisplayField(target)) return;
+    updateMobDisplayHighlight(target);
+  });
+
+  document.addEventListener('pp:applied', scheduleMobDisplayHighlight);
+  document.addEventListener('pp:clear', scheduleMobDisplayHighlight);
+  document.addEventListener('DOMContentLoaded', scheduleMobDisplayHighlight);
+
+  window.refreshMobDisplayHighlights = refreshMobDisplayHighlights;
 
   // ========================= Row filling =========================
   function fillRowFromItem(row, it){
@@ -2718,13 +2773,15 @@
       });
     }
     console.log('fillRowFromItem - Current bDet state:', window.bDet);
-    
+
     // Trigger name mismatch check after data is loaded
     setTimeout(function() {
       if (window.checkNameMismatch && typeof window.checkNameMismatch === 'function') {
         window.checkNameMismatch();
       }
     }, 100);
+
+    scheduleMobDisplayHighlight();
 
     return row;
   }
@@ -2770,6 +2827,7 @@
     if (typeof window.applyVehicleInUseAssignmentsToRows === 'function') {
       try { window.applyVehicleInUseAssignmentsToRows(false); } catch(_){ /* ignore */ }
     }
+    scheduleMobDisplayHighlight();
     body.lastElementChild && body.lastElementChild.scrollIntoView({behavior:'smooth', block:'nearest'});
   }
 
