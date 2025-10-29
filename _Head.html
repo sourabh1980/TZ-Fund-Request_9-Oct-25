@@ -251,6 +251,10 @@
   .th{padding:8px 6px;font-size:12px;font-weight:900;text-align:center;color:#fff;border-right:1px solid rgba(255,255,255,.15)}
   .th:last-child{border-right:0}
   .th.red{background:linear-gradient(135deg,#ef4444,#f97316)}
+  .thead .th:first-child,
+  .cells .cell:first-child{position:sticky;left:0;z-index:2}
+  .thead .th:first-child{z-index:3;box-shadow:2px 0 6px rgba(13,23,44,.18)}
+  .cells .cell:first-child{background:#fff;box-shadow:2px 0 6px rgba(13,23,44,.12)}
   .th.green{background:linear-gradient(135deg,#22c55e,#16a34a)}
   .th.blue{background:linear-gradient(135deg,#3b82f6,#06b6d4)}
   .th.orange{background:linear-gradient(135deg,#f59e0b,#ef4444)}
