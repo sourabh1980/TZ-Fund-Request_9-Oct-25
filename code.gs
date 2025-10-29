@@ -3030,6 +3030,102 @@ function _buildAllLatestOpsMap_() {
 }
 
 /**
+ * Build a lookup of the most recent Ops_P entries keyed by normalized account holder name.
+ * Prefers timestamp columns when available, otherwise falls back to row order.
+ */
+function _getLatestOpsPermanentMap_() {
+  const result = Object.create(null);
+  try {
+    const ss = SpreadsheetApp.openById(SHEET_ID);
+    const sh = ss.getSheetByName('Ops_P');
+    if (!sh) return result;
+
+    const values = sh.getDataRange().getValues();
+    if (!values || values.length <= 1) return result;
+
+    const header = values[0].map(function(h) {
+      return String(h || '').trim().toLowerCase();
+    });
+
+    function findIndex(patterns) {
+      for (var i = 0; i < header.length; i++) {
+        var col = header[i];
+        if (!col) continue;
+        for (var j = 0; j < patterns.length; j++) {
+          if (col.indexOf(patterns[j]) !== -1) {
+            return i;
+          }
+        }
+      }
+      return -1;
+    }
+
+    const idxTimestamp = findIndex(['timestamp', 'date', 'time']);
+    const idxAccount = findIndex(['account holder', 'account_holder']);
+    const idxMob = findIndex(['mobile number', 'mob num', 'mob no', 'mobile']);
+    const idxDisplay = findIndex(['display name', 'displayname']);
+
+    if (idxAccount < 0) {
+      return result;
+    }
+
+    for (var r = 1; r < values.length; r++) {
+      var row = values[r];
+      var accountHolder = idxAccount >= 0 ? String(row[idxAccount] || '').trim() : '';
+      if (!accountHolder) continue;
+      var key = accountHolder.toLowerCase();
+
+      var mobNo = idxMob >= 0 ? String(row[idxMob] || '').trim() : '';
+      var displayName = idxDisplay >= 0 ? String(row[idxDisplay] || '').trim() : '';
+
+      var timestampMs = 0;
+      if (idxTimestamp >= 0) {
+        var tsVal = row[idxTimestamp];
+        if (tsVal instanceof Date && !isNaN(tsVal)) {
+          timestampMs = tsVal.getTime();
+        } else if (tsVal) {
+          var parsed = new Date(tsVal);
+          if (!isNaN(parsed.getTime())) {
+            timestampMs = parsed.getTime();
+          }
+        }
+      }
+
+      var rowIndex = r + 1; // account for header row
+      var prev = result[key];
+      var shouldReplace = false;
+      if (!prev) {
+        shouldReplace = true;
+      } else {
+        var prevTs = prev.timestampMs || 0;
+        if (timestampMs && prevTs) {
+          shouldReplace = timestampMs >= prevTs;
+        } else if (timestampMs && !prevTs) {
+          shouldReplace = true;
+        } else if (!timestampMs && prevTs) {
+          shouldReplace = false;
+        } else {
+          shouldReplace = rowIndex >= (prev.rowIndex || 0);
+        }
+      }
+
+      if (shouldReplace) {
+        result[key] = {
+          mobNo: mobNo,
+          displayName: displayName,
+          accountHolder: accountHolder,
+          timestampMs: timestampMs,
+          rowIndex: rowIndex
+        };
+      }
+    }
+  } catch (err) {
+    console.error('_getLatestOpsPermanentMap_ error:', err);
+  }
+  return result;
+}
+
+/**
  * Public entry-point consumed by the frontend. Wraps the Ops map builder in script cache logic.
  */
 function getAllLatestOpsMapCached(options) {
@@ -6983,10 +7079,25 @@ function getDDClientPack(){
   }catch(e){}
 
   const rows = _readDD_compact_().filter(r => _up(r.inuse) === 'IN USE' && r.beneficiary && r.project);
-  // Pack as arrays to reduce size: [ben, acct, desig, da, proj, team]
-  const packed = rows.map(r => [
-    r.beneficiary, r.account, r.designation, Number(r.defaultDa||0), r.project, (r.team||'')
-  ]);
+  const opsMap = _getLatestOpsPermanentMap_();
+  // Pack as arrays to reduce size: [ben, acct, desig, da, proj, team, mob, display]
+  const packed = rows.map(r => {
+    const acct = String(r.account || '').trim();
+    const opsKey = acct.toLowerCase();
+    const opsEntry = opsKey && opsMap ? opsMap[opsKey] : null;
+    const mobNo = opsEntry && opsEntry.mobNo ? opsEntry.mobNo : '';
+    const displayName = opsEntry && opsEntry.displayName ? opsEntry.displayName : '';
+    return [
+      r.beneficiary,
+      acct,
+      r.designation,
+      Number(r.defaultDa || 0),
+      r.project,
+      (r.team || ''),
+      mobNo,
+      displayName
+    ];
+  });
 
   const obj = { v:_cacheVersion_(), packed:true, rows: packed };
 
@@ -7536,6 +7647,7 @@ function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
     if (!Array.isArray(ddRows) || ddRows.length === 0) return [];
 
     const latestRows = _latestBeneficiaryEntries_(ddRows);
+    const opsMap = _getLatestOpsPermanentMap_();
     
     const rows = [];
     latestRows.forEach(function(entry) {
@@ -7580,6 +7692,11 @@ function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
       const team  = r.team || '';
       const projN = r.project || '';
 
+      const acctKey = acct ? String(acct).trim().toLowerCase() : '';
+      const opsEntry = acctKey && opsMap ? opsMap[acctKey] : null;
+      const mobNo = opsEntry && opsEntry.mobNo ? opsEntry.mobNo : '';
+      const displayName = opsEntry && opsEntry.displayName ? opsEntry.displayName : '';
+
       out.push({
         beneficiary:   ben,
         accountHolder: acct,
@@ -7590,7 +7707,10 @@ function getBeneficiaries(projectId, teamIds, includeAllStatuses) {
         team:          team,
         teamId:        team,
         teamName:      team,
-        diffNames:     (ben && acct) ? (ben.toLowerCase() !== acct.toLowerCase()) : false
+        diffNames:     (ben && acct) ? (ben.toLowerCase() !== acct.toLowerCase()) : false,
+        mobNo:         mobNo,
+        mobile:        mobNo,
+        displayName:   displayName
       });
     }
 

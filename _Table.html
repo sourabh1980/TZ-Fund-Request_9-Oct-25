@@ -1978,7 +1978,13 @@ document.addEventListener('keydown', function(event) {
     padding: 0 4px !important;
     margin: 0 !important;
   }
-  
+
+  .tbody .cell input.mob-display-empty {
+    background-color: #fdecec !important;
+    border-color: rgba(248, 113, 113, 0.6) !important;
+    box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.35) inset;
+  }
+
   /* Orange border for differing names */
   .name-mismatch .txt {
     border: 2px solid #f97316 !important;
@@ -2312,6 +2318,16 @@ document.addEventListener('keydown', function(event) {
   .type-btn.perm { background:#d1fae5; color:#065f46; }
   .type-btn.temp { background:#ffedd5; color:#7c2d12; }
   .type-btn.cancel { background:#e5e7eb; color:#374151; }
+
+  .mob-clickable {
+    cursor:pointer;
+    background-color:#f8f9fa;
+  }
+
+  .mob-clickable:focus {
+    outline:2px solid #6366f1;
+    outline-offset:2px;
+  }
 
   /* Keep below confirmation modal so confirmation appears above */
   .ops-overlay { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(0,0,0,.5); z-index:9995; }
@@ -2971,49 +2987,102 @@ document.addEventListener('keydown', function(event) {
 
 <script>
 (function(){
-  const isMobInput = (el)=>{
-    if(!el || el.tagName !== 'INPUT') return false;
-    if (el.dataset && el.dataset.field && el.dataset.field.toLowerCase() === 'mob') return true;
+  const INPUT_TYPES = { MOB: 'mob', DISPLAY: 'display' };
+
+  function getMobChangeType(el){
+    if(!el || el.tagName !== 'INPUT') return null;
+    const datasetField = el.dataset && el.dataset.field ? el.dataset.field.toLowerCase() : '';
+    if(datasetField === 'mob') return INPUT_TYPES.MOB;
+    if(datasetField === 'display') return INPUT_TYPES.DISPLAY;
     const ph = (el.getAttribute('placeholder')||'').toLowerCase();
-    return ph.includes('0xxxx') || ph.includes('0xxxxxxxxx') || ph.includes('mob');
-  };
+    if(ph.includes('display name')) return INPUT_TYPES.DISPLAY;
+    if(ph.includes('0xxxx') || ph.includes('0xxxxxxxxx') || ph.includes('mob')) return INPUT_TYPES.MOB;
+    return null;
+  }
+
+  const isMobInput = (el)=>getMobChangeType(el) === INPUT_TYPES.MOB;
+  const isDisplayInput = (el)=>getMobChangeType(el) === INPUT_TYPES.DISPLAY;
 
   const mobPattern = /^0\d{8}$/; // 9 digits total, starting with 0
 
-  // Track previous values
-  document.addEventListener('focusin', (e)=>{
-    const inp = e.target;
-    if(isMobInput(inp)){
-      inp.dataset.prevMobVal = inp.value || '';
-    }
-  });
+  let mobFlowActive = false;
 
-  document.addEventListener('blur', (e)=>{
-    const inp = e.target;
-    if(!isMobInput(inp)) return;
-    const prev = inp.dataset.prevMobVal || '';
-    const now = (inp.value||'').trim();
-    if(now === prev) return;
+  function markMobChangeInputs(){
+    document.querySelectorAll('.tbody input').forEach(inp=>{
+      const type = getMobChangeType(inp);
+      if(!type) return;
+      if(!inp.dataset.mobPrepared){
+        inp.dataset.mobPrepared = '1';
+        inp.setAttribute('title', 'Click to change the Mobile Money Number');
+      }
+      inp.readOnly = true;
+      inp.classList.add('mob-clickable');
+    });
+  }
+
+  function findInputOfType(row, type){
+    if(!row) return null;
+    const inputs = row.querySelectorAll('input');
+    for(const candidate of inputs){
+      if(getMobChangeType(candidate) === type) return candidate;
+    }
+    return null;
+  }
+
+  function beginMobChangeFlow(inp){
+    if(!inp || mobFlowActive || !getMobChangeType(inp)) return;
+    mobFlowActive = true;
     const row = inp.closest('.row-data');
     const accHolder = row ? (row.querySelector('.account-holder-input')?.value || '') : '';
+    const mobInput = findInputOfType(row, INPUT_TYPES.MOB) || (isMobInput(inp) ? inp : null);
+    const displayInput = findInputOfType(row, INPUT_TYPES.DISPLAY) || (isDisplayInput(inp) ? inp : null);
+    const mobNow = mobInput ? (mobInput.value || '').trim() : '';
+    const displayNow = displayInput ? (displayInput.value || '').trim() : '';
 
-    // Step 1: Are you sure?
+    const finish = ()=>{ mobFlowActive = false; };
+
     showConfirmationModal({
       title: 'Change Mobile Money Number?',
       message: 'Are you sure you want to change the Mobile Money Number?',
       yesText: 'Yes, Continue'
     }).then(confirmed=>{
-      if(!confirmed){ inp.value = prev; return; }
-      // Step 2: Type selection (Permanent / Temporary / Cancel)
+      if(!confirmed){ finish(); return; }
       pickChangeType().then(type=>{
-        if(!type){ inp.value = prev; return; }
-        // Step 3: Open entry modal
-        openOpsEntry({ type, accHolder, mobNow: now, row, input: inp }).then(submitted=>{
-          if(!submitted){ /* keep new value in field unless user cancelled earlier */ }
-        });
-      });
-    });
-  }, true);
+        if(!type){ finish(); return; }
+        openOpsEntry({ type, accHolder, mobNow, displayNow, row, mobInput, displayInput })
+          .then(()=>finish())
+          .catch(()=>finish());
+      }).catch(()=>finish());
+    }).catch(()=>finish());
+  }
+
+  document.addEventListener('click', (e)=>{
+    const inp = e.target.closest('input');
+    if(!inp || !getMobChangeType(inp) || !inp.closest('.tbody')) return;
+    e.preventDefault();
+    beginMobChangeFlow(inp);
+  });
+
+  document.addEventListener('keydown', (e)=>{
+    if((e.key === 'Enter' || e.key === ' ') && getMobChangeType(e.target) && e.target.closest('.tbody')){
+      e.preventDefault();
+      beginMobChangeFlow(e.target);
+    }
+  });
+
+  function initMobFlow(){
+    markMobChangeInputs();
+    const tbody = document.getElementById('tbody');
+    if(!tbody) return;
+    const observer = new MutationObserver(()=>{ markMobChangeInputs(); });
+    observer.observe(tbody, { childList:true, subtree:true });
+  }
+
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', initMobFlow);
+  } else {
+    initMobFlow();
+  }
 
   function pickChangeType(){
     return new Promise((resolve)=>{
@@ -3056,7 +3125,7 @@ document.addEventListener('keydown', function(event) {
   }
 
   function openOpsEntry(ctx){
-    return new Promise(async (resolve)=>{
+    return new Promise((resolve)=>{
       const overlay = document.getElementById('opsEntryModal');
       const hd = document.getElementById('opsEntryHeader');
       const acc = document.getElementById('opsAccHolder');
@@ -3066,6 +3135,22 @@ document.addEventListener('keydown', function(event) {
       const req = document.getElementById('opsRequester');
       const btnCancel = document.getElementById('opsCancelBtn');
       const btnSubmit = document.getElementById('opsSubmitBtn');
+
+      let settled = false;
+      const settle = (val)=>{ if(!settled){ settled = true; resolve(val); } };
+
+      let closed = false;
+      function close(){
+        if(closed) return;
+        closed = true;
+        overlay.classList.remove('show');
+        btnCancel.removeEventListener('click', onCancel);
+        btnSubmit.removeEventListener('click', onSubmit);
+        document.removeEventListener('keydown', onKey);
+      }
+
+      function onCancel(){ close(); settle(false); }
+      function onKey(e){ if(e.key==='Escape'){ onCancel(); } }
 
       // Theme + header
       hd.classList.toggle('permanent', ctx.type === 'Permanent');
@@ -3077,33 +3162,65 @@ document.addEventListener('keydown', function(event) {
       // Prefill
       acc.value = ctx.accHolder || '';
       mob.value = ctx.mobNow || '';
-      disp.value = '';
+      disp.value = ctx.displayNow || '';
       req.value = '';
 
-      // Load operators and user
+      // Initial loading state
+      const prevSubmitText = btnSubmit.textContent;
+      btnSubmit.disabled = true;
+      btnSubmit.textContent = 'Loading...';
       opr.innerHTML = '';
-      const ops = await loadOperators();
-      const frag = document.createDocumentFragment();
-      const def = document.createElement('option');
-      def.value = ''; def.textContent = 'Select operator';
-      frag.appendChild(def);
-      ops.forEach(o=>{ const opt = document.createElement('option'); opt.value = o; opt.textContent = o; frag.appendChild(opt); });
-      opr.appendChild(frag);
-      const user = await loadUser();
-      req.value = user && (user.username || user.email) ? (user.username || user.email) : '';
+      const loadingOpt = document.createElement('option');
+      loadingOpt.value = '';
+      loadingOpt.textContent = 'Loading operators...';
+      loadingOpt.disabled = true;
+      loadingOpt.selected = true;
+      opr.appendChild(loadingOpt);
+      req.value = 'Loading...';
 
-      function close(){ overlay.classList.remove('show'); btnCancel.removeEventListener('click', onCancel); btnSubmit.removeEventListener('click', onSubmit); document.removeEventListener('keydown', onKey); }
-      function onCancel(){ close(); resolve(false); }
-      function onKey(e){ if(e.key==='Escape'){ onCancel(); } }
+      btnCancel.addEventListener('click', onCancel);
+      document.addEventListener('keydown', onKey);
+      overlay.classList.add('show');
+      setTimeout(()=>{ if(!closed){ try{ mob.focus(); }catch(_e){} } }, 80);
+
+      const populate = (ops, user)=>{
+        if(closed) return;
+        opr.innerHTML = '';
+        const frag = document.createDocumentFragment();
+        const def = document.createElement('option');
+        def.value = '';
+        def.textContent = 'Select operator';
+        frag.appendChild(def);
+        (ops || []).forEach(o=>{
+          const opt = document.createElement('option');
+          opt.value = o;
+          opt.textContent = o;
+          frag.appendChild(opt);
+        });
+        opr.appendChild(frag);
+        const uName = user && (user.username || user.email) ? (user.username || user.email) : '';
+        req.value = uName;
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = prevSubmitText;
+        setTimeout(()=>{ if(!closed){ try{ mob.focus(); }catch(_e){} } }, 40);
+      };
+
+      Promise.all([loadOperators(), loadUser()])
+        .then(([ops, user])=>{ populate(ops, user); })
+        .catch((err)=>{
+          console.error('Failed to load Ops entry data', err);
+          populate([], {});
+        });
+
       let submitting = false;
-      async function onSubmit(){
-        if(submitting) return;
+      function onSubmit(){
+        if(submitting || btnSubmit.disabled) return;
         const vMob = mob.value.trim();
+        const vDisp = disp.value.trim();
         if(!mobPattern.test(vMob)){ alert('Invalid Mobile Number. It must start with 0 and be exactly 9 digits.'); return; }
-        if(!disp.value.trim()){ alert('Please enter a Display Name.'); return; }
+        if(!vDisp){ alert('Please enter a Display Name.'); return; }
         if(!opr.value){ alert('Please select an Operator.'); return; }
 
-        // Final confirmation
         const msg = ctx.type === 'Permanent' ? 'Submit to Ops_P?' : 'Submit to Ops_T?';
         showConfirmationModal({ title:'Confirm submission', message: msg, yesText: 'Submit' }).then(function(yes){
           if(!yes) return;
@@ -3118,23 +3235,24 @@ document.addEventListener('keydown', function(event) {
             google.script.run
               .withSuccessHandler(function(res){
                 btnSubmit.disabled = false; btnSubmit.textContent = prevText; submitting = false;
-                if(res && res.ok){ close(); resolve(true); }
+                if(res && res.ok){
+                  if(ctx.mobInput){ ctx.mobInput.value = vMob; }
+                  if(ctx.displayInput){ ctx.displayInput.value = vDisp; }
+                  close();
+                  settle(true);
+                }
                 else { alert('Save failed: ' + (res && res.error ? res.error : 'unknown error')); }
               })
               .withFailureHandler(function(err){
                 btnSubmit.disabled = false; btnSubmit.textContent = prevText; submitting = false;
                 alert('Save failed: ' + (err && err.message ? err.message : err));
               })
-              .saveOpsChange({ type: ctx.type, accountHolder: acc.value, mobNo: vMob, displayName: disp.value.trim(), operator: opr.value });
+              .saveOpsChange({ type: ctx.type, accountHolder: acc.value, mobNo: vMob, displayName: vDisp, operator: opr.value });
           }catch(err){ alert('Save failed. Please try again.'); submitting = false; }
         });
       }
 
-      btnCancel.addEventListener('click', onCancel);
       btnSubmit.addEventListener('click', onSubmit);
-      document.addEventListener('keydown', onKey);
-      overlay.classList.add('show');
-      setTimeout(()=>{ try{ mob.focus(); }catch(_e){} }, 60);
     });
   }
 })();

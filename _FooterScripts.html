@@ -2628,14 +2628,69 @@
         inputs.forEach(function(inp){ inp.style.backgroundColor = tintIn; });
       });
     }catch(e){ /* silent */ }
+    scheduleMobDisplayHighlight();
   }
 
   function repaintTeams(orderedTeamList){
     if (window.FRTZ && typeof window.FRTZ.applyTeamTints === 'function'){
-      try{ window.FRTZ.applyTeamTints(); return; }catch(e){ /* fall through */ }
+      try{ window.FRTZ.applyTeamTints(); scheduleMobDisplayHighlight(); return; }catch(e){ /* fall through */ }
     }
     miniPaintByTeam(orderedTeamList);
   }
+
+  const MOB_INPUT_SELECTOR = '.tbody .cells > .cell:nth-child(11) input';
+  const DISPLAY_INPUT_SELECTOR = '.tbody .cells > .cell:nth-child(12) input';
+  const MOB_DISPLAY_EMPTY_CLASS = 'mob-display-empty';
+  let mobDisplayHighlightScheduled = false;
+
+  function isMobDisplayField(el){
+    if (!el || typeof el.matches !== 'function') return false;
+    return el.matches(MOB_INPUT_SELECTOR) || el.matches(DISPLAY_INPUT_SELECTOR);
+  }
+
+  function updateMobDisplayHighlight(el){
+    if (!el) return;
+    const hasValue = String(el.value || '').trim().length > 0;
+    if (hasValue) {
+      el.classList.remove(MOB_DISPLAY_EMPTY_CLASS);
+    } else {
+      el.classList.add(MOB_DISPLAY_EMPTY_CLASS);
+    }
+  }
+
+  function refreshMobDisplayHighlights(){
+    const nodes = document.querySelectorAll(MOB_INPUT_SELECTOR + ', ' + DISPLAY_INPUT_SELECTOR);
+    nodes.forEach(updateMobDisplayHighlight);
+  }
+
+  function scheduleMobDisplayHighlight(){
+    if (mobDisplayHighlightScheduled) return;
+    mobDisplayHighlightScheduled = true;
+    onNextFrame(function(){
+      mobDisplayHighlightScheduled = false;
+      refreshMobDisplayHighlights();
+    });
+  }
+
+  document.addEventListener('input', function(evt){
+    const target = evt.target;
+    if (!target || target.tagName !== 'INPUT') return;
+    if (!isMobDisplayField(target)) return;
+    updateMobDisplayHighlight(target);
+  });
+
+  document.addEventListener('change', function(evt){
+    const target = evt.target;
+    if (!target || target.tagName !== 'INPUT') return;
+    if (!isMobDisplayField(target)) return;
+    updateMobDisplayHighlight(target);
+  });
+
+  document.addEventListener('pp:applied', scheduleMobDisplayHighlight);
+  document.addEventListener('pp:clear', scheduleMobDisplayHighlight);
+  document.addEventListener('DOMContentLoaded', scheduleMobDisplayHighlight);
+
+  window.refreshMobDisplayHighlights = refreshMobDisplayHighlights;
 
   // ========================= Row filling =========================
   function fillRowFromItem(row, it){
@@ -2643,12 +2698,16 @@
     const beneficiaryInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
     const accountHolderInput = row.querySelector('input.account-holder-input');
     const carNumberInput = row.querySelector('input.car-number-input');
+    const mobileInput = row.querySelector('.cells > .cell:nth-child(11) input');
+    const displayNameInput = row.querySelector('.cells > .cell:nth-child(12) input');
     const designationInput = row.querySelector('input.txt[placeholder="Designation"], input.txt[placeholder*="Designation"]');
     const amts = row.querySelectorAll('input.amt'); // [Row Total, Fuel, ERDA, Car, Air, Misc]
 
     if (beneficiaryInput) beneficiaryInput.value = it.beneficiary || '';
     if (accountHolderInput) accountHolderInput.value = it.accountHolder || '';
     if (designationInput) designationInput.value = it.designation || '';
+    if (mobileInput) mobileInput.value = it.mobNo || it.mobile || '';
+    if (displayNameInput) displayNameInput.value = it.displayName || '';
     // Show vehicle number for beneficiaries present in Vehicle_InUse assignments
     if (carNumberInput) {
       const beneficiaryName = String(it.beneficiary || '').trim();
@@ -2714,13 +2773,15 @@
       });
     }
     console.log('fillRowFromItem - Current bDet state:', window.bDet);
-    
+
     // Trigger name mismatch check after data is loaded
     setTimeout(function() {
       if (window.checkNameMismatch && typeof window.checkNameMismatch === 'function') {
         window.checkNameMismatch();
       }
     }, 100);
+
+    scheduleMobDisplayHighlight();
 
     return row;
   }
@@ -2766,6 +2827,7 @@
     if (typeof window.applyVehicleInUseAssignmentsToRows === 'function') {
       try { window.applyVehicleInUseAssignmentsToRows(false); } catch(_){ /* ignore */ }
     }
+    scheduleMobDisplayHighlight();
     body.lastElementChild && body.lastElementChild.scrollIntoView({behavior:'smooth', block:'nearest'});
   }
 
@@ -3086,12 +3148,14 @@
       var have = tset.size>0;
       var out = [];
       for (var i=0;i<pack.rows.length;i++){
-        var r = pack.rows[i]; // [ben, acct, desig, erda, proj, team]
+        var r = pack.rows[i]; // [ben, acct, desig, erda, proj, team, mob, display]
         if (!r || r[4]!==p) continue;
         var team = String(r[5]||'');
         if (have && !tset.has(team)) continue;
         var ben = String(r[0]||'');
         if (!ben) continue;
+        const mobNo = r.length > 6 ? String(r[6] || '').trim() : '';
+        const displayName = r.length > 7 ? String(r[7] || '').trim() : '';
         out.push({
           beneficiary: ben,
           accountHolder: String(r[1]||''),
@@ -3102,7 +3166,10 @@
           team: team,
           teamId: team,
           teamName: team,
-          diffNames: (ben && r[1]) ? (ben.toLowerCase() !== String(r[1]).toLowerCase()) : false
+          diffNames: (ben && r[1]) ? (ben.toLowerCase() !== String(r[1]).toLowerCase()) : false,
+          mobNo: mobNo,
+          mobile: mobNo,
+          displayName: displayName
         });
       }
       out.sort(function(a,b){ return (a.beneficiary||'').localeCompare(b.beneficiary||''); });
