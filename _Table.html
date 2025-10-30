@@ -2023,13 +2023,15 @@ document.addEventListener('keydown', function(event) {
     box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.35) inset;
   }
 
-  .tbody .cell input.mob-display-filled {
+  .tbody .cells > .cell:nth-child(11) input.mob-display-filled,
+  .tbody .cells > .cell:nth-child(12) input.mob-display-filled {
     background-color: #e8f7ed !important;
     border-color: rgba(34, 197, 94, 0.35) !important;
     box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.2) inset;
   }
 
-  .tbody .cell input.mob-display-empty {
+  .tbody .cells > .cell:nth-child(11) input.mob-display-empty,
+  .tbody .cells > .cell:nth-child(12) input.mob-display-empty {
     background-color: #fdecec !important;
     border-color: rgba(248, 113, 113, 0.6) !important;
     box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.35) inset;
