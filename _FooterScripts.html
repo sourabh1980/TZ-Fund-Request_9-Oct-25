@@ -2641,6 +2641,7 @@
   const MOB_INPUT_SELECTOR = '.tbody .cells > .cell:nth-child(11) input';
   const DISPLAY_INPUT_SELECTOR = '.tbody .cells > .cell:nth-child(12) input';
   const MOB_DISPLAY_EMPTY_CLASS = 'mob-display-empty';
+  const MOB_DISPLAY_FILLED_CLASS = 'mob-display-filled';
   let mobDisplayHighlightScheduled = false;
 
   function isMobDisplayField(el){
@@ -2648,12 +2649,25 @@
     return el.matches(MOB_INPUT_SELECTOR) || el.matches(DISPLAY_INPUT_SELECTOR);
   }
 
+  function hasMeaningfulMobDisplayValue(el){
+    if (!el) return false;
+    const raw = String(el.value || '').trim();
+    if (!raw) return false;
+    const placeholder = String(el.getAttribute('placeholder') || '').trim();
+    if (placeholder && placeholder.toLowerCase() === raw.toLowerCase()) {
+      return false;
+    }
+    return true;
+  }
+
   function updateMobDisplayHighlight(el){
     if (!el) return;
-    const hasValue = String(el.value || '').trim().length > 0;
+    const hasValue = hasMeaningfulMobDisplayValue(el);
     if (hasValue) {
+      el.classList.add(MOB_DISPLAY_FILLED_CLASS);
       el.classList.remove(MOB_DISPLAY_EMPTY_CLASS);
     } else {
+      el.classList.remove(MOB_DISPLAY_FILLED_CLASS);
       el.classList.add(MOB_DISPLAY_EMPTY_CLASS);
     }
   }
