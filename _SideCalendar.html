@@ -56,6 +56,8 @@
   /* Historical ranges ring overlay — color per range via --hist-color */
   #genZCalendar .day.hist::after{content:"";position:absolute;inset:6px;border-radius:16px;border:3px solid var(--hist-color, rgba(99,102,241,.55));pointer-events:none}
   #genZCalendar .day.hist.locked{cursor:not-allowed;pointer-events:none;}
+  #genZCalendar .day.hist.locked.blocked{animation:lockedShake .6s ease;}
+  @keyframes lockedShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-3px);}50%{transform:translateX(3px);}75%{transform:translateX(-2px);}}
 
   /* Actions & counter */
   .counter{text-align:center;font-weight:1000; opacity:.9; margin:8px 0 0; letter-spacing:.3px}
@@ -644,6 +646,7 @@
           btn.classList.add('locked');
         }
       }
+      btn.dataset.date = ds;
       btn.textContent = c.d;
       if(!btn.classList.contains('disabled') && !btn.classList.contains('locked')) btn.onclick = () => pick(ds);
       grid.appendChild(btn);
@@ -654,8 +657,53 @@
 
   function pick(ds){
     if(!cs.from){ cs.from = ds; cs.min = addMonths(ds, -3); cs.max = addMonths(ds, 3); }
-    else{ if(ds < cs.min || ds > cs.max) return; cs.to = ds; }
+    else{
+      if(ds < cs.min || ds > cs.max) return;
+      if(rangeTouchesHistorical(cs.from, ds)){
+        pulseHistoricalBlocks(cs.from, ds);
+        return;
+      }
+      cs.to = ds;
+    }
     render();
+  }
+
+  function rangeTouchesHistorical(from, to){
+    if((cs.field || '').toLowerCase() !== 'da') return false;
+    if(!from || !to || !cs.histRanges || !cs.histRanges.length) return false;
+    const start = parse(from).getTime();
+    const end = parse(to).getTime();
+    const lo = Math.min(start, end);
+    const hi = Math.max(start, end);
+    for(const r of cs.histRanges){
+      if(!(r && r.from && r.to)) continue;
+      const ra = parse(r.from).getTime();
+      const rb = parse(r.to).getTime();
+      const rlo = Math.min(ra, rb);
+      const rhi = Math.max(ra, rb);
+      if(rhi < lo || rlo > hi) continue;
+      return true;
+    }
+    return false;
+  }
+
+  function pulseHistoricalBlocks(from, to){
+    if((cs.field || '').toLowerCase() !== 'da') return;
+    const start = parse(from).getTime();
+    const end = parse(to).getTime();
+    const lo = Math.min(start, end);
+    const hi = Math.max(start, end);
+    const buttons = document.querySelectorAll('#calendarGrid .day.hist.locked');
+    buttons.forEach(btn => {
+      const ds = btn.dataset.date;
+      if(!ds) return;
+      const t = parse(ds).getTime();
+      if(t < lo || t > hi) return;
+      btn.classList.remove('blocked');
+      void btn.offsetWidth;
+      btn.classList.add('blocked');
+      setTimeout(() => btn.classList.remove('blocked'), 600);
+    });
   }
 
   // ---- Pill animation using two‑letter months ----
