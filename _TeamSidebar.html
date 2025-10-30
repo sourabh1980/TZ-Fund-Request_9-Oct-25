@@ -775,6 +775,10 @@
     
     // Show a temporary "All Teams" notification
     showAllTeamsNotification();
+
+    if (window.primeHistoricalRangesForVisibleBeneficiaries) {
+      requestAnimationFrame(() => window.primeHistoricalRangesForVisibleBeneficiaries());
+    }
   }
   
   // Show a notification that all teams are now visible
@@ -2020,6 +2024,10 @@
     
     // Show notification
     showFilterNotification(['All Teams'], rows.length, rows.length);
+
+    if (window.primeHistoricalRangesForVisibleBeneficiaries) {
+      requestAnimationFrame(() => window.primeHistoricalRangesForVisibleBeneficiaries());
+    }
   }
   
   // Function to filter table rows by team(s)
@@ -2067,6 +2075,10 @@
     
     // Show filter notification
     showFilterNotification(teamNames, visibleRows, totalRows);
+
+    if (window.primeHistoricalRangesForVisibleBeneficiaries) {
+      requestAnimationFrame(() => window.primeHistoricalRangesForVisibleBeneficiaries());
+    }
   }
   
   // Show a notification about the current filter

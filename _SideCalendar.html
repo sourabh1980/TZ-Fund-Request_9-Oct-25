@@ -194,15 +194,176 @@
     }catch(_){}
   }
 
+  const HISTORICAL_FIELDS = new Set(['fuel','da','car','air','transport','misc']);
+  const histCache = new Map();
+  const pendingHistFetches = new Map();
+  let primeObserver = null;
+
+  function deriveBeneficiary(host){
+    try {
+      const row = host && host.closest && host.closest('.row-data');
+      if (!row) return '';
+      const firstCellTxt = row.querySelector('.cells > .cell:first-child .txt');
+      const val = firstCellTxt && firstCellTxt.value ? firstCellTxt.value.trim() : '';
+      return val;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function applyHistoricalRanges(ranges){
+    const arr = Array.isArray(ranges) ? ranges.filter(r => r && r.from && r.to) : [];
+    cs.histRanges = arr;
+    cs.histColors = arr.map((_, i) => {
+      const hue = (i * 137.508) % 360; // golden angle spread
+      return `hsl(${hue}, 72%, 52%)`;
+    });
+  }
+
+  function isCurrentCalendarTarget(beneficiary, field){
+    if (!beneficiary || !field || !cs.host) return false;
+    if ((cs.field || '').toLowerCase() !== (field || '').toLowerCase()) return false;
+    const currentBeneficiary = deriveBeneficiary(cs.host) || '';
+    return currentBeneficiary.toLowerCase() === beneficiary.toLowerCase();
+  }
+
+  function requestHistoricalRanges(beneficiary, field, applyImmediately){
+    if (!beneficiary || !field || !HISTORICAL_FIELDS.has(field)) return;
+    const key = `${beneficiary.toLowerCase()}|${field}`;
+    if (histCache.has(key)) {
+      if (applyImmediately || isCurrentCalendarTarget(beneficiary, field)) {
+        applyHistoricalRanges(histCache.get(key));
+        render();
+      }
+      return;
+    }
+    const pending = pendingHistFetches.get(key);
+    if (pending) {
+      pending.apply = pending.apply || !!applyImmediately;
+      return;
+    }
+    if (!(window.google && google.script && google.script.run)) return;
+    const pendingInfo = { apply: !!applyImmediately };
+    pendingHistFetches.set(key, pendingInfo);
+    try {
+      google.script.run
+        .withSuccessHandler(function(ranges){
+          histCache.set(key, Array.isArray(ranges) ? ranges : []);
+          pendingHistFetches.delete(key);
+          const shouldApply = pendingInfo.apply || isCurrentCalendarTarget(beneficiary, field);
+          if (shouldApply) {
+            applyHistoricalRanges(histCache.get(key));
+            render();
+          }
+        })
+        .withFailureHandler(function(err){
+          console.log('Failed loading history for', beneficiary, field, err);
+          pendingHistFetches.delete(key);
+          if (!histCache.has(key)) {
+            histCache.set(key, []);
+          }
+          const shouldApply = pendingInfo.apply || isCurrentCalendarTarget(beneficiary, field);
+          if (shouldApply) {
+            applyHistoricalRanges([]);
+            render();
+          }
+        })
+        .getSubmissionRangesForBeneficiary(beneficiary, field);
+    } catch (err) {
+      console.log('History fetch error', beneficiary, field, err);
+      pendingHistFetches.delete(key);
+    }
+  }
+
+  function loadHistoricalRanges(beneficiary, field){
+    requestHistoricalRanges(beneficiary, field, true);
+  }
+
+  function readBeneficiaryFromRow(row){
+    if (!row) return '';
+    try {
+      const firstCellTxt = row.querySelector('.cells > .cell:first-child .txt');
+      if (firstCellTxt) {
+        const value = 'value' in firstCellTxt ? firstCellTxt.value : firstCellTxt.textContent;
+        if (value && value.trim()) return value.trim();
+      }
+      const attr = row.getAttribute('data-beneficiary') || row.dataset?.beneficiary;
+      if (attr && attr.trim()) return attr.trim();
+    } catch (_) {}
+    return '';
+  }
+
+  function primeHistoricalRangesForVisibleBeneficiaries(){
+    const rows = document.querySelectorAll('.tbody .row-data, #tbody .row-data');
+    if (!rows || rows.length === 0) return;
+    const seen = new Set();
+    rows.forEach(row => {
+      if (!row || row.offsetParent === null) return;
+      const beneficiary = readBeneficiaryFromRow(row);
+      if (!beneficiary) return;
+      const key = beneficiary.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      HISTORICAL_FIELDS.forEach(field => requestHistoricalRanges(beneficiary, field, false));
+    });
+  }
+
+  const schedulePrime = (() => {
+    let timer = null;
+    return (delay => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        primeHistoricalRangesForVisibleBeneficiaries();
+      }, typeof delay === 'number' ? delay : 120);
+    });
+  })();
+
+  window.primeHistoricalRangesForVisibleBeneficiaries = primeHistoricalRangesForVisibleBeneficiaries;
+
+  function setupPrimeObserver(){
+    if (primeObserver) return true;
+    const tbody = document.getElementById('tbody') || document.querySelector('.tbody');
+    if (!tbody) return false;
+    primeObserver = new MutationObserver((mutations) => {
+      const meaningful = mutations && mutations.some(m => (m.addedNodes && m.addedNodes.length) || (m.removedNodes && m.removedNodes.length));
+      if (meaningful) {
+        schedulePrime(100);
+      }
+    });
+    primeObserver.observe(tbody, {childList: true, subtree: true});
+    return true;
+  }
+
+  const ensurePrimeSetup = () => {
+    const attached = setupPrimeObserver();
+    if (!attached) {
+      setTimeout(ensurePrimeSetup, 400);
+    }
+    schedulePrime(attached ? 220 : 400);
+  };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensurePrimeSetup, {once: true});
+  } else {
+    ensurePrimeSetup();
+  }
+
+  document.addEventListener('teamSidebarApplied', () => schedulePrime(80));
+  document.addEventListener('teamsSelected', () => schedulePrime(120));
+  document.addEventListener('pp:applied', () => schedulePrime(180));
+
   // Open/close
   window.openCalendar = (host, field) => {
     cs.host = host; cs.field = field || host?.dataset?.cal || 'fuel'; cs.from=''; cs.to=''; cs.min=''; cs.max='';
     cs.histRanges = []; cs.histColors = [];
     const now = new Date(); cs.viewY = now.getFullYear(); cs.viewM = now.getMonth();
-    
+
     // Check if the field already has dates to determine Clear button state
     const hasExistingDates = checkFieldHasExistingDates(host);
-    
+
+    const beneficiary = deriveBeneficiary(host);
+
     // Apply special styling for global calendar
     if (cs.field === 'global') {
       applyGlobalStyling();
@@ -225,39 +386,7 @@
       clearBtn.classList.remove('glow');
     }
     
-  // Attempt to fetch historical ranges for DA for the row's beneficiary
-  if (cs.field === 'da') {
-      try {
-        const beneficiary = (() => {
-          // Try to locate the beneficiary input from the row of the clicked pill
-          const row = host && host.closest && host.closest('.row-data');
-          if (!row) return '';
-          // Beneficiary is the first text input in the row
-          const firstCellTxt = row.querySelector('.cells > .cell:first-child .txt');
-          const val = firstCellTxt && firstCellTxt.value ? firstCellTxt.value.trim() : '';
-          return val;
-        })();
-
-        if (beneficiary && window.google && google.script && google.script.run) {
-          google.script.run
-            .withSuccessHandler(function(ranges){
-              const arr = Array.isArray(ranges) ? ranges : [];
-              cs.histRanges = arr;
-              // Assign distinct, repeatable colors per range index
-              cs.histColors = arr.map((_, i) => {
-                const hue = (i * 137.508) % 360; // golden angle
-                return `hsl(${hue}, 72%, 52%)`;
-              });
-              render();
-            })
-            .withFailureHandler(function(err){
-              console.log('Failed loading DA history for', beneficiary, err);
-              render();
-            })
-            .getSubmissionRangesForBeneficiary(beneficiary, 'da');
-        }
-      } catch(_){}
-    }
+    loadHistoricalRanges(beneficiary, cs.field);
 
     render();
   };
