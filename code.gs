@@ -6956,14 +6956,14 @@ function getSubmissionRangesForBeneficiary(beneficiary, field) {
 
     // Map field key to submissions header base
     const MAP = {
-      fuel: 'Fuel',
-  da: 'DA',
-      car: 'Car',
-      air: 'Airtime',
-      transport: 'Transport',
-      misc: 'Misc'
+      fuel: ['Fuel'],
+      da: ['DA'],
+      car: ['Vehicle Rent', 'Car'],
+      air: ['Airtime', 'Air Time'],
+      transport: ['Transport'],
+      misc: ['Misc', 'Miscellaneous']
     };
-  const base = MAP[fieldKey] || 'DA'; // default to DA to satisfy current need
+    const candidates = MAP[fieldKey] || ['DA']; // default to DA to satisfy current need
 
     const ss = SpreadsheetApp.openById(SHEET_ID);
     const sh = ss.getSheetByName(SUBMISSIONS_SHEET_NAME);
@@ -6975,9 +6975,22 @@ function getSubmissionRangesForBeneficiary(beneficiary, field) {
 
     const header = values[0].map(v => (v || '').toString());
     const idxBeneficiary = header.indexOf('Beneficiary');
-    const idxFrom = header.indexOf(base + ' From');
-    const idxTo   = header.indexOf(base + ' To');
-    if (idxBeneficiary === -1 || idxFrom === -1 || idxTo === -1) return [];
+    if (idxBeneficiary === -1) return [];
+
+    const findFieldColumns = () => {
+      for (let i = 0; i < candidates.length; i++) {
+        const label = candidates[i];
+        const idxFrom = header.indexOf(label + ' From');
+        const idxTo = header.indexOf(label + ' To');
+        if (idxFrom !== -1 && idxTo !== -1) {
+          return { idxFrom, idxTo };
+        }
+      }
+      return null;
+    };
+
+    const fieldCols = findFieldColumns();
+    if (!fieldCols) return [];
 
     // Normalize incoming values to YYYY-MM-DD
     const toYMD = (val) => {
@@ -7006,8 +7019,8 @@ function getSubmissionRangesForBeneficiary(beneficiary, field) {
       const row = values[i];
       const ben = (row[idxBeneficiary] || '').toString().trim().toLowerCase();
       if (ben !== nameLc) continue;
-      const from = toYMD(row[idxFrom]);
-      const to = toYMD(row[idxTo]);
+      const from = toYMD(row[fieldCols.idxFrom]);
+      const to = toYMD(row[fieldCols.idxTo]);
       if (from && to) out.push({ from, to });
     }
     return out;

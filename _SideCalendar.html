@@ -194,15 +194,69 @@
     }catch(_){}
   }
 
+  const HISTORICAL_FIELDS = new Set(['fuel','da','car','air','transport','misc']);
+  const histCache = new Map();
+
+  function deriveBeneficiary(host){
+    try {
+      const row = host && host.closest && host.closest('.row-data');
+      if (!row) return '';
+      const firstCellTxt = row.querySelector('.cells > .cell:first-child .txt');
+      const val = firstCellTxt && firstCellTxt.value ? firstCellTxt.value.trim() : '';
+      return val;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function applyHistoricalRanges(ranges){
+    const arr = Array.isArray(ranges) ? ranges.filter(r => r && r.from && r.to) : [];
+    cs.histRanges = arr;
+    cs.histColors = arr.map((_, i) => {
+      const hue = (i * 137.508) % 360; // golden angle spread
+      return `hsl(${hue}, 72%, 52%)`;
+    });
+  }
+
+  function loadHistoricalRanges(beneficiary, field){
+    if (!beneficiary || !field || !HISTORICAL_FIELDS.has(field)) return;
+    const key = `${beneficiary.toLowerCase()}|${field}`;
+    if (histCache.has(key)) {
+      applyHistoricalRanges(histCache.get(key));
+      render();
+      return;
+    }
+    if (!(window.google && google.script && google.script.run)) return;
+    try {
+      google.script.run
+        .withSuccessHandler(function(ranges){
+          histCache.set(key, Array.isArray(ranges) ? ranges : []);
+          applyHistoricalRanges(histCache.get(key));
+          render();
+        })
+        .withFailureHandler(function(err){
+          console.log('Failed loading history for', beneficiary, field, err);
+          histCache.set(key, []);
+          applyHistoricalRanges([]);
+          render();
+        })
+        .getSubmissionRangesForBeneficiary(beneficiary, field);
+    } catch (err) {
+      console.log('History fetch error', beneficiary, field, err);
+    }
+  }
+
   // Open/close
   window.openCalendar = (host, field) => {
     cs.host = host; cs.field = field || host?.dataset?.cal || 'fuel'; cs.from=''; cs.to=''; cs.min=''; cs.max='';
     cs.histRanges = []; cs.histColors = [];
     const now = new Date(); cs.viewY = now.getFullYear(); cs.viewM = now.getMonth();
-    
+
     // Check if the field already has dates to determine Clear button state
     const hasExistingDates = checkFieldHasExistingDates(host);
-    
+
+    const beneficiary = deriveBeneficiary(host);
+
     // Apply special styling for global calendar
     if (cs.field === 'global') {
       applyGlobalStyling();
@@ -225,39 +279,7 @@
       clearBtn.classList.remove('glow');
     }
     
-  // Attempt to fetch historical ranges for DA for the row's beneficiary
-  if (cs.field === 'da') {
-      try {
-        const beneficiary = (() => {
-          // Try to locate the beneficiary input from the row of the clicked pill
-          const row = host && host.closest && host.closest('.row-data');
-          if (!row) return '';
-          // Beneficiary is the first text input in the row
-          const firstCellTxt = row.querySelector('.cells > .cell:first-child .txt');
-          const val = firstCellTxt && firstCellTxt.value ? firstCellTxt.value.trim() : '';
-          return val;
-        })();
-
-        if (beneficiary && window.google && google.script && google.script.run) {
-          google.script.run
-            .withSuccessHandler(function(ranges){
-              const arr = Array.isArray(ranges) ? ranges : [];
-              cs.histRanges = arr;
-              // Assign distinct, repeatable colors per range index
-              cs.histColors = arr.map((_, i) => {
-                const hue = (i * 137.508) % 360; // golden angle
-                return `hsl(${hue}, 72%, 52%)`;
-              });
-              render();
-            })
-            .withFailureHandler(function(err){
-              console.log('Failed loading DA history for', beneficiary, err);
-              render();
-            })
-            .getSubmissionRangesForBeneficiary(beneficiary, 'da');
-        }
-      } catch(_){}
-    }
+    loadHistoricalRanges(beneficiary, cs.field);
 
     render();
   };
