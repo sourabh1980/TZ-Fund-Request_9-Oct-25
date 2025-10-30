@@ -2653,10 +2653,29 @@
     if (!el) return false;
     const raw = String(el.value || '').trim();
     if (!raw) return false;
+
+    const compactValue = raw.replace(/\s+/g, '');
+    const lowerCompact = compactValue.toLowerCase();
+
     const placeholder = String(el.getAttribute('placeholder') || '').trim();
-    if (placeholder && placeholder.toLowerCase() === raw.toLowerCase()) {
+    if (placeholder && placeholder.toLowerCase().replace(/\s+/g, '') === lowerCompact) {
       return false;
     }
+
+    if (!lowerCompact) {
+      return false;
+    }
+
+    // Treat masked default values such as 0XXXXXXX as vacant so they remain red.
+    if (/^0x+$/i.test(compactValue)) {
+      return false;
+    }
+
+    // Explicitly treat "Display Name" (or casing variations) as unfilled.
+    if (lowerCompact === 'displayname') {
+      return false;
+    }
+
     return true;
   }
 
