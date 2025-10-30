@@ -1299,6 +1299,21 @@
   });
 
   if (projectSelect) {
+    const warmVehicleInventory = function() {
+      if (!isOpen || projectSelect.disabled) return;
+      if (window.FRTZ && typeof window.FRTZ.ensureVehicleInventoryWarm === 'function') {
+        try {
+          Promise.resolve(window.FRTZ.ensureVehicleInventoryWarm()).catch(function(err) {
+            console.warn('Vehicle inventory warm-up failed for project select interaction', err);
+          });
+        } catch (warmErr) {
+          console.warn('Vehicle inventory warm-up threw during project select interaction', warmErr);
+        }
+      }
+    };
+
+    projectSelect.addEventListener('pointerdown', warmVehicleInventory);
+    projectSelect.addEventListener('focus', warmVehicleInventory);
     projectSelect.addEventListener('change', function() {
       if (!isOpen) return;
       pendingTeamValue = null;
@@ -6459,6 +6474,78 @@ function getProjectFromBeneficiary(beneficiaryName) {
       lastUsers: lastUsers.length ? lastUsers : (Array.isArray(car.lastUsers) ? car.lastUsers : [])
     };
   };
+  const VEHICLE_INVENTORY_TTL_MS = 3 * 60 * 1000;
+  let vehicleInventoryPromise = null;
+  let vehicleInventoryWarmTimestamp = 0;
+
+  function setVehicleInventoryCache(sourceList) {
+    const rawList = Array.isArray(sourceList)
+      ? sourceList.slice()
+      : (sourceList && Array.isArray(sourceList.vehicles) ? sourceList.vehicles.slice() : []);
+    const normalized = rawList.map(normalizeCarRecord).filter(Boolean);
+    try { window.availableCarsRaw = rawList; } catch (_rawErr) { window.availableCarsRaw = rawList; }
+    window.availableCarsData = normalized;
+    if (Array.isArray(normalized)) {
+      try { availableCars = normalized.slice(); } catch (_assignErr) { availableCars = normalized.slice(); }
+    }
+    vehicleInventoryWarmTimestamp = Date.now();
+    const frtz = window.FRTZ = window.FRTZ || {};
+    frtz.vehicleInventoryWarmAt = vehicleInventoryWarmTimestamp;
+    if (typeof populateCarFilters === 'function') {
+      try { populateCarFilters(); } catch (filterErr) { console.warn('populateCarFilters failed during warm-up', filterErr); }
+    }
+    try {
+      document.dispatchEvent(new CustomEvent('frtz:vehicle-inventory-warmed', {
+        detail: {
+          vehicles: normalized,
+          fetchedAt: vehicleInventoryWarmTimestamp
+        }
+      }));
+    } catch (_evtErr) { /* ignore event dispatch failures */ }
+    return normalized;
+  }
+
+  function ensureVehicleInventoryWarm(options) {
+    const opts = options || {};
+    const force = !!opts.force;
+    const cached = Array.isArray(window.availableCarsData) ? window.availableCarsData : null;
+    const now = Date.now();
+    if (!force && cached && cached.length && vehicleInventoryWarmTimestamp && (now - vehicleInventoryWarmTimestamp) < VEHICLE_INVENTORY_TTL_MS) {
+      return Promise.resolve(cached);
+    }
+    if (vehicleInventoryPromise) {
+      return vehicleInventoryPromise;
+    }
+    if (!(window.google && google.script && google.script.run)) {
+      return Promise.resolve(cached || []);
+    }
+
+    vehicleInventoryPromise = new Promise(function(resolve, reject) {
+      google.script.run
+        .withSuccessHandler(function(res) {
+          vehicleInventoryPromise = null;
+          try {
+            const normalized = setVehicleInventoryCache(res && res.vehicles ? res.vehicles : res);
+            resolve(normalized);
+          } catch (normalizeErr) {
+            console.error('Vehicle inventory warm-up normalization failed', normalizeErr);
+            resolve(Array.isArray(window.availableCarsData) ? window.availableCarsData : []);
+          }
+        })
+        .withFailureHandler(function(err) {
+          vehicleInventoryPromise = null;
+          vehicleInventoryWarmTimestamp = 0;
+          reject(err || new Error('Failed to warm vehicle inventory'));
+        })
+        .getAllUniqueCars();
+    });
+
+    return vehicleInventoryPromise;
+  }
+
+  const frtzVehicle = window.FRTZ = window.FRTZ || {};
+  frtzVehicle.ensureVehicleInventoryWarm = ensureVehicleInventoryWarm;
+
   // Car number click handlers - essential functionality only
   
   // Essential car number click handlers only
@@ -6589,32 +6676,21 @@ function getProjectFromBeneficiary(beneficiaryName) {
 
               openModalWith(baseCarData);
 
-              const cached = matchFromCached();
-              if (cached) {
-                applySupplemental(cached);
-                return;
-              }
+              const warmPromise = (window.FRTZ && typeof window.FRTZ.ensureVehicleInventoryWarm === 'function')
+                ? window.FRTZ.ensureVehicleInventoryWarm()
+                : Promise.resolve(window.availableCarsData || []);
 
-              if (window.google && google.script && google.script.run) {
-                google.script.run
-                  .withSuccessHandler(function(list){
-                    if (Array.isArray(list) && list.length) {
-                      const normalizedList = list.map(normalizeCarRecord);
-                      try { window.availableCarsData = normalizedList; } catch(_){ window.availableCarsData = normalizedList; }
-                      const freshMatch = matchFromCached();
-                      applySupplemental(freshMatch || null);
-                    } else {
-                      applySupplemental(null);
-                    }
-                  })
-                  .withFailureHandler(function(err){
-                    console.error('Failed to fetch vehicle metadata', err);
-                    applySupplemental(null);
-                  })
-                  .getAllUniqueCars();
-              } else {
+              warmPromise.then(function() {
+                const cached = matchFromCached();
+                if (cached) {
+                  applySupplemental(cached);
+                  return;
+                }
                 applySupplemental(null);
-              }
+              }).catch(function(err) {
+                console.error('Vehicle inventory warm-up failed', err);
+                applySupplemental(null);
+              });
             }
             else {
               // Empty Vehicle Number: open vehicle picker dropdown modal
