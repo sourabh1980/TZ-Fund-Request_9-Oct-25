@@ -107,6 +107,190 @@
     return false;
   }
 
+  const DEFAULT_DA_CACHE_STATE = { map: null, alt: null, built: false, awaiting: false, observer: null };
+
+  function installDefaultDaObserver(){
+    if (DEFAULT_DA_CACHE_STATE.observer || typeof MutationObserver !== 'function') return;
+    try {
+      const observer = new MutationObserver((mutations) => {
+        for (let i = 0; i < mutations.length; i++) {
+          const added = mutations[i] && mutations[i].addedNodes;
+          if (!added || !added.length) continue;
+          for (let j = 0; j < added.length; j++) {
+            const node = added[j];
+            if (!node || node.nodeType !== 1) continue;
+            if (node.id === 'DDC') {
+              try { observer.disconnect(); } catch(_){ /* ignore */ }
+              DEFAULT_DA_CACHE_STATE.observer = null;
+              ensureDefaultDaCache();
+              return;
+            }
+          }
+        }
+      });
+      const root = document.documentElement || document.body || document;
+      if (root) {
+        observer.observe(root, { childList: true, subtree: true });
+        DEFAULT_DA_CACHE_STATE.observer = observer;
+      }
+    } catch(_){
+      DEFAULT_DA_CACHE_STATE.observer = null;
+    }
+  }
+
+  function scheduleDefaultDaCacheRetry(){
+    if (DEFAULT_DA_CACHE_STATE.awaiting) return;
+    DEFAULT_DA_CACHE_STATE.awaiting = true;
+    const attempt = () => {
+      DEFAULT_DA_CACHE_STATE.awaiting = false;
+      ensureDefaultDaCache();
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attempt, { once: true });
+    } else {
+      setTimeout(attempt, 60);
+    }
+    installDefaultDaObserver();
+  }
+
+  function ensureDefaultDaCache(){
+    if (DEFAULT_DA_CACHE_STATE.built && DEFAULT_DA_CACHE_STATE.map) {
+      return DEFAULT_DA_CACHE_STATE.map;
+    }
+
+    const tag = document.getElementById('DDC');
+    if (!tag) {
+      installDefaultDaObserver();
+      scheduleDefaultDaCacheRetry();
+      return DEFAULT_DA_CACHE_STATE.map;
+    }
+
+    let pack;
+    try {
+      pack = JSON.parse(tag.textContent || '{}');
+    } catch (err) {
+      console.warn('Failed to build Default DA cache', err);
+      DEFAULT_DA_CACHE_STATE.built = false;
+      scheduleDefaultDaCacheRetry();
+      return DEFAULT_DA_CACHE_STATE.map;
+    }
+
+    if (!pack || !Array.isArray(pack.rows)) {
+      DEFAULT_DA_CACHE_STATE.map = new Map();
+      DEFAULT_DA_CACHE_STATE.alt = new Map();
+      DEFAULT_DA_CACHE_STATE.built = true;
+      if (DEFAULT_DA_CACHE_STATE.observer) {
+        try { DEFAULT_DA_CACHE_STATE.observer.disconnect(); } catch(_){ /* ignore */ }
+        DEFAULT_DA_CACHE_STATE.observer = null;
+      }
+      return DEFAULT_DA_CACHE_STATE.map;
+    }
+
+    const map = new Map();
+    const alt = new Map();
+    pack.rows.forEach(function(row){
+      if (!row) return;
+      const beneficiary = String(row[0] || '').trim();
+      if (!beneficiary) return;
+      const rate = Number(row[3]);
+      const finite = typeof Number.isFinite === 'function' ? Number.isFinite(rate) : isFinite(rate);
+      const normalized = normalizeName(beneficiary);
+      if (!normalized) return;
+      if (!map.has(normalized)) {
+        map.set(normalized, finite ? rate : 0);
+      }
+      const strippedKey = stripNameKey(beneficiary);
+      if (strippedKey && !alt.has(strippedKey)) {
+        alt.set(strippedKey, finite ? rate : 0);
+      }
+    });
+
+    DEFAULT_DA_CACHE_STATE.map = map;
+    DEFAULT_DA_CACHE_STATE.alt = alt;
+    DEFAULT_DA_CACHE_STATE.built = true;
+    if (DEFAULT_DA_CACHE_STATE.observer) {
+      try { DEFAULT_DA_CACHE_STATE.observer.disconnect(); } catch(_){ /* ignore */ }
+      DEFAULT_DA_CACHE_STATE.observer = null;
+    }
+    onDefaultDaCacheReady();
+    return map;
+  }
+
+  function refreshDefaultDaRatesForRows(){
+    const rows = document.querySelectorAll('.tbody .row-data');
+    rows.forEach(function(row){
+      if (!row) return;
+      const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+      const beneficiaryName = benInput ? benInput.value.trim() : '';
+      if (!beneficiaryName) return;
+      applyDefaultDaToRow(row, beneficiaryName);
+    });
+  }
+
+  function onDefaultDaCacheReady(){
+    try { refreshDefaultDaRatesForRows(); } catch(_){ /* ignore */ }
+    if (typeof window.refreshAllAutoFilledDa === 'function') {
+      try { window.refreshAllAutoFilledDa(); } catch(_){ /* ignore */ }
+    }
+  }
+
+  function lookupDefaultDaRate(name){
+    if (!name) return null;
+    const normalized = normalizeName(name);
+    const map = ensureDefaultDaCache();
+    if (normalized && map && map.has(normalized)) {
+      const value = map.get(normalized);
+      if (typeof value === 'number' && !isNaN(value)) {
+        return value;
+      }
+    }
+
+    const stripped = stripNameKey(name);
+    const altMap = DEFAULT_DA_CACHE_STATE.alt;
+    if (stripped && altMap && altMap.has(stripped)) {
+      const fallback = altMap.get(stripped);
+      if (typeof fallback === 'number' && !isNaN(fallback)) {
+        return fallback;
+      }
+    }
+
+    if (map && typeof beneficiaryKeysMatch === 'function' && normalized) {
+      for (const [key, value] of map.entries()) {
+        if (beneficiaryKeysMatch(key, normalized) && typeof value === 'number' && !isNaN(value)) {
+          return value;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  window.getDefaultDaRateForBeneficiary = function(name){
+    return lookupDefaultDaRate(name);
+  };
+
+  function applyDefaultDaToRow(row, beneficiaryName, explicitRate){
+    if (!row) return;
+    let rate = null;
+    if (typeof explicitRate === 'number' && !isNaN(explicitRate)) {
+      rate = explicitRate;
+    } else if (beneficiaryName) {
+      const lookup = lookupDefaultDaRate(beneficiaryName);
+      if (lookup !== null && lookup !== undefined) {
+        rate = lookup;
+      }
+    }
+
+    if (rate !== null && rate !== undefined && !isNaN(rate)) {
+      try { row.dataset.defaultDa = String(rate); } catch(_){ /* ignore */ }
+      if (typeof window.refreshAutoFilledDaForRow === 'function') {
+        try { window.refreshAutoFilledDaForRow(row); } catch(_){ /* ignore */ }
+      }
+    } else {
+      try { delete row.dataset.defaultDa; } catch(_){ /* ignore */ }
+    }
+  }
+
   function getAssignedVehicleNumber(beneficiary, teamKey, projectKey) {
     const normalizedName = vehicleNameKey(beneficiary);
     const normalizedTeamKey = teamNameKey(teamKey || '');
@@ -2568,6 +2752,8 @@
     clone.querySelectorAll('.splitflap .line').forEach((line) => { line.textContent = 'DD - MM'; });
     // Ensure no stale attributes
     clone.removeAttribute('data-team'); clone.removeAttribute('data-project');
+    clone.removeAttribute('data-default-da');
+    try { delete clone.dataset.defaultDa; } catch(_){ /* ignore */ }
     protoRowTemplate = clone;
     return protoRowTemplate;
   }
@@ -2767,6 +2953,8 @@
     // ER DA amount should remain empty by default - user must fill it manually
     // if (amts[2]) amts[2].value = (window.FRTZ && window.FRTZ.formatAmt ? window.FRTZ.formatAmt(it.erdaAmt || 0) : Number(it.erdaAmt || 0).toFixed(2));   // ER DA Amt
 
+    applyDefaultDaToRow(row, it.beneficiary || '', typeof it.erdaAmt === 'number' ? it.erdaAmt : null);
+
     // diff flag
     if (it.diffNames){
       if (beneficiaryInput) beneficiaryInput.classList.add('diff-flag');
@@ -2818,6 +3006,27 @@
 
     return row;
   }
+
+  document.addEventListener('change', function(evt){
+    const target = evt && evt.target;
+    if (!target || target.tagName !== 'INPUT') return;
+    if (!target.classList.contains('txt') || target.classList.contains('account-holder-input') || target.classList.contains('car-number-input')) return;
+    const row = target.closest('.row-data');
+    if (!row) return;
+    const beneficiaryInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+    if (beneficiaryInput !== target) return;
+    applyDefaultDaToRow(row, target.value || '');
+  });
+
+  document.addEventListener('input', function(evt){
+    const target = evt && evt.target;
+    if (!target || !target.classList || !target.classList.contains('amount-input')) return;
+    if (!evt || !evt.isTrusted) return;
+    if (target.dataset && target.dataset.autoFilled) {
+      try { delete target.dataset.autoFilled; } catch(_){ /* ignore */ }
+    }
+    try { target.removeAttribute('data-auto-filled'); } catch(_){ /* ignore */ }
+  });
 
   // ========================= Sorting & Grouping =========================
   function sortItemsForRendering(items){
