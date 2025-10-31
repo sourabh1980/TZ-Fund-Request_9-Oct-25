@@ -975,6 +975,7 @@
     
     const animated = new Set();
     let lastFastModeUsed = false;
+    const daTargetContainers = new Set();
     const queueAnimation = (pill, options = {}) => {
       if(!pill || animated.has(pill)) return;
       const container = pill.closest ? pill.closest('.split-calendar-container') : null;
@@ -1024,12 +1025,22 @@
         if(firstPill) {
           queueAnimation(firstPill, {fastMode, baseDelay: 0});
         }
+        if (field === 'da') {
+          daTargetContainers.add(container);
+        }
       });
 
       console.log(`Calendar Apply: Found ${allContainers.length} total rows, ${visibleContainers.length} visible rows for field ${field}`);
 
       if (visibleContainers.length < allContainers.length) {
         console.log(`Calendar dates applied to ${visibleContainers.length} visible rows only (${allContainers.length - visibleContainers.length} filtered rows skipped)`);
+      }
+    }
+
+    if(field !== 'global' && !isSummary) {
+      const container = cs.host?.closest?.('.split-calendar-container');
+      if (container) {
+        daTargetContainers.add(container);
       }
     }
 
@@ -1040,6 +1051,49 @@
         opts.fastMode = true;
       }
       queueAnimation(cs.host, opts);
+    }
+
+    if (field === 'da' && daTargetContainers.size) {
+      let startDate;
+      let endDate;
+      try { startDate = parse(fromDate); } catch(_){ startDate = null; }
+      try { endDate = parse(toDate); } catch(_){ endDate = null; }
+      const startTime = startDate instanceof Date ? startDate.getTime() : NaN;
+      const endTime = endDate instanceof Date ? endDate.getTime() : NaN;
+      if (Number.isFinite(startTime) && Number.isFinite(endTime)) {
+        const diffMs = Math.abs(endTime - startTime);
+        const dayCount = Math.floor(diffMs / DAY_MS) + 1;
+        if (dayCount > 0) {
+          daTargetContainers.forEach((container) => {
+            if (!container || typeof container.querySelector !== 'function') return;
+            const amountInput = container.querySelector('input.amount-input');
+            if (!amountInput) return;
+            const row = container.closest('.row-data');
+            let daPerDay = 0;
+            if (row && row.dataset && row.dataset.defaultDa) {
+              daPerDay = Number(row.dataset.defaultDa) || 0;
+            }
+            if (daPerDay <= 0 && typeof window.getDefaultDaForBeneficiary === 'function') {
+              const beneficiaryName = row ? readBeneficiaryFromRow(row) : '';
+              if (beneficiaryName) {
+                daPerDay = Number(window.getDefaultDaForBeneficiary(beneficiaryName)) || 0;
+              }
+              if (daPerDay > 0 && row) {
+                try { row.dataset.defaultDa = String(daPerDay); } catch(_){ /* ignore */ }
+                try { row.setAttribute('data-default-da', String(daPerDay)); } catch(_){ /* ignore */ }
+              }
+            }
+            if (daPerDay <= 0) return;
+            const totalAmount = daPerDay * dayCount;
+            const formatted = (window.FRTZ && typeof window.FRTZ.formatAmt === 'function')
+              ? window.FRTZ.formatAmt(totalAmount)
+              : totalAmount.toFixed(2);
+            amountInput.value = formatted;
+            try { amountInput.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){ /* ignore */ }
+            try { amountInput.dispatchEvent(new Event('change', { bubbles: true })); } catch(_){ /* ignore */ }
+          });
+        }
+      }
     }
 
     closeCalendar();
