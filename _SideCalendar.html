@@ -54,8 +54,9 @@
   #genZCalendar .day.start,#genZCalendar .day.end{outline:3px solid rgba(255,255,255,.95);box-shadow:0 0 0 3px var(--accent1) inset}
   #genZCalendar .day.today{box-shadow:inset 0 0 0 2px rgba(250,204,21,.95)}
   /* Historical ranges ring overlay — color per range via --hist-color */
-  #genZCalendar .day.hist::after{content:"";position:absolute;inset:6px;border-radius:16px;border:3px solid var(--hist-color, rgba(99,102,241,.55));pointer-events:none}
-  #genZCalendar .day.hist.locked{cursor:not-allowed;pointer-events:none;}
+  #genZCalendar .day.hist::after{content:"";position:absolute;inset:6px;border-radius:16px;border:3px solid var(--hist-color, rgba(99,102,241,.55));pointer-events:none;transition:border-color .2s ease,opacity .2s ease}
+  #genZCalendar .day.hist.locked{cursor:not-allowed;pointer-events:none;background:var(--locked-bg, rgba(148,163,184,.32));color:var(--locked-fg, #102a43);box-shadow:0 6px 18px rgba(15,23,42,.18);}
+  #genZCalendar .day.hist.locked::after{border-color:var(--locked-ring, var(--hist-color, rgba(99,102,241,.55)));opacity:.9;}
   #genZCalendar .day.hist.locked.blocked{animation:lockedShake .6s ease;}
   @keyframes lockedShake{0%,100%{transform:translateX(0);}25%{transform:translateX(-3px);}50%{transform:translateX(3px);}75%{transform:translateX(-2px);}}
 
@@ -170,6 +171,38 @@
     const v = hex.replace('#','');
     const r = parseInt(v.slice(0,2),16), g = parseInt(v.slice(2,4),16), b = parseInt(v.slice(4,6),16);
     return `rgba(${r},${g},${b},${a})`;
+  }
+
+  const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+  function parseHslColor(color){
+    if(!color || typeof color !== 'string') return null;
+    const match = color.match(/hsl\(\s*([\d.]+)\s*,\s*([\d.]+)%\s*,\s*([\d.]+)%\s*\)/i);
+    if(!match) return null;
+    return {
+      h: Number(match[1]) || 0,
+      s: Number(match[2]) || 0,
+      l: Number(match[3]) || 0,
+    };
+  }
+
+  function deriveLockedPalette(color){
+    const fallback = {
+      bg: 'rgba(148,163,184,.32)',
+      fg: '#102a43',
+      ring: color || 'rgba(148,163,184,.55)'
+    };
+    const hsl = parseHslColor(color);
+    if(!hsl) return fallback;
+    const bgLightness = clamp(hsl.l + 18, 62, 90);
+    const bgSaturation = clamp(hsl.s * 0.45, 12, 52);
+    const background = `hsl(${hsl.h}, ${bgSaturation}%, ${bgLightness}%)`;
+    const foreground = bgLightness >= 72 ? '#102a43' : '#f8fafc';
+    return {
+      bg: background,
+      fg: foreground,
+      ring: color
+    };
   }
 
   function applyAccents(field, host){
@@ -644,6 +677,10 @@
         btn.style.setProperty('--hist-color', color);
         if ((cs.field || '').toLowerCase() === 'da') {
           btn.classList.add('locked');
+          const palette = deriveLockedPalette(color);
+          btn.style.setProperty('--locked-bg', palette.bg);
+          btn.style.setProperty('--locked-fg', palette.fg);
+          btn.style.setProperty('--locked-ring', palette.ring);
         }
       }
       btn.dataset.date = ds;
