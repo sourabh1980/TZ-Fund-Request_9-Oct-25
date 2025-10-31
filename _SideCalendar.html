@@ -51,6 +51,8 @@
   #genZCalendar .day:hover{transform:translateY(-1px);box-shadow:0 10px 24px rgba(0,0,0,.28)}
   #genZCalendar .day.muted{background:rgba(255,255,255,.65);color:#6b7280}
   #genZCalendar .day.disabled{opacity:.35;filter:grayscale(.3);cursor:not-allowed}
+  #genZCalendar .day.locked{opacity:.45;filter:grayscale(.25);cursor:not-allowed}
+  #genZCalendar .day.locked.locked-feedback{animation:daShake .5s ease-in-out, daPulse 1.1s ease-out}
   #genZCalendar .day.selected{background:linear-gradient(135deg,var(--rangeSolid),var(--rangeSolidAlt));color:#fff7f0;
     box-shadow:0 12px 28px var(--rangeShadow)}
   #genZCalendar .day.selected.single{border-radius:999px}
@@ -66,6 +68,17 @@
   #genZCalendar .day.today{box-shadow:inset 0 0 0 2px rgba(250,204,21,.95)}
   /* Historical ranges ring overlay — color per range via --hist-color */
   #genZCalendar .day.hist::after{content:"";position:absolute;inset:6px;border-radius:16px;border:3px solid var(--hist-color, rgba(99,102,241,.55));pointer-events:none}
+
+  @keyframes daShake{
+    0%,100%{transform:translateX(0)}
+    20%,60%{transform:translateX(-4px)}
+    40%,80%{transform:translateX(4px)}
+  }
+  @keyframes daPulse{
+    0%{box-shadow:0 8px 20px rgba(0,0,0,.22),0 0 0 0 rgba(239,68,68,.45)}
+    70%{box-shadow:0 8px 20px rgba(0,0,0,.22),0 0 0 14px rgba(239,68,68,0)}
+    100%{box-shadow:0 8px 20px rgba(0,0,0,.22),0 0 0 0 rgba(239,68,68,0)}
+  }
 
   /* Actions & counter */
   .counter{text-align:center;font-weight:1000; opacity:.9; margin:8px 0 0; letter-spacing:.3px}
@@ -176,6 +189,74 @@
   // Historical submission ranges for beneficiary (client state)
   cs.histRanges = []; // [{from:'YYYY-MM-DD', to:'YYYY-MM-DD'}]
   cs.histColors = []; // ['#rrggbb'] aligned by index
+
+  const isDAField = () => (cs.field || '').toLowerCase() === 'da';
+
+  function historicalRangeIndex(ds){
+    if(!ds || !cs.histRanges || !cs.histRanges.length) return -1;
+    const t = parse(ds).getTime();
+    if(Number.isNaN(t)) return -1;
+    for(let i=0;i<cs.histRanges.length;i++){
+      const r = cs.histRanges[i];
+      if(!(r && r.from && r.to)) continue;
+      const a = parse(r.from).getTime();
+      const b = parse(r.to).getTime();
+      if(Number.isNaN(a) || Number.isNaN(b)) continue;
+      const lo = Math.min(a,b);
+      const hi = Math.max(a,b);
+      if(t >= lo && t <= hi) return i;
+    }
+    return -1;
+  }
+
+  const isHistoricalDate = (ds) => historicalRangeIndex(ds) >= 0;
+
+  function collectHistoricalDatesBetween(startDs, endDs){
+    if(!startDs || !endDs || !cs.histRanges || !cs.histRanges.length) return [];
+    const startTime = parse(startDs).getTime();
+    const endTime = parse(endDs).getTime();
+    if(Number.isNaN(startTime) || Number.isNaN(endTime)) return [];
+    const lo = Math.min(startTime, endTime);
+    const hi = Math.max(startTime, endTime);
+    const set = new Set();
+    cs.histRanges.forEach(r => {
+      if(!(r && r.from && r.to)) return;
+      const a = parse(r.from).getTime();
+      const b = parse(r.to).getTime();
+      if(Number.isNaN(a) || Number.isNaN(b)) return;
+      const rLo = Math.min(a,b);
+      const rHi = Math.max(a,b);
+      if(rHi < lo || rLo > hi) return;
+      const start = new Date(Math.max(lo, rLo));
+      const end = new Date(Math.min(hi, rHi));
+      start.setHours(0,0,0,0);
+      end.setHours(0,0,0,0);
+      for(let dt = new Date(start); dt.getTime() <= end.getTime(); dt.setDate(dt.getDate()+1)){
+        set.add(ymd(dt));
+      }
+    });
+    return Array.from(set);
+  }
+
+  function triggerLockedFeedback(dates){
+    if(!Array.isArray(dates) || !dates.length) return;
+    const uniqueDates = Array.from(new Set(dates.filter(Boolean)));
+    if(!uniqueDates.length) return;
+    uniqueDates.forEach(dateStr => {
+      const buttons = document.querySelectorAll(`#calendarGrid .day[data-date="${dateStr}"]`);
+      buttons.forEach(btn => {
+        btn.classList.remove('locked-feedback');
+        void btn.offsetWidth;
+        btn.classList.add('locked-feedback');
+        const onAnimEnd = (evt) => {
+          if(evt && evt.animationName !== 'daPulse') return;
+          btn.classList.remove('locked-feedback');
+          btn.removeEventListener('animationend', onAnimEnd);
+        };
+        btn.addEventListener('animationend', onAnimEnd);
+      });
+    });
+  }
 
   function hexToRGBA(hex, a){
     const v = hex.replace('#','');
@@ -641,20 +722,7 @@
     const singleDaySelection = selStartDate && (!selEndDate || selStartTime === selEndTime);
     if(a && !cs.min){ cs.min = addMonths(a, -3); cs.max = addMonths(a, 3); }
 
-    const inHist = (ds) => {
-      if (!cs.histRanges || !cs.histRanges.length) return -1;
-      const t = parse(ds).getTime();
-      for (let i = 0; i < cs.histRanges.length; i++){
-        const r = cs.histRanges[i];
-        if (!(r && r.from && r.to)) continue;
-        const a = parse(r.from).getTime();
-        const b = parse(r.to).getTime();
-        const lo = Math.min(a,b), hi = Math.max(a,b);
-        if (t >= lo && t <= hi) return i; // inclusive
-      }
-      return -1;
-    };
-
+    const isDA = isDAField();
     cells.forEach(c => {
       const ds = ymd(c.newDate);
       const btn = document.createElement('button');
@@ -680,14 +748,26 @@
       if(joinPrev) btn.classList.add('join-prev');
       if(joinNext) btn.classList.add('join-next');
       // Historical ranges: color-coded ring per range index
-      const hidx = inHist(ds);
+      const hidx = historicalRangeIndex(ds);
       if (hidx >= 0 && !btn.classList.contains('disabled')) {
         btn.classList.add('hist');
         const color = cs.histColors[hidx] || '#60a5fa';
         btn.style.setProperty('--hist-color', color);
       }
       btn.textContent = c.d;
-      if(!btn.classList.contains('disabled')) btn.onclick = () => pick(ds);
+      btn.setAttribute('data-date', ds);
+      btn.dataset.date = ds;
+      if(isDA && hidx >= 0){
+        btn.classList.add('locked','disabled');
+        btn.setAttribute('aria-disabled','true');
+        btn.tabIndex = -1;
+        btn.addEventListener('click', (evt) => {
+          evt.preventDefault();
+          triggerLockedFeedback([ds]);
+        });
+      } else if(!btn.classList.contains('disabled')) {
+        btn.addEventListener('click', () => pick(ds));
+      }
       grid.appendChild(btn);
     });
 
@@ -695,8 +775,27 @@
   }
 
   function pick(ds){
-    if(!cs.from){ cs.from = ds; cs.min = addMonths(ds, -3); cs.max = addMonths(ds, 3); }
-    else{ if(ds < cs.min || ds > cs.max) return; cs.to = ds; }
+    const isDA = isDAField();
+    if(isDA && isHistoricalDate(ds)){
+      triggerLockedFeedback([ds]);
+      return;
+    }
+    if(!cs.from){
+      cs.from = ds;
+      cs.min = addMonths(ds, -3);
+      cs.max = addMonths(ds, 3);
+    }
+    else{
+      if(ds < cs.min || ds > cs.max) return;
+      if(isDA){
+        const blocked = collectHistoricalDatesBetween(cs.from, ds);
+        if(blocked.length){
+          triggerLockedFeedback(blocked);
+          return;
+        }
+      }
+      cs.to = ds;
+    }
     render();
   }
 
