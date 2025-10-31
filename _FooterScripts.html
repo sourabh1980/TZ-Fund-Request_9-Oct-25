@@ -107,32 +107,71 @@
     return false;
   }
 
-  const DEFAULT_DA_CACHE_STATE = { map: null, built: false };
+  const DEFAULT_DA_CACHE_STATE = { map: null, alt: null, built: false, awaiting: false };
+
+  function scheduleDefaultDaCacheRetry(){
+    if (DEFAULT_DA_CACHE_STATE.awaiting) return;
+    DEFAULT_DA_CACHE_STATE.awaiting = true;
+    const attempt = () => {
+      DEFAULT_DA_CACHE_STATE.awaiting = false;
+      ensureDefaultDaCache();
+    };
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', attempt, { once: true });
+    } else {
+      setTimeout(attempt, 60);
+    }
+  }
 
   function ensureDefaultDaCache(){
     if (DEFAULT_DA_CACHE_STATE.built && DEFAULT_DA_CACHE_STATE.map) {
       return DEFAULT_DA_CACHE_STATE.map;
     }
-    const map = new Map();
+
+    const tag = document.getElementById('DDC');
+    if (!tag) {
+      scheduleDefaultDaCacheRetry();
+      return DEFAULT_DA_CACHE_STATE.map;
+    }
+
+    let pack;
     try {
-      const tag = document.getElementById('DDC');
-      if (tag) {
-        const pack = JSON.parse(tag.textContent || '{}');
-        if (pack && Array.isArray(pack.rows)) {
-          pack.rows.forEach(function(row){
-            if (!row) return;
-            const beneficiary = String(row[0] || '').trim();
-            if (!beneficiary) return;
-            const rate = Number(row[3]);
-            const finite = typeof Number.isFinite === 'function' ? Number.isFinite(rate) : isFinite(rate);
-            map.set(normalizeName(beneficiary), finite ? rate : 0);
-          });
-        }
-      }
+      pack = JSON.parse(tag.textContent || '{}');
     } catch (err) {
       console.warn('Failed to build Default DA cache', err);
+      DEFAULT_DA_CACHE_STATE.built = false;
+      scheduleDefaultDaCacheRetry();
+      return DEFAULT_DA_CACHE_STATE.map;
     }
+
+    if (!pack || !Array.isArray(pack.rows)) {
+      DEFAULT_DA_CACHE_STATE.map = new Map();
+      DEFAULT_DA_CACHE_STATE.alt = new Map();
+      DEFAULT_DA_CACHE_STATE.built = true;
+      return DEFAULT_DA_CACHE_STATE.map;
+    }
+
+    const map = new Map();
+    const alt = new Map();
+    pack.rows.forEach(function(row){
+      if (!row) return;
+      const beneficiary = String(row[0] || '').trim();
+      if (!beneficiary) return;
+      const rate = Number(row[3]);
+      const finite = typeof Number.isFinite === 'function' ? Number.isFinite(rate) : isFinite(rate);
+      const normalized = normalizeName(beneficiary);
+      if (!normalized) return;
+      if (!map.has(normalized)) {
+        map.set(normalized, finite ? rate : 0);
+      }
+      const strippedKey = stripNameKey(beneficiary);
+      if (strippedKey && !alt.has(strippedKey)) {
+        alt.set(strippedKey, finite ? rate : 0);
+      }
+    });
+
     DEFAULT_DA_CACHE_STATE.map = map;
+    DEFAULT_DA_CACHE_STATE.alt = alt;
     DEFAULT_DA_CACHE_STATE.built = true;
     return map;
   }
@@ -140,11 +179,32 @@
   function lookupDefaultDaRate(name){
     if (!name) return null;
     const normalized = normalizeName(name);
-    if (!normalized) return null;
     const map = ensureDefaultDaCache();
-    if (!map || !map.has(normalized)) return null;
-    const value = map.get(normalized);
-    return typeof value === 'number' && !isNaN(value) ? value : null;
+    if (normalized && map && map.has(normalized)) {
+      const value = map.get(normalized);
+      if (typeof value === 'number' && !isNaN(value)) {
+        return value;
+      }
+    }
+
+    const stripped = stripNameKey(name);
+    const altMap = DEFAULT_DA_CACHE_STATE.alt;
+    if (stripped && altMap && altMap.has(stripped)) {
+      const fallback = altMap.get(stripped);
+      if (typeof fallback === 'number' && !isNaN(fallback)) {
+        return fallback;
+      }
+    }
+
+    if (map && typeof beneficiaryKeysMatch === 'function' && normalized) {
+      for (const [key, value] of map.entries()) {
+        if (beneficiaryKeysMatch(key, normalized) && typeof value === 'number' && !isNaN(value)) {
+          return value;
+        }
+      }
+    }
+
+    return null;
   }
 
   window.getDefaultDaRateForBeneficiary = function(name){
