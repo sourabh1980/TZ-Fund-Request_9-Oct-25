@@ -76,6 +76,28 @@
     return normalized;
   }
 
+  const DEFAULT_DA_MAP = new Map();
+
+  function setDefaultDaForBeneficiary(name, amount) {
+    const key = normalizeName(name);
+    if (!key) return;
+    const numeric = Number(amount);
+    if (!Number.isFinite(numeric) || numeric <= 0) return;
+    DEFAULT_DA_MAP.set(key, numeric);
+  }
+
+  function getDefaultDaForBeneficiary(name) {
+    const key = normalizeName(name);
+    if (!key) return 0;
+    if (DEFAULT_DA_MAP.has(key)) {
+      return DEFAULT_DA_MAP.get(key);
+    }
+    return 0;
+  }
+
+  window.setDefaultDaForBeneficiary = setDefaultDaForBeneficiary;
+  window.getDefaultDaForBeneficiary = getDefaultDaForBeneficiary;
+
   function vehicleNameKey(name){
     return normalizeName(name);
   }
@@ -2568,6 +2590,8 @@
     clone.querySelectorAll('.splitflap .line').forEach((line) => { line.textContent = 'DD - MM'; });
     // Ensure no stale attributes
     clone.removeAttribute('data-team'); clone.removeAttribute('data-project');
+    try { delete clone.dataset.defaultDa; } catch(_){ /* ignore */ }
+    clone.removeAttribute('data-default-da');
     protoRowTemplate = clone;
     return protoRowTemplate;
   }
@@ -2741,6 +2765,30 @@
     if (designationInput) designationInput.value = it.designation || '';
     if (mobileInput) mobileInput.value = it.mobNo || it.mobile || '';
     if (displayNameInput) displayNameInput.value = it.displayName || '';
+    let defaultDaValue = 0;
+    if (typeof it.defaultDa === 'number' && it.defaultDa > 0) {
+      defaultDaValue = it.defaultDa;
+    } else if (typeof it.erdaAmt === 'number' && it.erdaAmt > 0) {
+      defaultDaValue = it.erdaAmt;
+    } else {
+      const fallbackName = it.beneficiary || (beneficiaryInput ? beneficiaryInput.value : '');
+      if (fallbackName && typeof getDefaultDaForBeneficiary === 'function') {
+        const cached = Number(getDefaultDaForBeneficiary(fallbackName)) || 0;
+        if (cached > 0) defaultDaValue = cached;
+      }
+    }
+    if (defaultDaValue > 0) {
+      try { row.dataset.defaultDa = String(defaultDaValue); } catch(_){ /* ignore */ }
+      try { row.setAttribute('data-default-da', String(defaultDaValue)); } catch(_){ /* ignore */ }
+      if (it.beneficiary) {
+        try { setDefaultDaForBeneficiary(it.beneficiary, defaultDaValue); } catch(_){ /* ignore */ }
+      }
+    } else {
+      if (row.dataset && Object.prototype.hasOwnProperty.call(row.dataset, 'defaultDa')) {
+        try { delete row.dataset.defaultDa; } catch(_){ /* ignore */ }
+      }
+      try { row.removeAttribute('data-default-da'); } catch(_){ /* ignore */ }
+    }
     // Show vehicle number for beneficiaries present in Vehicle_InUse assignments
     if (carNumberInput) {
       const beneficiaryName = String(it.beneficiary || '').trim();
@@ -3187,13 +3235,18 @@
         if (have && !tset.has(team)) continue;
         var ben = String(r[0]||'');
         if (!ben) continue;
+        var defaultDa = Number(r[3]||0) || 0;
+        if (defaultDa > 0) {
+          try { setDefaultDaForBeneficiary(ben, defaultDa); } catch(_){ /* ignore */ }
+        }
         const mobNo = r.length > 6 ? String(r[6] || '').trim() : '';
         const displayName = r.length > 7 ? String(r[7] || '').trim() : '';
         out.push({
           beneficiary: ben,
           accountHolder: String(r[1]||''),
           designation: String(r[2]||''),
-          erdaAmt: Number(r[3]||0),
+          erdaAmt: defaultDa,
+          defaultDa: defaultDa,
           project: p,
           projectName: p,
           team: team,
@@ -3212,6 +3265,25 @@
       return null;
     }
   }
+
+  (function preloadDefaultDaFromPack(){
+    try {
+      var tag = document.getElementById('DDC');
+      if (!tag) return;
+      var pack = JSON.parse(tag.textContent||'{}');
+      if (!pack || !Array.isArray(pack.rows)) return;
+      for (var i = 0; i < pack.rows.length; i++) {
+        var r = pack.rows[i];
+        if (!r || !r[0]) continue;
+        var amount = Number(r[3]||0) || 0;
+        if (amount > 0) {
+          try { setDefaultDaForBeneficiary(r[0], amount); } catch(_){ /* ignore */ }
+        }
+      }
+    } catch (err) {
+      console.warn('DDC default DA preload failed', err);
+    }
+  })();
 
   // Capture-phase listener so we run before bubble listeners
   document.addEventListener('pp:applied', function(e){
