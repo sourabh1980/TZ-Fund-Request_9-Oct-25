@@ -52,6 +52,7 @@
   #genZCalendar .day.muted{background:rgba(255,255,255,.65);color:#6b7280}
   #genZCalendar .day.disabled{opacity:.35;filter:grayscale(.3);cursor:not-allowed}
   #genZCalendar .day.locked{opacity:.45;filter:grayscale(.25);cursor:not-allowed}
+  #genZCalendar[data-field="da"] .day.locked{opacity:.6;filter:grayscale(.18) brightness(1.05)}
   #genZCalendar .day.locked.locked-feedback{animation:daShake .5s ease-in-out, daPulse 1.1s ease-out}
   #genZCalendar .day.selected{background:linear-gradient(135deg,var(--rangeSolid),var(--rangeSolidAlt));color:#fff7f0;
     box-shadow:0 12px 28px var(--rangeShadow)}
@@ -469,8 +470,11 @@
       document.getElementById('fieldChip').textContent = friendlyName(cs.field);
     }
     
+    const panel = document.getElementById('genZCalendar');
+    panel.dataset.field = (cs.field || '').toLowerCase();
+
     document.getElementById('calendarOverlay').style.display='block';
-    document.getElementById('genZCalendar').classList.add('open');
+    panel.classList.add('open');
     
     // Set initial Clear button state based on existing dates
     const clearBtn = document.getElementById('clearBtn');
@@ -512,7 +516,9 @@
   window.closeCalendar = () => {
     cs.open=false; cs.host=null;
     document.getElementById('calendarOverlay').style.display='none';
-    document.getElementById('genZCalendar').classList.remove('open');
+    const panel = document.getElementById('genZCalendar');
+    panel.classList.remove('open');
+    panel.dataset.field = '';
   };
 
   window.resetSelection = () => {
