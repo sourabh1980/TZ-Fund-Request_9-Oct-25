@@ -226,6 +226,69 @@
     }
   }
 
+  function computeInclusiveDays(from, to){
+    if (!from || !to) return 0;
+    try {
+      const start = parse(from);
+      const end = parse(to);
+      if (!start || !end) return 0;
+      const startMs = start.getTime();
+      const endMs = end.getTime();
+      if (isNaN(startMs) || isNaN(endMs)) return 0;
+      const lo = Math.min(startMs, endMs);
+      const hi = Math.max(startMs, endMs);
+      return Math.floor((hi - lo) / DAY_MS) + 1;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  function getDefaultDaRateForRow(row, beneficiaryName){
+    if (row && row.dataset) {
+      const raw = row.dataset.defaultDa;
+      if (raw !== undefined) {
+        const parsed = parseFloat(raw);
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+    if (typeof window.getDefaultDaRateForBeneficiary === 'function') {
+      const lookup = window.getDefaultDaRateForBeneficiary(beneficiaryName || '');
+      if (lookup !== null && lookup !== undefined && !isNaN(Number(lookup))) {
+        return Number(lookup);
+      }
+    }
+    return null;
+  }
+
+  function autoFillDaAmounts(containers, fromDate, toDate){
+    if (!Array.isArray(containers) || !containers.length) return;
+    const days = computeInclusiveDays(fromDate, toDate);
+    if (!days) return;
+    containers.forEach(container => {
+      if (!container) return;
+      const row = container.closest ? container.closest('.row-data') : null;
+      if (!row) return;
+      const amountInput = container.querySelector('.amount-input');
+      if (!amountInput) return;
+      const beneficiaryInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+      const beneficiaryName = beneficiaryInput ? beneficiaryInput.value.trim() : '';
+      const rate = getDefaultDaRateForRow(row, beneficiaryName);
+      if (rate === null || rate === undefined || isNaN(rate)) return;
+      const total = rate * days;
+      const formatted = (window.FRTZ && typeof window.FRTZ.formatAmt === 'function')
+        ? window.FRTZ.formatAmt(total)
+        : Number(total).toFixed(2);
+      amountInput.value = formatted;
+      try {
+        amountInput.dataset.autoFilled = 'da-default';
+      } catch (_) {}
+      try {
+        amountInput.dispatchEvent(new Event('input', { bubbles: true }));
+        amountInput.dispatchEvent(new Event('change', { bubbles: true }));
+      } catch (_) {}
+    });
+  }
+
   function applyHistoricalRanges(ranges){
     const arr = Array.isArray(ranges) ? ranges.filter(r => r && r.from && r.to) : [];
     cs.histRanges = arr;
@@ -975,6 +1038,17 @@
     
     const animated = new Set();
     let lastFastModeUsed = false;
+    const shouldAutoFillDa = field === 'da' || field === 'erda' || field === 'global';
+    const containersForAutoDa = shouldAutoFillDa ? new Set() : null;
+    const recordContainerIfNeeded = (node) => {
+      if (!shouldAutoFillDa || !node) return;
+      const container = node.classList?.contains('split-calendar-container') ? node : node.closest?.('.split-calendar-container');
+      if (!container) return;
+      const cal = container.dataset?.cal;
+      if (cal === 'da' || cal === 'erda') {
+        containersForAutoDa.add(container);
+      }
+    };
     const queueAnimation = (pill, options = {}) => {
       if(!pill || animated.has(pill)) return;
       const container = pill.closest ? pill.closest('.split-calendar-container') : null;
@@ -998,6 +1072,7 @@
           const firstPill = container.querySelector('.splitflap--holo');
           if(firstPill) {
             targets.push(firstPill);
+            recordContainerIfNeeded(container);
           }
           appliedCount++;
         }
@@ -1023,6 +1098,7 @@
         const firstPill = container.querySelector('.splitflap--holo');
         if(firstPill) {
           queueAnimation(firstPill, {fastMode, baseDelay: 0});
+          recordContainerIfNeeded(container);
         }
       });
 
@@ -1040,6 +1116,11 @@
         opts.fastMode = true;
       }
       queueAnimation(cs.host, opts);
+      recordContainerIfNeeded(cs.host);
+    }
+
+    if (shouldAutoFillDa && containersForAutoDa && containersForAutoDa.size) {
+      autoFillDaAmounts(Array.from(containersForAutoDa), fromDate, toDate);
     }
 
     closeCalendar();

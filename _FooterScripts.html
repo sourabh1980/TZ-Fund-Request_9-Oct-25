@@ -107,6 +107,69 @@
     return false;
   }
 
+  const DEFAULT_DA_CACHE_STATE = { map: null, built: false };
+
+  function ensureDefaultDaCache(){
+    if (DEFAULT_DA_CACHE_STATE.built && DEFAULT_DA_CACHE_STATE.map) {
+      return DEFAULT_DA_CACHE_STATE.map;
+    }
+    const map = new Map();
+    try {
+      const tag = document.getElementById('DDC');
+      if (tag) {
+        const pack = JSON.parse(tag.textContent || '{}');
+        if (pack && Array.isArray(pack.rows)) {
+          pack.rows.forEach(function(row){
+            if (!row) return;
+            const beneficiary = String(row[0] || '').trim();
+            if (!beneficiary) return;
+            const rate = Number(row[3]);
+            const finite = typeof Number.isFinite === 'function' ? Number.isFinite(rate) : isFinite(rate);
+            map.set(normalizeName(beneficiary), finite ? rate : 0);
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to build Default DA cache', err);
+    }
+    DEFAULT_DA_CACHE_STATE.map = map;
+    DEFAULT_DA_CACHE_STATE.built = true;
+    return map;
+  }
+
+  function lookupDefaultDaRate(name){
+    if (!name) return null;
+    const normalized = normalizeName(name);
+    if (!normalized) return null;
+    const map = ensureDefaultDaCache();
+    if (!map || !map.has(normalized)) return null;
+    const value = map.get(normalized);
+    return typeof value === 'number' && !isNaN(value) ? value : null;
+  }
+
+  window.getDefaultDaRateForBeneficiary = function(name){
+    return lookupDefaultDaRate(name);
+  };
+
+  function applyDefaultDaToRow(row, beneficiaryName, explicitRate){
+    if (!row) return;
+    let rate = null;
+    if (typeof explicitRate === 'number' && !isNaN(explicitRate)) {
+      rate = explicitRate;
+    } else if (beneficiaryName) {
+      const lookup = lookupDefaultDaRate(beneficiaryName);
+      if (lookup !== null && lookup !== undefined) {
+        rate = lookup;
+      }
+    }
+
+    if (rate !== null && rate !== undefined && !isNaN(rate)) {
+      try { row.dataset.defaultDa = String(rate); } catch(_){ /* ignore */ }
+    } else {
+      try { delete row.dataset.defaultDa; } catch(_){ /* ignore */ }
+    }
+  }
+
   function getAssignedVehicleNumber(beneficiary, teamKey, projectKey) {
     const normalizedName = vehicleNameKey(beneficiary);
     const normalizedTeamKey = teamNameKey(teamKey || '');
@@ -2568,6 +2631,8 @@
     clone.querySelectorAll('.splitflap .line').forEach((line) => { line.textContent = 'DD - MM'; });
     // Ensure no stale attributes
     clone.removeAttribute('data-team'); clone.removeAttribute('data-project');
+    clone.removeAttribute('data-default-da');
+    try { delete clone.dataset.defaultDa; } catch(_){ /* ignore */ }
     protoRowTemplate = clone;
     return protoRowTemplate;
   }
@@ -2767,6 +2832,8 @@
     // ER DA amount should remain empty by default - user must fill it manually
     // if (amts[2]) amts[2].value = (window.FRTZ && window.FRTZ.formatAmt ? window.FRTZ.formatAmt(it.erdaAmt || 0) : Number(it.erdaAmt || 0).toFixed(2));   // ER DA Amt
 
+    applyDefaultDaToRow(row, it.beneficiary || '', typeof it.erdaAmt === 'number' ? it.erdaAmt : null);
+
     // diff flag
     if (it.diffNames){
       if (beneficiaryInput) beneficiaryInput.classList.add('diff-flag');
@@ -2818,6 +2885,17 @@
 
     return row;
   }
+
+  document.addEventListener('change', function(evt){
+    const target = evt && evt.target;
+    if (!target || target.tagName !== 'INPUT') return;
+    if (!target.classList.contains('txt') || target.classList.contains('account-holder-input') || target.classList.contains('car-number-input')) return;
+    const row = target.closest('.row-data');
+    if (!row) return;
+    const beneficiaryInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+    if (beneficiaryInput !== target) return;
+    applyDefaultDaToRow(row, target.value || '');
+  });
 
   // ========================= Sorting & Grouping =========================
   function sortItemsForRendering(items){
