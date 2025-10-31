@@ -107,7 +107,36 @@
     return false;
   }
 
-  const DEFAULT_DA_CACHE_STATE = { map: null, alt: null, built: false, awaiting: false };
+  const DEFAULT_DA_CACHE_STATE = { map: null, alt: null, built: false, awaiting: false, observer: null };
+
+  function installDefaultDaObserver(){
+    if (DEFAULT_DA_CACHE_STATE.observer || typeof MutationObserver !== 'function') return;
+    try {
+      const observer = new MutationObserver((mutations) => {
+        for (let i = 0; i < mutations.length; i++) {
+          const added = mutations[i] && mutations[i].addedNodes;
+          if (!added || !added.length) continue;
+          for (let j = 0; j < added.length; j++) {
+            const node = added[j];
+            if (!node || node.nodeType !== 1) continue;
+            if (node.id === 'DDC') {
+              try { observer.disconnect(); } catch(_){ /* ignore */ }
+              DEFAULT_DA_CACHE_STATE.observer = null;
+              ensureDefaultDaCache();
+              return;
+            }
+          }
+        }
+      });
+      const root = document.documentElement || document.body || document;
+      if (root) {
+        observer.observe(root, { childList: true, subtree: true });
+        DEFAULT_DA_CACHE_STATE.observer = observer;
+      }
+    } catch(_){
+      DEFAULT_DA_CACHE_STATE.observer = null;
+    }
+  }
 
   function scheduleDefaultDaCacheRetry(){
     if (DEFAULT_DA_CACHE_STATE.awaiting) return;
@@ -121,6 +150,7 @@
     } else {
       setTimeout(attempt, 60);
     }
+    installDefaultDaObserver();
   }
 
   function ensureDefaultDaCache(){
@@ -130,6 +160,7 @@
 
     const tag = document.getElementById('DDC');
     if (!tag) {
+      installDefaultDaObserver();
       scheduleDefaultDaCacheRetry();
       return DEFAULT_DA_CACHE_STATE.map;
     }
@@ -148,6 +179,10 @@
       DEFAULT_DA_CACHE_STATE.map = new Map();
       DEFAULT_DA_CACHE_STATE.alt = new Map();
       DEFAULT_DA_CACHE_STATE.built = true;
+      if (DEFAULT_DA_CACHE_STATE.observer) {
+        try { DEFAULT_DA_CACHE_STATE.observer.disconnect(); } catch(_){ /* ignore */ }
+        DEFAULT_DA_CACHE_STATE.observer = null;
+      }
       return DEFAULT_DA_CACHE_STATE.map;
     }
 
@@ -173,7 +208,30 @@
     DEFAULT_DA_CACHE_STATE.map = map;
     DEFAULT_DA_CACHE_STATE.alt = alt;
     DEFAULT_DA_CACHE_STATE.built = true;
+    if (DEFAULT_DA_CACHE_STATE.observer) {
+      try { DEFAULT_DA_CACHE_STATE.observer.disconnect(); } catch(_){ /* ignore */ }
+      DEFAULT_DA_CACHE_STATE.observer = null;
+    }
+    onDefaultDaCacheReady();
     return map;
+  }
+
+  function refreshDefaultDaRatesForRows(){
+    const rows = document.querySelectorAll('.tbody .row-data');
+    rows.forEach(function(row){
+      if (!row) return;
+      const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
+      const beneficiaryName = benInput ? benInput.value.trim() : '';
+      if (!beneficiaryName) return;
+      applyDefaultDaToRow(row, beneficiaryName);
+    });
+  }
+
+  function onDefaultDaCacheReady(){
+    try { refreshDefaultDaRatesForRows(); } catch(_){ /* ignore */ }
+    if (typeof window.refreshAllAutoFilledDa === 'function') {
+      try { window.refreshAllAutoFilledDa(); } catch(_){ /* ignore */ }
+    }
   }
 
   function lookupDefaultDaRate(name){
@@ -225,6 +283,9 @@
 
     if (rate !== null && rate !== undefined && !isNaN(rate)) {
       try { row.dataset.defaultDa = String(rate); } catch(_){ /* ignore */ }
+      if (typeof window.refreshAutoFilledDaForRow === 'function') {
+        try { window.refreshAutoFilledDaForRow(row); } catch(_){ /* ignore */ }
+      }
     } else {
       try { delete row.dataset.defaultDa; } catch(_){ /* ignore */ }
     }
@@ -2955,6 +3016,16 @@
     const beneficiaryInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
     if (beneficiaryInput !== target) return;
     applyDefaultDaToRow(row, target.value || '');
+  });
+
+  document.addEventListener('input', function(evt){
+    const target = evt && evt.target;
+    if (!target || !target.classList || !target.classList.contains('amount-input')) return;
+    if (!evt || !evt.isTrusted) return;
+    if (target.dataset && target.dataset.autoFilled) {
+      try { delete target.dataset.autoFilled; } catch(_){ /* ignore */ }
+    }
+    try { target.removeAttribute('data-auto-filled'); } catch(_){ /* ignore */ }
   });
 
   // ========================= Sorting & Grouping =========================

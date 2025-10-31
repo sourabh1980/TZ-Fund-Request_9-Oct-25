@@ -243,6 +243,14 @@
     }
   }
 
+  function rememberRange(container, from, to){
+    if (!container) return;
+    try {
+      container.dataset.rangeFrom = from || '';
+      container.dataset.rangeTo = to || '';
+    } catch(_){ /* ignore */ }
+  }
+
   function getDefaultDaRateForRow(row, beneficiaryName){
     if (row && row.dataset) {
       const raw = row.dataset.defaultDa;
@@ -266,6 +274,7 @@
     if (!days) return;
     containers.forEach(container => {
       if (!container) return;
+      rememberRange(container, fromDate, toDate);
       const row = container.closest ? container.closest('.row-data') : null;
       if (!row) return;
       const amountInput = container.querySelector('.amount-input');
@@ -287,6 +296,28 @@
         amountInput.dispatchEvent(new Event('change', { bubbles: true }));
       } catch (_) {}
     });
+  }
+
+  function refreshAutoFilledDaForContainer(container){
+    if (!container) return;
+    const amountInput = container.querySelector('.amount-input');
+    if (!amountInput || !amountInput.dataset || amountInput.dataset.autoFilled !== 'da-default') return;
+    const ds = container.dataset || {};
+    const fromDate = ds.rangeFrom || '';
+    const toDate = ds.rangeTo || '';
+    if (!fromDate || !toDate) return;
+    autoFillDaAmounts([container], fromDate, toDate);
+  }
+
+  function refreshAutoFilledDaForRow(row){
+    if (!row) return;
+    const containers = row.querySelectorAll('.split-calendar-container[data-cal="da"], .split-calendar-container[data-cal="erda"]');
+    containers.forEach(refreshAutoFilledDaForContainer);
+  }
+
+  function refreshAllAutoFilledDa(){
+    const containers = document.querySelectorAll('.tbody .split-calendar-container[data-cal="da"], .tbody .split-calendar-container[data-cal="erda"]');
+    containers.forEach(refreshAutoFilledDaForContainer);
   }
 
   function applyHistoricalRanges(ranges){
@@ -645,6 +676,12 @@
     
     // Remove any glow or active states
     pill.classList.remove('glow3', 'active');
+
+    const container = pill.closest ? pill.closest('.split-calendar-container') : null;
+    if (container && container.dataset) {
+      try { delete container.dataset.rangeFrom; } catch(_){ /* ignore */ }
+      try { delete container.dataset.rangeTo; } catch(_){ /* ignore */ }
+    }
   }
 
   window.shiftMonth = (d) => {
@@ -892,6 +929,7 @@
     };
 
     if (container) {
+      rememberRange(container, from, to);
       const pair = container.querySelectorAll('.splitflap--holo');
       if(pair.length >= 2){
         animateTablePill(pair[0], from, baseDelay);
@@ -1131,5 +1169,8 @@
     const pill = e.target.closest('.splitflap[data-cal]');
     if(pill) { openCalendar(pill, pill.dataset.cal); }
   });
+
+  window.refreshAutoFilledDaForRow = refreshAutoFilledDaForRow;
+  window.refreshAllAutoFilledDa = refreshAllAutoFilledDa;
 })();
 </script>
