@@ -125,6 +125,36 @@ function invalidateVehicleReleasedCache(reason) {
   }
 }
 
+function warmVehicleReleasedDropdownCache(reason) {
+  try {
+    const payload = _loadVehicleReleasedDropdownPayload_();
+    const isArrayPayload = Array.isArray(payload);
+    const vehicles = isArrayPayload
+      ? payload
+      : (Array.isArray(payload && payload.vehicles) ? payload.vehicles : []);
+    const version = (!isArrayPayload && payload && Object.prototype.hasOwnProperty.call(payload, 'cacheVersion'))
+      ? (payload.cacheVersion != null ? String(payload.cacheVersion) : null)
+      : null;
+    if (reason) {
+      try {
+        console.log('[CACHE] Vehicle_Released cache warmed:', reason, 'count:', vehicles.length, 'version:', version || '(none)');
+      } catch (_logErr) {
+        // ignore logging errors
+      }
+    }
+    const ok = isArrayPayload ? true : (payload ? payload.ok !== false : false);
+    return {
+      ok: ok,
+      count: vehicles.length,
+      version: version,
+      source: isArrayPayload ? 'legacy' : (payload ? (payload.source || null) : null)
+    };
+  } catch (err) {
+    console.error('[CACHE] Vehicle_Released cache warm failed:', err, reason ? 'reason: ' + reason : '');
+    return { ok: false, error: String(err) };
+  }
+}
+
 function invalidateVehicleCache(reason) {
   try {
     CacheService.getScriptCache().remove(VEHICLE_CACHE_KEY);
@@ -1917,8 +1947,17 @@ function onVehicleReleasedChange(e) {
     if (!_shouldProcessVehicleReleasedEvent_(e)) {
       return { ok: false, skipped: true, changeType };
     }
-    invalidateVehicleReleasedCache(`Vehicle_Released change (${changeType})`);
-    return { ok: true, invalidated: true, changeType };
+    const reason = `Vehicle_Released change (${changeType})`;
+    invalidateVehicleReleasedCache(reason);
+    const warmed = warmVehicleReleasedDropdownCache(reason);
+    return {
+      ok: true,
+      invalidated: true,
+      changeType,
+      warmed: warmed && warmed.ok !== false,
+      warmCount: warmed && typeof warmed.count === 'number' ? warmed.count : 0,
+      warmVersion: warmed && warmed.version != null ? warmed.version : null
+    };
   } catch (err) {
     console.error('onVehicleReleasedChange error', err, 'changeType:', changeType);
     return { ok: false, error: String(err), changeType };
