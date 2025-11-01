@@ -2474,16 +2474,33 @@
           }
         }
 
-        function resetPickerUI(){
-          const statusEl=document.getElementById('vpStatus'); if(statusEl) statusEl.textContent='Loading latest vehicles…';
-          setDropdownLoading(true, 'Loading vehicles…');
+        function resetPickerUI(options = {}){
+          const keepVehicles = options && options.keepVehicles === true;
+          const statusEl = document.getElementById('vpStatus');
+          if (statusEl) {
+            if (keepVehicles) {
+              const current = String(statusEl.textContent || '').trim();
+              if (!current || current.toLowerCase().startsWith('loading latest vehicles')) {
+                statusEl.textContent = 'Showing latest vehicles.';
+              }
+            } else {
+              statusEl.textContent = 'Loading latest vehicles…';
+            }
+          }
+          if (keepVehicles) {
+            setDropdownLoading(false);
+          } else {
+            setDropdownLoading(true, 'Loading vehicles…');
+          }
           const selectBtn = document.getElementById('vpSelectBtn');
           if (selectBtn) {
-            selectBtn.disabled = true;
             selectBtn.textContent = 'Select';
+            selectBtn.disabled = true;
           }
           const metaEl = document.getElementById('vpMatchMeta');
-          if (metaEl) metaEl.textContent = '0 vehicles match filters';
+          if (metaEl && !keepVehicles) {
+            metaEl.textContent = '0 vehicles match filters';
+          }
           const existingSection = document.getElementById('vpExistingSection');
           const newSection = document.getElementById('vpNewCarSection');
           if (existingSection) {
@@ -2511,7 +2528,9 @@
             const s=document.getElementById(id); if(s){ s.selectedIndex=0; }
           });
           clearVehicleInsights();
-          document.getElementById('vpMatchMeta').textContent='0 vehicles match filters';
+          if (metaEl && !keepVehicles) {
+            metaEl.textContent = '0 vehicles match filters';
+          }
           const benSelect = document.getElementById('vpBeneficiary');
           if (benSelect) renderResponsibleBeneficiaries(benSelect, [], '', '');
           userOptions = [];
@@ -2536,19 +2555,17 @@
           const modal=document.getElementById('vehiclePickerModal');
           modal.setAttribute('aria-hidden','false');
           document.body.style.overflow='hidden';
+          const hasCachedVehicles = Array.isArray(vehicleDataCache) && vehicleDataCache.length > 0;
+          const cachedVehiclesSnapshot = hasCachedVehicles ? vehicleDataCache.slice() : null;
           master=[]; vehicles=[];
-          resetPickerUI();
+          resetPickerUI({ keepVehicles: hasCachedVehicles });
           try{ populateContextFromRow(targetInput); }catch(_){ }
           const statusEl = document.getElementById('vpStatus');
-          const hadCache = Array.isArray(vehicleDataCache) && vehicleDataCache.length;
-          if (hadCache) {
+          if (hasCachedVehicles && cachedVehiclesSnapshot) {
             try {
-              renderVehicles(vehicleDataCache.slice());
+              renderVehicles(cachedVehiclesSnapshot);
             } catch (cacheRenderErr) {
               console.warn('[VP] Failed to render cached vehicles on open', cacheRenderErr);
-            }
-            if (statusEl) {
-              statusEl.textContent = 'Showing latest vehicles.';
             }
           } else {
             const warmPending = vehicleFetchPending || vehicleWarmInFlight;
