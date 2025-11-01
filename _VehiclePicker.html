@@ -862,7 +862,7 @@
         let lastWarmSelectionKey='';
         let vehicleWarmInFlight=false;
         let lastVehicleWarmTs=0;
-        const VEHICLE_VERSION_POLL_INTERVAL = 10000;
+        const VEHICLE_VERSION_POLL_INTERVAL = 20000;
         let manualRefreshInProgress = false;
 
         let storageHydrationAttempted = false;
@@ -3179,31 +3179,53 @@
         }
 
         function updateVehiclesDropdown(){
-          const crit=getCriteria();
-          vehicles=filterByCriteria(master,crit,null);
           const sel=document.getElementById('vpDropdown');
           if (!sel) return;
+          const previousValue = String(sel.value || '');
+          const previousScrollTop = sel.scrollTop || 0;
+          const crit=getCriteria();
+          vehicles=filterByCriteria(master,crit,null);
+          const matchMetaEl = document.getElementById('vpMatchMeta');
           if (!vehicles.length) {
             setDropdownLoading(true, 'No vehicles available');
+            sel.value = '';
             document.getElementById('vpSelectBtn').disabled = true;
-            document.getElementById('vpMatchMeta').textContent = '0 vehicles match filters';
+            if (matchMetaEl) matchMetaEl.textContent = '0 vehicles match filters';
             clearVehicleInsights();
             refreshHighlightState();
             updateSelectButtonState();
             return;
           }
           setDropdownLoading(false);
-          sel.innerHTML='<option value="">Select a vehicle…</option>';
+          const placeholder = '<option value="">Select a vehicle…</option>';
           const options=vehicles.map(v=>{
             const num=String(v.carNumber||'');
             const make=String(v.make||''); const model=String(v.model||'');
             const label=[num,(make||model)?(make+(model?(' '+model):'')):''].filter(Boolean).join(' — ');
             return `<option value="${num.replace(/"/g,'&quot;')}">${label}</option>`;
           }).join('');
-          sel.insertAdjacentHTML('beforeend',options);
-          document.getElementById('vpSelectBtn').disabled=true;
-          document.getElementById('vpMatchMeta').textContent = `${vehicles.length} vehicle${vehicles.length===1?'':'s'} match filters`;
-          clearVehicleInsights();
+          sel.innerHTML = placeholder + options;
+          let restoredVehicle = null;
+          if (previousValue) {
+            const match = vehicles.find(v => String(v.carNumber || '') === previousValue);
+            if (match) {
+              sel.value = previousValue;
+              restoredVehicle = match;
+            } else {
+              sel.value = '';
+            }
+          } else {
+            sel.value = '';
+          }
+          sel.scrollTop = previousScrollTop;
+          if (matchMetaEl) {
+            matchMetaEl.textContent = `${vehicles.length} vehicle${vehicles.length===1?'':'s'} match filters`;
+          }
+          if (restoredVehicle) {
+            updateVehicleInsights(restoredVehicle);
+          } else if (!sel.value) {
+            clearVehicleInsights();
+          }
           refreshHighlightState();
           updateSelectButtonState();
         }
