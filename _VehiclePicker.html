@@ -1,4 +1,358 @@
   <script>
+  (function(){
+    const lookupState = {
+      targetInput: null,
+      preselect: '',
+      vehicles: []
+    };
+
+    const modalId = 'vehicleReleasedLookupModal';
+    const statusId = 'vrStatus';
+    const tableBodyId = 'vrTableBody';
+
+    function normalizeVehicleNumber(value){
+      return String(value || '').replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+    }
+
+    function setLookupStatus(message){
+      const statusEl = document.getElementById(statusId);
+      if (statusEl) statusEl.textContent = message;
+    }
+
+    function clearLookupTable(){
+      const body = document.getElementById(tableBodyId);
+      if (body) body.innerHTML = '';
+    }
+
+    function formatRatings(values){
+      if (!values) return [];
+      const list = Array.isArray(values) ? values : [values];
+      return list.map(item => {
+        if (item == null) return null;
+        if (typeof item === 'number') return item;
+        const match = String(item || '').match(/[-+]?\d*\.?\d+/);
+        return match ? parseFloat(match[0]) : null;
+      }).filter(num => Number.isFinite(num)).slice(0, 3);
+    }
+
+    function formatRemarks(values){
+      if (!values) return [];
+      const list = Array.isArray(values) ? values : [values];
+      const seen = new Set();
+      const out = [];
+      list.forEach(item => {
+        const text = String(item || '').trim();
+        if (!text) return;
+        const key = text.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push(text);
+      });
+      return out.slice(0, 3);
+    }
+
+    function renderLookupRows(vehicles, meta){
+      const body = document.getElementById(tableBodyId);
+      if (!body) return;
+      clearLookupTable();
+      const emptyMessage = meta && typeof meta.emptyMessage === 'string'
+        ? meta.emptyMessage
+        : 'No released vehicles available.';
+      if (!Array.isArray(vehicles) || !vehicles.length) {
+        setLookupStatus(emptyMessage);
+        return;
+      }
+      lookupState.vehicles = vehicles.slice();
+      const fragment = document.createDocumentFragment();
+      vehicles.forEach(vehicle => {
+        const tr = document.createElement('tr');
+        const carNumber = String(vehicle.carNumber || vehicle.vehicleNumber || '').trim();
+        const normalizedCar = carNumber || '';
+
+        const make = String(vehicle.make || '').trim();
+        const model = String(vehicle.model || '').trim();
+        const category = String(vehicle.category || '').trim();
+        const usageType = String(vehicle.usageType || '').trim();
+        const owner = String(vehicle.owner || '').trim();
+        const ratings = formatRatings(vehicle.lastRatings || vehicle.latestRatings || vehicle.ratings || vehicle.rating || vehicle.stars);
+        const remarks = formatRemarks(vehicle.lastRemarks || vehicle.lastUsersRemarks || vehicle.remarks || vehicle.notes);
+
+        const tdVehicle = document.createElement('td');
+        if (normalizedCar) {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'vr-vehicle-btn';
+          btn.textContent = normalizedCar;
+          btn.addEventListener('click', () => handleVehicleSelection(vehicle));
+          tdVehicle.appendChild(btn);
+        } else {
+          tdVehicle.textContent = '—';
+        }
+        tr.appendChild(tdVehicle);
+
+        const cells = [
+          make || '—',
+          model || '—',
+          category || '—',
+          usageType || '—',
+          owner || '—'
+        ];
+        cells.forEach(text => {
+          const td = document.createElement('td');
+          td.textContent = text;
+          tr.appendChild(td);
+        });
+
+        const tdRatings = document.createElement('td');
+        if (ratings.length) {
+          tdRatings.textContent = ratings.map(r => Number(r).toFixed(1)).join(', ');
+        } else {
+          tdRatings.textContent = '—';
+          tdRatings.classList.add('vr-empty');
+        }
+        tr.appendChild(tdRatings);
+
+        const tdRemarks = document.createElement('td');
+        if (remarks.length) {
+          const list = document.createElement('div');
+          list.className = 'vr-remarks';
+          remarks.forEach(line => {
+            const div = document.createElement('div');
+            div.className = 'vr-remark';
+            div.textContent = line;
+            list.appendChild(div);
+          });
+          tdRemarks.appendChild(list);
+        } else {
+          tdRemarks.textContent = '—';
+          tdRemarks.classList.add('vr-empty');
+        }
+        tr.appendChild(tdRemarks);
+
+        fragment.appendChild(tr);
+      });
+      body.appendChild(fragment);
+      const overrideStatus = meta && typeof meta.statusMessage === 'string' ? meta.statusMessage : '';
+      if (overrideStatus) {
+        setLookupStatus(overrideStatus);
+      } else {
+        setLookupStatus(`Showing ${vehicles.length} vehicle${vehicles.length === 1 ? '' : 's'} from Vehicle_Released.`);
+      }
+    }
+
+    function handleVehicleSelection(vehicle){
+      const target = lookupState.targetInput;
+      const preselect = String(vehicle && (vehicle.carNumber || vehicle.vehicleNumber || vehicle.vehicle)).trim();
+      closeLookupModal();
+      if (!target) return;
+      if (window.openVehiclePicker) {
+        window.openVehiclePicker(target, { preselectVehicle: preselect });
+      }
+    }
+
+    function openLookupModal(){
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      modal.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeLookupModal(){
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      clearLookupTable();
+      lookupState.vehicles = [];
+      lookupState.targetInput = null;
+    }
+
+    function buildVehicleReleasedLookupContext(){
+      const context = {};
+      const projectCandidates = new Set();
+      const teamCandidates = new Set();
+      const teamIdCandidates = new Set();
+
+      const target = lookupState.targetInput;
+      const row = target && target.closest ? target.closest('.row-data') : null;
+      const lastContext = window.__vpLastContext || {};
+
+      function addValue(set, value){
+        if (value == null) return;
+        const text = String(value).trim();
+        if (!text) return;
+        set.add(text);
+      }
+
+      function addProject(value){ addValue(projectCandidates, value); }
+      function addTeam(value){ addValue(teamCandidates, value); }
+      function addTeamId(value){
+        if (value == null) return;
+        const text = String(value).trim();
+        if (!text) return;
+        teamIdCandidates.add(text);
+      }
+
+      addProject(lastContext.project);
+      addProject(lastContext.projectName);
+
+      addTeam(lastContext.team);
+      addTeam(lastContext.teamName);
+
+      if (row) {
+        addProject(row.getAttribute('data-project'));
+        if (row.dataset) {
+          addProject(row.dataset.project);
+          addTeam(row.dataset.team);
+          addTeamId(row.dataset.teamId);
+        }
+        addTeam(row.getAttribute('data-team'));
+        addTeamId(row.getAttribute('data-team-id'));
+      }
+
+      const headerProject = document.getElementById('selectedProjectName');
+      if (headerProject && headerProject.textContent) {
+        const text = headerProject.textContent.trim();
+        if (text) {
+          const projectLabel = text.split(' [')[0];
+          addProject(projectLabel);
+        }
+      }
+
+      if (typeof window.ppGetCurrentProject === 'function') {
+        addProject(window.ppGetCurrentProject());
+      }
+
+      const selectedTeams = typeof window.ppGetSelectedTeams === 'function'
+        ? (window.ppGetSelectedTeams() || [])
+        : [];
+
+      selectedTeams.forEach(function(team){
+        if (!team) return;
+        addTeam(team.name || team.teamName || team.label);
+        addTeamId(team.id || team.teamId || team.team_id);
+      });
+
+      const projectList = Array.from(projectCandidates);
+      const teamList = Array.from(teamCandidates);
+      const teamIds = Array.from(teamIdCandidates);
+
+      context.projectCandidates = projectList;
+      context.projectNames = projectList.slice();
+      context.project = lastContext.project || lastContext.projectName || '';
+      if (typeof window.ppGetCurrentProject === 'function') {
+        const currentProject = window.ppGetCurrentProject() || '';
+        if (currentProject && projectList.indexOf(currentProject) === -1) {
+          context.projectCandidates.push(currentProject);
+          context.projectId = currentProject;
+        } else if (currentProject) {
+          context.projectId = currentProject;
+        }
+      }
+      context.rowProject = row ? (row.getAttribute('data-project') || (row.dataset && row.dataset.project) || '') : '';
+
+      const rowTeamValue = row ? (row.getAttribute('data-team') || (row.dataset && row.dataset.team) || '') : '';
+      const rowTeamIdValue = row ? (row.getAttribute('data-team-id') || (row.dataset && row.dataset.teamId) || '') : '';
+
+      context.teamCandidates = teamList;
+      context.teamNames = teamList.slice();
+      context.teamIds = teamIds;
+      context.rowTeam = rowTeamValue;
+      context.rowTeamId = rowTeamIdValue;
+      context.team = lastContext.team || lastContext.teamName || '';
+      context.selectedTeamNames = selectedTeams.map(function(team){ return team && team.name ? team.name : (team && team.teamName ? team.teamName : ''); }).filter(Boolean);
+      context.selectedTeamIds = selectedTeams.map(function(team){ return team && (team.id || team.teamId || team.team_id) ? String(team.id || team.teamId || team.team_id).trim() : ''; }).filter(Boolean);
+
+      const includeTeamless = !teamList.length || !rowTeamValue;
+      context.includeUnassigned = includeTeamless;
+      context.strictTeamMatch = teamList.length === 1 && !includeTeamless;
+      context.enforceProjectFilter = projectList.length > 0;
+
+      return context;
+    }
+
+    function fetchVehicleReleasedList(){
+      setLookupStatus('Loading vehicles…');
+      clearLookupTable();
+      if (!(window.google && google.script && google.script.run)) {
+        setLookupStatus('Google Apps Script is unavailable. Cannot load vehicles.');
+        return;
+      }
+
+      const context = buildVehicleReleasedLookupContext();
+
+      google.script.run
+        .withSuccessHandler(function(res){
+          let vehicles = [];
+          if (res && res.ok !== false && Array.isArray(res.vehicles)) {
+            vehicles = res.vehicles;
+          } else if (Array.isArray(res)) {
+            vehicles = res;
+          }
+
+          let statusMessage = '';
+          let emptyMessage = 'No released vehicles available.';
+          if (res && res.filteredCount != null && res.totalCount != null && res.ok !== false) {
+            const total = Number(res.totalCount) || vehicles.length || 0;
+            const filtered = Number(res.filteredCount);
+            const parts = [];
+            parts.push(`Showing ${filtered} of ${total} released vehicle${filtered === 1 ? '' : 's'}.`);
+            const filters = res.filtersApplied || {};
+            if (filters.projectKeys && filters.projectKeys.length) {
+              parts.push(`Project filter: ${filters.projectKeys.join(', ')}`);
+            }
+            if (filters.teamKeys && filters.teamKeys.length) {
+              parts.push(`Teams: ${filters.teamKeys.join(', ')}`);
+            } else if (filters.includeUnassigned) {
+              parts.push('Including vehicles without a team match.');
+            }
+            if (filters.teamKeys && filters.teamKeys.length && filtered === 0) {
+              emptyMessage = 'No released vehicles matched the selected project/team filters.';
+            }
+            statusMessage = parts.join(' ');
+          }
+
+          renderLookupRows(vehicles, { statusMessage, emptyMessage });
+        })
+        .withFailureHandler(function(err){
+          console.error('Vehicle Released lookup failed', err);
+          setLookupStatus('Failed to load vehicles from Vehicle_Released.');
+        })
+        .getVehicleReleasedLookupData(context);
+    }
+
+    function handleDocumentEscape(event){
+      if (event.key === 'Escape') {
+        const modal = document.getElementById(modalId);
+        if (modal && modal.getAttribute('aria-hidden') === 'false') {
+          closeLookupModal();
+        }
+      }
+    }
+
+    function handleBackdropClick(event){
+      if (event.target && event.target.id === modalId) {
+        closeLookupModal();
+      }
+    }
+
+    document.addEventListener('keydown', handleDocumentEscape);
+    document.addEventListener('click', handleBackdropClick);
+    const vrCloseBtn = document.getElementById('vrCloseBtn');
+    if (vrCloseBtn) {
+      vrCloseBtn.addEventListener('click', closeLookupModal);
+    }
+
+    window.openVehicleReleasedLookup = function(targetInput){
+      lookupState.targetInput = targetInput || null;
+      openLookupModal();
+      fetchVehicleReleasedList();
+    };
+
+    window.closeVehicleReleasedLookup = closeLookupModal;
+  })();
+  </script>
+  <script>
   // Vehicle Assignment Manager - A centralized state manager for vehicle assignments
   (function() {
     if (window.vehicleAssignmentManager) {
@@ -581,6 +935,12 @@
         .vp-last__row{display:flex;align-items:center;gap:8px}
         .vp-last__stars{display:inline-flex;gap:2px}
         .vp-last__label{font-size:13px;color:#475569}
+        .vp-details{display:grid;gap:6px}
+        .vp-details__row{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;font-size:13px}
+        .vp-details__label{color:#6b7280;font-weight:600;text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+        .vp-details__value{color:#0f172a;font-weight:600;text-align:right;word-break:break-word;max-width:220px}
+        .vp-last__remarks{display:grid;gap:6px}
+        .vp-last__remark{padding:6px 8px;background:#f1f5f9;border-radius:8px;color:#1f2937;font-size:13px;line-height:1.35}
 
         /* Rating */
         .vp-rating__value{font-size:22px;font-weight:800;color:#111827;margin-right:8px}
@@ -696,6 +1056,54 @@
       }
       </style>
 
+      <!-- Vehicle Released lookup modal -->
+      <style>
+        #vehicleReleasedLookupModal{position:fixed;inset:0;display:none;place-items:center;background:rgba(15,23,42,.45);backdrop-filter:blur(4px);z-index:10050;}
+        #vehicleReleasedLookupModal[aria-hidden="false"]{display:grid;}
+        .vr-card{width:min(900px,95vw);max-height:85vh;background:#ffffff;border-radius:18px;box-shadow:0 30px 60px rgba(15,23,42,.35);display:flex;flex-direction:column;overflow:hidden;}
+        .vr-header{padding:16px 20px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+        .vr-title{margin:0;font-size:18px;font-weight:700;}
+        .vr-close{appearance:none;background:rgba(255,255,255,.18);border:0;border-radius:10px;padding:6px 12px;font-weight:600;color:#fff;cursor:pointer;}
+        .vr-close:hover{background:rgba(255,255,255,.28);}
+        .vr-body{padding:18px;overflow:auto;display:grid;gap:12px;}
+        .vr-status{font-size:13px;color:#1f2937;}
+        .vr-table{width:100%;border-collapse:collapse;font-size:13px;}
+        .vr-table th,.vr-table td{border:1px solid #e2e8f0;padding:8px 10px;text-align:left;vertical-align:top;}
+        .vr-table th{background:#f8fafc;font-weight:700;color:#0f172a;position:sticky;top:0;z-index:1;}
+        .vr-vehicle-btn{background:none;border:0;color:#0ea5e9;font-weight:700;cursor:pointer;padding:0;}
+        .vr-vehicle-btn:hover{text-decoration:underline;}
+        .vr-remarks{display:grid;gap:4px;}
+        .vr-remark{background:#f1f5f9;border-radius:8px;padding:6px 8px;color:#1f2937;}
+        .vr-empty{font-style:italic;color:#94a3b8;}
+      </style>
+
+      <div id="vehicleReleasedLookupModal" aria-hidden="true" role="dialog" aria-labelledby="vehicleReleasedLookupTitle">
+        <div class="vr-card">
+          <div class="vr-header">
+            <h3 id="vehicleReleasedLookupTitle" class="vr-title">Vehicle Released Summary</h3>
+            <button type="button" class="vr-close" id="vrCloseBtn">Close</button>
+          </div>
+          <div class="vr-body">
+            <div class="vr-status" id="vrStatus">Loading vehicles…</div>
+            <table class="vr-table" aria-describedby="vehicleReleasedLookupTitle">
+              <thead>
+                <tr>
+                  <th scope="col">Vehicle Number</th>
+                  <th scope="col">Make</th>
+                  <th scope="col">Model</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Usage Type</th>
+                  <th scope="col">Owner</th>
+                  <th scope="col">Last 3 Ratings</th>
+                  <th scope="col">Last 3 Remarks</th>
+                </tr>
+              </thead>
+              <tbody id="vrTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <div id="vehiclePickerModal" class="vp-backdrop" aria-hidden="true">
         <section class="vp-modal" role="dialog" aria-modal="true" aria-labelledby="vehiclePickerTitle">
           <header class="vp-header">
@@ -786,8 +1194,41 @@
               <!-- Right column: insights -->
               <div class="vp-right">
                 <div class="vp-field">
+                  <label>Vehicle Details</label>
+                  <div class="vp-details">
+                    <div class="vp-details__row">
+                      <span class="vp-details__label">Vehicle</span>
+                      <span class="vp-details__value" id="vpDetailNumber">—</span>
+                    </div>
+                    <div class="vp-details__row">
+                      <span class="vp-details__label">Make</span>
+                      <span class="vp-details__value" id="vpDetailMake">—</span>
+                    </div>
+                    <div class="vp-details__row">
+                      <span class="vp-details__label">Model</span>
+                      <span class="vp-details__value" id="vpDetailModel">—</span>
+                    </div>
+                    <div class="vp-details__row">
+                      <span class="vp-details__label">Category</span>
+                      <span class="vp-details__value" id="vpDetailCategory">—</span>
+                    </div>
+                    <div class="vp-details__row">
+                      <span class="vp-details__label">Usage</span>
+                      <span class="vp-details__value" id="vpDetailUsage">—</span>
+                    </div>
+                    <div class="vp-details__row">
+                      <span class="vp-details__label">Owner</span>
+                      <span class="vp-details__value" id="vpDetailOwner">—</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="vp-field">
                   <label>Last 3 Ratings</label>
                   <div id="vpLastRatings" class="vp-last" aria-label="Last three ratings"></div>
+                </div>
+                <div class="vp-field">
+                  <label>Last 3 Remarks</label>
+                  <div id="vpLastRemarks" class="vp-last__remarks" aria-label="Last three remarks"></div>
                 </div>
               </div>
             </div>
@@ -841,7 +1282,8 @@
 
       <script>
       (function(){
-        let targetInput=null, vehicles=[], master=[], vpMode='existing';
+        const VEHICLE_PICKER_DISABLE_CACHE = true;
+        let targetInput=null, vehicles=[], master=[], vpMode='existing', currentHistoryRequestCar=null, preselectVehicleNumber='';
         const VEHICLE_CACHE_TTL = 60000; // 60s client cache window
         const VEHICLE_STORAGE_KEY = 'vp:vehiclePicker:v1';
         const VEHICLE_STORAGE_MAX_AGE = 5 * 60 * 1000; // 5 minutes persisted cache
@@ -900,6 +1342,7 @@
         }
 
         function storageAvailable(){
+          if (VEHICLE_PICKER_DISABLE_CACHE) return false;
           if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
             return false;
           }
@@ -965,6 +1408,7 @@
         }
 
         function persistVehicleCache(list, version){
+          if (VEHICLE_PICKER_DISABLE_CACHE) return;
           if (!Array.isArray(list) || !list.length) return;
           if (!storageAvailable()) return;
           try {
@@ -981,6 +1425,7 @@
         }
 
         function bootstrapVehicleCacheFromStorage(){
+          if (VEHICLE_PICKER_DISABLE_CACHE) return;
           if (storageHydrationAttempted) return;
           storageHydrationAttempted = true;
           if (vehicleDataCache && vehicleDataCache.length) return;
@@ -2547,6 +2992,7 @@
         function resetPickerUI(){
           const statusEl=document.getElementById('vpStatus'); if(statusEl) statusEl.textContent='Loading latest vehicles…';
           setDropdownLoading(true, 'Loading vehicles…');
+          currentHistoryRequestCar = null;
           const selectBtn = document.getElementById('vpSelectBtn');
           if (selectBtn) {
             selectBtn.disabled = true;
@@ -2601,14 +3047,24 @@
           updateSelectButtonState();
         }
 
-        function open(target){
+        function open(target, options){
+          const opts = options && typeof options === 'object' ? options : {};
           try{ targetInput=target||null; }catch(_){ targetInput=null; }
+          preselectVehicleNumber = String(opts.preselectVehicle || '').trim();
           const modal=document.getElementById('vehiclePickerModal');
           modal.setAttribute('aria-hidden','false');
           document.body.style.overflow='hidden';
           master=[]; vehicles=[];
           resetPickerUI();
+          currentHistoryRequestCar = null;
           try{ populateContextFromRow(targetInput); }catch(_){ }
+          if (typeof window.ensureVehicleMetaCache === 'function') {
+            try { window.ensureVehicleMetaCache(); } catch(_metaErr) { /* ignore */ }
+          }
+          vehicleDataCache = null;
+          vehicleDataCacheTs = 0;
+          vehicleCacheSource = '';
+          storageHydrationAttempted = true;
           bootstrapVehicleCacheFromStorage();
           const statusEl = document.getElementById('vpStatus');
           const hadCache = Array.isArray(vehicleDataCache) && vehicleDataCache.length;
@@ -2634,7 +3090,7 @@
               if (statusEl) statusEl.textContent = 'Select a project & team, then click Apply to load vehicles.';
             }
           }
-          setMode('existing', { autoFetch: false });
+          setMode('existing', { autoFetch: true, force: true, skipCache: true });
         }
 
         function close(){
@@ -2642,6 +3098,8 @@
             clearTimeout(vehicleRetryTimer);
             vehicleRetryTimer = null;
           }
+          currentHistoryRequestCar = null;
+          preselectVehicleNumber = '';
           const modal=document.getElementById('vehiclePickerModal');
           modal.setAttribute('aria-hidden','true');
           document.body.style.overflow='';
@@ -2873,6 +3331,7 @@
         }
 
         function warmVehiclePickerCache(forceRefresh = false){
+          if (VEHICLE_PICKER_DISABLE_CACHE) return;
           const now = Date.now();
           const cacheFresh = vehicleDataCache && (now - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
           if (!forceRefresh) {
@@ -2916,6 +3375,7 @@
         }
 
         function maybeWarmVehiclesForSelection(detail){
+          if (VEHICLE_PICKER_DISABLE_CACHE) return;
           const teamIds = Array.isArray(detail && detail.teamIds) ? detail.teamIds.filter(Boolean) : [];
           if (!teamIds.length) return;
           const key = computeSelectionWarmKey(detail);
@@ -2931,6 +3391,7 @@
         }
 
         function startVehicleCacheMonitor(){
+          if (VEHICLE_PICKER_DISABLE_CACHE) return;
           if (vehicleVersionMonitorTimer) return;
           if (!window.google || !google.script || !google.script.run) {
             if (!vehicleVersionMonitorStartTimer) {
@@ -3104,6 +3565,7 @@
           vehiclePickerMeta = null;
           updateFilterChoices();
           updateVehiclesDropdown();
+          applyPreselectedVehicle();
         }
 
         function getCriteria(){
@@ -3208,24 +3670,192 @@
           updateSelectButtonState();
         }
 
+        function applyPreselectedVehicle(){
+          if (!preselectVehicleNumber) return;
+          const dropdown = document.getElementById('vpDropdown');
+          if (!dropdown) {
+            preselectVehicleNumber = '';
+            return;
+          }
+          const target = normalizeVehicleIdentifier(preselectVehicleNumber);
+          if (!target) {
+            preselectVehicleNumber = '';
+            updateSelectButtonState();
+            return;
+          }
+          let selectedValue = '';
+          Array.from(dropdown.options || []).forEach(option => {
+            if (!selectedValue && normalizeVehicleIdentifier(option.value) === target) {
+              selectedValue = option.value;
+            }
+          });
+          if (!selectedValue) {
+            preselectVehicleNumber = '';
+            updateSelectButtonState();
+            return;
+          }
+          dropdown.value = selectedValue;
+          const car = (vehicles || []).find(v => normalizeVehicleIdentifier(v.carNumber || v.vehicleNumber || '') === target) || null;
+          if (car) {
+            autoSelectFiltersForVehicle(car);
+            updateVehicleInsights(car);
+          }
+          preselectVehicleNumber = '';
+          refreshHighlightState();
+          dropdown.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        function normalizeVehicleIdentifier(value){
+          return String(value == null ? '' : value).replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+        }
+
+        function getCarMetaFromCache(vehicleNumber){
+          if (!vehicleNumber) return null;
+          const map = window.carTPVehicleMeta;
+          if (!map || typeof map !== 'object') return null;
+          const raw = String(vehicleNumber || '').trim();
+          if (!raw) return null;
+          const primary = normalizeVehicleIdentifier(raw);
+          if (primary && Object.prototype.hasOwnProperty.call(map, primary)) {
+            return map[primary];
+          }
+          const upper = raw.toUpperCase();
+          if (upper && Object.prototype.hasOwnProperty.call(map, upper)) {
+            return map[upper];
+          }
+          if (!primary) return null;
+          try {
+            for (const key in map) {
+              if (!Object.prototype.hasOwnProperty.call(map, key)) continue;
+              if (normalizeVehicleIdentifier(key) === primary) {
+                return map[key];
+              }
+            }
+          } catch(_scanErr) {
+            /* ignore lookup failures */
+          }
+          return null;
+        }
+
+        function collectRatingValues(){
+          const out = [];
+          const seen = new Set();
+          Array.from(arguments).forEach(source => {
+            if (source == null) return;
+            const list = Array.isArray(source) ? source : [source];
+            list.forEach(item => {
+              if (item == null || item === '') return;
+              let num = null;
+              if (typeof item === 'number') {
+                num = item;
+              } else if (typeof item === 'string') {
+                const match = item.match(/[-+]?\d*\.?\d+/);
+                if (match) num = parseFloat(match[0]);
+              } else {
+                const text = String(item || '');
+                const match = text.match(/[-+]?\d*\.?\d+/);
+                if (match) num = parseFloat(match[0]);
+              }
+              if (!Number.isFinite(num)) return;
+              const key = num.toFixed(2);
+              if (seen.has(key)) return;
+              seen.add(key);
+              out.push(num);
+            });
+          });
+          return out.slice(0,3);
+        }
+
+        function collectRemarkValues(){
+          const out = [];
+          const seen = new Set();
+          Array.from(arguments).forEach(source => {
+            if (source == null) return;
+            const list = Array.isArray(source) ? source : [source];
+            list.forEach(item => {
+              if (item == null) return;
+              const text = String(item || '').trim();
+              if (!text) return;
+              const key = text.toLowerCase();
+              if (seen.has(key)) return;
+              seen.add(key);
+              out.push(text);
+            });
+          });
+          return out.slice(0,3);
+        }
+
+        function buildHistoryPayload(car, extra){
+          const vehicleNumber = car ? (car.carNumber || car.vehicleNumber || '') : '';
+          const meta = vehicleNumber ? getCarMetaFromCache(vehicleNumber) : null;
+          return {
+            ratings: collectRatingValues(
+              car && car.lastRatings,
+              car && car.latestRatings,
+              car && car.ratings,
+              car && car.rating,
+              car && car.stars,
+              meta && meta.ratings,
+              extra && (extra.ratings || extra.rating || extra.lastRatings)
+            ),
+            remarks: collectRemarkValues(
+              car && car.lastRemarks,
+              car && car.lastUsersRemarks,
+              car && car.remarks,
+              car && car.notes,
+              meta && meta.remarks,
+              extra && (extra.remarks || extra.feedback || extra.lastRemarks)
+            )
+          };
+        }
+
+        function updateVehicleDetailsPanel(car){
+          const detailMap = {
+            vpDetailNumber: car ? (car.carNumber || car.vehicleNumber || '') : '',
+            vpDetailMake: car ? (car.make || '') : '',
+            vpDetailModel: car ? (car.model || '') : '',
+            vpDetailCategory: car ? (car.category || '') : '',
+            vpDetailUsage: car ? (car.usageType || '') : '',
+            vpDetailOwner: car ? (car.owner || '') : ''
+          };
+          Object.keys(detailMap).forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const text = String(detailMap[id] || '').trim();
+            el.textContent = text ? text : '—';
+          });
+        }
+
         let __vpStarUid = 0;
         function renderRemarksAndRating(hist){
-          const lastRatings = Array.isArray(hist?.ratings) ? hist.ratings.slice(0,3) : [];
+          const mergedRatings = collectRatingValues(hist && hist.ratings, hist && hist.rating, hist && hist.lastRatings);
+          const mergedRemarks = collectRemarkValues(hist && hist.remarks, hist && hist.feedback, hist && hist.lastRemarks);
+          const lastRatings = mergedRatings.slice(0,3);
           const lastCont = document.getElementById('vpLastRatings');
-          if (!lastCont) return;
+          const remarkCont = document.getElementById('vpLastRemarks');
+          if (!lastCont && !remarkCont) return;
 
           const total = 5;
-          if(lastRatings.length){
-            lastCont.innerHTML = lastRatings.map((r,idx)=>{
+          if (lastCont) {
+            if(lastRatings.length){
+              lastCont.innerHTML = lastRatings.map((r,idx)=>{
               const n = Number(r)||0; const f = Math.floor(n); const h = (n-f)>=0.5; let s='';
               for(let i=0;i<total;i++){
                 const st = i<f ? 'full' : (i===f && h ? 'half':'empty');
                 s += starSVG(st);
               }
               return `<div class="vp-last__row"><span class="vp-last__stars" aria-label="Rating ${idx+1}">${s}</span></div>`;
-            }).join('');
-          } else {
-            lastCont.innerHTML = '<span class="vp-last__label">No recent ratings</span>';
+              }).join('');
+            } else {
+              lastCont.innerHTML = '<span class="vp-last__label">No recent ratings</span>';
+            }
+          }
+          if (remarkCont) {
+            if (mergedRemarks.length) {
+              remarkCont.innerHTML = mergedRemarks.map(text => `<div class="vp-last__remark">${escapeHtml(text)}</div>`).join('');
+            } else {
+              remarkCont.innerHTML = '<span class="vp-last__label">No recent remarks</span>';
+            }
           }
         }
 
@@ -3255,18 +3885,13 @@
             clearVehicleInsights();
             return;
           }
-          const ratingsRaw = normalizeList(car.lastRatings || car.latestRatings || '');
-          const ratings = ratingsRaw.map(val => {
-            if (typeof val === 'number') return val;
-            const match = String(val || '').match(/[-+]?\d*\.?\d+/);
-            return match ? parseFloat(match[0]) : null;
-          }).filter(val => val !== null && !Number.isNaN(val)).slice(0,3);
-          const history = {};
-          if (ratings.length) history.ratings = ratings;
+          updateVehicleDetailsPanel(car);
+          const history = buildHistoryPayload(car);
           renderRemarksAndRating(history);
         }
 
         function clearVehicleInsights(){
+          updateVehicleDetailsPanel(null);
           renderRemarksAndRating({});
         }
 
@@ -3766,20 +4391,34 @@
           document.addEventListener('change',function(e){
             if(/^vp(Make|Model|Category|Usage|Owner)$/.test(e.target.id)){ updateFilterChoices(); updateVehiclesDropdown(); }
             if(e.target.id==='vpDropdown'){
-              x('vpSelectBtn').disabled = !e.target.value;
-              const val=e.target.value;
-              const car = (vehicles||[]).find(v=>String(v.carNumber||'')===val) || null;
+              const selectBtn = x('vpSelectBtn');
+              const val = String(e.target.value || '').trim();
+              if (selectBtn) selectBtn.disabled = !val;
+              const car = (vehicles||[]).find(v=>String(v.carNumber||'').trim()===val) || null;
               if (car) {
                 autoSelectFiltersForVehicle(car);
                 updateVehicleInsights(car);
               } else {
                 clearVehicleInsights();
               }
-              if(val && window.google && google.script && google.script.run){
+              if (val && window.google && google.script && google.script.run){
+                const requestKey = val;
+                currentHistoryRequestCar = requestKey;
+                const carSnapshot = car;
                 google.script.run
-                  .withSuccessHandler(function(hist){ renderRemarksAndRating(hist||{}); })
-                  .withFailureHandler(function(){ renderRemarksAndRating({}); })
+                  .withSuccessHandler(function(hist){
+                    if (currentHistoryRequestCar !== requestKey) return;
+                    const mergedHistory = buildHistoryPayload(carSnapshot, hist || {});
+                    renderRemarksAndRating(mergedHistory);
+                  })
+                  .withFailureHandler(function(){
+                    if (currentHistoryRequestCar !== requestKey) return;
+                    const fallbackHistory = buildHistoryPayload(carSnapshot);
+                    renderRemarksAndRating(fallbackHistory);
+                  })
                   .getCarHistory(val);
+              } else {
+                currentHistoryRequestCar = null;
               }
               refreshHighlightState();
               updateSelectButtonState();
