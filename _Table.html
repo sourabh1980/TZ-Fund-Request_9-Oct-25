@@ -6616,15 +6616,27 @@ function getProjectFromBeneficiary(beneficiaryName) {
       setTimeout(() => {
         // Attach car number input click handler for fragmented approach
         document.addEventListener('click', function(event) {
-          if (event.target.classList.contains('car-number-input')) {
-            console.log('Car number input clicked:', event.target);
-            const carNumberValue = event.target.value.trim();
-            console.log('Car number value:', carNumberValue);
-            
-            if (carNumberValue) {
-              console.log('Car number filled, opening release modal for:', carNumberValue);
+          const target = event.target;
+          if (!target || !target.classList || !target.classList.contains('car-number-input')) {
+            return;
+          }
 
-              const row = event.target.closest('.row-data');
+          if (typeof window.openVehicleReleasedLookup === 'function') {
+            event.preventDefault();
+            event.stopPropagation();
+            try { target.focus(); } catch (_focusErr) { /* ignore */ }
+            window.openVehicleReleasedLookup(target);
+            return;
+          }
+
+          console.log('Car number input clicked:', target);
+          const carNumberValue = target.value.trim();
+          console.log('Car number value:', carNumberValue);
+
+          if (carNumberValue) {
+            console.log('Car number filled, opening release modal for:', carNumberValue);
+
+            const row = target.closest('.row-data');
               const resolvedTeam = resolveRowTeam(row);
               const resolvedProject = resolveRowProject(row);
               let baseCarData = {
@@ -6644,12 +6656,12 @@ function getProjectFromBeneficiary(beneficiaryName) {
                 remarks: '',
                 stars: 0,
                 submitter: 'Current User',
-                responsibleBeneficiary: (event.target?.dataset?.responsibleBeneficiary || '').trim()
+                responsibleBeneficiary: (target?.dataset?.responsibleBeneficiary || '').trim()
               };
 
               const openModalWith = (carData) => {
                 if (typeof window.openCarModal === 'function') {
-                  window.openCarModal(carData, { carInput: event.target });
+                  window.openCarModal(carData, { carInput: target });
                 } else {
                   console.error('Car modal function not available');
                 }
@@ -6685,8 +6697,8 @@ function getProjectFromBeneficiary(beneficiaryName) {
 
               const matchFromCached = () => {
                 if (!window.availableCarsData || !window.availableCarsData.length) return null;
-                const target = carNumberValue.trim().toUpperCase();
-                return window.availableCarsData.find(car => String(car.carNumber || '').trim().toUpperCase() === target) || null;
+                const targetUpper = carNumberValue.trim().toUpperCase();
+                return window.availableCarsData.find(car => String(car.carNumber || '').trim().toUpperCase() === targetUpper) || null;
               };
 
               openModalWith(baseCarData);
@@ -6706,14 +6718,13 @@ function getProjectFromBeneficiary(beneficiaryName) {
                 console.error('Vehicle inventory warm-up failed', err);
                 applySupplemental(null);
               });
-            }
-            else {
-              // Empty Vehicle Number: open vehicle picker dropdown modal
-              if (typeof window.openVehiclePicker === 'function') {
-                window.openVehiclePicker(event.target);
-              } else {
-                alert('Vehicle picker is not available. Please refresh the page.');
-              }
+          }
+          else {
+            // Empty Vehicle Number: open vehicle picker dropdown modal
+            if (typeof window.openVehiclePicker === 'function') {
+              window.openVehiclePicker(target);
+            } else {
+              alert('Vehicle picker is not available. Please refresh the page.');
             }
           }
         });
