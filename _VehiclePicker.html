@@ -576,11 +576,24 @@
         .vp-chip--bad{background:#fed7aa;border-color:#fdba74;color:#7c2d12}
         .vp-chip--good{background:#a7f3d0;border-color:#6ee7b7;color:#065f46}
 
-        /* Last ratings list */
-        .vp-last{display:grid;gap:6px}
+        /* Vehicle detail panel */
+        .vp-detail-card{background:#f1f5f9;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px;box-shadow:0 8px 20px rgba(15,23,42,.08)}
+        .vp-detail__title{margin:0;font-size:14px;font-weight:700;color:#0f172a;letter-spacing:.01em}
+        .vp-detail__list{margin:0;padding:0;display:grid;gap:8px}
+        .vp-detail__row{display:flex;justify-content:space-between;gap:12px}
+        .vp-detail__row dt{margin:0;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.05em}
+        .vp-detail__row dd{margin:0;font-size:13px;font-weight:600;color:#0f172a;text-align:right;max-width:60%;word-break:break-word}
+        .vp-detail__history{display:grid;gap:12px}
+        .vp-detail__history-section h4{margin:0 0 6px 0;font-size:12px;font-weight:700;color:#334155;text-transform:uppercase;letter-spacing:.08em}
+        .vp-last{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:#fff;border:1px solid #e2e8f0;min-height:56px}
         .vp-last__row{display:flex;align-items:center;gap:8px}
+        .vp-last__row--remarks{align-items:flex-start}
         .vp-last__stars{display:inline-flex;gap:2px}
-        .vp-last__label{font-size:13px;color:#475569}
+        .vp-last__label{font-size:12px;color:#94a3b8}
+        .vp-last__remark-index{font-weight:700;color:#475569}
+        .vp-last__remark-text{flex:1;font-size:13px;color:#1f2937;line-height:1.4}
+        .vp-last--remarks .vp-last__row{align-items:flex-start}
+        .vp-detail__note{margin:0;font-size:11px;color:#94a3b8}
 
         /* Rating */
         .vp-rating__value{font-size:22px;font-weight:800;color:#111827;margin-right:8px}
@@ -785,9 +798,49 @@
 
               <!-- Right column: insights -->
               <div class="vp-right">
-                <div class="vp-field">
-                  <label>Last 3 Ratings</label>
-                  <div id="vpLastRatings" class="vp-last" aria-label="Last three ratings"></div>
+                <div class="vp-detail-card" aria-live="polite">
+                  <h3 class="vp-detail__title">Vehicle Details</h3>
+                  <dl class="vp-detail__list">
+                    <div class="vp-detail__row">
+                      <dt>Vehicle Number</dt>
+                      <dd id="vpDetailVehicle">—</dd>
+                    </div>
+                    <div class="vp-detail__row">
+                      <dt>Make</dt>
+                      <dd id="vpDetailMake">—</dd>
+                    </div>
+                    <div class="vp-detail__row">
+                      <dt>Model</dt>
+                      <dd id="vpDetailModel">—</dd>
+                    </div>
+                    <div class="vp-detail__row">
+                      <dt>Category</dt>
+                      <dd id="vpDetailCategory">—</dd>
+                    </div>
+                    <div class="vp-detail__row">
+                      <dt>Usage Type</dt>
+                      <dd id="vpDetailUsage">—</dd>
+                    </div>
+                    <div class="vp-detail__row">
+                      <dt>Owner</dt>
+                      <dd id="vpDetailOwner">—</dd>
+                    </div>
+                  </dl>
+                  <div class="vp-detail__history">
+                    <div class="vp-detail__history-section">
+                      <h4>Last 3 Ratings</h4>
+                      <div id="vpLastRatings" class="vp-last" aria-live="polite">
+                        <span class="vp-last__label">Select a vehicle to view ratings</span>
+                      </div>
+                    </div>
+                    <div class="vp-detail__history-section">
+                      <h4>Last 3 User Remarks</h4>
+                      <div id="vpLastRemarks" class="vp-last vp-last--remarks" aria-live="polite">
+                        <span class="vp-last__label">Select a vehicle to view remarks</span>
+                      </div>
+                    </div>
+                  </div>
+                  <p class="vp-detail__note">Data source: Vehicle_Released summary</p>
                 </div>
               </div>
             </div>
@@ -3209,23 +3262,73 @@
         }
 
         let __vpStarUid = 0;
+
+        function setDetailField(id, value){
+          const el = document.getElementById(id);
+          if (!el) return;
+          const text = String(value || '').trim();
+          el.textContent = text || '—';
+          if (text) {
+            el.setAttribute('title', text);
+          } else {
+            el.removeAttribute('title');
+          }
+        }
+
+        function updateVehicleDetailFields(car){
+          const record = car || {};
+          setDetailField('vpDetailVehicle', record.carNumber || record.vehicleNumber || '');
+          setDetailField('vpDetailMake', record.make || record.Make || '');
+          setDetailField('vpDetailModel', record.model || record.Model || '');
+          setDetailField('vpDetailCategory', record.category || record.Category || '');
+          setDetailField('vpDetailUsage', record.usageType || record['Usage Type'] || record.usage || '');
+          setDetailField('vpDetailOwner', record.owner || record.Owner || '');
+        }
+
         function renderRemarksAndRating(hist){
+          const ratingsEl = document.getElementById('vpLastRatings');
+          const remarksEl = document.getElementById('vpLastRemarks');
+          const isLoading = !!(hist && hist.loading);
+          const hasError = !!(hist && hist.error);
           const lastRatings = Array.isArray(hist?.ratings) ? hist.ratings.slice(0,3) : [];
-          const lastCont = document.getElementById('vpLastRatings');
-          if (!lastCont) return;
+          const lastRemarks = Array.isArray(hist?.feedback) ? hist.feedback.filter(Boolean).slice(0,3) : [];
 
           const total = 5;
-          if(lastRatings.length){
-            lastCont.innerHTML = lastRatings.map((r,idx)=>{
-              const n = Number(r)||0; const f = Math.floor(n); const h = (n-f)>=0.5; let s='';
-              for(let i=0;i<total;i++){
-                const st = i<f ? 'full' : (i===f && h ? 'half':'empty');
-                s += starSVG(st);
-              }
-              return `<div class="vp-last__row"><span class="vp-last__stars" aria-label="Rating ${idx+1}">${s}</span></div>`;
-            }).join('');
-          } else {
-            lastCont.innerHTML = '<span class="vp-last__label">No recent ratings</span>';
+          if (ratingsEl) {
+            if (hasError) {
+              ratingsEl.innerHTML = '<span class="vp-last__label">Unable to load ratings</span>';
+            } else if (isLoading) {
+              ratingsEl.innerHTML = '<span class="vp-last__label">Loading…</span>';
+            } else if (lastRatings.length) {
+              ratingsEl.innerHTML = lastRatings.map((r,idx)=>{
+                const n = Number(r)||0; const f = Math.floor(n); const h = (n-f)>=0.5; let s='';
+                for(let i=0;i<total;i++){
+                  const st = i<f ? 'full' : (i===f && h ? 'half':'empty');
+                  s += starSVG(st);
+                }
+                const hasValue = Number.isFinite(n) && n > 0;
+                const label = hasValue ? n.toFixed(1).replace(/\.0$/,'') : String(r || '').trim();
+                const textHtml = label ? `<span class="vp-last__remark-text">${escapeHtml(label)}</span>` : '';
+                const ariaLabel = hasValue ? `Rating ${idx+1}: ${label}` : `Rating ${idx+1}`;
+                return `<div class="vp-last__row"><span class="vp-last__stars" aria-label="${escapeAttr(ariaLabel)}">${s}</span>${textHtml}</div>`;
+              }).join('');
+            } else {
+              ratingsEl.innerHTML = '<span class="vp-last__label">No recent ratings</span>';
+            }
+          }
+
+          if (remarksEl) {
+            if (hasError) {
+              remarksEl.innerHTML = '<span class="vp-last__label">Unable to load remarks</span>';
+            } else if (isLoading) {
+              remarksEl.innerHTML = '<span class="vp-last__label">Loading…</span>';
+            } else if (lastRemarks.length) {
+              remarksEl.innerHTML = lastRemarks.map((text,idx)=>{
+                return `<div class="vp-last__row vp-last__row--remarks"><span class="vp-last__remark-index">${idx+1}.</span><span class="vp-last__remark-text">${escapeHtml(text)}</span></div>`;
+              }).join('');
+            } else {
+              remarksEl.innerHTML = '<span class="vp-last__label">No recent remarks</span>';
+            }
           }
         }
 
@@ -3255,19 +3358,19 @@
             clearVehicleInsights();
             return;
           }
-          const ratingsRaw = normalizeList(car.lastRatings || car.latestRatings || '');
-          const ratings = ratingsRaw.map(val => {
-            if (typeof val === 'number') return val;
-            const match = String(val || '').match(/[-+]?\d*\.?\d+/);
-            return match ? parseFloat(match[0]) : null;
-          }).filter(val => val !== null && !Number.isNaN(val)).slice(0,3);
-          const history = {};
-          if (ratings.length) history.ratings = ratings;
-          renderRemarksAndRating(history);
+          updateVehicleDetailFields(car);
         }
 
         function clearVehicleInsights(){
-          renderRemarksAndRating({});
+          updateVehicleDetailFields(null);
+          const ratingsEl = document.getElementById('vpLastRatings');
+          const remarksEl = document.getElementById('vpLastRemarks');
+          if (ratingsEl) {
+            ratingsEl.innerHTML = '<span class="vp-last__label">Select a vehicle to view ratings</span>';
+          }
+          if (remarksEl) {
+            remarksEl.innerHTML = '<span class="vp-last__label">Select a vehicle to view remarks</span>';
+          }
         }
 
         function refreshHighlightState(){
@@ -3775,11 +3878,16 @@
               } else {
                 clearVehicleInsights();
               }
+              if (val) {
+                renderRemarksAndRating({ loading: true });
+              }
               if(val && window.google && google.script && google.script.run){
                 google.script.run
                   .withSuccessHandler(function(hist){ renderRemarksAndRating(hist||{}); })
-                  .withFailureHandler(function(){ renderRemarksAndRating({}); })
+                  .withFailureHandler(function(){ renderRemarksAndRating({ error: true }); })
                   .getCarHistory(val);
+              } else if (val) {
+                renderRemarksAndRating({ error: true });
               }
               refreshHighlightState();
               updateSelectButtonState();
