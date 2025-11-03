@@ -3206,7 +3206,7 @@
                 error: err
               };
               const status = statusEl || document.getElementById('vpStatus');
-              if (!silentFetch && status) status.textContent = 'Failed to load Vehicle_Released summary.';
+              if (!silentFetch && status) status.textContent = 'Failed to load CarT_P release summary.';
               if (manualRefreshInProgress) {
                 finalizeManualRefresh();
               }
@@ -3533,7 +3533,11 @@
             setDropdownLoading(true, usedFallback ? 'No vehicles returned (retrying…)' : 'No vehicles available');
             if (statusEl) {
               const emptyMsg = (meta && meta.source)
-                ? `No vehicles available from ${meta.source === 'Vehicle_Released' ? 'Vehicle_Released summary' : meta.source}.`
+                ? `No vehicles available from ${meta.source === 'CarT_P'
+                    ? 'CarT_P release summary'
+                    : meta.source === 'Vehicle_Released'
+                      ? 'Vehicle_Released summary'
+                      : meta.source}.`
                 : 'No vehicles available right now.';
               const extraParts = [];
               if (fetchedCount > 0) extraParts.push(`Fetched: ${fetchedCount}`);
@@ -3569,9 +3573,11 @@
                 parts.push(`Loaded in ${(meta.duration/1000).toFixed(1)}s`);
               }
               if (meta.source) {
-                  const sourceLabel = meta.source === 'Vehicle_Released'
-                    ? 'Vehicle_Released summary'
-                    : meta.source === 'latestRelease'
+                  const sourceLabel = meta.source === 'CarT_P'
+                    ? 'CarT_P release summary'
+                    : meta.source === 'Vehicle_Released'
+                      ? 'Vehicle_Released summary'
+                      : meta.source === 'latestRelease'
                       ? 'Latest RELEASE list'
                       : meta.source === 'uniqueRelease'
                         ? 'Unique RELEASE list'
