@@ -551,73 +551,531 @@ function getVehicleInUseSummary() {
 }
 
 function getVehicleReleasedSummary() {
-  const summary = getVehicleSummaryRows('Vehicle_Released');
+  const summary = getVehicleSummaryRows('CarT_P');
   if (summary.error) {
-    return { ok: false, source: 'Vehicle_Released', vehicles: [], updatedAt: '', error: summary.error };
+    return {
+      ok: false,
+      source: 'CarT_P',
+      vehicles: [],
+      updatedAt: '',
+      error: summary.error,
+      notes: summary.notes || null,
+      tried: summary.tried || null,
+      sheetId: summary.sheetId || null,
+      sheetLabel: summary.sheetLabel || null,
+      headerRow: summary.headerRow || null
+    };
   }
 
   if (!summary.rows.length) {
     if (summary.notes || summary.tried) {
-      console.warn('[BACKEND] Vehicle_Released summary empty', { notes: summary.notes, tried: summary.tried });
+      console.warn('[BACKEND] CarT_P summary empty', { notes: summary.notes, tried: summary.tried });
     }
-    return { ok: true, source: 'Vehicle_Released', vehicles: [], updatedAt: summary.updatedAt || '', message: 'Vehicle_Released summary empty' };
+    return {
+      ok: true,
+      source: 'CarT_P',
+      vehicles: [],
+      updatedAt: summary.updatedAt || '',
+      message: 'CarT_P summary empty',
+      notes: summary.notes || null,
+      tried: summary.tried || null,
+      sheetId: summary.sheetId || null,
+      sheetLabel: summary.sheetLabel || null,
+      headerRow: summary.headerRow || null
+    };
   }
 
   const IX = summary.headerIndex;
-  const idx = function(labels) {
-    if (!IX) return -1;
-    try { return IX.get(labels); } catch (_err) { return -1; }
+  const idx = function(labels, required) {
+    if (!IX) return required ? -1 : -1;
+    try { return IX.get(labels); } catch (_err) { return required ? -1 : -1; }
   };
-  const vehicleIdx = idx(['Vehicle Number', 'Car Number', 'Vehicle No', 'Car No', 'Car #', 'Car', 'Vehicle']);
-  const releaseTsIdx = idx(['Date and time of entry', 'Timestamp', 'Latest Timestamp']);
-  const statusIdx = idx(['Status', 'Release Status']);
-  const projectIdx = idx(['Project', 'Project Name', 'ProjectName']);
-  const teamIdx = idx(['Team', 'Team Name', 'TeamName']);
-  const remarksIdx = idx(['Last Users remarks', 'Remarks']);
-  const ownerIdx = idx(['Owner']);
-  const categoryIdx = idx(['Category']);
-  const usageIdx = idx(['Usage Type']);
-  const makeIdx = idx(['Make']);
-  const modelIdx = idx(['Model']);
-  const beneficiaryIdx = idx(['R.Beneficiary', 'Responsible Beneficiary', 'R. Ben', 'R Ben']);
-  const starsIdx = idx(['Ratings', 'Stars', 'Rating']);
-  const rBenTimeIdx = idx(['R.Ben Time','R.Ben timestamp','Responsible Beneficiary Time'], false);
 
-  var vehicles = summary.rows.map(function(row) {
+  let vehicleIdx = idx(['Vehicle Number', 'Car Number', 'Vehicle No', 'Car No', 'Car #', 'Car', 'Vehicle'], false);
+  if (vehicleIdx < 0) {
+    vehicleIdx = _findCarNumberColumn_(summary.headerRow || [], summary.rows || []);
+    if (vehicleIdx >= 0) {
+      try {
+        console.log('[BACKEND] CarT_P header fallback matched car column at index', vehicleIdx, {
+          header: String((summary.headerRow || [])[vehicleIdx] || '')
+        });
+      } catch (_logErr) {
+        // optional logging
+      }
+    }
+  }
+  if (vehicleIdx < 0) {
+    console.warn('[BACKEND] CarT_P summary missing vehicle column', {
+      headers: Array.isArray(summary.headerRow) ? summary.headerRow : null,
+      sheetId: summary.sheetId || null,
+      sheetLabel: summary.sheetLabel || null
+    });
     return {
-      vehicleNumber: vehicleIdx >= 0 ? row[vehicleIdx] : '',
-      latestRelease: releaseTsIdx >= 0 ? row[releaseTsIdx] : '',
-      status: statusIdx >= 0 ? row[statusIdx] : 'Released',
+      ok: false,
+      source: 'CarT_P',
+      vehicles: [],
+      updatedAt: summary.updatedAt || '',
+      error: 'Vehicle number column missing in CarT_P summary',
+      notes: summary.notes || null,
+      tried: summary.tried || null,
+      sheetId: summary.sheetId || null,
+      sheetLabel: summary.sheetLabel || null,
+      headerRow: summary.headerRow || null
+    };
+  }
+
+  const releaseTsIdx = idx(['Date and time of entry', 'Timestamp', 'Latest Timestamp', 'Date'], false);
+  const statusIdx = idx(['In Use/Release', 'In Use / release', 'In Use', 'Status'], false);
+  if (statusIdx < 0) {
+    console.warn('[BACKEND] CarT_P summary missing status column', {
+      headers: Array.isArray(summary.headerRow) ? summary.headerRow : null,
+      sheetId: summary.sheetId || null,
+      sheetLabel: summary.sheetLabel || null
+    });
+    return {
+      ok: false,
+      source: 'CarT_P',
+      vehicles: [],
+      updatedAt: summary.updatedAt || '',
+      error: 'Status column missing in CarT_P summary',
+      notes: summary.notes || null,
+      tried: summary.tried || null,
+      sheetId: summary.sheetId || null,
+      sheetLabel: summary.sheetLabel || null,
+      headerRow: summary.headerRow || null
+    };
+  }
+
+  const projectIdx = idx(['Project', 'Project Name', 'ProjectName'], false);
+  const teamIdx = idx(['Team', 'Team Name', 'TeamName'], false);
+  const remarksIdx = idx(['Last Users remarks', 'Remarks', 'Feedback'], false);
+  const ownerIdx = idx(['Owner', 'Owner Name'], false);
+  const categoryIdx = idx(['Category', 'Vehicle Category'], false);
+  const usageIdx = idx(['Usage Type', 'Usage'], false);
+  const makeIdx = idx(['Make', 'Car Make', 'Brand'], false);
+  const modelIdx = idx(['Model', 'Car Model'], false);
+  const beneficiaryIdx = idx(['R.Beneficiary', 'Responsible Beneficiary', 'R Beneficiary', 'R. Ben', 'R Ben'], false);
+  const starsIdx = idx(['Ratings', 'Stars', 'Rating'], false);
+  const rBenTimeIdx = idx(['R.Ben Time', 'R.Ben timestamp', 'Responsible Beneficiary Time'], false);
+  const submitterIdx = idx(['Submitter username', 'Submitter', 'User'], false);
+  const refIdx = idx(['Reference Number', 'Ref', 'Ref Number'], false);
+  const usageTypeIdx = usageIdx; // alias for clarity
+
+  const carMap = new Map();
+  const rows = summary.rows || [];
+
+  rows.forEach(function(row, rowIdx) {
+    if (!row) return;
+    const rawVehicle = vehicleIdx >= 0 ? row[vehicleIdx] : '';
+    const carNumber = String(rawVehicle == null ? '' : rawVehicle).trim();
+    if (!carNumber) return;
+
+    const key = carNumber.toUpperCase();
+    const rawStatus = statusIdx >= 0 ? row[statusIdx] : '';
+    const status = _normStatus_(rawStatus || '');
+    const rawDate = releaseTsIdx >= 0 ? row[releaseTsIdx] : '';
+    const ts = releaseTsIdx >= 0 ? _parseTs_(rawDate) : 0;
+    const orderKey = ts > 0 ? ts : (rowIdx + 1);
+
+    const entry = {
+      carNumber: carNumber,
+      status: status,
+      rawStatus: rawStatus,
+      rawDate: rawDate,
+      timestamp: ts,
+      orderKey: orderKey,
       project: projectIdx >= 0 ? row[projectIdx] : '',
       team: teamIdx >= 0 ? row[teamIdx] : '',
       remarks: remarksIdx >= 0 ? row[remarksIdx] : '',
       owner: ownerIdx >= 0 ? row[ownerIdx] : '',
       category: categoryIdx >= 0 ? row[categoryIdx] : '',
-      usageType: usageIdx >= 0 ? row[usageIdx] : '',
+      usageType: usageTypeIdx >= 0 ? row[usageTypeIdx] : '',
       make: makeIdx >= 0 ? row[makeIdx] : '',
       model: modelIdx >= 0 ? row[modelIdx] : '',
       responsibleBeneficiary: beneficiaryIdx >= 0 ? row[beneficiaryIdx] : '',
-      'R. Ben': beneficiaryIdx >= 0 ? row[beneficiaryIdx] : '',
       stars: starsIdx >= 0 ? Number(row[starsIdx] || 0) || 0 : 0,
-      rBenTime: rBenTimeIdx >= 0 ? row[rBenTimeIdx] : ''
+      rBenTime: rBenTimeIdx >= 0 ? row[rBenTimeIdx] : '',
+      submitter: submitterIdx >= 0 ? row[submitterIdx] : '',
+      refNumber: refIdx >= 0 ? row[refIdx] : ''
     };
-  }).filter(function(entry) {
-    return String(entry.vehicleNumber || '').trim() !== '';
+
+    if (!carMap.has(key)) {
+      carMap.set(key, entry);
+      return;
+    }
+    const prev = carMap.get(key);
+    const prevOrder = prev ? prev.orderKey || 0 : 0;
+    if (entry.orderKey >= prevOrder) {
+      carMap.set(key, entry);
+    }
   });
 
-  vehicles.sort(function(a, b) {
-    var tsA = a.latestRelease ? new Date(a.latestRelease).getTime() : 0;
-    var tsB = b.latestRelease ? new Date(b.latestRelease).getTime() : 0;
-    if (tsA !== tsB) return tsB - tsA;
-    return String(a.vehicleNumber || '').localeCompare(String(b.vehicleNumber || ''));
+  const latestEntries = [];
+  carMap.forEach(function(entry) {
+    if (entry && entry.status === 'RELEASE') {
+      latestEntries.push(entry);
+    }
   });
+
+  latestEntries.sort(function(a, b) {
+    const tsA = a.timestamp > 0 ? a.timestamp : a.orderKey;
+    const tsB = b.timestamp > 0 ? b.timestamp : b.orderKey;
+    if (tsB !== tsA) return tsB - tsA;
+    return String(a.carNumber || '').localeCompare(String(b.carNumber || ''), undefined, { sensitivity: 'base' });
+  });
+
+  let latestReleaseTs = 0;
+  const vehicles = latestEntries.map(function(entry) {
+    if (entry.timestamp > latestReleaseTs) {
+      latestReleaseTs = entry.timestamp;
+    }
+    const isoRelease = entry.timestamp > 0 ? new Date(entry.timestamp).toISOString() : '';
+    return {
+      vehicleNumber: entry.carNumber,
+      carNumber: entry.carNumber,
+      latestRelease: isoRelease || entry.rawDate || '',
+      status: 'RELEASE',
+      project: entry.project || '',
+      team: entry.team || '',
+      remarks: entry.remarks || '',
+      lastUsersRemarks: entry.remarks || '',
+      owner: entry.owner || '',
+      category: entry.category || '',
+      usageType: entry.usageType || '',
+      make: entry.make || '',
+      model: entry.model || '',
+      responsibleBeneficiary: entry.responsibleBeneficiary || '',
+      'R.Beneficiary': entry.responsibleBeneficiary || '',
+      'R. Ben': entry.responsibleBeneficiary || '',
+      stars: entry.stars || 0,
+      rBenTime: entry.rBenTime || '',
+      submitter: entry.submitter || '',
+      refNumber: entry.refNumber || ''
+    };
+  });
+
+  if (!vehicles.length) {
+    console.warn('[BACKEND] CarT_P release filter produced no vehicles', {
+      totalUnique: carMap.size,
+      notes: summary.notes || null,
+      tried: summary.tried || null,
+      sheetId: summary.sheetId || null
+    });
+  } else {
+    try {
+      console.log(`[BACKEND] Loaded ${vehicles.length} CarT_P vehicles with latest status RELEASE`);
+    } catch (_logErr) {
+      // optional logging
+    }
+  }
+
+  const updatedAt = latestReleaseTs > 0
+    ? new Date(latestReleaseTs).toISOString()
+    : summary.updatedAt || new Date().toISOString();
 
   return {
     ok: true,
-    source: 'Vehicle_Released',
+    source: 'CarT_P',
     vehicles: vehicles,
-    updatedAt: summary.updatedAt || new Date().toISOString()
+    updatedAt: updatedAt,
+    notes: summary.notes || null,
+    tried: summary.tried || null,
+    sheetId: summary.sheetId || null,
+    sheetLabel: summary.sheetLabel || null,
+    headerRow: summary.headerRow || null,
+    message: summary.message || null
   };
+}
+
+function getVehicleReleasedLookupData(context) {
+  try {
+    const payload = _loadVehicleReleasedDropdownPayload_();
+    if (!payload || payload.ok === false) {
+      const errorText = payload && payload.error ? String(payload.error) : 'CarT_P release summary unavailable';
+      return { ok: false, source: 'CarT_P', vehicles: [], totalCount: 0, filteredCount: 0, error: errorText };
+    }
+
+    const vehicles = Array.isArray(payload.vehicles) ? payload.vehicles.slice() : [];
+    const totalCount = vehicles.length;
+
+    const snapshotLimit = 3;
+    let historyMap = {};
+    try {
+      const snapshots = getVehicleReleaseSnapshots(snapshotLimit);
+      if (snapshots && snapshots.ok !== false && snapshots.vehicles) {
+        historyMap = snapshots.vehicles || {};
+      }
+    } catch (histErr) {
+      console.warn('getVehicleReleasedLookupData snapshots failed:', histErr);
+    }
+
+    function ensureArray(value) {
+      if (value == null) return [];
+      return Array.isArray(value) ? value.slice() : [value];
+    }
+
+    function extractTextList() {
+      const out = [];
+      for (var i = 0; i < arguments.length; i++) {
+        var source = arguments[i];
+        if (source == null) continue;
+        if (Array.isArray(source)) {
+          for (var j = 0; j < source.length; j++) {
+            var entry = source[j];
+            if (entry == null) continue;
+            var text = String(entry).trim();
+            if (!text) continue;
+            out.push(text);
+          }
+          continue;
+        }
+        if (typeof source === 'object') {
+          var keys = ['name', 'label', 'value', 'id', 'project', 'projectName', 'team', 'teamName', 'teamId'];
+          var matched = false;
+          for (var k = 0; k < keys.length; k++) {
+            var key = keys[k];
+            if (Object.prototype.hasOwnProperty.call(source, key)) {
+              matched = true;
+              out.push.apply(out, extractTextList(source[key]));
+            }
+          }
+          if (!matched) {
+            var fallback = String(source).trim();
+            if (fallback && fallback !== '[object Object]') out.push(fallback);
+          }
+          continue;
+        }
+        var textValue = String(source).trim();
+        if (textValue) out.push(textValue);
+      }
+      return out;
+    }
+
+    function uniqueList(list) {
+      const seen = {};
+      const out = [];
+      if (!Array.isArray(list)) return out;
+      for (var i = 0; i < list.length; i++) {
+        var text = String(list[i] == null ? '' : list[i]).trim();
+        if (!text) continue;
+        var key = text.toLowerCase();
+        if (seen[key]) continue;
+        seen[key] = true;
+        out.push(text);
+      }
+      return out;
+    }
+
+    function buildFilterState(input) {
+      const ctx = input || {};
+      const projectHints = uniqueList([].concat(
+        extractTextList(ctx.projectCandidates),
+        extractTextList(ctx.projectNames),
+        extractTextList(ctx.project),
+        extractTextList(ctx.projectId),
+        extractTextList(ctx.rowProject)
+      ));
+
+      const teamHints = uniqueList([].concat(
+        extractTextList(ctx.teamCandidates),
+        extractTextList(ctx.teamNames),
+        extractTextList(ctx.teamIds),
+        extractTextList(ctx.rowTeam),
+        extractTextList(ctx.rowTeamId),
+        extractTextList(ctx.selectedTeamNames),
+        extractTextList(ctx.selectedTeamIds)
+      ));
+
+      const projectNameSet = new Set();
+      const projectIdSet = new Set();
+      projectHints.forEach(function(value) {
+        const normName = _normProjectKey(value);
+        if (normName) projectNameSet.add(normName);
+        const rawId = _norm(value).toLowerCase();
+        if (rawId) projectIdSet.add(rawId);
+      });
+
+      const teamNameSet = new Set();
+      const teamIdSet = new Set();
+      teamHints.forEach(function(value) {
+        const normTeam = _normTeamKey(value);
+        if (normTeam) teamNameSet.add(normTeam);
+        const rawTeam = _norm(value).toLowerCase();
+        if (rawTeam) teamIdSet.add(rawTeam);
+      });
+
+      const includeUnassigned = ctx.includeUnassigned === true;
+      const strictTeamMatch = ctx.strictTeamMatch === true;
+      const requireTeamMatch = strictTeamMatch || teamNameSet.size > 0 || teamIdSet.size > 0;
+
+      return {
+        projectNames: projectNameSet,
+        projectIds: projectIdSet,
+        teamNames: teamNameSet,
+        teamIds: teamIdSet,
+        includeUnassigned: includeUnassigned,
+        strictTeamMatch: strictTeamMatch,
+        requireTeamMatch: requireTeamMatch,
+        applied: {
+          projectKeys: projectHints,
+          teamKeys: teamHints,
+          includeUnassigned: includeUnassigned,
+          strictTeamMatch: strictTeamMatch
+        }
+      };
+    }
+
+    const filters = buildFilterState(context);
+
+    function mergeRemarkValues() {
+      const seen = new Set();
+      const out = [];
+      for (var i = 0; i < arguments.length; i++) {
+        const source = arguments[i];
+        if (!source) continue;
+        const list = ensureArray(source);
+        for (var j = 0; j < list.length; j++) {
+          const entry = list[j];
+          if (entry == null) continue;
+          const text = String(entry).trim();
+          if (!text) continue;
+          const key = text.toLowerCase();
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(text);
+          if (out.length >= snapshotLimit) return out;
+        }
+      }
+      return out;
+    }
+
+    function mergeRatingValues() {
+      const seen = new Set();
+      const out = [];
+      for (var i = 0; i < arguments.length; i++) {
+        const source = arguments[i];
+        if (!source) continue;
+        const list = ensureArray(source);
+        for (var j = 0; j < list.length; j++) {
+          const entry = list[j];
+          if (entry == null || entry === '') continue;
+          let num = null;
+          if (typeof entry === 'number') {
+            num = entry;
+          } else {
+            const match = String(entry).match(/[-+]?\d*\.?\d+/);
+            if (match) num = parseFloat(match[0]);
+          }
+          if (!Number.isFinite(num)) continue;
+          const key = num.toFixed(2);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          out.push(num);
+          if (out.length >= snapshotLimit) return out;
+        }
+      }
+      return out;
+    }
+
+    function extractHistory(vehicleNumber) {
+      if (!vehicleNumber) return [];
+      const canonical = _vehicleKey_(vehicleNumber);
+      const alias = String(vehicleNumber).toUpperCase();
+      const merged = [];
+      if (canonical && Object.prototype.hasOwnProperty.call(historyMap, canonical)) {
+        Array.prototype.push.apply(merged, historyMap[canonical] || []);
+      }
+      if (alias && alias !== canonical && Object.prototype.hasOwnProperty.call(historyMap, alias)) {
+        Array.prototype.push.apply(merged, historyMap[alias] || []);
+      }
+      return merged;
+    }
+
+    function enrichVehicle(entry) {
+      const car = Object.assign({}, entry || {});
+      const vehicleNumber = String(car.carNumber || car.vehicleNumber || '').trim();
+      car.carNumber = vehicleNumber;
+      car.vehicleNumber = vehicleNumber;
+
+      const history = extractHistory(vehicleNumber);
+      const historyRemarks = history.map(function(item) {
+        return item && item.remark != null ? String(item.remark).trim() : '';
+      }).filter(function(text) { return !!text; });
+      const historyRatings = history.map(function(item) {
+        return item && item.rating != null ? item.rating : null;
+      }).filter(function(value) { return value != null && value !== ''; });
+
+      const mergedRemarks = mergeRemarkValues(
+        car.lastRemarks,
+        car.lastUsersRemarks,
+        car.remarks,
+        car.notes,
+        historyRemarks
+      );
+      const mergedRatings = mergeRatingValues(
+        car.lastRatings,
+        car.latestRatings,
+        car.ratings,
+        car.rating,
+        car.stars,
+        historyRatings
+      );
+
+      car.lastRemarks = mergedRemarks.slice(0, snapshotLimit);
+      car.lastUsersRemarks = car.lastUsersRemarks || car.lastRemarks;
+      car.lastRatings = mergedRatings.slice(0, snapshotLimit);
+
+      return car;
+    }
+
+    function matchesProject(car) {
+      if (!filters.projectNames.size && !filters.projectIds.size) return true;
+      const projectNameKey = _normProjectKey(car.project || car.projectName || '');
+      if (projectNameKey && filters.projectNames.has(projectNameKey)) return true;
+      const projectId = _norm(car.projectId || car.project_id || car.projectKey || '').toLowerCase();
+      if (projectId && filters.projectIds.has(projectId)) return true;
+      return !filters.projectNames.size && !filters.projectIds.size;
+    }
+
+    function matchesTeam(car) {
+      if (!filters.requireTeamMatch) return true;
+      const teamNameKey = _normTeamKey(car.team || car.teamName || '');
+      if (teamNameKey && filters.teamNames.has(teamNameKey)) return true;
+      const teamId = _norm(car.teamId || car.team_id || '').toLowerCase();
+      if (teamId && filters.teamIds.has(teamId)) return true;
+      if ((!teamNameKey && !teamId) && filters.includeUnassigned) return true;
+      return false;
+    }
+
+    const filtered = [];
+    vehicles.forEach(function(entry) {
+      const enriched = enrichVehicle(entry);
+      if (!matchesProject(enriched)) return;
+      if (!matchesTeam(enriched)) return;
+      filtered.push(enriched);
+    });
+
+    filtered.sort(function(a, b) {
+      const tsA = _parseTs_(a.latestRelease || a.dateTime || a.updatedAt || '') || 0;
+      const tsB = _parseTs_(b.latestRelease || b.dateTime || b.updatedAt || '') || 0;
+      if (tsB !== tsA) return tsB - tsA;
+      return String(a.vehicleNumber || '').localeCompare(String(b.vehicleNumber || ''), undefined, { sensitivity: 'base' });
+    });
+
+    return {
+      ok: true,
+      source: payload.source || 'CarT_P',
+      vehicles: filtered,
+      totalCount: totalCount,
+      filteredCount: filtered.length,
+      updatedAt: payload.updatedAt || '',
+      generatedAt: payload.generatedAt || new Date().toISOString(),
+      filtersApplied: filters.applied
+    };
+  } catch (err) {
+    console.error('getVehicleReleasedLookupData failed:', err);
+    return { ok: false, source: 'CarT_P', vehicles: [], totalCount: 0, filteredCount: 0, error: String(err) };
+  }
 }
 
 /**
@@ -12122,12 +12580,12 @@ function _buildVehicleReleasedDropdownPayload_() {
   if (!summary.ok) {
     return {
       ok: false,
-      source: 'Vehicle_Released',
+      source: summary.source || 'CarT_P',
       count: 0,
       vehicles: [],
       cached: false,
       updatedAt: summary.updatedAt || '',
-      error: summary.error || 'Vehicle_Released summary unavailable',
+      error: summary.error || 'CarT_P release summary unavailable',
       notes: summary.notes || null,
       sheetId: summary.sheetId || null,
       tried: summary.tried || null,
@@ -12150,7 +12608,7 @@ function _buildVehicleReleasedDropdownPayload_() {
   });
 
   if (!vehicles.length) {
-    console.warn('[BACKEND] getVehiclePickerData via cache builder returned 0 vehicles (Vehicle_Released empty)', {
+    console.warn('[BACKEND] getVehiclePickerData via cache builder returned 0 vehicles (CarT_P release list empty)', {
       summaryMessage: summary.message || null,
       notes: summary.notes || null,
       tried: summary.tried || null,
@@ -12158,12 +12616,12 @@ function _buildVehicleReleasedDropdownPayload_() {
       headers: summary.headerRow || null
     });
   } else {
-    console.log(`[BACKEND] getVehiclePickerData cache builder loaded ${vehicles.length} vehicles from Vehicle_Released (sheet ${summary.sheetLabel || summary.sheetId || 'unknown'})`);
+    console.log(`[BACKEND] getVehiclePickerData cache builder loaded ${vehicles.length} vehicles from CarT_P release summary (sheet ${summary.sheetLabel || summary.sheetId || 'unknown'})`);
   }
 
   return {
     ok: true,
-    source: 'Vehicle_Released',
+    source: summary.source || 'CarT_P',
     count: vehicles.length,
     vehicles: vehicles,
     cached: false,
