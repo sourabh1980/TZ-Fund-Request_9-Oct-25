@@ -620,6 +620,375 @@ function getVehicleReleasedSummary() {
   };
 }
 
+function getVehicleReleasedLookupData(context) {
+  try {
+    const filters = _sanitizeVehicleReleasedLookupContext_(context);
+    const payload = _loadVehicleReleasedDropdownPayload_();
+
+    if (!payload || payload.ok === false) {
+      const errorMessage = payload && payload.error ? String(payload.error) : 'Vehicle_Released payload unavailable';
+      return {
+        ok: false,
+        source: 'Vehicle_Released',
+        vehicles: [],
+        totalCount: 0,
+        filteredCount: 0,
+        filtersApplied: {
+          projectKeys: [],
+          teamKeys: [],
+          teamIds: [],
+          includeUnassigned: filters.includeUnassigned,
+          strictTeamMatch: filters.strictTeamMatch,
+          enforceProjectFilter: false
+        },
+        error: errorMessage
+      };
+    }
+
+    const rawVehicles = Array.isArray(payload.vehicles) ? payload.vehicles : [];
+    const normalizedVehicles = rawVehicles.map(_normalizeVehicleReleasedEntryForLookup_);
+    const filtered = _applyVehicleReleasedLookupFilters_(normalizedVehicles, filters);
+
+    const response = {
+      ok: true,
+      source: payload.source || 'Vehicle_Released',
+      vehicles: filtered.vehicles,
+      totalCount: normalizedVehicles.length,
+      filteredCount: filtered.vehicles.length,
+      filtersApplied: filtered.filtersApplied,
+      updatedAt: payload.updatedAt || '',
+      generatedAt: payload.generatedAt || '',
+      cached: Boolean(payload.cached),
+      cacheSource: payload.cacheSource || null,
+      cacheVersion: payload.cacheVersion || null
+    };
+
+    if (payload.notes) response.notes = payload.notes;
+    if (payload.summaryMessage) response.summaryMessage = payload.summaryMessage;
+    if (payload.sheetId) response.sheetId = payload.sheetId;
+    if (payload.tried) response.tried = payload.tried;
+    if (filters.rawContext) response.context = filters.rawContext;
+
+    return response;
+  } catch (error) {
+    console.error('getVehicleReleasedLookupData failed:', error);
+    return {
+      ok: false,
+      source: 'Vehicle_Released',
+      vehicles: [],
+      totalCount: 0,
+      filteredCount: 0,
+      filtersApplied: {
+        projectKeys: [],
+        teamKeys: [],
+        teamIds: [],
+        includeUnassigned: false,
+        strictTeamMatch: false,
+        enforceProjectFilter: false
+      },
+      error: String(error)
+    };
+  }
+}
+
+function _sanitizeVehicleReleasedLookupContext_(raw) {
+  const ctx = raw && typeof raw === 'object' ? raw : {};
+
+  const projectMap = new Map();
+  const teamMap = new Map();
+  const teamIdMap = new Map();
+
+  function collect(store, value, normalizer) {
+    if (value == null) return;
+    if (Array.isArray(value)) {
+      value.forEach(function(item) { collect(store, item, normalizer); });
+      return;
+    }
+    if (typeof value === 'object') {
+      const candidates = [];
+      ['name', 'label', 'value', 'project', 'projectName', 'team', 'teamName', 'id', 'teamId', 'team_id'].forEach(function(key) {
+        if (value.hasOwnProperty(key)) candidates.push(value[key]);
+      });
+      if (candidates.length) {
+        candidates.forEach(function(item) { collect(store, item, normalizer); });
+      }
+      return;
+    }
+    const text = String(value).trim();
+    if (!text) return;
+    const lower = text.toLowerCase();
+    if (lower === 'all' || lower === 'all projects' || lower === 'all teams' || lower === 'any' || lower === 'select project' || lower === 'select team') {
+      return;
+    }
+    const key = normalizer(text);
+    if (!key) return;
+    if (!store.has(key)) store.set(key, text);
+  }
+
+  collect(projectMap, ctx.project, _normProjectKey);
+  collect(projectMap, ctx.projectName, _normProjectKey);
+  collect(projectMap, ctx.projectId, _normProjectKey);
+  collect(projectMap, ctx.rowProject, _normProjectKey);
+  collect(projectMap, ctx.projectCandidates, _normProjectKey);
+  collect(projectMap, ctx.projectNames, _normProjectKey);
+
+  collect(teamMap, ctx.team, _normTeamKey);
+  collect(teamMap, ctx.teamName, _normTeamKey);
+  collect(teamMap, ctx.rowTeam, _normTeamKey);
+  collect(teamMap, ctx.teamCandidates, _normTeamKey);
+  collect(teamMap, ctx.teamNames, _normTeamKey);
+  collect(teamMap, ctx.selectedTeamNames, _normTeamKey);
+
+  const rowTeamLabel = ctx.rowTeam ? String(ctx.rowTeam).trim() : '';
+  const rowTeamKey = rowTeamLabel ? _normTeamKey(rowTeamLabel) : '';
+  if (rowTeamKey && !teamMap.has(rowTeamKey)) {
+    teamMap.set(rowTeamKey, rowTeamLabel);
+  }
+
+  function collectTeamId(value) {
+    if (value == null) return;
+    if (Array.isArray(value)) {
+      value.forEach(collectTeamId);
+      return;
+    }
+    const text = String(value).trim();
+    if (!text) return;
+    const key = text.toLowerCase();
+    if (!teamIdMap.has(key)) {
+      teamIdMap.set(key, text);
+    }
+  }
+
+  collectTeamId(ctx.teamId);
+  collectTeamId(ctx.teamID);
+  collectTeamId(ctx.rowTeamId);
+  collectTeamId(ctx.teamIds);
+  collectTeamId(ctx.selectedTeamIds);
+
+  const includeUnassigned = ctx.includeUnassigned === true || (ctx.includeUnassigned === undefined && teamMap.size === 0);
+  const strictTeamMatch = ctx.strictTeamMatch === true;
+  const enforceProjectFilter = ctx.enforceProjectFilter === true;
+
+  const projectKeys = Array.from(projectMap.keys());
+  const projectLabels = projectKeys.map(function(key) { return projectMap.get(key); });
+  const teamKeys = Array.from(teamMap.keys());
+  const teamLabels = teamKeys.map(function(key) { return teamMap.get(key); });
+  const teamIds = Array.from(teamIdMap.keys());
+  const teamIdLabels = teamIds.map(function(key) { return teamIdMap.get(key); });
+
+  const rowTeamIdLabel = ctx.rowTeamId ? String(ctx.rowTeamId).trim() : '';
+  const rowTeamId = rowTeamIdLabel ? rowTeamIdLabel.toLowerCase() : '';
+
+  return {
+    includeUnassigned: includeUnassigned,
+    strictTeamMatch: strictTeamMatch,
+    enforceProjectFilter: enforceProjectFilter,
+    projectKeys: projectKeys,
+    projectLabels: projectLabels,
+    teamKeys: teamKeys,
+    teamLabels: teamLabels,
+    teamIds: teamIds,
+    teamIdLabels: teamIdLabels,
+    rowTeamKey: rowTeamKey,
+    rowTeamLabel: rowTeamLabel,
+    rowTeamId: rowTeamId,
+    rowTeamIdLabel: rowTeamIdLabel,
+    rawContext: ctx
+  };
+}
+
+function _normalizeVehicleReleasedEntryForLookup_(entry) {
+  const carNumber = String(entry && (entry.carNumber || entry.vehicleNumber || entry.vehicle || '')).trim();
+  const project = String(entry && (entry.project || entry.projectName || '')).trim();
+  const team = String(entry && (entry.team || entry.teamName || '')).trim();
+  const owner = entry && entry.owner != null ? String(entry.owner).trim() : '';
+  const usageType = entry && entry.usageType != null ? String(entry.usageType).trim() : '';
+  const category = entry && entry.category != null ? String(entry.category).trim() : '';
+  const make = entry && entry.make != null ? String(entry.make).trim() : '';
+  const model = entry && entry.model != null ? String(entry.model).trim() : '';
+  const status = _normStatus_(entry && entry.status ? entry.status : 'RELEASE') || 'RELEASE';
+  const latestRelease = entry && entry.latestRelease ? entry.latestRelease : (entry && entry.latestTimestamp ? entry.latestTimestamp : '');
+  const responsible = entry && entry.responsibleBeneficiary != null ? String(entry.responsibleBeneficiary).trim() : (entry && entry['R. Ben'] != null ? String(entry['R. Ben']).trim() : '');
+
+  const ratingSources = [entry && entry.lastRatings, entry && entry.latestRatings, entry && entry.ratings, entry && entry.rating, entry && entry.stars];
+  const ratings = _collectVehReleasedRatings_(ratingSources);
+
+  const remarkSources = [entry && entry.lastRemarks, entry && entry.remarks, entry && entry.notes];
+  const remarks = _collectVehReleasedRemarks_(remarkSources);
+
+  const teamIdRaw = entry && (entry.teamId || entry.teamID || entry.team_id || entry.teamCode || entry['Team ID'] || entry['team id']) ? String(entry.teamId || entry.teamID || entry.team_id || entry.teamCode || entry['Team ID'] || entry['team id']).trim() : '';
+  const teamIdKey = teamIdRaw ? teamIdRaw.toLowerCase() : '';
+
+  const projectKey = _normProjectKey(project);
+  const teamKey = _normTeamKey(team);
+  const vehicleKey = _vehicleKey_(carNumber);
+
+  const stars = ratings.length ? ratings[0] : (Number(entry && entry.stars) || 0);
+
+  return Object.assign({}, entry, {
+    carNumber: carNumber,
+    vehicleNumber: carNumber,
+    vehicle: carNumber,
+    project: project,
+    team: team,
+    owner: owner,
+    usageType: usageType,
+    category: category,
+    make: make,
+    model: model,
+    status: status,
+    latestRelease: latestRelease,
+    responsibleBeneficiary: responsible,
+    stars: stars,
+    lastRatings: ratings.slice(),
+    latestRatings: ratings.slice(),
+    ratings: ratings.slice(),
+    lastRemarks: remarks.slice(),
+    projectKey: projectKey,
+    teamKey: teamKey,
+    teamId: teamIdRaw,
+    teamIdKey: teamIdKey,
+    vehicleKey: vehicleKey
+  });
+}
+
+function _applyVehicleReleasedLookupFilters_(vehicles, filters) {
+  const list = Array.isArray(vehicles) ? vehicles : [];
+
+  const projectLabelByKey = new Map();
+  filters.projectKeys.forEach(function(key, idx) {
+    projectLabelByKey.set(key, filters.projectLabels[idx]);
+  });
+
+  const teamLabelByKey = new Map();
+  filters.teamKeys.forEach(function(key, idx) {
+    teamLabelByKey.set(key, filters.teamLabels[idx]);
+  });
+
+  const teamIdLabelByKey = new Map();
+  filters.teamIds.forEach(function(key, idx) {
+    teamIdLabelByKey.set(key, filters.teamIdLabels[idx]);
+  });
+
+  const activeProjectKeys = (filters.enforceProjectFilter && filters.projectKeys.length) ? filters.projectKeys.slice() : [];
+
+  const teamKeys = filters.teamKeys.slice();
+  const teamIds = filters.teamIds.slice();
+
+  if (filters.strictTeamMatch && filters.rowTeamKey) {
+    if (teamKeys.indexOf(filters.rowTeamKey) === -1) {
+      teamKeys.push(filters.rowTeamKey);
+      if (!teamLabelByKey.has(filters.rowTeamKey)) {
+        teamLabelByKey.set(filters.rowTeamKey, filters.rowTeamLabel || filters.rowTeamKey);
+      }
+    }
+  }
+
+  if (filters.strictTeamMatch && filters.rowTeamId) {
+    if (teamIds.indexOf(filters.rowTeamId) === -1) {
+      teamIds.push(filters.rowTeamId);
+      if (!teamIdLabelByKey.has(filters.rowTeamId)) {
+        teamIdLabelByKey.set(filters.rowTeamId, filters.rowTeamIdLabel || filters.rowTeamId);
+      }
+    }
+  }
+
+  const teamFilterActive = teamKeys.length > 0 || teamIds.length > 0;
+  const includeUnassigned = teamFilterActive ? filters.includeUnassigned === true : filters.includeUnassigned !== false;
+
+  const filtered = list.filter(function(vehicle) {
+    if (activeProjectKeys.length) {
+      const projectKey = vehicle && vehicle.projectKey ? vehicle.projectKey : '';
+      if (!projectKey || activeProjectKeys.indexOf(projectKey) === -1) {
+        return false;
+      }
+    }
+
+    if (teamFilterActive) {
+      const teamKey = vehicle && vehicle.teamKey ? vehicle.teamKey : '';
+      const teamIdKey = vehicle && vehicle.teamIdKey ? vehicle.teamIdKey : '';
+      let matches = false;
+      if (teamKey && teamKeys.indexOf(teamKey) !== -1) {
+        matches = true;
+      }
+      if (!matches && teamIdKey && teamIds.indexOf(teamIdKey) !== -1) {
+        matches = true;
+      }
+      if (!matches && includeUnassigned && !teamKey && !teamIdKey) {
+        matches = true;
+      }
+      if (!matches) {
+        return false;
+      }
+    } else if (!includeUnassigned) {
+      const hasTeam = vehicle && (vehicle.teamKey || vehicle.teamIdKey);
+      if (!hasTeam) return false;
+    }
+
+    return true;
+  });
+
+  const filtersApplied = {
+    projectKeys: activeProjectKeys.map(function(key) { return projectLabelByKey.get(key) || key; }),
+    teamKeys: teamFilterActive ? teamKeys.map(function(key) { return teamLabelByKey.get(key) || key; }) : [],
+    teamIds: teamFilterActive ? teamIds.map(function(key) { return teamIdLabelByKey.get(key) || key; }) : [],
+    includeUnassigned: includeUnassigned,
+    strictTeamMatch: filters.strictTeamMatch === true,
+    enforceProjectFilter: activeProjectKeys.length > 0
+  };
+
+  return { vehicles: filtered, filtersApplied: filtersApplied };
+}
+
+function _collectVehReleasedRatings_(sources) {
+  const seen = new Set();
+  const out = [];
+  sources.forEach(function(src) {
+    if (src == null) return;
+    const values = Array.isArray(src) ? src : [src];
+    values.forEach(function(item) {
+      if (item == null) return;
+      let num = null;
+      if (typeof item === 'number' && isFinite(item)) {
+        num = item;
+      } else {
+        const match = String(item).match(/[-+]?\d*\.?\d+/);
+        if (match) {
+          const parsed = parseFloat(match[0]);
+          if (isFinite(parsed)) num = parsed;
+        }
+      }
+      if (num == null) return;
+      const key = num.toFixed(2);
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(num);
+      }
+    });
+  });
+  return out.slice(0, 3);
+}
+
+function _collectVehReleasedRemarks_(sources) {
+  const seen = new Set();
+  const out = [];
+  sources.forEach(function(src) {
+    if (src == null) return;
+    const values = Array.isArray(src) ? src : [src];
+    values.forEach(function(item) {
+      if (item == null) return;
+      const text = String(item).trim();
+      if (!text) return;
+      const key = text.toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(text);
+      }
+    });
+  });
+  return out.slice(0, 3);
+}
+
 /**
  * Simple test function to check CarT_P sheet access
  */
