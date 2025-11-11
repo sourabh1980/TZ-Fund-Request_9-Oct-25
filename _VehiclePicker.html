@@ -865,6 +865,8 @@
         let lastVehicleWarmTs=0;
         const VEHICLE_VERSION_POLL_INTERVAL = 10000;
         let manualRefreshInProgress = false;
+        let vehicleModalVisible = false;
+        let vehicleOpenInitialFetchDone = false;
 
         let storageHydrationAttempted = false;
   let newVehicleOptions = null;
@@ -1075,7 +1077,7 @@
           const postInvalidate = (scriptAvailable) => {
             resetLocalCaches();
             if (vpMode === 'existing') {
-              fetchVehicles({ force: true, skipCache: true });
+              fetchVehicles({ force: true, skipCache: true, manual: true });
             }
             if (typeof window.populateResponsibleBeneficiaryOptions === 'function') {
               window.populateResponsibleBeneficiaryOptions(project, team, currentBeneficiary);
@@ -2618,6 +2620,8 @@
           const modal=document.getElementById('vehiclePickerModal');
           modal.setAttribute('aria-hidden','false');
           document.body.style.overflow='hidden';
+          vehicleModalVisible = true;
+          vehicleOpenInitialFetchDone = false;
           master=[]; vehicles=[];
           resetPickerUI();
           try{ populateContextFromRow(targetInput); }catch(_){ }
@@ -2666,6 +2670,8 @@
           const modal=document.getElementById('vehiclePickerModal');
           modal.setAttribute('aria-hidden','true');
           document.body.style.overflow='';
+          vehicleModalVisible = false;
+          vehicleOpenInitialFetchDone = false;
           resetPickerUI();
           
           // Clear source beneficiary
@@ -2674,14 +2680,23 @@
         }
 
         function fetchVehicles(options){
-          const opts = Object.assign({ attempt: 0, skipCache: false, retry: false, force: false, silent: false, allowStaleOnEmpty: true, startedAt: null }, options);
+          const opts = Object.assign({ attempt: 0, skipCache: false, retry: false, force: false, silent: false, allowStaleOnEmpty: true, startedAt: null, manual: false }, options);
           const silentFetch = opts.silent === true;
+          const isManualFetch = opts.manual === true;
+          const isRetryFetch = opts.retry === true;
           if (vpMode !== 'existing') {
             vehicleVersionRefreshPending = false;
             return;
           }
           bootstrapVehicleCacheFromStorage();
           const statusEl = document.getElementById('vpStatus');
+          if (vehicleModalVisible && (vehicleOpenInitialFetchDone || vehicleFetchPending) && !isManualFetch && !isRetryFetch) {
+            if (!silentFetch && statusEl && !vehicleFetchPending) {
+              statusEl.removeAttribute('data-state');
+              statusEl.textContent = 'Vehicles already loaded.';
+            }
+            return;
+          }
           if (vehicleRetryTimer){
             clearTimeout(vehicleRetryTimer);
             vehicleRetryTimer = null;
@@ -2744,6 +2759,9 @@
               vehicleFetchPending = false;
               vehicleVersionRefreshPending = false;
               vehicleWarmInFlight = false;
+              if (vehicleModalVisible && !isManualFetch) {
+                vehicleOpenInitialFetchDone = true;
+              }
               console.error('Vehicle picker load failed', err);
               window.vehiclePickerLastResponse = {
                 timestamp: new Date().toISOString(),
@@ -2764,6 +2782,10 @@
         function handleVehicleFetchSuccess(res, startTs, opts){
           vehicleFetchPending = false;
           vehicleWarmInFlight = false;
+          const isManualFetch = !!(opts && opts.manual === true);
+          if (vehicleModalVisible && !isManualFetch) {
+            vehicleOpenInitialFetchDone = true;
+          }
           let list = [];
           let source = '';
           let cachedFlag = false;
