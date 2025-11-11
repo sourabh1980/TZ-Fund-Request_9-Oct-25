@@ -2635,6 +2635,15 @@
             }
           }
           setMode('existing', { autoFetch: false });
+
+          // Always fetch the latest vehicles when the picker opens so the list
+          // refreshes a single time on launch instead of relying on the
+          // background monitor that previously re-triggered loads.
+          try {
+            fetchVehicles({ force: true, skipCache: true });
+          } catch (openFetchErr) {
+            console.warn('[VP] Failed to refresh vehicles on open', openFetchErr);
+          }
         }
 
         function close(){
@@ -2931,32 +2940,15 @@
         }
 
         function startVehicleCacheMonitor(){
-          if (vehicleVersionMonitorTimer) return;
-          if (!window.google || !google.script || !google.script.run) {
-            if (!vehicleVersionMonitorStartTimer) {
-              vehicleVersionMonitorStartTimer = setTimeout(function(){
-                vehicleVersionMonitorStartTimer = null;
-                startVehicleCacheMonitor();
-              }, 1000);
-            }
-            return;
-          }
           if (vehicleVersionMonitorStartTimer) {
             clearTimeout(vehicleVersionMonitorStartTimer);
             vehicleVersionMonitorStartTimer = null;
           }
-          vehicleVersionMonitorTimer = setInterval(function(){
-            try {
-              google.script.run
-                .withSuccessHandler(handleVehicleVersionProbe)
-                .withFailureHandler(function(err){
-                  console.warn('[VP] Vehicle version probe failed', err);
-                })
-                .getVehicleReleasedCacheVersion();
-            } catch (probeErr) {
-              console.warn('[VP] Vehicle version probe scheduling failed', probeErr);
-            }
-          }, VEHICLE_VERSION_POLL_INTERVAL);
+          if (vehicleVersionMonitorTimer) {
+            clearInterval(vehicleVersionMonitorTimer);
+            vehicleVersionMonitorTimer = null;
+          }
+          console.log('[VP] Vehicle cache monitor disabled; refresh now happens on picker open.');
         }
 
         function handleVehicleVersionProbe(res){
