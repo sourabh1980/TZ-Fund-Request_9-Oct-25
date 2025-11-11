@@ -2815,9 +2815,14 @@
             list = [];
           }
 
+          const allowStaleOnEmpty = !(opts && opts.allowStaleOnEmpty === false);
+          const forcedCacheReset = !!(opts && opts.skipCache === true);
+          const hadPreviousCache = Array.isArray(vehicleDataCache) && vehicleDataCache.length > 0;
+          const shouldFallbackToStale = hadPreviousCache && !allowStaleOnEmpty && !forcedCacheReset;
+
           const attemptNumber = typeof opts.attempt === 'number' ? opts.attempt : 0;
           if (!list.length) {
-            if (attemptNumber < MAX_VEHICLE_FETCH_RETRIES) {
+            if (!shouldFallbackToStale && attemptNumber < MAX_VEHICLE_FETCH_RETRIES) {
               const nextAttempt = attemptNumber + 1;
               console.warn('[VP] Vehicle picker received empty list, scheduling retry', {
                 attempt: attemptNumber,
@@ -2838,10 +2843,6 @@
           const end = usePerf ? performance.now() : Date.now();
           const startValue = (typeof startTs === 'number' && isFinite(startTs)) ? startTs : end;
           const duration = Math.max(0, end - startValue);
-
-          const hadPreviousCache = Array.isArray(vehicleDataCache) && vehicleDataCache.length > 0;
-          const allowStaleOnEmpty = !(opts && opts.allowStaleOnEmpty === false);
-          const forcedCacheReset = !!(opts && opts.skipCache === true);
 
           if (!list.length && !forcedCacheReset) {
             vehiclePickerMeta = {
