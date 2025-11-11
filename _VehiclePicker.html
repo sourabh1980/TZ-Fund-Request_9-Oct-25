@@ -507,7 +507,7 @@
         }
         .vp-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.45);backdrop-filter:blur(6px);display:none;z-index:10000}
         .vp-backdrop[aria-hidden="false"]{display:grid;place-items:center}
-        .vp-modal{width:min(860px,96vw);max-height:86vh;background:var(--vp-surface);
+        .vp-modal{position:relative;width:min(860px,96vw);max-height:86vh;background:var(--vp-surface);
           background-image:linear-gradient(160deg,rgba(86,96,98,.25),rgba(79,70,229,.28));background-blend-mode:overlay;
           border-radius:20px;box-shadow:0 24px 80px rgba(2,6,23,.35);overflow:hidden;display:grid;grid-template-rows:auto 1fr auto;
           border:1px solid rgba(255,255,255,.35)}
@@ -526,8 +526,32 @@
 
         .vp-body{padding:24px;background:rgba(255,255,255,.9);
           backdrop-filter:blur(6px);overflow-y:auto;overscroll-behavior:contain;display:grid;gap:20px}
+        .vp-hold{position:absolute;inset:0;background:rgba(15,23,42,.68);backdrop-filter:blur(4px);display:none;
+          align-items:center;justify-content:center;flex-direction:column;gap:20px;text-align:center;z-index:40;padding:32px}
+        .vp-hold.is-active{display:flex}
+        .vp-hold__lights{display:flex;gap:28px}
+        .vp-light{position:relative;width:64px;height:64px;border-radius:50%;background:#1f2937;
+          box-shadow:inset 0 0 18px rgba(0,0,0,.6);overflow:hidden}
+        .vp-light::after{content:'';position:absolute;inset:-10px;border-radius:50%;box-shadow:0 0 12px rgba(255,255,255,.35);
+          opacity:0;transition:opacity .2s ease}
+        .vp-light.vp-light--run::after{opacity:.45}
+        .vp-light--yellow.vp-light--run{animation:vpHoldYellow 4s linear forwards}
+        .vp-light--green.vp-light--run{animation:vpHoldGreen 4s linear forwards}
+        .vp-hold__message{margin:0;font-size:16px;font-weight:600;color:#f8fafc}
+        .vp-hold__sub{margin:0;font-size:13px;color:rgba(248,250,252,.8)}
+        @keyframes vpHoldYellow{
+          0%{background:#1f2937;box-shadow:inset 0 0 18px rgba(0,0,0,.65)}
+          5%,48%{background:#fbbf24;box-shadow:0 0 22px rgba(251,191,36,.7),inset 0 0 12px rgba(0,0,0,.35)}
+          52%,100%{background:#1f2937;box-shadow:inset 0 0 18px rgba(0,0,0,.65)}
+        }
+        @keyframes vpHoldGreen{
+          0%,48%{background:#1f2937;box-shadow:inset 0 0 18px rgba(0,0,0,.65)}
+          52%,95%{background:#34d399;box-shadow:0 0 22px rgba(52,211,153,.6),inset 0 0 12px rgba(0,0,0,.35)}
+          100%{background:#065f46;box-shadow:0 0 18px rgba(5,150,105,.55),inset 0 0 12px rgba(0,0,0,.35)}
+        }
         #vpExistingSection{display:grid;grid-template-columns:1fr 1fr;gap:20px}
         .vp-status{grid-column:1/-1;font-size:13px;color:var(--vp-muted);margin-top:-2px}
+        .vp-status[data-state="error"]{color:var(--vp-bad);font-weight:600}
 
         /* Top context row: 3 fields aligned in one line on desktop */
         .vp-context{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
@@ -698,6 +722,14 @@
 
       <div id="vehiclePickerModal" class="vp-backdrop" aria-hidden="true">
         <section class="vp-modal" role="dialog" aria-modal="true" aria-labelledby="vehiclePickerTitle">
+          <div id="vpSelectionHold" class="vp-hold" aria-hidden="true">
+            <div class="vp-hold__lights" aria-hidden="true">
+              <div class="vp-light vp-light--yellow"></div>
+              <div class="vp-light vp-light--green"></div>
+            </div>
+            <p class="vp-hold__message">Saving your vehicle selection…</p>
+            <p class="vp-hold__sub">Please keep the window open while we secure the assignment.</p>
+          </div>
           <header class="vp-header">
             <div class="vp-header__left">
               <div class="vp-header__brand">
@@ -864,6 +896,11 @@
         let lastVehicleWarmTs=0;
         const VEHICLE_VERSION_POLL_INTERVAL = 10000;
         let manualRefreshInProgress = false;
+        let vehicleModalVisible = false;
+        let vehicleOpenInitialFetchDone = false;
+        const SELECTION_HOLD_DURATION = 4000;
+        let selectionHoldTimer = null;
+        let selectionHoldCallback = null;
 
         let storageHydrationAttempted = false;
   let newVehicleOptions = null;
@@ -1051,6 +1088,7 @@
 
           const statusEl = document.getElementById('vpStatus');
           if (statusEl) {
+            statusEl.removeAttribute('data-state');
             statusEl.textContent = 'Refreshing vehicle list…';
           }
 
@@ -1073,7 +1111,7 @@
           const postInvalidate = (scriptAvailable) => {
             resetLocalCaches();
             if (vpMode === 'existing') {
-              fetchVehicles({ force: true, skipCache: true });
+              fetchVehicles({ force: true, skipCache: true, manual: true });
             }
             if (typeof window.populateResponsibleBeneficiaryOptions === 'function') {
               window.populateResponsibleBeneficiaryOptions(project, team, currentBeneficiary);
@@ -2519,7 +2557,10 @@
           const selectBtn = document.getElementById('vpSelectBtn');
           if (selectBtn) selectBtn.textContent = mode === 'existing' ? 'Select' : 'Save';
           if (mode === 'new') {
-            if (statusEl) statusEl.textContent = '';
+            if (statusEl) {
+              statusEl.textContent = '';
+              statusEl.removeAttribute('data-state');
+            }
             if (metaEl) metaEl.textContent = '';
             resetNewCarForm();
             ensureNewVehicleOptions(true);
@@ -2527,7 +2568,10 @@
             updateSelectButtonState();
             return;
           }
-          if (statusEl) statusEl.textContent = 'Loading latest vehicles…';
+          if (statusEl) {
+            statusEl.removeAttribute('data-state');
+            statusEl.textContent = 'Loading latest vehicles…';
+          }
           if (metaEl) metaEl.textContent = '0 vehicles match filters';
           if (selectBtn) selectBtn.disabled = true;
           if(mode==='existing' && autoFetch){ fetchVehicles(fetchOpts); }
@@ -2545,7 +2589,11 @@
         }
 
         function resetPickerUI(){
-          const statusEl=document.getElementById('vpStatus'); if(statusEl) statusEl.textContent='Loading latest vehicles…';
+          const statusEl=document.getElementById('vpStatus');
+          if(statusEl){
+            statusEl.textContent='Loading latest vehicles…';
+            statusEl.removeAttribute('data-state');
+          }
           setDropdownLoading(true, 'Loading vehicles…');
           const selectBtn = document.getElementById('vpSelectBtn');
           if (selectBtn) {
@@ -2604,8 +2652,11 @@
         function open(target){
           try{ targetInput=target||null; }catch(_){ targetInput=null; }
           const modal=document.getElementById('vehiclePickerModal');
+          cancelSelectionHold();
           modal.setAttribute('aria-hidden','false');
           document.body.style.overflow='hidden';
+          vehicleModalVisible = true;
+          vehicleOpenInitialFetchDone = false;
           master=[]; vehicles=[];
           resetPickerUI();
           try{ populateContextFromRow(targetInput); }catch(_){ }
@@ -2620,6 +2671,7 @@
             }
             const isFresh = (Date.now() - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
             if (statusEl) {
+              statusEl.removeAttribute('data-state');
               statusEl.textContent = isFresh
                 ? 'Vehicles loaded from cache.'
                 : 'Vehicles loaded from cache. Re-apply project & team to refresh.';
@@ -2628,16 +2680,81 @@
             const warmPending = vehicleFetchPending || vehicleWarmInFlight;
             if (warmPending) {
               setDropdownLoading(true, 'Loading vehicles…');
-              if (statusEl) statusEl.textContent = 'Loading vehicles…';
+              if (statusEl) {
+                statusEl.removeAttribute('data-state');
+                statusEl.textContent = 'Loading vehicles…';
+              }
             } else {
               setDropdownLoading(true, 'Waiting for vehicle cache…');
-              if (statusEl) statusEl.textContent = 'Select a project & team, then click Apply to load vehicles.';
+              if (statusEl) {
+                statusEl.removeAttribute('data-state');
+                statusEl.textContent = 'Select a project & team, then click Apply to load vehicles.';
+              }
             }
           }
           setMode('existing', { autoFetch: false });
+          const startedAt = (typeof performance !== 'undefined' && typeof performance.now === 'function') ? performance.now() : Date.now();
+          fetchVehicles({ force: true, skipCache: false, allowStaleOnEmpty: false, startedAt });
+        }
+
+        function showSelectionHoldOverlay(){
+          const overlay = document.getElementById('vpSelectionHold');
+          if (!overlay) return;
+          const lights = overlay.querySelectorAll('.vp-light');
+          lights.forEach(light => {
+            light.classList.remove('vp-light--run');
+          });
+          // Force reflow so animations restart cleanly when the overlay re-opens
+          void overlay.offsetWidth;
+          overlay.classList.add('is-active');
+          overlay.setAttribute('aria-hidden','false');
+          lights.forEach(light => {
+            light.classList.add('vp-light--run');
+          });
+        }
+
+        function hideSelectionHoldOverlay(){
+          const overlay = document.getElementById('vpSelectionHold');
+          if (!overlay) return;
+          overlay.classList.remove('is-active');
+          overlay.setAttribute('aria-hidden','true');
+          overlay.querySelectorAll('.vp-light').forEach(light => {
+            light.classList.remove('vp-light--run');
+          });
+        }
+
+        function startSelectionHold(onComplete){
+          showSelectionHoldOverlay();
+          if (selectionHoldTimer){
+            clearTimeout(selectionHoldTimer);
+          }
+          selectionHoldCallback = (typeof onComplete === 'function') ? onComplete : null;
+          selectionHoldTimer = window.setTimeout(function(){
+            selectionHoldTimer = null;
+            const callback = selectionHoldCallback;
+            selectionHoldCallback = null;
+            hideSelectionHoldOverlay();
+            if (typeof callback === 'function') {
+              try {
+                callback();
+              } catch (holdErr) {
+                console.warn('[VP] Selection hold callback failed', holdErr);
+              }
+            }
+          }, SELECTION_HOLD_DURATION);
+        }
+
+        function cancelSelectionHold(){
+          if (selectionHoldTimer){
+            clearTimeout(selectionHoldTimer);
+            selectionHoldTimer = null;
+          }
+          selectionHoldCallback = null;
+          hideSelectionHoldOverlay();
         }
 
         function close(){
+          cancelSelectionHold();
           if (vehicleRetryTimer){
             clearTimeout(vehicleRetryTimer);
             vehicleRetryTimer = null;
@@ -2645,6 +2762,8 @@
           const modal=document.getElementById('vehiclePickerModal');
           modal.setAttribute('aria-hidden','true');
           document.body.style.overflow='';
+          vehicleModalVisible = false;
+          vehicleOpenInitialFetchDone = false;
           resetPickerUI();
           
           // Clear source beneficiary
@@ -2653,14 +2772,23 @@
         }
 
         function fetchVehicles(options){
-          const opts = Object.assign({ attempt: 0, skipCache: false, retry: false, force: false, silent: false }, options);
+          const opts = Object.assign({ attempt: 0, skipCache: false, retry: false, force: false, silent: false, allowStaleOnEmpty: true, startedAt: null, manual: false }, options);
           const silentFetch = opts.silent === true;
+          const isManualFetch = opts.manual === true;
+          const isRetryFetch = opts.retry === true;
           if (vpMode !== 'existing') {
             vehicleVersionRefreshPending = false;
             return;
           }
           bootstrapVehicleCacheFromStorage();
           const statusEl = document.getElementById('vpStatus');
+          if (vehicleModalVisible && (vehicleOpenInitialFetchDone || vehicleFetchPending) && !isManualFetch && !isRetryFetch) {
+            if (!silentFetch && statusEl && !vehicleFetchPending) {
+              statusEl.removeAttribute('data-state');
+              statusEl.textContent = 'Vehicles already loaded.';
+            }
+            return;
+          }
           if (vehicleRetryTimer){
             clearTimeout(vehicleRetryTimer);
             vehicleRetryTimer = null;
@@ -2682,6 +2810,7 @@
 
           if (vehicleFetchPending && !opts.force) {
             if (!silentFetch && statusEl) {
+              statusEl.removeAttribute('data-state');
               statusEl.textContent = 'Loading vehicles…';
             }
             return;
@@ -2691,7 +2820,7 @@
             vehicleFetchPending = false;
           }
 
-          if (opts.skipCache) {
+          if (opts.skipCache === true) {
             vehicleDataCache = null;
             vehicleDataCacheTs = 0;
             vehicleCacheSource = '';
@@ -2700,6 +2829,7 @@
           if (!window.google || !google.script || !google.script.run) {
             vehicleVersionRefreshPending = false;
             if (!silentFetch && statusEl) {
+              statusEl.setAttribute('data-state', 'error');
               statusEl.textContent = 'Google Apps Script not available. Cannot load vehicles.';
             }
             return;
@@ -2707,9 +2837,11 @@
 
           vehicleFetchPending = true;
           if (!silentFetch && statusEl) {
+            statusEl.removeAttribute('data-state');
             statusEl.textContent = 'Loading latest vehicles…';
           }
-          const start = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+          const usePerf = (typeof performance !== 'undefined' && typeof performance.now === 'function');
+          const start = typeof opts.startedAt === 'number' ? opts.startedAt : (usePerf ? performance.now() : Date.now());
 
           google.script.run
             .withSuccessHandler(function(res){
@@ -2719,13 +2851,19 @@
               vehicleFetchPending = false;
               vehicleVersionRefreshPending = false;
               vehicleWarmInFlight = false;
+              if (vehicleModalVisible && !isManualFetch) {
+                vehicleOpenInitialFetchDone = true;
+              }
               console.error('Vehicle picker load failed', err);
               window.vehiclePickerLastResponse = {
                 timestamp: new Date().toISOString(),
                 error: err
               };
               const status = statusEl || document.getElementById('vpStatus');
-              if (!silentFetch && status) status.textContent = 'Failed to load Vehicle_Released summary.';
+              if (!silentFetch && status) {
+                status.setAttribute('data-state', 'error');
+                status.textContent = 'Failed to load Vehicle_Released summary.';
+              }
               if (manualRefreshInProgress) {
                 finalizeManualRefresh();
               }
@@ -2736,10 +2874,15 @@
         function handleVehicleFetchSuccess(res, startTs, opts){
           vehicleFetchPending = false;
           vehicleWarmInFlight = false;
+          const isManualFetch = !!(opts && opts.manual === true);
+          if (vehicleModalVisible && !isManualFetch) {
+            vehicleOpenInitialFetchDone = true;
+          }
           let list = [];
           let source = '';
           let cachedFlag = false;
           let debugInfo = null;
+          const statusEl = document.getElementById('vpStatus');
 
           if (res && res.ok !== false && Array.isArray(res.vehicles)) {
             list = res.vehicles;
@@ -2786,9 +2929,14 @@
             list = [];
           }
 
+          const allowStaleOnEmpty = !(opts && opts.allowStaleOnEmpty === false);
+          const forcedCacheReset = !!(opts && opts.skipCache === true);
+          const hadPreviousCache = Array.isArray(vehicleDataCache) && vehicleDataCache.length > 0;
+          const shouldFallbackToStale = hadPreviousCache && !allowStaleOnEmpty && !forcedCacheReset;
+
           const attemptNumber = typeof opts.attempt === 'number' ? opts.attempt : 0;
           if (!list.length) {
-            if (attemptNumber < MAX_VEHICLE_FETCH_RETRIES) {
+            if (!shouldFallbackToStale && attemptNumber < MAX_VEHICLE_FETCH_RETRIES) {
               const nextAttempt = attemptNumber + 1;
               console.warn('[VP] Vehicle picker received empty list, scheduling retry', {
                 attempt: attemptNumber,
@@ -2805,6 +2953,47 @@
             }
           }
 
+          const usePerf = (typeof performance !== 'undefined' && typeof performance.now === 'function');
+          const end = usePerf ? performance.now() : Date.now();
+          const startValue = (typeof startTs === 'number' && isFinite(startTs)) ? startTs : end;
+          const duration = Math.max(0, end - startValue);
+
+          if (!list.length && !forcedCacheReset) {
+            vehiclePickerMeta = {
+              source: source,
+              duration: duration,
+              cached: cachedFlag,
+              debug: debugInfo,
+              fetched: list.length,
+              version: vehicleDataCacheVersion || incomingVersion || null,
+              stale: hadPreviousCache
+            };
+            vehicleVersionRefreshPending = false;
+            if (statusEl) {
+              statusEl.setAttribute('data-state', 'error');
+              const baseMessage = 'Vehicle catalog returned no vehicles.';
+              if (hadPreviousCache) {
+                const detail = allowStaleOnEmpty
+                  ? 'Showing previously loaded vehicles.'
+                  : 'Showing previously loaded vehicles. Please retry to load the latest data.';
+                statusEl.textContent = `${baseMessage} ${detail}`;
+              } else {
+                statusEl.textContent = `${baseMessage} No cached vehicles available. Try again or contact an administrator.`;
+              }
+            }
+            if (hadPreviousCache) {
+              setDropdownLoading(false);
+            } else {
+              setDropdownLoading(true, 'No vehicles available');
+              const matchMetaEl = document.getElementById('vpMatchMeta');
+              if (matchMetaEl) matchMetaEl.textContent = '0 vehicles match filters';
+            }
+            if (manualRefreshInProgress) {
+              finalizeManualRefresh();
+            }
+            return;
+          }
+
           vehicleDataCache = list.slice();
           vehicleDataCacheTs = Date.now();
           vehicleCacheSource = source;
@@ -2814,10 +3003,9 @@
             console.warn('[VP] Vehicle cache persistence skipped', persistErr);
           }
 
-          const end = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
           vehiclePickerMeta = {
             source: source,
-            duration: end - startTs,
+            duration: duration,
             cached: cachedFlag,
             debug: debugInfo,
             fetched: list.length,
@@ -2839,6 +3027,7 @@
           vehicleFetchPending = true;
           const statusEl = document.getElementById('vpStatus');
           if (statusEl) {
+            statusEl.removeAttribute('data-state');
             statusEl.textContent = 'Refreshing vehicle list…';
           }
           google.script.run
@@ -2864,6 +3053,7 @@
           }
           const statusEl = document.getElementById('vpStatus');
           if (statusEl) {
+            statusEl.removeAttribute('data-state');
             statusEl.textContent = 'Refreshing vehicle list…';
           }
           vehicleRetryTimer = setTimeout(function(){
@@ -3040,6 +3230,7 @@
           if (!vehicles.length) {
             setDropdownLoading(true, usedFallback ? 'No vehicles returned (retrying…)' : 'No vehicles available');
             if (statusEl) {
+              statusEl.setAttribute('data-state', 'error');
               const emptyMsg = (meta && meta.source)
                 ? `No vehicles available from ${meta.source === 'Vehicle_Released' ? 'Vehicle_Released summary' : meta.source}.`
                 : 'No vehicles available right now.';
@@ -3070,6 +3261,7 @@
 
           setDropdownLoading(false);
           if (statusEl) {
+            statusEl.removeAttribute('data-state');
             let msg = 'Select a vehicle to assign.';
             if (meta) {
               const parts = [];
@@ -3462,6 +3654,7 @@
           const carNumber = sel && sel.value ? sel.value.trim() : '';
           if (!carNumber) return;
 
+          const selectBtn = document.getElementById('vpSelectBtn');
           const benSelectEl = document.getElementById('vpBeneficiary');
           const benFromContextRaw = (benSelectEl && benSelectEl.value) ? benSelectEl.value : '';
 
@@ -3477,6 +3670,10 @@
           const proj = (document.getElementById('vpProject')?.value || '').trim();
           const team = (document.getElementById('vpTeam')?.value || '').trim();
           const benFromContext = benFromContextRaw.trim();
+
+          if (selectBtn) {
+            selectBtn.disabled = true;
+          }
 
           let carMeta = null;
           try {
@@ -3554,74 +3751,91 @@
             console.warn('[VP] Failed to reapply vehicle assignments after selection', applyErr);
           }
 
+          startSelectionHold(() => close());
+
           if (window.google && google.script && google.script.run) {
             console.log('[VP] Google Apps Script available - submitting to backend');
-            
+
             // Get project and team from the form
             const projectInput = document.getElementById('vpProject');
             const teamInput = document.getElementById('vpTeam');
             const project = projectInput ? projectInput.value.trim() : '';
             const team = teamInput ? teamInput.value.trim() : '';
-            
+
             // Get vehicle details from the form
             const makeInput = document.getElementById('vpMake');
             const modelInput = document.getElementById('vpModel');
             const categoryInput = document.getElementById('vpCategory');
             const usageInput = document.getElementById('vpUsage');
             const ownerInput = document.getElementById('vpOwner');
-            
+
             const make = makeInput ? makeInput.value.trim() : '';
             const model = modelInput ? modelInput.value.trim() : '';
             const category = categoryInput ? categoryInput.value.trim() : '';
             const usageType = usageInput ? usageInput.value.trim() : '';
             const owner = ownerInput ? ownerInput.value.trim() : '';
-            
+
             // Prepare payload for backend submission
-          const payload = {
-            project: project,
-            team: team,
-            carNumber: carNumber,
-            responsibleBeneficiary: benFromContext,
-            beneficiaries: finalBeneficiaries,
-            car: {
-              make: '',
-              model: '',
-              category: '',
-              usageType: '',
-              owner: ''
-            },
-            timestamp: new Date().toISOString()
-          };
-            
+            const payload = {
+              project: project,
+              team: team,
+              carNumber: carNumber,
+              responsibleBeneficiary: benFromContext,
+              beneficiaries: finalBeneficiaries,
+              car: {
+                make,
+                model,
+                category,
+                usageType,
+                owner
+              },
+              timestamp: new Date().toISOString()
+            };
+
             console.log('[VP] Submitting vehicle assignment to CarT_P:', payload);
-            
+
             // Submit to backend using assignCarToTeam function
-            google.script.run
-              .withSuccessHandler(function(result) {
-                console.log('[VP] Backend submission successful:', result);
-                console.log('[VP] Vehicle assignment saved to CarT_P sheet');
-                
-                // Show success message to user
-                if (result && result.ok) {
-                  console.log('[VP] Data successfully saved to CarT_P');
-                }
-                
-                // ✅ NOW trigger refresh AFTER successful backend save
-                if (typeof window.refreshVehicleAssignments === 'function') {
-                  console.log('[VP] Triggering Vehicle_InUse refresh after backend save');
-                  window.refreshVehicleAssignments();
-                }
-                
-                // Dispatch success event
-                window.dispatchEvent(new CustomEvent('vehicleAssignmentComplete', {
-                  detail: { carNumber, responsibleBeneficiary: benFromContext, saved: true }
-                }));
-              })
-              .withFailureHandler(function(error) {
-                console.error('[VP] Backend submission failed:', error);
-                alert('Failed to save vehicle assignment to CarT_P. Please try again.');
-              })
-              .assignCarToTeam(payload);
+            try {
+              google.script.run
+                .withSuccessHandler(function(result) {
+                  console.log('[VP] Backend submission successful:', result);
+                  console.log('[VP] Vehicle assignment saved to CarT_P sheet');
+
+                  // Show success message to user
+                  if (result && result.ok) {
+                    console.log('[VP] Data successfully saved to CarT_P');
+                  }
+
+                  // ✅ NOW trigger refresh AFTER successful backend save
+                  if (typeof window.refreshVehicleAssignments === 'function') {
+                    console.log('[VP] Triggering Vehicle_InUse refresh after backend save');
+                    window.refreshVehicleAssignments();
+                  }
+
+                  // Dispatch success event
+                  window.dispatchEvent(new CustomEvent('vehicleAssignmentComplete', {
+                    detail: { carNumber, responsibleBeneficiary: benFromContext, saved: true }
+                  }));
+                })
+                .withFailureHandler(function(error) {
+                  console.error('[VP] Backend submission failed:', error);
+                  cancelSelectionHold();
+                  if (selectBtn) {
+                    selectBtn.disabled = false;
+                  }
+                  alert('Failed to save vehicle assignment to CarT_P. Please try again.');
+                  updateSelectButtonState();
+                })
+                .assignCarToTeam(payload);
+            } catch (initErr) {
+              console.error('[VP] Failed to initiate backend submission:', initErr);
+              cancelSelectionHold();
+              if (selectBtn) {
+                selectBtn.disabled = false;
+              }
+              alert('Failed to save vehicle assignment to CarT_P. Please try again.');
+              updateSelectButtonState();
+            }
           } else {
             console.log('[VP] Google Apps Script not available');
           }
@@ -3644,8 +3858,8 @@
             }
           }, 100);
 
-          close();
-          
+          // Modal close will be triggered after the selection hold completes
+
           // ✅ DISABLED: The problematic ensureRowsForBeneficiaries function
           // This function was causing vehicles to be assigned to ALL team members
           function ensureRowsForBeneficiaries(beneficiaryList){
