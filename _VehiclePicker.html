@@ -3868,8 +3868,8 @@
 
           ensureBeneficiaryIncluded();
 
-          const proj = (document.getElementById('vpProject')?.value || '').trim();
-          const team = (document.getElementById('vpTeam')?.value || '').trim();
+          const projectContext = (document.getElementById('vpProject')?.value || '').trim();
+          const teamContext = (document.getElementById('vpTeam')?.value || '').trim();
           const benFromContext = benFromContextRaw.trim();
 
           if (selectBtn) {
@@ -3955,8 +3955,8 @@
           // Capture form context before the modal resets
           const projectInput = document.getElementById('vpProject');
           const teamInput = document.getElementById('vpTeam');
-          const project = projectInput ? projectInput.value.trim() : '';
-          const team = teamInput ? teamInput.value.trim() : '';
+          const projectForPayload = projectInput ? projectInput.value.trim() : projectContext;
+          const teamForPayload = teamInput ? teamInput.value.trim() : teamContext;
 
           // Get vehicle details from the form
           const makeInput = document.getElementById('vpMake');
@@ -3973,8 +3973,8 @@
 
           // Prepare payload for backend submission
           const payload = {
-            project: project,
-            team: team,
+            project: projectForPayload,
+            team: teamForPayload,
             carNumber: carNumber,
             responsibleBeneficiary: benFromContext,
             beneficiaries: finalBeneficiaries,
