@@ -526,6 +526,17 @@
 
         .vp-body{padding:24px;background:rgba(255,255,255,.9);
           backdrop-filter:blur(6px);overflow-y:auto;overscroll-behavior:contain;display:grid;gap:20px}
+        .vp-prefetch{position:fixed;inset:0;background:rgba(15,23,42,.82);backdrop-filter:blur(6px);display:none;
+          align-items:center;justify-content:center;flex-direction:column;text-align:center;z-index:10020;padding:32px;color:#f8fafc;
+          gap:18px;pointer-events:auto;cursor:wait}
+        .vp-prefetch__content{display:flex;flex-direction:column;align-items:center;gap:12px}
+        .vp-prefetch.is-active{display:flex}
+        .vp-prefetch__title{margin:0;font-size:18px;font-weight:600;letter-spacing:.5px}
+        .vp-prefetch__timer{display:flex;align-items:flex-end;gap:8px;font-size:68px;font-weight:700;line-height:1;letter-spacing:2px}
+        .vp-prefetch__seconds{font-size:18px;font-weight:500;letter-spacing:.5px}
+        .vp-prefetch__sub{margin:0;font-size:14px;color:rgba(248,250,252,.82);max-width:320px}
+        .vp-prefetch__live{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);border:0}
+        body.vp-prefetch-active{overflow:hidden}
         .vp-hold{position:fixed;inset:0;background:rgba(15,23,42,.68);backdrop-filter:blur(4px);display:none;
           align-items:center;justify-content:center;flex-direction:column;gap:20px;text-align:center;z-index:10050;padding:32px;
           pointer-events:auto;cursor:wait}
@@ -722,6 +733,17 @@
       }
       </style>
 
+      <div id="vpPrefetchOverlay" class="vp-prefetch" aria-hidden="true">
+        <div class="vp-prefetch__content">
+          <p class="vp-prefetch__title">Preparing vehicles…</p>
+          <div class="vp-prefetch__timer" aria-hidden="true">
+            <span id="vpPrefetchCountdownValue">5</span>
+            <span class="vp-prefetch__seconds">seconds</span>
+          </div>
+          <p id="vpPrefetchLive" class="vp-prefetch__live" aria-live="assertive"></p>
+          <p class="vp-prefetch__sub">Please wait while we refresh the latest list.</p>
+        </div>
+      </div>
       <div id="vpSelectionHold" class="vp-hold" aria-hidden="true">
         <div class="vp-hold__lights" aria-hidden="true">
           <div class="vp-light vp-light--yellow"></div>
@@ -903,6 +925,11 @@
         const SELECTION_HOLD_DURATION = 4000;
         let selectionHoldTimer = null;
         let selectionHoldCallback = null;
+        const PREFETCH_COUNTDOWN_DURATION = 5000;
+        const PREFETCH_COUNTDOWN_SECONDS = Math.ceil(PREFETCH_COUNTDOWN_DURATION / 1000);
+        let prefetchCountdownTimer = null;
+        let prefetchCountdownInterval = null;
+        let prefetchCountdownCallback = null;
 
         let storageHydrationAttempted = false;
   let newVehicleOptions = null;
@@ -2654,9 +2681,16 @@
         function open(target){
           try{ targetInput=target||null; }catch(_){ targetInput=null; }
           const modal=document.getElementById('vehiclePickerModal');
+          if (!modal) {
+            console.warn('[VP] Vehicle picker modal element not found');
+            return;
+          }
           cancelSelectionHold();
-          modal.setAttribute('aria-hidden','false');
-          document.body.style.overflow='hidden';
+          cancelPrefetchCountdown();
+          modal.setAttribute('aria-hidden','true');
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.style.overflow='hidden';
+          }
           vehicleModalVisible = true;
           vehicleOpenInitialFetchDone = false;
           master=[]; vehicles=[];
@@ -2695,8 +2729,124 @@
             }
           }
           setMode('existing', { autoFetch: false });
+
+          const revealModal = function(){
+            modal.setAttribute('aria-hidden','false');
+          };
+
+          startPrefetchCountdown(revealModal);
+
           const startedAt = (typeof performance !== 'undefined' && typeof performance.now === 'function') ? performance.now() : Date.now();
           fetchVehicles({ force: true, skipCache: false, allowStaleOnEmpty: false, startedAt });
+        }
+
+        function updatePrefetchCountdownDisplay(value){
+          const numeric = (typeof value === 'number' && isFinite(value)) ? value : PREFETCH_COUNTDOWN_SECONDS;
+          const safeValue = Math.max(0, Math.floor(numeric));
+          const countdownEl = document.getElementById('vpPrefetchCountdownValue');
+          if (countdownEl) {
+            countdownEl.textContent = String(safeValue);
+          }
+          const liveRegion = document.getElementById('vpPrefetchLive');
+          if (liveRegion) {
+            liveRegion.textContent = safeValue === 1 ? '1 second remaining' : `${safeValue} seconds remaining`;
+          }
+        }
+
+        function showPrefetchOverlay(){
+          const overlay = document.getElementById('vpPrefetchOverlay');
+          if (!overlay) return false;
+          overlay.classList.add('is-active');
+          overlay.setAttribute('aria-hidden', 'false');
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.add('vp-prefetch-active');
+          }
+          return true;
+        }
+
+        function hidePrefetchOverlay(){
+          const overlay = document.getElementById('vpPrefetchOverlay');
+          if (!overlay) return;
+          overlay.classList.remove('is-active');
+          overlay.setAttribute('aria-hidden', 'true');
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.remove('vp-prefetch-active');
+          }
+          updatePrefetchCountdownDisplay(PREFETCH_COUNTDOWN_SECONDS);
+        }
+
+        function cancelPrefetchCountdown(){
+          if (prefetchCountdownInterval){
+            clearInterval(prefetchCountdownInterval);
+            prefetchCountdownInterval = null;
+          }
+          if (prefetchCountdownTimer){
+            clearTimeout(prefetchCountdownTimer);
+            prefetchCountdownTimer = null;
+          }
+          prefetchCountdownCallback = null;
+          hidePrefetchOverlay();
+        }
+
+        function completePrefetchCountdown(){
+          if (prefetchCountdownInterval){
+            clearInterval(prefetchCountdownInterval);
+            prefetchCountdownInterval = null;
+          }
+          if (prefetchCountdownTimer){
+            clearTimeout(prefetchCountdownTimer);
+            prefetchCountdownTimer = null;
+          }
+          const callback = prefetchCountdownCallback;
+          prefetchCountdownCallback = null;
+          hidePrefetchOverlay();
+          if (typeof callback === 'function') {
+            try {
+              callback();
+            } catch (prefetchErr) {
+              console.warn('[VP] Prefetch countdown callback failed', prefetchErr);
+            }
+          }
+        }
+
+        function startPrefetchCountdown(onComplete){
+          const overlayShown = showPrefetchOverlay();
+          if (!overlayShown) {
+            if (typeof onComplete === 'function') {
+              try {
+                onComplete();
+              } catch (prefetchOpenErr) {
+                console.warn('[VP] Prefetch fallback callback failed', prefetchOpenErr);
+              }
+            }
+            return;
+          }
+          if (prefetchCountdownInterval){
+            clearInterval(prefetchCountdownInterval);
+            prefetchCountdownInterval = null;
+          }
+          if (prefetchCountdownTimer){
+            clearTimeout(prefetchCountdownTimer);
+            prefetchCountdownTimer = null;
+          }
+          prefetchCountdownCallback = (typeof onComplete === 'function') ? onComplete : null;
+
+          let remaining = PREFETCH_COUNTDOWN_SECONDS;
+          updatePrefetchCountdownDisplay(remaining);
+
+          prefetchCountdownInterval = window.setInterval(function(){
+            remaining -= 1;
+            if (remaining <= 0) {
+              updatePrefetchCountdownDisplay(0);
+              completePrefetchCountdown();
+            } else {
+              updatePrefetchCountdownDisplay(remaining);
+            }
+          }, 1000);
+
+          prefetchCountdownTimer = window.setTimeout(function(){
+            completePrefetchCountdown();
+          }, PREFETCH_COUNTDOWN_DURATION);
         }
 
         function showSelectionHoldOverlay(){
@@ -2776,6 +2926,7 @@
           if (!preserveHold) {
             cancelSelectionHold();
           }
+          cancelPrefetchCountdown();
           if (vehicleRetryTimer){
             clearTimeout(vehicleRetryTimer);
             vehicleRetryTimer = null;
