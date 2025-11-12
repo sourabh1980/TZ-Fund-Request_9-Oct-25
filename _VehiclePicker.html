@@ -4043,11 +4043,23 @@
           }
         }
 
+        window.openVehiclePicker = open;
+        window.closeVehiclePicker = close;
+
         function wire(){
           const x = (id)=>document.getElementById(id);
-          x('vpCloseBtn').addEventListener('click',close);
-          x('vpCancelBtn').addEventListener('click',close);
-          x('vpSelectBtn').addEventListener('click',selectVehicle);
+          const closeBtn = x('vpCloseBtn');
+          if (closeBtn) {
+            closeBtn.addEventListener('click', close);
+          }
+          const cancelBtn = x('vpCancelBtn');
+          if (cancelBtn) {
+            cancelBtn.addEventListener('click', close);
+          }
+          const selectBtnEl = x('vpSelectBtn');
+          if (selectBtnEl) {
+            selectBtnEl.addEventListener('click', selectVehicle);
+          }
 
           // Switch events
           document.querySelectorAll('.vp-switch__btn').forEach(btn=>{
@@ -4055,8 +4067,10 @@
           });
           // Clear all
           const clear = x('vpClearAll');
-          clear.addEventListener('click',()=>{ ['vpMake','vpModel','vpCategory','vpUsage','vpOwner'].forEach(id=>{const s=x(id); if(s) s.selectedIndex=0;}); updateFilterChoices(); updateVehiclesDropdown(); });
-          clear.addEventListener('keydown',e=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); clear.click(); } });
+          if (clear) {
+            clear.addEventListener('click',()=>{ ['vpMake','vpModel','vpCategory','vpUsage','vpOwner'].forEach(id=>{const s=x(id); if(s) s.selectedIndex=0;}); updateFilterChoices(); updateVehiclesDropdown(); });
+            clear.addEventListener('keydown',e=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); clear.click(); } });
+          }
           const refresh = x('vpRefreshBtn');
           if (refresh) {
             refresh.addEventListener('click', manualRefreshVehiclePicker);
@@ -4153,7 +4167,10 @@
           document.addEventListener('change',function(e){
             if(/^vp(Make|Model|Category|Usage|Owner)$/.test(e.target.id)){ updateFilterChoices(); updateVehiclesDropdown(); }
             if(e.target.id==='vpDropdown'){
-              x('vpSelectBtn').disabled = !e.target.value;
+              const selectBtn = x('vpSelectBtn');
+              if (selectBtn) {
+                selectBtn.disabled = !e.target.value;
+              }
               const val=e.target.value;
               const car = (vehicles||[]).find(v=>String(v.carNumber||'')===val) || null;
               if (car) {
@@ -4182,13 +4199,15 @@
 
           document.addEventListener('keydown',function(e){
             const modal=document.getElementById('vehiclePickerModal');
-            if(modal.getAttribute('aria-hidden')==='true') return;
+            if(!modal || modal.getAttribute('aria-hidden')==='true') return;
             if(e.key==='Escape') close();
             if(e.key==='Enter'){ const b=x('vpSelectBtn'); if(b && !b.disabled) selectVehicle(); }
           });
 
           const backdrop=document.getElementById('vehiclePickerModal');
-          backdrop.addEventListener('click',e=>{ if(e.target===backdrop) close(); });
+          if (backdrop) {
+            backdrop.addEventListener('click',e=>{ if(e.target===backdrop) close(); });
+          }
 
           const usersSelect = document.getElementById('vpUsersMulti');
           if (usersSelect) {
@@ -4290,9 +4309,6 @@
           updateSelectButtonState();
         }
 
-        // Expose open/close for your triggers
-        window.openVehiclePicker=open;
-        window.closeVehiclePicker=close;
       // Expose beneficiary options populator for external callers (e.g., populateContextFromRow)
       window.populateResponsibleBeneficiaryOptions = populateResponsibleBeneficiaryOptions;
 
