@@ -37,11 +37,7 @@
       const keyA = canonicalNameKey(a);
       const keyB = canonicalNameKey(b);
       if (!keyA || !keyB) return false;
-      if (keyA === keyB) return true;
-      if (keyA.startsWith(keyB) || keyB.startsWith(keyA)) return true;
-      const stripA = strippedNameKey(a);
-      const stripB = strippedNameKey(b);
-      return stripA && stripA === stripB;
+      return keyA === keyB; // strict canonical equality only
     };
 
     function isManagedRow(row, carInput) {
@@ -65,6 +61,7 @@
       const dataset = carInput.dataset || {};
       carInput.value = '';
       try { delete dataset.responsibleBeneficiary; } catch (_err) { /* ignore */ }
+      try { carInput.removeAttribute('data-responsible-beneficiary'); } catch (_err) { /* ignore */ }
       try { delete dataset.prefillSource; carInput.removeAttribute('data-prefill-source'); } catch (_err) { /* ignore */ }
       try { delete row.dataset.responsible; row.removeAttribute('data-responsible'); } catch (_err) { /* ignore */ }
       try { delete row.dataset.vehicleStatus; row.removeAttribute('data-vehicle-status'); } catch (_err) { /* ignore */ }
@@ -110,18 +107,11 @@
           const carInput = row.querySelector('input.car-number-input');
           const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
           
-        if (carInput && carInput.value.trim().toUpperCase() === upperVehicle) {
-          const currentBeneficiary = benInput ? benInput.value.trim() : '';
+          if (carInput && carInput.value.trim().toUpperCase() === upperVehicle) {
+            const currentBeneficiary = benInput ? benInput.value.trim() : '';
             if (!namesMatch(currentBeneficiary, benName)) {
-                console.log(`[VAM] ✅ Clearing vehicle ${upperVehicle} from non-responsible beneficiary: ${currentBeneficiary}`);
-                carInput.value = '';
-                delete carInput.dataset.responsibleBeneficiary;
-                delete carInput.dataset.prefillSource;
-                carInput.removeAttribute('data-prefill-source');
-                delete row.dataset.responsible;
-                row.removeAttribute('data-responsible');
-                delete row.dataset.vehicleStatus;
-                row.removeAttribute('data-vehicle-status');
+              console.log(`[VAM] ✅ Clearing vehicle ${upperVehicle} from non-responsible beneficiary: ${currentBeneficiary}`);
+              clearRowAssignment(row, carInput);
             }
           }
         });
@@ -239,8 +229,7 @@
               console.log(`[VAM Add] Setting vehicle ${shouldHaveVehicle} for EXACT responsible beneficiary ${currentBeneficiary}`);
               
               // ✅ CRITICAL: Clear responsible flag from ALL other rows with same vehicle
-              const allRowsWithVehicle = document.querySelectorAll('.tbody .row-data');
-              allRowsWithVehicle.forEach(otherRow => {
+              allRows.forEach(otherRow => {
                 const otherCarInput = otherRow.querySelector('input.car-number-input');
                 if (otherCarInput && otherCarInput.value.trim().toUpperCase() === shouldHaveVehicle.toUpperCase()) {
                   if (otherRow !== row) {
@@ -275,48 +264,7 @@
         });
       },
 
-      syncUI: function() {
-        console.log('[VAM] Syncing UI with current assignments.');
-        const allRows = document.querySelectorAll('.tbody .row-data');
-        
-        allRows.forEach(row => {
-          const carInput = row.querySelector('input.car-number-input');
-          const benInput = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)');
-          if (!carInput || !benInput) return;
-
-          const currentBeneficiary = benInput.value.trim();
-          const currentVehicle = carInput.value.trim().toUpperCase();
-          let shouldHaveVehicle = null;
-
-          // Check if this beneficiary is the responsible one for any assigned vehicle
-          for (const [vehicle, responsibleBen] of assignments.entries()) {
-              if (namesMatch(currentBeneficiary, responsibleBen)) {
-                  shouldHaveVehicle = vehicle;
-                  break;
-              }
-          }
-
-          if (shouldHaveVehicle) {
-              // This row SHOULD have a vehicle.
-              if (currentVehicle !== shouldHaveVehicle) {
-                  console.log(`[VAM Sync] Correcting row for ${currentBeneficiary}. Setting vehicle to ${shouldHaveVehicle}.`);
-                  carInput.value = shouldHaveVehicle;
-              }
-              row.dataset.responsible = 'true';
-              row.setAttribute('data-responsible', 'true');
-              row.dataset.vehicleStatus = 'IN USE';
-              row.setAttribute('data-vehicle-status', 'IN USE');
-          } else {
-              // ❌ COMPLETELY DISABLED: Don't clear vehicles from other beneficiaries
-              // This was the source of vehicles being removed from all team members
-              // No clearing whatsoever - vehicles stay exactly where they are
-              delete row.dataset.responsible;
-              row.removeAttribute('data-responsible');
-              delete row.dataset.vehicleStatus;
-              row.removeAttribute('data-vehicle-status');
-          }
-        });
-      },
+      // (syncUI implementation removed)
 
       // ❌ DEPRECATED: The aggressive syncUI function that was clearing vehicles
       syncUI: function() {
@@ -1547,9 +1495,9 @@
               const rowTeam = canonicalTeamKey(row.getAttribute('data-team') || row.dataset?.team || '');
               console.log(`[VP_TABLE] Row ${index} project/team:`, { rowProj, rowTeam });
 
-              const nameKey = name.toLowerCase();
-              if (!fallbackSeen.has(nameKey)) {
-                fallbackSeen.add(nameKey);
+              const nameKeyLower = name.toLowerCase();
+              if (!fallbackSeen.has(nameKeyLower)) {
+                fallbackSeen.add(nameKeyLower);
                 fallback.push(name);
                 console.log(`[VP_TABLE] Added to fallback:`, name);
               }
@@ -1563,8 +1511,8 @@
                 return;
               }
 
-              if (!matchedSeen.has(nameKey)) {
-                matchedSeen.add(nameKey);
+              if (!matchedSeen.has(nameKeyLower)) {
+                matchedSeen.add(nameKeyLower);
                 matched.push(name);
                 console.log(`[VP_TABLE] Added to matched:`, name);
               }
