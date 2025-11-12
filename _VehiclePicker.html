@@ -897,6 +897,35 @@
 
       <script>
       (function(){
+        const bootstrap = window.__vehiclePickerBootstrap = window.__vehiclePickerBootstrap || { pending: [] };
+        if (!bootstrap.stubInstalled) {
+          bootstrap.stubInstalled = true;
+
+          if (typeof window.openVehiclePicker !== 'function') {
+            window.openVehiclePicker = function(){
+              const args = Array.from(arguments);
+              bootstrap.pending.push(args);
+              try {
+                console.warn('[VP] Vehicle picker requested before initialization. Queuing request.');
+              } catch (_err) { /* logging best effort */ }
+              return null;
+            };
+          }
+
+          if (typeof window.closeVehiclePicker !== 'function') {
+            window.closeVehiclePicker = function(){
+              try {
+                console.warn('[VP] Vehicle picker close requested before initialization. Ignoring.');
+              } catch (_err) { /* logging best effort */ }
+              return null;
+            };
+          }
+        }
+      })();
+      </script>
+
+      <script>
+      (function(){
         let targetInput=null, vehicles=[], master=[], vpMode='existing';
         const VEHICLE_CACHE_TTL = 60000; // 60s client cache window
         const VEHICLE_STORAGE_KEY = 'vp:vehiclePicker:v1';
@@ -4043,8 +4072,29 @@
           }
         }
 
-        window.openVehiclePicker = open;
-        window.closeVehiclePicker = close;
+        const bootstrap = window.__vehiclePickerBootstrap = window.__vehiclePickerBootstrap || { pending: [] };
+        bootstrap.open = open;
+        bootstrap.close = close;
+        bootstrap.stubInstalled = false;
+
+        window.openVehiclePicker = function(){
+          return open.apply(null, arguments);
+        };
+        window.closeVehiclePicker = function(){
+          return close.apply(null, arguments);
+        };
+
+        if (Array.isArray(bootstrap.pending) && bootstrap.pending.length) {
+          const queued = bootstrap.pending.slice();
+          bootstrap.pending.length = 0;
+          queued.forEach(function(args){
+            try {
+              open.apply(null, args);
+            } catch (err) {
+              console.warn('[VP] Queued vehicle picker open failed', err);
+            }
+          });
+        }
 
         function wire(){
           const x = (id)=>document.getElementById(id);
