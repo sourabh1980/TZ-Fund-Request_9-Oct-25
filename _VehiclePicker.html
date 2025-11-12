@@ -526,8 +526,9 @@
 
         .vp-body{padding:24px;background:rgba(255,255,255,.9);
           backdrop-filter:blur(6px);overflow-y:auto;overscroll-behavior:contain;display:grid;gap:20px}
-        .vp-hold{position:absolute;inset:0;background:rgba(15,23,42,.68);backdrop-filter:blur(4px);display:none;
-          align-items:center;justify-content:center;flex-direction:column;gap:20px;text-align:center;z-index:40;padding:32px}
+        .vp-hold{position:fixed;inset:0;background:rgba(15,23,42,.68);backdrop-filter:blur(4px);display:none;
+          align-items:center;justify-content:center;flex-direction:column;gap:20px;text-align:center;z-index:10050;padding:32px;
+          pointer-events:auto;cursor:wait}
         .vp-hold.is-active{display:flex}
         .vp-hold__lights{display:flex;gap:28px}
         .vp-light{position:relative;width:64px;height:64px;border-radius:50%;background:#1f2937;
@@ -539,6 +540,7 @@
         .vp-light--green.vp-light--run{animation:vpHoldGreen 4s linear forwards}
         .vp-hold__message{margin:0;font-size:16px;font-weight:600;color:#f8fafc}
         .vp-hold__sub{margin:0;font-size:13px;color:rgba(248,250,252,.8)}
+        body.vp-hold-active{overflow:hidden}
         @keyframes vpHoldYellow{
           0%{background:#1f2937;box-shadow:inset 0 0 18px rgba(0,0,0,.65)}
           5%,48%{background:#fbbf24;box-shadow:0 0 22px rgba(251,191,36,.7),inset 0 0 12px rgba(0,0,0,.35)}
@@ -720,16 +722,16 @@
       }
       </style>
 
+      <div id="vpSelectionHold" class="vp-hold" aria-hidden="true">
+        <div class="vp-hold__lights" aria-hidden="true">
+          <div class="vp-light vp-light--yellow"></div>
+          <div class="vp-light vp-light--green"></div>
+        </div>
+        <p class="vp-hold__message">Saving your vehicle selection…</p>
+        <p class="vp-hold__sub">Please keep the window open while we secure the assignment.</p>
+      </div>
       <div id="vehiclePickerModal" class="vp-backdrop" aria-hidden="true">
         <section class="vp-modal" role="dialog" aria-modal="true" aria-labelledby="vehiclePickerTitle">
-          <div id="vpSelectionHold" class="vp-hold" aria-hidden="true">
-            <div class="vp-hold__lights" aria-hidden="true">
-              <div class="vp-light vp-light--yellow"></div>
-              <div class="vp-light vp-light--green"></div>
-            </div>
-            <p class="vp-hold__message">Saving your vehicle selection…</p>
-            <p class="vp-hold__sub">Please keep the window open while we secure the assignment.</p>
-          </div>
           <header class="vp-header">
             <div class="vp-header__left">
               <div class="vp-header__brand">
@@ -2700,6 +2702,9 @@
         function showSelectionHoldOverlay(){
           const overlay = document.getElementById('vpSelectionHold');
           if (!overlay) return;
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.add('vp-hold-active');
+          }
           const lights = overlay.querySelectorAll('.vp-light');
           lights.forEach(light => {
             light.classList.remove('vp-light--run');
@@ -2714,6 +2719,9 @@
         }
 
         function hideSelectionHoldOverlay(){
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.remove('vp-hold-active');
+          }
           const overlay = document.getElementById('vpSelectionHold');
           if (!overlay) return;
           overlay.classList.remove('is-active');
@@ -2753,8 +2761,21 @@
           hideSelectionHoldOverlay();
         }
 
-        function close(){
-          cancelSelectionHold();
+        function close(eventOrOptions){
+          let opts = {};
+          if (eventOrOptions && typeof eventOrOptions === 'object') {
+            const maybeEvent = eventOrOptions;
+            const isEvent = typeof maybeEvent.preventDefault === 'function' && Object.prototype.hasOwnProperty.call(maybeEvent, 'type');
+            if (isEvent) {
+              try { maybeEvent.preventDefault(); } catch (_err) { /* ignore */ }
+            } else {
+              opts = maybeEvent;
+            }
+          }
+          const preserveHold = !!opts.preserveSelectionHold;
+          if (!preserveHold) {
+            cancelSelectionHold();
+          }
           if (vehicleRetryTimer){
             clearTimeout(vehicleRetryTimer);
             vehicleRetryTimer = null;
@@ -3751,46 +3772,47 @@
             console.warn('[VP] Failed to reapply vehicle assignments after selection', applyErr);
           }
 
-          startSelectionHold(() => close());
+          // Capture form context before the modal resets
+          const projectInput = document.getElementById('vpProject');
+          const teamInput = document.getElementById('vpTeam');
+          const project = projectInput ? projectInput.value.trim() : '';
+          const team = teamInput ? teamInput.value.trim() : '';
+
+          // Get vehicle details from the form
+          const makeInput = document.getElementById('vpMake');
+          const modelInput = document.getElementById('vpModel');
+          const categoryInput = document.getElementById('vpCategory');
+          const usageInput = document.getElementById('vpUsage');
+          const ownerInput = document.getElementById('vpOwner');
+
+          const make = makeInput ? makeInput.value.trim() : '';
+          const model = modelInput ? modelInput.value.trim() : '';
+          const category = categoryInput ? categoryInput.value.trim() : '';
+          const usageType = usageInput ? usageInput.value.trim() : '';
+          const owner = ownerInput ? ownerInput.value.trim() : '';
+
+          // Prepare payload for backend submission
+          const payload = {
+            project: project,
+            team: team,
+            carNumber: carNumber,
+            responsibleBeneficiary: benFromContext,
+            beneficiaries: finalBeneficiaries,
+            car: {
+              make,
+              model,
+              category,
+              usageType,
+              owner
+            },
+            timestamp: new Date().toISOString()
+          };
+
+          startSelectionHold();
+          close({ preserveSelectionHold: true });
 
           if (window.google && google.script && google.script.run) {
             console.log('[VP] Google Apps Script available - submitting to backend');
-
-            // Get project and team from the form
-            const projectInput = document.getElementById('vpProject');
-            const teamInput = document.getElementById('vpTeam');
-            const project = projectInput ? projectInput.value.trim() : '';
-            const team = teamInput ? teamInput.value.trim() : '';
-
-            // Get vehicle details from the form
-            const makeInput = document.getElementById('vpMake');
-            const modelInput = document.getElementById('vpModel');
-            const categoryInput = document.getElementById('vpCategory');
-            const usageInput = document.getElementById('vpUsage');
-            const ownerInput = document.getElementById('vpOwner');
-
-            const make = makeInput ? makeInput.value.trim() : '';
-            const model = modelInput ? modelInput.value.trim() : '';
-            const category = categoryInput ? categoryInput.value.trim() : '';
-            const usageType = usageInput ? usageInput.value.trim() : '';
-            const owner = ownerInput ? ownerInput.value.trim() : '';
-
-            // Prepare payload for backend submission
-            const payload = {
-              project: project,
-              team: team,
-              carNumber: carNumber,
-              responsibleBeneficiary: benFromContext,
-              beneficiaries: finalBeneficiaries,
-              car: {
-                make,
-                model,
-                category,
-                usageType,
-                owner
-              },
-              timestamp: new Date().toISOString()
-            };
 
             console.log('[VP] Submitting vehicle assignment to CarT_P:', payload);
 
@@ -3858,7 +3880,7 @@
             }
           }, 100);
 
-          // Modal close will be triggered after the selection hold completes
+          // Modal closes immediately while the selection hold overlay continues for the freeze window
 
           // ✅ DISABLED: The problematic ensureRowsForBeneficiaries function
           // This function was causing vehicles to be assigned to ALL team members
