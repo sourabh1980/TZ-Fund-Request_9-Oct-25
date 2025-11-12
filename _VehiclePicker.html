@@ -507,7 +507,7 @@
         }
         .vp-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.45);backdrop-filter:blur(6px);display:none;z-index:10000}
         .vp-backdrop[aria-hidden="false"]{display:grid;place-items:center}
-        .vp-modal{width:min(860px,96vw);max-height:86vh;background:var(--vp-surface);
+        .vp-modal{position:relative;width:min(860px,96vw);max-height:86vh;background:var(--vp-surface);
           background-image:linear-gradient(160deg,rgba(86,96,98,.25),rgba(79,70,229,.28));background-blend-mode:overlay;
           border-radius:20px;box-shadow:0 24px 80px rgba(2,6,23,.35);overflow:hidden;display:grid;grid-template-rows:auto 1fr auto;
           border:1px solid rgba(255,255,255,.35)}
@@ -526,6 +526,42 @@
 
         .vp-body{padding:24px;background:rgba(255,255,255,.9);
           backdrop-filter:blur(6px);overflow-y:auto;overscroll-behavior:contain;display:grid;gap:20px}
+        .vp-prefetch{position:fixed;inset:0;background:rgba(15,23,42,.82);backdrop-filter:blur(6px);display:none;
+          align-items:center;justify-content:center;flex-direction:column;text-align:center;z-index:10020;padding:32px;color:#f8fafc;
+          gap:18px;pointer-events:auto;cursor:wait}
+        .vp-prefetch__content{display:flex;flex-direction:column;align-items:center;gap:12px}
+        .vp-prefetch.is-active{display:flex}
+        .vp-prefetch__title{margin:0;font-size:18px;font-weight:600;letter-spacing:.5px}
+        .vp-prefetch__timer{display:flex;align-items:flex-end;gap:8px;font-size:68px;font-weight:700;line-height:1;letter-spacing:2px}
+        .vp-prefetch__seconds{font-size:18px;font-weight:500;letter-spacing:.5px}
+        .vp-prefetch__sub{margin:0;font-size:14px;color:rgba(248,250,252,.82);max-width:320px}
+        .vp-prefetch__live{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);border:0}
+        body.vp-prefetch-active{overflow:hidden}
+        .vp-hold{position:fixed;inset:0;background:rgba(15,23,42,.68);backdrop-filter:blur(4px);display:none;
+          align-items:center;justify-content:center;flex-direction:column;gap:20px;text-align:center;z-index:10050;padding:32px;
+          pointer-events:auto;cursor:wait}
+        .vp-hold.is-active{display:flex}
+        .vp-hold__lights{display:flex;gap:28px}
+        .vp-light{position:relative;width:64px;height:64px;border-radius:50%;background:#1f2937;
+          box-shadow:inset 0 0 18px rgba(0,0,0,.6);overflow:hidden}
+        .vp-light::after{content:'';position:absolute;inset:-10px;border-radius:50%;box-shadow:0 0 12px rgba(255,255,255,.35);
+          opacity:0;transition:opacity .2s ease}
+        .vp-light.vp-light--run::after{opacity:.45}
+        .vp-light--yellow.vp-light--run{animation:vpHoldYellow 4s linear forwards}
+        .vp-light--green.vp-light--run{animation:vpHoldGreen 4s linear forwards}
+        .vp-hold__message{margin:0;font-size:16px;font-weight:600;color:#f8fafc}
+        .vp-hold__sub{margin:0;font-size:13px;color:rgba(248,250,252,.8)}
+        body.vp-hold-active{overflow:hidden}
+        @keyframes vpHoldYellow{
+          0%{background:#1f2937;box-shadow:inset 0 0 18px rgba(0,0,0,.65)}
+          5%,48%{background:#fbbf24;box-shadow:0 0 22px rgba(251,191,36,.7),inset 0 0 12px rgba(0,0,0,.35)}
+          52%,100%{background:#1f2937;box-shadow:inset 0 0 18px rgba(0,0,0,.65)}
+        }
+        @keyframes vpHoldGreen{
+          0%,48%{background:#1f2937;box-shadow:inset 0 0 18px rgba(0,0,0,.65)}
+          52%,95%{background:#34d399;box-shadow:0 0 22px rgba(52,211,153,.6),inset 0 0 12px rgba(0,0,0,.35)}
+          100%{background:#065f46;box-shadow:0 0 18px rgba(5,150,105,.55),inset 0 0 12px rgba(0,0,0,.35)}
+        }
         #vpExistingSection{display:grid;grid-template-columns:1fr 1fr;gap:20px}
         .vp-status{grid-column:1/-1;font-size:13px;color:var(--vp-muted);margin-top:-2px}
         .vp-status[data-state="error"]{color:var(--vp-bad);font-weight:600}
@@ -697,6 +733,25 @@
       }
       </style>
 
+      <div id="vpPrefetchOverlay" class="vp-prefetch" aria-hidden="true">
+        <div class="vp-prefetch__content">
+          <p class="vp-prefetch__title">Preparing vehicles…</p>
+          <div class="vp-prefetch__timer" aria-hidden="true">
+            <span id="vpPrefetchCountdownValue">5</span>
+            <span class="vp-prefetch__seconds">seconds</span>
+          </div>
+          <p id="vpPrefetchLive" class="vp-prefetch__live" aria-live="assertive"></p>
+          <p class="vp-prefetch__sub">Please wait while we refresh the latest list.</p>
+        </div>
+      </div>
+      <div id="vpSelectionHold" class="vp-hold" aria-hidden="true">
+        <div class="vp-hold__lights" aria-hidden="true">
+          <div class="vp-light vp-light--yellow"></div>
+          <div class="vp-light vp-light--green"></div>
+        </div>
+        <p class="vp-hold__message">Saving your vehicle selection…</p>
+        <p class="vp-hold__sub">Please keep the window open while we secure the assignment.</p>
+      </div>
       <div id="vehiclePickerModal" class="vp-backdrop" aria-hidden="true">
         <section class="vp-modal" role="dialog" aria-modal="true" aria-labelledby="vehiclePickerTitle">
           <header class="vp-header">
@@ -842,6 +897,35 @@
 
       <script>
       (function(){
+        const bootstrap = window.__vehiclePickerBootstrap = window.__vehiclePickerBootstrap || { pending: [] };
+        if (!bootstrap.stubInstalled) {
+          bootstrap.stubInstalled = true;
+
+          if (typeof window.openVehiclePicker !== 'function') {
+            window.openVehiclePicker = function(){
+              const args = Array.from(arguments);
+              bootstrap.pending.push(args);
+              try {
+                console.warn('[VP] Vehicle picker requested before initialization. Queuing request.');
+              } catch (_err) { /* logging best effort */ }
+              return null;
+            };
+          }
+
+          if (typeof window.closeVehiclePicker !== 'function') {
+            window.closeVehiclePicker = function(){
+              try {
+                console.warn('[VP] Vehicle picker close requested before initialization. Ignoring.');
+              } catch (_err) { /* logging best effort */ }
+              return null;
+            };
+          }
+        }
+      })();
+      </script>
+
+      <script>
+      (function(){
         let targetInput=null, vehicles=[], master=[], vpMode='existing';
         const VEHICLE_CACHE_TTL = 60000; // 60s client cache window
         const VEHICLE_STORAGE_KEY = 'vp:vehiclePicker:v1';
@@ -867,6 +951,14 @@
         let manualRefreshInProgress = false;
         let vehicleModalVisible = false;
         let vehicleOpenInitialFetchDone = false;
+        const SELECTION_HOLD_DURATION = 4000;
+        let selectionHoldTimer = null;
+        let selectionHoldCallback = null;
+        const PREFETCH_COUNTDOWN_DURATION = 5000;
+        const PREFETCH_COUNTDOWN_SECONDS = Math.ceil(PREFETCH_COUNTDOWN_DURATION / 1000);
+        let prefetchCountdownTimer = null;
+        let prefetchCountdownInterval = null;
+        let prefetchCountdownCallback = null;
 
         let storageHydrationAttempted = false;
   let newVehicleOptions = null;
@@ -2618,8 +2710,16 @@
         function open(target){
           try{ targetInput=target||null; }catch(_){ targetInput=null; }
           const modal=document.getElementById('vehiclePickerModal');
-          modal.setAttribute('aria-hidden','false');
-          document.body.style.overflow='hidden';
+          if (!modal) {
+            console.warn('[VP] Vehicle picker modal element not found');
+            return;
+          }
+          cancelSelectionHold();
+          cancelPrefetchCountdown();
+          modal.setAttribute('aria-hidden','true');
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.style.overflow='hidden';
+          }
           vehicleModalVisible = true;
           vehicleOpenInitialFetchDone = false;
           master=[]; vehicles=[];
@@ -2658,11 +2758,204 @@
             }
           }
           setMode('existing', { autoFetch: false });
+
+          const revealModal = function(){
+            modal.setAttribute('aria-hidden','false');
+          };
+
+          startPrefetchCountdown(revealModal);
+
           const startedAt = (typeof performance !== 'undefined' && typeof performance.now === 'function') ? performance.now() : Date.now();
           fetchVehicles({ force: true, skipCache: false, allowStaleOnEmpty: false, startedAt });
         }
 
-        function close(){
+        function updatePrefetchCountdownDisplay(value){
+          const numeric = (typeof value === 'number' && isFinite(value)) ? value : PREFETCH_COUNTDOWN_SECONDS;
+          const safeValue = Math.max(0, Math.floor(numeric));
+          const countdownEl = document.getElementById('vpPrefetchCountdownValue');
+          if (countdownEl) {
+            countdownEl.textContent = String(safeValue);
+          }
+          const liveRegion = document.getElementById('vpPrefetchLive');
+          if (liveRegion) {
+            liveRegion.textContent = safeValue === 1 ? '1 second remaining' : `${safeValue} seconds remaining`;
+          }
+        }
+
+        function showPrefetchOverlay(){
+          const overlay = document.getElementById('vpPrefetchOverlay');
+          if (!overlay) return false;
+          overlay.classList.add('is-active');
+          overlay.setAttribute('aria-hidden', 'false');
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.add('vp-prefetch-active');
+          }
+          return true;
+        }
+
+        function hidePrefetchOverlay(){
+          const overlay = document.getElementById('vpPrefetchOverlay');
+          if (!overlay) return;
+          overlay.classList.remove('is-active');
+          overlay.setAttribute('aria-hidden', 'true');
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.remove('vp-prefetch-active');
+          }
+          updatePrefetchCountdownDisplay(PREFETCH_COUNTDOWN_SECONDS);
+        }
+
+        function cancelPrefetchCountdown(){
+          if (prefetchCountdownInterval){
+            clearInterval(prefetchCountdownInterval);
+            prefetchCountdownInterval = null;
+          }
+          if (prefetchCountdownTimer){
+            clearTimeout(prefetchCountdownTimer);
+            prefetchCountdownTimer = null;
+          }
+          prefetchCountdownCallback = null;
+          hidePrefetchOverlay();
+        }
+
+        function completePrefetchCountdown(){
+          if (prefetchCountdownInterval){
+            clearInterval(prefetchCountdownInterval);
+            prefetchCountdownInterval = null;
+          }
+          if (prefetchCountdownTimer){
+            clearTimeout(prefetchCountdownTimer);
+            prefetchCountdownTimer = null;
+          }
+          const callback = prefetchCountdownCallback;
+          prefetchCountdownCallback = null;
+          hidePrefetchOverlay();
+          if (typeof callback === 'function') {
+            try {
+              callback();
+            } catch (prefetchErr) {
+              console.warn('[VP] Prefetch countdown callback failed', prefetchErr);
+            }
+          }
+        }
+
+        function startPrefetchCountdown(onComplete){
+          const overlayShown = showPrefetchOverlay();
+          if (!overlayShown) {
+            if (typeof onComplete === 'function') {
+              try {
+                onComplete();
+              } catch (prefetchOpenErr) {
+                console.warn('[VP] Prefetch fallback callback failed', prefetchOpenErr);
+              }
+            }
+            return;
+          }
+          if (prefetchCountdownInterval){
+            clearInterval(prefetchCountdownInterval);
+            prefetchCountdownInterval = null;
+          }
+          if (prefetchCountdownTimer){
+            clearTimeout(prefetchCountdownTimer);
+            prefetchCountdownTimer = null;
+          }
+          prefetchCountdownCallback = (typeof onComplete === 'function') ? onComplete : null;
+
+          let remaining = PREFETCH_COUNTDOWN_SECONDS;
+          updatePrefetchCountdownDisplay(remaining);
+
+          prefetchCountdownInterval = window.setInterval(function(){
+            remaining -= 1;
+            if (remaining <= 0) {
+              updatePrefetchCountdownDisplay(0);
+              completePrefetchCountdown();
+            } else {
+              updatePrefetchCountdownDisplay(remaining);
+            }
+          }, 1000);
+
+          prefetchCountdownTimer = window.setTimeout(function(){
+            completePrefetchCountdown();
+          }, PREFETCH_COUNTDOWN_DURATION);
+        }
+
+        function showSelectionHoldOverlay(){
+          const overlay = document.getElementById('vpSelectionHold');
+          if (!overlay) return;
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.add('vp-hold-active');
+          }
+          const lights = overlay.querySelectorAll('.vp-light');
+          lights.forEach(light => {
+            light.classList.remove('vp-light--run');
+          });
+          // Force reflow so animations restart cleanly when the overlay re-opens
+          void overlay.offsetWidth;
+          overlay.classList.add('is-active');
+          overlay.setAttribute('aria-hidden','false');
+          lights.forEach(light => {
+            light.classList.add('vp-light--run');
+          });
+        }
+
+        function hideSelectionHoldOverlay(){
+          if (typeof document !== 'undefined' && document.body) {
+            document.body.classList.remove('vp-hold-active');
+          }
+          const overlay = document.getElementById('vpSelectionHold');
+          if (!overlay) return;
+          overlay.classList.remove('is-active');
+          overlay.setAttribute('aria-hidden','true');
+          overlay.querySelectorAll('.vp-light').forEach(light => {
+            light.classList.remove('vp-light--run');
+          });
+        }
+
+        function startSelectionHold(onComplete){
+          showSelectionHoldOverlay();
+          if (selectionHoldTimer){
+            clearTimeout(selectionHoldTimer);
+          }
+          selectionHoldCallback = (typeof onComplete === 'function') ? onComplete : null;
+          selectionHoldTimer = window.setTimeout(function(){
+            selectionHoldTimer = null;
+            const callback = selectionHoldCallback;
+            selectionHoldCallback = null;
+            hideSelectionHoldOverlay();
+            if (typeof callback === 'function') {
+              try {
+                callback();
+              } catch (holdErr) {
+                console.warn('[VP] Selection hold callback failed', holdErr);
+              }
+            }
+          }, SELECTION_HOLD_DURATION);
+        }
+
+        function cancelSelectionHold(){
+          if (selectionHoldTimer){
+            clearTimeout(selectionHoldTimer);
+            selectionHoldTimer = null;
+          }
+          selectionHoldCallback = null;
+          hideSelectionHoldOverlay();
+        }
+
+        function close(eventOrOptions){
+          let opts = {};
+          if (eventOrOptions && typeof eventOrOptions === 'object') {
+            const maybeEvent = eventOrOptions;
+            const isEvent = typeof maybeEvent.preventDefault === 'function' && Object.prototype.hasOwnProperty.call(maybeEvent, 'type');
+            if (isEvent) {
+              try { maybeEvent.preventDefault(); } catch (_err) { /* ignore */ }
+            } else {
+              opts = maybeEvent;
+            }
+          }
+          const preserveHold = !!opts.preserveSelectionHold;
+          if (!preserveHold) {
+            cancelSelectionHold();
+          }
+          cancelPrefetchCountdown();
           if (vehicleRetryTimer){
             clearTimeout(vehicleRetryTimer);
             vehicleRetryTimer = null;
@@ -3562,6 +3855,7 @@
           const carNumber = sel && sel.value ? sel.value.trim() : '';
           if (!carNumber) return;
 
+          const selectBtn = document.getElementById('vpSelectBtn');
           const benSelectEl = document.getElementById('vpBeneficiary');
           const benFromContextRaw = (benSelectEl && benSelectEl.value) ? benSelectEl.value : '';
 
@@ -3574,9 +3868,13 @@
 
           ensureBeneficiaryIncluded();
 
-          const proj = (document.getElementById('vpProject')?.value || '').trim();
-          const team = (document.getElementById('vpTeam')?.value || '').trim();
+          const projectContext = (document.getElementById('vpProject')?.value || '').trim();
+          const teamContext = (document.getElementById('vpTeam')?.value || '').trim();
           const benFromContext = benFromContextRaw.trim();
+
+          if (selectBtn) {
+            selectBtn.disabled = true;
+          }
 
           let carMeta = null;
           try {
@@ -3654,74 +3952,92 @@
             console.warn('[VP] Failed to reapply vehicle assignments after selection', applyErr);
           }
 
-          if (window.google && google.script && google.script.run) {
-            console.log('[VP] Google Apps Script available - submitting to backend');
-            
-            // Get project and team from the form
-            const projectInput = document.getElementById('vpProject');
-            const teamInput = document.getElementById('vpTeam');
-            const project = projectInput ? projectInput.value.trim() : '';
-            const team = teamInput ? teamInput.value.trim() : '';
-            
-            // Get vehicle details from the form
-            const makeInput = document.getElementById('vpMake');
-            const modelInput = document.getElementById('vpModel');
-            const categoryInput = document.getElementById('vpCategory');
-            const usageInput = document.getElementById('vpUsage');
-            const ownerInput = document.getElementById('vpOwner');
-            
-            const make = makeInput ? makeInput.value.trim() : '';
-            const model = modelInput ? modelInput.value.trim() : '';
-            const category = categoryInput ? categoryInput.value.trim() : '';
-            const usageType = usageInput ? usageInput.value.trim() : '';
-            const owner = ownerInput ? ownerInput.value.trim() : '';
-            
-            // Prepare payload for backend submission
+          // Capture form context before the modal resets
+          const projectInput = document.getElementById('vpProject');
+          const teamInput = document.getElementById('vpTeam');
+          const projectForPayload = projectInput ? projectInput.value.trim() : projectContext;
+          const teamForPayload = teamInput ? teamInput.value.trim() : teamContext;
+
+          // Get vehicle details from the form
+          const makeInput = document.getElementById('vpMake');
+          const modelInput = document.getElementById('vpModel');
+          const categoryInput = document.getElementById('vpCategory');
+          const usageInput = document.getElementById('vpUsage');
+          const ownerInput = document.getElementById('vpOwner');
+
+          const make = makeInput ? makeInput.value.trim() : '';
+          const model = modelInput ? modelInput.value.trim() : '';
+          const category = categoryInput ? categoryInput.value.trim() : '';
+          const usageType = usageInput ? usageInput.value.trim() : '';
+          const owner = ownerInput ? ownerInput.value.trim() : '';
+
+          // Prepare payload for backend submission
           const payload = {
-            project: project,
-            team: team,
+            project: projectForPayload,
+            team: teamForPayload,
             carNumber: carNumber,
             responsibleBeneficiary: benFromContext,
             beneficiaries: finalBeneficiaries,
             car: {
-              make: '',
-              model: '',
-              category: '',
-              usageType: '',
-              owner: ''
+              make,
+              model,
+              category,
+              usageType,
+              owner
             },
             timestamp: new Date().toISOString()
           };
-            
+
+          startSelectionHold();
+          close({ preserveSelectionHold: true });
+
+          if (window.google && google.script && google.script.run) {
+            console.log('[VP] Google Apps Script available - submitting to backend');
+
             console.log('[VP] Submitting vehicle assignment to CarT_P:', payload);
-            
+
             // Submit to backend using assignCarToTeam function
-            google.script.run
-              .withSuccessHandler(function(result) {
-                console.log('[VP] Backend submission successful:', result);
-                console.log('[VP] Vehicle assignment saved to CarT_P sheet');
-                
-                // Show success message to user
-                if (result && result.ok) {
-                  console.log('[VP] Data successfully saved to CarT_P');
-                }
-                
-                // ✅ NOW trigger refresh AFTER successful backend save
-                if (typeof window.refreshVehicleAssignments === 'function') {
-                  console.log('[VP] Triggering Vehicle_InUse refresh after backend save');
-                  window.refreshVehicleAssignments();
-                }
-                
-                // Dispatch success event
-                window.dispatchEvent(new CustomEvent('vehicleAssignmentComplete', {
-                  detail: { carNumber, responsibleBeneficiary: benFromContext, saved: true }
-                }));
-              })
-              .withFailureHandler(function(error) {
-                console.error('[VP] Backend submission failed:', error);
-                alert('Failed to save vehicle assignment to CarT_P. Please try again.');
-              })
-              .assignCarToTeam(payload);
+            try {
+              google.script.run
+                .withSuccessHandler(function(result) {
+                  console.log('[VP] Backend submission successful:', result);
+                  console.log('[VP] Vehicle assignment saved to CarT_P sheet');
+
+                  // Show success message to user
+                  if (result && result.ok) {
+                    console.log('[VP] Data successfully saved to CarT_P');
+                  }
+
+                  // ✅ NOW trigger refresh AFTER successful backend save
+                  if (typeof window.refreshVehicleAssignments === 'function') {
+                    console.log('[VP] Triggering Vehicle_InUse refresh after backend save');
+                    window.refreshVehicleAssignments();
+                  }
+
+                  // Dispatch success event
+                  window.dispatchEvent(new CustomEvent('vehicleAssignmentComplete', {
+                    detail: { carNumber, responsibleBeneficiary: benFromContext, saved: true }
+                  }));
+                })
+                .withFailureHandler(function(error) {
+                  console.error('[VP] Backend submission failed:', error);
+                  cancelSelectionHold();
+                  if (selectBtn) {
+                    selectBtn.disabled = false;
+                  }
+                  alert('Failed to save vehicle assignment to CarT_P. Please try again.');
+                  updateSelectButtonState();
+                })
+                .assignCarToTeam(payload);
+            } catch (initErr) {
+              console.error('[VP] Failed to initiate backend submission:', initErr);
+              cancelSelectionHold();
+              if (selectBtn) {
+                selectBtn.disabled = false;
+              }
+              alert('Failed to save vehicle assignment to CarT_P. Please try again.');
+              updateSelectButtonState();
+            }
           } else {
             console.log('[VP] Google Apps Script not available');
           }
@@ -3744,8 +4060,8 @@
             }
           }, 100);
 
-          close();
-          
+          // Modal closes immediately while the selection hold overlay continues for the freeze window
+
           // ✅ DISABLED: The problematic ensureRowsForBeneficiaries function
           // This function was causing vehicles to be assigned to ALL team members
           function ensureRowsForBeneficiaries(beneficiaryList){
@@ -3756,11 +4072,44 @@
           }
         }
 
+        const bootstrap = window.__vehiclePickerBootstrap = window.__vehiclePickerBootstrap || { pending: [] };
+        bootstrap.open = open;
+        bootstrap.close = close;
+        bootstrap.stubInstalled = false;
+
+        window.openVehiclePicker = function(){
+          return open.apply(null, arguments);
+        };
+        window.closeVehiclePicker = function(){
+          return close.apply(null, arguments);
+        };
+
+        if (Array.isArray(bootstrap.pending) && bootstrap.pending.length) {
+          const queued = bootstrap.pending.slice();
+          bootstrap.pending.length = 0;
+          queued.forEach(function(args){
+            try {
+              open.apply(null, args);
+            } catch (err) {
+              console.warn('[VP] Queued vehicle picker open failed', err);
+            }
+          });
+        }
+
         function wire(){
           const x = (id)=>document.getElementById(id);
-          x('vpCloseBtn').addEventListener('click',close);
-          x('vpCancelBtn').addEventListener('click',close);
-          x('vpSelectBtn').addEventListener('click',selectVehicle);
+          const closeBtn = x('vpCloseBtn');
+          if (closeBtn) {
+            closeBtn.addEventListener('click', close);
+          }
+          const cancelBtn = x('vpCancelBtn');
+          if (cancelBtn) {
+            cancelBtn.addEventListener('click', close);
+          }
+          const selectBtnEl = x('vpSelectBtn');
+          if (selectBtnEl) {
+            selectBtnEl.addEventListener('click', selectVehicle);
+          }
 
           // Switch events
           document.querySelectorAll('.vp-switch__btn').forEach(btn=>{
@@ -3768,8 +4117,10 @@
           });
           // Clear all
           const clear = x('vpClearAll');
-          clear.addEventListener('click',()=>{ ['vpMake','vpModel','vpCategory','vpUsage','vpOwner'].forEach(id=>{const s=x(id); if(s) s.selectedIndex=0;}); updateFilterChoices(); updateVehiclesDropdown(); });
-          clear.addEventListener('keydown',e=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); clear.click(); } });
+          if (clear) {
+            clear.addEventListener('click',()=>{ ['vpMake','vpModel','vpCategory','vpUsage','vpOwner'].forEach(id=>{const s=x(id); if(s) s.selectedIndex=0;}); updateFilterChoices(); updateVehiclesDropdown(); });
+            clear.addEventListener('keydown',e=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); clear.click(); } });
+          }
           const refresh = x('vpRefreshBtn');
           if (refresh) {
             refresh.addEventListener('click', manualRefreshVehiclePicker);
@@ -3866,7 +4217,10 @@
           document.addEventListener('change',function(e){
             if(/^vp(Make|Model|Category|Usage|Owner)$/.test(e.target.id)){ updateFilterChoices(); updateVehiclesDropdown(); }
             if(e.target.id==='vpDropdown'){
-              x('vpSelectBtn').disabled = !e.target.value;
+              const selectBtn = x('vpSelectBtn');
+              if (selectBtn) {
+                selectBtn.disabled = !e.target.value;
+              }
               const val=e.target.value;
               const car = (vehicles||[]).find(v=>String(v.carNumber||'')===val) || null;
               if (car) {
@@ -3895,13 +4249,15 @@
 
           document.addEventListener('keydown',function(e){
             const modal=document.getElementById('vehiclePickerModal');
-            if(modal.getAttribute('aria-hidden')==='true') return;
+            if(!modal || modal.getAttribute('aria-hidden')==='true') return;
             if(e.key==='Escape') close();
             if(e.key==='Enter'){ const b=x('vpSelectBtn'); if(b && !b.disabled) selectVehicle(); }
           });
 
           const backdrop=document.getElementById('vehiclePickerModal');
-          backdrop.addEventListener('click',e=>{ if(e.target===backdrop) close(); });
+          if (backdrop) {
+            backdrop.addEventListener('click',e=>{ if(e.target===backdrop) close(); });
+          }
 
           const usersSelect = document.getElementById('vpUsersMulti');
           if (usersSelect) {
@@ -4003,9 +4359,6 @@
           updateSelectButtonState();
         }
 
-        // Expose open/close for your triggers
-        window.openVehiclePicker=open;
-        window.closeVehiclePicker=close;
       // Expose beneficiary options populator for external callers (e.g., populateContextFromRow)
       window.populateResponsibleBeneficiaryOptions = populateResponsibleBeneficiaryOptions;
 
