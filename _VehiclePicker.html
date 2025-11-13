@@ -1123,6 +1123,112 @@
         let prefetchCountdownTimer = null;
         let prefetchCountdownInterval = null;
         let prefetchCountdownCallback = null;
+        let pendingVehiclePrefillValue = '';
+        let pendingVehiclePrefillLabel = '';
+        let vehiclePrefillApplied = true;
+
+        function normalizeVehicleNumber(value){
+          return String(value || '').trim().toUpperCase();
+        }
+
+        function deriveRowFromTarget(target){
+          if (!target || typeof target.closest !== 'function') {
+            return null;
+          }
+          try {
+            return target.closest('.row-data');
+          } catch (_err) {
+            return null;
+          }
+        }
+
+        function extractVehicleNumberFromTarget(target){
+          let raw = '';
+          if (target && typeof target.value === 'string' && target.classList && target.classList.contains('car-number-input')) {
+            raw = target.value;
+          }
+          if (!raw) {
+            const row = deriveRowFromTarget(target);
+            if (row) {
+              const carInput = row.querySelector('input.car-number-input');
+              if (carInput && typeof carInput.value === 'string' && carInput.value.trim()) {
+                raw = carInput.value;
+              } else {
+                const dataset = row.dataset || {};
+                raw = row.getAttribute('data-vehicle') ||
+                  dataset.vehicle ||
+                  dataset.vehicleNumber ||
+                  dataset.carNumber ||
+                  '';
+              }
+            }
+          }
+          const trimmed = String(raw || '').trim();
+          return {
+            raw: trimmed,
+            normalized: normalizeVehicleNumber(trimmed)
+          };
+        }
+
+        function removeSyntheticPrefillOption(){
+          const select = document.getElementById('vpDropdown');
+          if (!select) return;
+          const existing = select.querySelector('option[data-prefill-option="true"]');
+          if (existing) {
+            existing.remove();
+          }
+        }
+
+        function primeVehiclePrefillFromTarget(target){
+          const info = extractVehicleNumberFromTarget(target);
+          pendingVehiclePrefillLabel = info.raw;
+          pendingVehiclePrefillValue = info.normalized;
+          vehiclePrefillApplied = !pendingVehiclePrefillValue;
+          if (!pendingVehiclePrefillValue) {
+            removeSyntheticPrefillOption();
+          }
+        }
+
+        function clearVehiclePrefill(){
+          pendingVehiclePrefillLabel = '';
+          pendingVehiclePrefillValue = '';
+          vehiclePrefillApplied = true;
+          removeSyntheticPrefillOption();
+        }
+
+        function applyVehiclePrefillIfPending(options = {}){
+          if (!pendingVehiclePrefillValue || vehiclePrefillApplied || vpMode !== 'existing') {
+            return false;
+          }
+          const select = document.getElementById('vpDropdown');
+          if (!select) return false;
+          const normalizedTarget = pendingVehiclePrefillValue;
+          let targetOption = Array.from(select.options || []).find(opt => normalizeVehicleNumber(opt.value) === normalizedTarget);
+          if (!targetOption && options.allowSynthetic !== false) {
+            const label = pendingVehiclePrefillLabel || pendingVehiclePrefillValue;
+            const synthetic = document.createElement('option');
+            synthetic.value = label;
+            synthetic.textContent = `${label} — Current assignment`;
+            synthetic.dataset.prefillOption = 'true';
+            const placeholderSibling = select.options.length > 1 ? select.options[1] : null;
+            select.insertBefore(synthetic, placeholderSibling);
+            targetOption = synthetic;
+          }
+          if (!targetOption) {
+            return false;
+          }
+          select.disabled = false;
+          select.value = targetOption.value;
+          vehiclePrefillApplied = true;
+          setTimeout(() => {
+            try {
+              select.dispatchEvent(new Event('change', { bubbles: true }));
+            } catch (_err) {
+              /* change event best effort */
+            }
+          }, 0);
+          return true;
+        }
 
         let storageHydrationAttempted = false;
   let newVehicleOptions = null;
@@ -2873,6 +2979,7 @@
 
         function open(target){
           try{ targetInput=target||null; }catch(_){ targetInput=null; }
+          try { primeVehiclePrefillFromTarget(targetInput); } catch (_err) { /* best effort */ }
           const modal=document.getElementById('vehiclePickerModal');
           if (!modal) {
             console.warn('[VP] Vehicle picker modal element not found');
@@ -3130,6 +3237,7 @@
           vehicleModalVisible = false;
           vehicleOpenInitialFetchDone = false;
           resetPickerUI();
+          clearVehiclePrefill();
           
           // Clear source beneficiary
           window.__vpSourceBeneficiary = '';
@@ -3747,6 +3855,7 @@
             clearVehicleInsights();
             refreshHighlightState();
             updateSelectButtonState();
+            applyVehiclePrefillIfPending({ allowSynthetic: true });
             return;
           }
           setDropdownLoading(false);
@@ -3763,6 +3872,7 @@
           clearVehicleInsights();
           refreshHighlightState();
           updateSelectButtonState();
+          applyVehiclePrefillIfPending({ allowSynthetic: true });
         }
 
         let __vpStarUid = 0;
