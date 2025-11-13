@@ -872,6 +872,222 @@
       })();
       </script>
 
+<script>
+(function(){
+  if (window.__vpFastCacheAndRBPatch) return;
+  window.__vpFastCacheAndRBPatch = true;
+
+  // ---------- small helpers (local; do not conflict) ----------
+  function __vp_norm(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
+  function __vp_nameKey(s){ return __vp_norm(s); }
+  function __vp_simple(s){ return __vp_norm(s).replace(/\[[^\]]*\]/g,''); }
+  function __vp_esc(s){ return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+  function __vp_escAttr(s){ return __vp_esc(s).replace(/"/g,'&quot;'); }
+
+  function __vp_canonicalProjectKey(val){
+    const s = String(val||'').trim().toLowerCase();
+    return s.replace(/^project\s*[:\-]?\s+/, '').replace(/\s+/g,' ');
+  }
+  function __vp_canonicalTeamKey(val){
+    const s = String(val||'').trim().toLowerCase();
+    return s.replace(/^team\s*[:\-]?\s+/, '').replace(/\s+team$/,'').replace(/[\s_\-]+/g,' ');
+  }
+
+  // ---------- A) Always render vehicles from cache immediately on open ----------
+  (function installFastCacheFetchWrapper(){
+    if (window.__vpFetchWrapInstalled) return;
+    window.__vpFetchWrapInstalled = true;
+
+    var TTL = (typeof window.VEHICLE_CACHE_TTL === 'number') ? window.VEHICLE_CACHE_TTL : 60000;
+
+    function cacheIsFresh(){
+      try {
+        return Array.isArray(window.vehicleDataCache) && window.vehicleDataCache.length &&
+               (Date.now() - (window.vehicleDataCacheTs || 0)) < TTL;
+      } catch(e){ return false; }
+    }
+
+    function renderFromCacheNow(){
+      if (!cacheIsFresh()) return false;
+      try{
+        // Prefer an existing renderer if your file defines one
+        if (typeof window.applyVehicleListToUI === 'function'){
+          window.applyVehicleListToUI(window.vehicleDataCache);
+        } else {
+          // Fallback: minimally populate the Vehicle Number dropdown so UI is usable immediately
+          var dd = document.getElementById('vpDropdown');
+          if (dd){
+            var items = window.vehicleDataCache.map(function(v){
+              var num = v && (v.vehicleNumber||v.carNumber||v.vehicle||v.no||v);
+              num = String(num||'').trim();
+              if (!num) return '';
+              return '<option value="'+__vp_escAttr(num)+'">'+__vp_esc(num)+'</option>';
+            }).filter(Boolean).join('');
+            dd.innerHTML = '<option value="">Select a vehicle…</option>'+items;
+          }
+        }
+        var meta = document.getElementById('vpMatchMeta');
+        if (meta && window.vehicleDataCache) meta.textContent = window.vehicleDataCache.length + ' vehicles match filters';
+        var st = document.getElementById('vpStatus');
+        if (st){ st.removeAttribute('data-state'); st.textContent = 'Vehicles already loaded.'; }
+        return true;
+      }catch(e){ return false; }
+    }
+
+    var __origFetch = window.fetchVehicles;
+    if (typeof __origFetch === 'function'){
+      window.fetchVehicles = function(options){
+        var opts = options || {};
+        // Always give the user instant UI from cache if available
+        if (renderFromCacheNow()){
+          // If caller explicitly wanted a refresh, do it in background without blocking UI
+          if (opts.force || opts.skipCache || opts.background === true){
+            setTimeout(function(){ try { __origFetch.call(window, options); } catch(e){} }, 0);
+          }
+          return;
+        }
+        return __origFetch.apply(this, arguments);
+      };
+    }
+  })();
+
+  // ---------- B) Responsible Beneficiary dropdown: all team members; disable those with vehicles ----------
+  function __vp_getVehicleForMember(name, team){
+    var key = __vp_nameKey(name);
+    if (!key) return '';
+    var teamKey = __vp_canonicalTeamKey(team||'');
+    var rows = document.querySelectorAll('.tbody .row-data');
+    for (var i=0;i<rows.length;i++){
+      var row = rows[i];
+      var rowTeam = __vp_canonicalTeamKey(row.getAttribute('data-team') || (row.dataset && row.dataset.team) || '');
+      if (teamKey && rowTeam && teamKey !== rowTeam) continue;
+      var ben = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)') ||
+                row.querySelector('input.beneficiary-input') ||
+                row.querySelector('[data-field="beneficiary"] input') ||
+                row.querySelector('input[name="beneficiary"]') ||
+                row.querySelector('select.beneficiary, select[name="beneficiary"]');
+      if (!ben) continue;
+      var benName = String(ben.value || ben.textContent || '').trim();
+      if (__vp_nameKey(benName) !== key) continue;
+      var car = row.querySelector('input.car-number-input');
+      var vv = car && car.value ? String(car.value).trim() : '';
+      if (vv) return vv;
+    }
+    // fallback to server-provided "in use" objects if present
+    try{
+      var list = (window.activeInUseMemberObjects || []);
+      for (var j=0;j<list.length;j++){
+        var obj = list[j] || {};
+        var nm = obj.name || obj.beneficiary || obj.member || '';
+        if (__vp_nameKey(nm) === key){
+          return String(obj.vehicleNumber || obj.vehicle || obj.carNumber || '').trim();
+        }
+      }
+    }catch(e){}
+    return '';
+  }
+
+  function __vp_collectTeamMembers(project, team){
+    var list = [];
+    try{
+      if (typeof window.getTeamBeneficiariesFromDDC === 'function'){
+        list = window.getTeamBeneficiariesFromDDC(project, team) || [];
+      }
+      if ((!list || !list.length) && typeof window.collectBeneficiariesFromTable === 'function'){
+        list = window.collectBeneficiariesFromTable(project, team) || [];
+      }
+    }catch(e){ list = []; }
+    return list;
+  }
+
+  function __vp_buildResponsibleDropdown(){
+    var ctx = window.__vpLastContext || {};
+    var project = ctx.project || (document.getElementById('vpProject') && document.getElementById('vpProject').value) || '';
+    var team    = ctx.team    || (document.getElementById('vpTeam')    && document.getElementById('vpTeam').value)    || '';
+    var pre     = window.__vpLockedUserName || '';
+    var sel     = document.getElementById('vpBeneficiary');
+    if (!sel) return;
+
+    var members = __vp_collectTeamMembers(project, team);
+    var opts = ['<option value="">Select Responsible Beneficiary Only</option>'];
+    members.forEach(function(n){
+      var veh = __vp_getVehicleForMember(n, team);
+      var disabled = !!veh;
+      var label = veh ? (String(n).trim() + ' ['+ __vp_esc(veh) +']') : String(n).trim();
+      var attr = ' value="'+__vp_escAttr(n)+'"';
+      if (disabled) attr += ' disabled';
+      if (pre && __vp_simple(n) === __vp_simple(pre)) attr += ' selected';
+      opts.push('<option'+attr+'>'+__vp_esc(label)+'</option>');
+    });
+    sel.innerHTML = opts.join('');
+  }
+
+  function __vp_onModalOpen(){
+    var ctx = window.__vpLastContext || {};
+    var project = ctx.project || (document.getElementById('vpProject') && document.getElementById('vpProject').value) || '';
+    var team    = ctx.team    || (document.getElementById('vpTeam')    && document.getElementById('vpTeam').value)    || '';
+    // Make sure the IN-USE cache for this team is ready, then build
+    if (typeof window.ensureActiveInUseMembers === 'function'){
+      window.ensureActiveInUseMembers(project, team, function(){ __vp_buildResponsibleDropdown(); });
+    } else {
+      __vp_buildResponsibleDropdown();
+    }
+  }
+
+  // Observe modal open to rebuild Responsible Beneficiary list for the clicked team
+  (function watchModal(){
+    var modal = document.getElementById('vehiclePickerModal');
+    if (!modal) return;
+    var mo = new MutationObserver(function(list){
+      list.forEach(function(m){
+        if (m.attributeName === 'aria-hidden'){
+          var open = modal.getAttribute('aria-hidden') === 'false';
+          if (open){ setTimeout(__vp_onModalOpen, 0); }
+        }
+      });
+    });
+    mo.observe(modal, { attributes:true, attributeFilter:['aria-hidden'] });
+  })();
+
+  // Track the row that triggered the popup so __vpLastContext has the correct team
+  document.addEventListener('focusin', function(e){
+    var t = e.target;
+    if (t && t.matches && t.matches('input.car-number-input')){
+      var row = t.closest('.row-data');
+      if (!row) return;
+      var project = String(row.getAttribute('data-project') || (row.dataset && row.dataset.project) || '').trim();
+      var team    = String(row.getAttribute('data-team')    || (row.dataset && row.dataset.team)    || '').trim();
+      var benInp  = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)') ||
+                    row.querySelector('input.beneficiary-input') ||
+                    row.querySelector('[data-field="beneficiary"] input') ||
+                    row.querySelector('input[name="beneficiary"]') ||
+                    row.querySelector('select.beneficiary, select[name="beneficiary"]');
+      var benVal  = benInp ? String(benInp.value || benInp.textContent || '').trim() : '';
+      window.__vpLastContext = { project: project, team: team };
+      if (benVal) window.__vpLockedUserName = benVal;
+    }
+  }, true);
+  document.addEventListener('click', function(e){
+    var t = e.target;
+    if (t && t.matches && t.matches('input.car-number-input')){
+      var row = t.closest('.row-data');
+      if (!row) return;
+      var project = String(row.getAttribute('data-project') || (row.dataset && row.dataset.project) || '').trim();
+      var team    = String(row.getAttribute('data-team')    || (row.dataset && row.dataset.team)    || '').trim();
+      var benInp  = row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)') ||
+                    row.querySelector('input.beneficiary-input') ||
+                    row.querySelector('[data-field="beneficiary"] input') ||
+                    row.querySelector('input[name="beneficiary"]') ||
+                    row.querySelector('select.beneficiary, select[name="beneficiary"]');
+      var benVal  = benInp ? String(benInp.value || benInp.textContent || '').trim() : '';
+      window.__vpLastContext = { project: project, team: team };
+      if (benVal) window.__vpLockedUserName = benVal;
+    }
+  }, true);
+
+})();
+</script>
+
       <script>
       (function(){
         let targetInput=null, vehicles=[], master=[], vpMode='existing';
@@ -4735,4 +4951,451 @@
       console.log('  validateAllVehicles() - Validate all current assignments');
       console.log('  fixVehicleAssignments() - Emergency cleanup (multiple passes)');
       console.log('  vehicleCleanupSystem.cleanupSpecificVehicle("VEHICLE123") - Clean specific vehicle');
-      </script>
+      
+/* === VP FIRST-OPEN FAST RENDER PATCH === */
+(function(){
+  // idempotent
+  if (window.__vpFirstOpenPatched) return;
+  window.__vpFirstOpenPatched = true;
+
+  function uniqueSorted(list, key){
+    var s = new Set();
+    (list||[]).forEach(function(v){ var k = (key? key(v): v); if (k!=null) s.add(String(k).trim()); });
+    return Array.from(s).filter(Boolean).sort(function(a,b){ return a.localeCompare(b, undefined, {sensitivity:'base'}); });
+  }
+
+  function applyListsFromVehicles(vehicles){
+    var lists = {
+      make:      uniqueSorted(vehicles, function(v){ return v && v.make; }),
+      model:     uniqueSorted(vehicles, function(v){ return v && v.model; }),
+      category:  uniqueSorted(vehicles, function(v){ return v && v.category; }),
+      usageType: uniqueSorted(vehicles, function(v){ return v && v.usageType; }),
+      owner:     uniqueSorted(vehicles, function(v){ return v && v.owner; })
+    };
+    var map = [['vpMake','make'],['vpModel','model'],['vpCategory','category'],['vpUsage','usageType'],['vpOwner','owner']];
+    map.forEach(function(pair){
+      var el = document.getElementById(pair[0]);
+      if (!el) return;
+      var vals = lists[pair[1]]||[];
+      var html = ['<option value=\"\">All</option>'].concat(vals.map(function(v){ 
+        var esc = String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');
+        return '<option value=\"'+esc+'\">'+esc+'</option>'; 
+      })).join('');
+      el.innerHTML = html;
+    });
+  }
+
+  function renderFromCacheIfPossible(){
+    try{
+      if (!Array.isArray(window.vehicleDataCache) || !window.vehicleDataCache.length) return false;
+      var list = window.vehicleDataCache.slice();
+      // Fill globals if present
+      try{ window.vehicles = list.slice(); }catch(_){}
+      try{ window.master   = list.slice(); }catch(_){}
+      // Dropdown
+      var dd = document.getElementById('vpDropdown');
+      if (dd){
+        var opts = ['<option value=\"\">Select a vehicle…</option>'].concat(list.map(function(v){
+          var num = String(v && v.vehicleNumber || '').trim();
+          var mk  = String(v && v.make || '').trim();
+          var md  = String(v && v.model || '').trim();
+          var lab = [num,(mk||md)?'—':'',mk,md].filter(Boolean).join(' ').trim();
+          var escNum = num.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');
+          var escLab = lab.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/\"/g,'&quot;').replace(/>/g,'&gt;').replace(/'/g,'&#39;');
+          return '<option value=\"'+escNum+'\">'+escLab+'</option>';
+        }));
+        dd.innerHTML = opts.join('');
+      }
+      // Lists
+      applyListsFromVehicles(list);
+      // Status + meta
+      var st = document.getElementById('vpStatus'); if (st){ st.removeAttribute('data-state'); st.textContent='Ready'; }
+      var meta = document.getElementById('vpMatchMeta'); if (meta){ meta.textContent = String(list.length)+' vehicles loaded'; }
+      return true;
+    }catch(e){
+      try{ console.warn('[VP_FAST] renderFromCacheIfPossible failed', e); }catch(_){}
+      return false;
+    }
+  }
+
+  // Patch the fetchVehicles to prefer cache on first open
+  if (typeof window.fetchVehicles === 'function' && !window.__vpFetchPatched){
+    window.__vpFetchPatched = true;
+    var orig = window.fetchVehicles;
+    window.fetchVehicles = function(options){
+      options = options || {};
+      var preferCache = !options.force && !options.skipCache && !options.manual;
+      if (preferCache && Array.isArray(window.vehicleDataCache) && window.vehicleDataCache.length){
+        var rendered = renderFromCacheIfPossible();
+        // Background freshness check; if version changed, call original with force silently
+        (function(){
+          if (!window.google || !google.script || !google.script.run) return;
+          var project = (document.getElementById('vpProject')||{}).value || '';
+          var team    = (document.getElementById('vpTeam')||{}).value || '';
+          var call = (google.script.run.getVehicleReleasedCacheMeta || google.script.run.getVehicleCacheMeta);
+          if (!call) return;
+          (google.script.run
+            .withSuccessHandler(function(meta){
+              try{
+                if (meta && meta.version != null && String(meta.version) !== String(window.vehicleDataCacheVersion||'')){
+                  orig.call(window, { force:true, skipCache:false });
+                }
+              }catch(_){}
+            })
+            .withFailureHandler(function(_err){})
+          ).getVehicleReleasedCacheMeta ?
+            google.script.run.withSuccessHandler(function(meta){
+              try{
+                if (meta && meta.version != null && String(meta.version) !== String(window.vehicleDataCacheVersion||''){
+                  orig.call(window, { force:true, skipCache:false });
+                }
+              }catch(_){}
+            }).withFailureHandler(function(_err){}).getVehicleReleasedCacheMeta(project, team)
+          : google.script.run.withSuccessHandler(function(meta){
+              try{
+                if (meta && meta.version != null && String(meta.version) !== String(window.vehicleDataCacheVersion||''){
+                  orig.call(window, { force:true, skipCache:false });
+                }
+              }catch(_){}
+            }).withFailureHandler(function(_err){}).getVehicleCacheMeta(project, team);
+        })();
+        return Promise.resolve({ ok:true, from:'cache', count: (window.vehicleDataCache||[]).length });
+      }
+      return orig.apply(this, arguments);
+    };
+  }
+
+  // When the modal opens, render immediately from cache
+  (function observeModal(){
+    var modal = document.getElementById('vehiclePickerModal');
+    if (!modal) return;
+    var obs = new MutationObserver(function(list){
+      list.forEach(function(m){
+        if (m.attributeName === 'aria-hidden'){
+          var visible = modal.getAttribute('aria-hidden') === 'false';
+          if (visible){ renderFromCacheIfPossible(); }
+        }
+      });
+    });
+    obs.observe(modal, { attributes:true, attributeFilter:['aria-hidden'] });
+  })();
+
+  // Also render when the 5s overlay ends
+  (function observeOverlay(){
+    var ov = document.getElementById('vpPrefetchOverlay');
+    if (!ov) return;
+    var obs = new MutationObserver(function(list){
+      list.forEach(function(m){
+        if (m.attributeName === 'aria-hidden'){
+          var hidden = ov.getAttribute('aria-hidden') !== 'false';
+          if (hidden){ renderFromCacheIfPossible(); }
+        }
+      });
+    });
+    obs.observe(ov, { attributes:true, attributeFilter:['aria-hidden'] });
+  })();
+})();
+/* === /VP FIRST-OPEN FAST RENDER PATCH === */
+</script>
+
+<script>
+(function(){
+  // Ensure Project, Team, Beneficiary, and Users populate on the FIRST open as well
+  function getContext(){
+    var ctx = (window.__vpLastContext||{});
+    var project = (ctx.project || '').trim();
+    var team    = (ctx.team || '').trim();
+    if (!project || !team){
+      // fallback: try to read from the first data row
+      var firstRow = document.querySelector('.tbody .row-data');
+      if (firstRow){
+        project = project || (firstRow.getAttribute('data-project') || firstRow.dataset.project || '').trim();
+        team    = team    || (firstRow.getAttribute('data-team')    || firstRow.dataset.team    || '').trim();
+      }
+    }
+    return { project: project, team: team };
+  }
+
+  function setContextInputs(ctx){
+    var p = document.getElementById('vpProject');
+    var t = document.getElementById('vpTeam');
+    if (p) p.value = ctx.project || '';
+    if (t) t.value = ctx.team || '';
+  }
+
+  function populateBeneficiaries(ctx){
+    var sel = document.getElementById('vpBeneficiary');
+    if (!sel) return;
+    // Prefer your existing helper if available
+    if (typeof window.populateResponsibleBeneficiaryOptions === 'function'){
+      window.populateResponsibleBeneficiaryOptions(ctx.project, ctx.team, '');
+      return;
+    }
+    // Fallback: build from DDC / table
+    var ddc = (typeof getTeamBeneficiariesFromDDC === 'function') ? getTeamBeneficiariesFromDDC(ctx.project, ctx.team) : [];
+    var tbl = (typeof collectBeneficiariesFromTable === 'function') ? collectBeneficiariesFromTable(ctx.project, ctx.team) : [];
+    var seen = new Set(); var list = [];
+    [ddc, tbl].forEach(function(arr){ (arr||[]).forEach(function(n){ var k = String(n||'').trim().toLowerCase(); if (!k||seen.has(k)) return; seen.add(k); list.push(String(n||'').trim()); }); });
+    var html = ['<option value="">Select Responsible Beneficiary Only</option>']
+      .concat(list.map(function(n){
+        var esc = String(n).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');
+        return '<option value="'+esc+'">'+esc+'</option>';
+      }));
+    sel.innerHTML = html.join('');
+  }
+
+  function populateUsers(ctx){
+    var host = document.getElementById('vpUsersMulti');
+    if (!host) return;
+    // If your original renderer exists, delegate to it
+    if (typeof window.renderUsersMulti === 'function'){
+      window.renderUsersMulti(ctx.project, ctx.team);
+      return;
+    }
+    // Fallback: simple collapsed list so the control is visible
+    var list = (typeof getTeamBeneficiariesFromDDC === 'function') ? getTeamBeneficiariesFromDDC(ctx.project, ctx.team) : [];
+    if (!list || !list.length){
+      list = (typeof collectBeneficiariesFromTable === 'function') ? collectBeneficiariesFromTable(ctx.project, ctx.team) : [];
+    }
+    var optionsHtml = (list||[]).map(function(n){
+      var safe = String(n||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;');
+      return '<label class="vp-users-option"><input type="checkbox" value="'+safe+'"><span>'+safe+'</span></label>';
+    }).join('');
+    host.innerHTML =
+      '<div class="vp-users-toggle">' +
+        '<div class="vp-users-toggle__main"><strong>Users</strong></div>' +
+        '<span class="vp-users-toggle__hint">Click to expand</span>' +
+        '<span class="vp-users-toggle__chevron">▼</span>' +
+      '</div>' +
+      '<div class="vp-users-options">'+ optionsHtml +'</div>';
+  }
+
+  function initContext(){
+    var ctx = getContext();
+    setContextInputs(ctx);
+    populateBeneficiaries(ctx);
+    populateUsers(ctx);
+  }
+
+  // Run when the modal becomes visible
+  var modal = document.getElementById('vehiclePickerModal');
+  if (modal){
+    var obs = new MutationObserver(function(list){
+      list.forEach(function(m){
+        if (m.attributeName === 'aria-hidden'){
+          var open = modal.getAttribute('aria-hidden') === 'false';
+          if (open) initContext();
+        }
+      });
+    });
+    obs.observe(modal, { attributes:true, attributeFilter:['aria-hidden'] });
+  }
+
+  // Also run once if already open after DOM ready
+  if (document.readyState === 'complete' || document.readyState === 'interactive'){
+    setTimeout(function(){ if (modal && modal.getAttribute('aria-hidden') === 'false') initContext(); }, 0);
+  } else {
+    document.addEventListener('DOMContentLoaded', function(){ if (modal && modal.getAttribute('aria-hidden') === 'false') initContext(); });
+  }
+})();
+</script>
+
+<!-- MERGE: Keep FIRST-OPEN fast cache; add locked preselect + correct team beneficiaries -->
+<script>
+(function(){
+  if (window.__vpBeneficiaryLockPatch) return;
+  window.__vpBeneficiaryLockPatch = true;
+
+  function closest(el, sel){
+    while (el && el.nodeType === 1){
+      if (el.matches && el.matches(sel)) return el;
+      el = el.parentElement;
+    }
+    return null;
+  }
+
+  function readRowBeneficiary(row){
+    if (!row) return '';
+    var ben =
+      row.querySelector('input.txt:not(.account-holder-input):not(.car-number-input)') ||
+      row.querySelector('input.beneficiary-input') ||
+      row.querySelector('[data-field="beneficiary"] input') ||
+      row.querySelector('input[name="beneficiary"]') ||
+      row.querySelector('select.beneficiary, select[name="beneficiary"]');
+    var val = ben ? (ben.value || ben.textContent || '') : '';
+    return String(val).trim();
+  }
+
+  function readRowContext(row){
+    if (!row) return {project:'', team:'', beneficiary:''};
+    var project = String(row.getAttribute('data-project') || (row.dataset && row.dataset.project) || '').trim();
+    var team    = String(row.getAttribute('data-team')    || (row.dataset && row.dataset.team)    || '').trim();
+    var beneficiary = readRowBeneficiary(row);
+    return { project: project, team: team, beneficiary: beneficiary };
+  }
+
+  function recordTrigger(e){
+    var t = e.target;
+    if (!t || !t.matches || !t.matches('input.car-number-input')) return;
+    var row = closest(t, '.row-data');
+    var ctx = readRowContext(row);
+    if (ctx.project || ctx.team) window.__vpLastContext = { project: ctx.project, team: ctx.team };
+    if (ctx.beneficiary) window.__vpLockedUserName = ctx.beneficiary;
+  }
+
+  // Capture context as early as possible
+  document.addEventListener('pointerdown', recordTrigger, true);
+  document.addEventListener('focusin', recordTrigger, true);
+
+  function norm(s){ return String(s||'').trim().toLowerCase().replace(/\s+/g,' '); }
+  function simple(s){ return norm(s).replace(/\[[^\]]*\]/g,''); } // ignore bracket suffix like [Rig]
+
+  function usersOptionsHost(){
+    var host = document.getElementById('vpUsersMulti');
+    if (!host) return null;
+    return host.querySelector('.vp-users-options') || host;
+  }
+
+  function applyUsersLock(){
+    var targetName = window.__vpLockedUserName;
+    if (!targetName) return false;
+    var options = usersOptionsHost();
+    if (!options) return false;
+    var key = simple(targetName);
+    var found = null, foundLbl = null;
+
+    var labels = options.querySelectorAll('label.vp-users-option');
+    if (labels && labels.length){
+      labels.forEach(function(lbl){
+        var inp = lbl.querySelector('input[type="checkbox"]');
+        var txt = (lbl.querySelector('span') || lbl).textContent || '';
+        if (!found && simple(txt) === key) { found = inp; foundLbl = lbl; }
+      });
+    }
+    if (!found){
+      var boxes = options.querySelectorAll('input[type="checkbox"]');
+      boxes.forEach(function(inp){
+        var cont = inp.closest('label') || inp.parentElement;
+        var txt = (cont && cont.textContent) ? cont.textContent : (inp.value || '');
+        if (!found && simple(txt) === key) { found = inp; foundLbl = cont; }
+      });
+    }
+
+    if (found){
+      found.checked = true;
+      found.disabled = true;
+      if (foundLbl && foundLbl.classList) foundLbl.classList.add('vp-users-option--source');
+    } else {
+      // inject locked entry
+      var lbl = document.createElement('label');
+      lbl.className = 'vp-users-option vp-users-option--source';
+      var inp = document.createElement('input');
+      inp.type = 'checkbox'; inp.checked = true; inp.disabled = true; inp.value = targetName;
+      var span = document.createElement('span'); span.textContent = targetName;
+      lbl.appendChild(inp); lbl.appendChild(span);
+      if (options.firstChild) options.insertBefore(lbl, options.firstChild); else options.appendChild(lbl);
+    }
+
+    // keep it locked even if user clicks around
+    options.addEventListener('change', function(){
+      setTimeout(applyUsersLock, 0);
+    });
+    options.addEventListener('click', function(ev){
+      var t = ev.target;
+      if (t && t.type === 'checkbox' && t.disabled){ ev.preventDefault(); ev.stopPropagation(); }
+    }, true);
+
+    var summary = document.getElementById('vpUsersSummary');
+    if (summary){
+      var count = (options.querySelectorAll('input[type="checkbox"]:checked')||[]).length;
+      summary.textContent = 'Selected: ' + count + ' team member' + (count===1?'':'s');
+    }
+    return true;
+  }
+
+  function installUsersObserver(){
+    var options = usersOptionsHost();
+    if (!options || options.__vpLockObs) return;
+    var obs = new MutationObserver(function(){ applyUsersLock(); });
+    obs.observe(options, { childList:true, subtree:true });
+    options.__vpLockObs = obs;
+  }
+
+  function ensureUsersLockWithRetries(){
+    var tries = 24;
+    (function tick(){
+      if (applyUsersLock()){ installUsersObserver(); return; }
+      if (--tries <= 0) return;
+      setTimeout(tick, 80);
+    })();
+  }
+
+  function ensureBeneficiaryDropdown(){
+    var ctx = window.__vpLastContext || {};
+    var project = ctx.project || (document.getElementById('vpProject') && document.getElementById('vpProject').value) || '';
+    var team    = ctx.team    || (document.getElementById('vpTeam')    && document.getElementById('vpTeam').value)    || '';
+    var sel     = document.getElementById('vpBeneficiary');
+    var pre     = window.__vpLockedUserName || '';
+    if (!sel) return;
+
+    if (typeof window.populateResponsibleBeneficiaryOptions === 'function'){
+      window.populateResponsibleBeneficiaryOptions(project, team, pre);
+      // ensure selected after render
+      setTimeout(function(){
+        if (!pre) return;
+        var opts = Array.from(sel.options || []);
+        var match = opts.find(function(o){ return simple(o.value) === simple(pre) || simple(o.text) === simple(pre); });
+        if (match) sel.value = match.value;
+      }, 0);
+      return;
+    }
+
+    // fallback build
+    var list = [];
+    if (typeof window.getTeamBeneficiariesFromDDC === 'function') list = window.getTeamBeneficiariesFromDDC(project, team);
+    if ((!list || !list.length) && typeof window.collectBeneficiariesFromTable === 'function') list = window.collectBeneficiariesFromTable(project, team);
+    var html = ['<option value="">Select Responsible Beneficiary Only</option>']
+      .concat((list||[]).map(function(n){
+        var esc = String(n).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        return '<option value="'+esc+'">'+esc+'</option>';
+      }));
+    sel.innerHTML = html.join('');
+    if (pre){
+      var opts = Array.from(sel.options || []);
+      var m = opts.find(function(o){ return simple(o.value) === simple(pre) || simple(o.text) === simple(pre); });
+      if (m) sel.value = m.value;
+    }
+  }
+
+  // Hook any renderer to re-apply lock
+  if (typeof window.renderUsersMulti === 'function' && !window.renderUsersMulti.__vpLockWrap){
+    var __origRenderUsers = window.renderUsersMulti;
+    window.renderUsersMulti = function(){
+      var r = __origRenderUsers.apply(this, arguments);
+      setTimeout(ensureUsersLockWithRetries, 0);
+      return r;
+    };
+    window.renderUsersMulti.__vpLockWrap = true;
+  }
+
+  // When modal becomes visible: enforce correct team dropdown + user lock
+  (function watchModal(){
+    var modal = document.getElementById('vehiclePickerModal');
+    if (!modal) return;
+    var mo = new MutationObserver(function(list){
+      list.forEach(function(m){
+        if (m.attributeName === 'aria-hidden'){
+          var open = modal.getAttribute('aria-hidden') === 'false';
+          if (open){
+            setTimeout(function(){
+              ensureBeneficiaryDropdown();
+              ensureUsersLockWithRetries();
+            }, 0);
+          }
+        }
+      });
+    });
+    mo.observe(modal, { attributes:true, attributeFilter:['aria-hidden'] });
+  })();
+})();
+</script>

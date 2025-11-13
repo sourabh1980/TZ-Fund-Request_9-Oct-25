@@ -9,6 +9,54 @@ const VEHICLE_SUMMARY_HEADER = [
   'Make','Model','Category','Usage Type','Owner','Status','Last Users remarks','Ratings','Submitter username','R.Ben Time','R. Ben'
 ];
 
+/** ============================================================================
+ * VEHICLE CACHE (backend pre-warm) configuration for ~500 vehicles
+ * - Debounced warm 5s after last CarT_P edit
+ * - Chunked CacheService + durable Drive JSON backup
+ * - Instant read endpoints for popup
+ * ============================================================================
+ */
+const VEH_BACKEND_CACHE = {
+  META_KEY:            'veh:meta_v1',
+  CHUNK_PREFIX:        'veh:chunk_v1:',
+  BACKUP_FILE:         'VehicleCache_v1.json',
+  CHUNK_SIZE:          200,       // ≈200/200/100 for ~500 vehicles
+  TTL_SECONDS:         10 * 60,   // 10 minutes
+  PREWARM_DELAY_MS:    5 * 1000,  // 5s after last CarT_P change
+  PROP_LAST_EDIT_TS:   'veh:lastEditTs_v1'
+};
+
+/**
+ * VEHICLE CACHE v2 (global versions + team stamps)
+ * - MV (pool): single global version of the released vehicle pool (chunked)
+ * - IV (in-use): single global version of current assignments (with per-team stamps)
+ */
+const VEH_V2 = {
+  POOL_ACTIVE_VERSION: 'veh:v2:pool:active_version',
+  POOL_CHUNK_PREFIX:   'veh:v2:pool:chunk:',
+  INUSE_ACTIVE_VERSION:'veh:v2:inuse:active_version',
+  INUSE_CHUNK_PREFIX:  'veh:v2:inuse:map:',
+  INUSE_TEAM_STAMP:    'veh:v2:inuse:active_version:team:',
+  LAST_EDIT_TS_PROP:   'veh:v2:lastCarTPChangeTs',
+  LAST_PUBLISH_TS:     'veh:v2:lastPublishTs',
+  PREWARM_DELAY_MS:    5 * 1000,
+  MAX_WAIT_MS:         20 * 1000,
+  CHUNK_SIZE:          200,
+  CACHE_TTL_SECONDS:   10 * 60
+};
+
+
+function _vehCacheProps_() { return PropertiesService.getScriptProperties(); }
+function _vehCache_()      { return CacheService.getScriptCache(); }
+function _vehNow_()        { return Date.now(); }
+function _vehLog_(...a){ try { console.log('[VEH_CACHE]', ...a); } catch (_){/* noop */} }
+function _vehJSON_(o){ return JSON.stringify(o); }
+function _vehPARSE_(s, fb){ try { return JSON.parse(s); } catch(_){ return fb; } }
+function _vehSHA256_(str){
+  const raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, str, Utilities.Charset.UTF_8);
+  return raw.map(b => (b+256)%256).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
 function upsertVehicleSummaryRow(sheetName, rowData, keyType) {
   try {
     if (!rowData || typeof rowData !== 'object') return;
@@ -123,6 +171,7 @@ function invalidateVehicleReleasedCache(reason) {
       // logging optional
     }
   }
+  try { vehStampCarTPChange_(reason || 'Vehicle_Released invalidated'); } catch (_e) { /* ignore */ }
 }
 
 function invalidateVehicleCache(reason) {
@@ -13487,3 +13536,387 @@ function RAG_menuRefresh(){
     _LLM_showDialog_('RAG Refresh', JSON.stringify(res, null, 2));
   }catch(e){ _LLM_showDialog_('RAG Refresh', 'Error: ' + String(e)); }
 }
+
+/** ============================================================================
+ * Backend pre-warm: build payload from Vehicle_Released and cache it (chunked)
+ * Reuses existing getVehicleReleasedSummary() to avoid duplicate sheet logic
+ * ============================================================================
+ */
+
+// Build compact payload { catalog:[{v,m,mo,c,u,o}], lists:{...} }
+function _vehBuildPayload_() {
+  const sum = getVehicleReleasedSummary();
+  if (!sum || sum.ok === false) {
+    return { catalog: [], lists: { vehicleNumber: [], make: [], model: [], category: [], usageType: [], owner: [] } };
+  }
+  const raw = Array.isArray(sum.vehicles) ? sum.vehicles : [];
+  const cat = [];
+  const setMake = new Set(), setModel = new Set(), setCat = new Set(), setUse = new Set(), setOwner = new Set(), setNum = new Set();
+  raw.forEach(function(entry){
+    const v  = String(entry.vehicleNumber || entry.carNumber || '').trim().toUpperCase();
+    if (!v) return;
+    const m  = String(entry.make || '').trim();
+    const mo = String(entry.model || '').trim();
+    const c  = String(entry.category || '').trim();
+    const u  = String(entry.usageType || '').trim();
+    const o  = String(entry.owner || '').trim();
+    cat.push({ v:v, m:m, mo:mo, c:c, u:u, o:o });
+    setNum.add(v); if (m) setMake.add(m); if (mo) setModel.add(mo); if (c) setCat.add(c); if (u) setUse.add(u); if (o) setOwner.add(o);
+  });
+  const lists = {
+    vehicleNumber: Array.from(setNum).sort(),
+    make:          Array.from(setMake).sort(),
+    model:         Array.from(setModel).sort(),
+    category:      Array.from(setCat).sort(),
+    usageType:     Array.from(setUse).sort(),
+    owner:         Array.from(setOwner).sort()
+  };
+  return { catalog: cat, lists: lists };
+}
+
+function _vehChunk_(arr, size){
+  const out = [];
+  for (let i=0;i<arr.length;i+=size) out.push(arr.slice(i, i+size));
+  return out;
+}
+
+function _vehPutCache_(catalog, lists){
+  const chunks = _vehChunk_(catalog, VEH_BACKEND_CACHE.CHUNK_SIZE);
+  const meta = {
+    ok: true,
+    version: _vehSHA256_(_vehJSON_([catalog.length, lists.vehicleNumber[0]||'', lists.make[0]||''])),
+    updatedAt: new Date().toISOString(),
+    total: catalog.length,
+    chunkCount: chunks.length,
+    chunkKeys: chunks.map(function(_c, i){ return VEH_BACKEND_CACHE.CHUNK_PREFIX + (i+1); }),
+    lists: lists
+  };
+  const cache = _vehCache_();
+  cache.put(VEH_BACKEND_CACHE.META_KEY, _vehJSON_(meta), VEH_BACKEND_CACHE.TTL_SECONDS);
+  chunks.forEach(function(chunk, i){
+    cache.put(VEH_BACKEND_CACHE.CHUNK_PREFIX + (i+1), _vehJSON_(chunk), VEH_BACKEND_CACHE.TTL_SECONDS);
+  });
+  _vehWriteBackup_({ meta: meta, chunks: chunks });
+  return meta;
+}
+
+function _vehGetCache_(){
+  const cache = _vehCache_();
+  const rawMeta = cache.get(VEH_BACKEND_CACHE.META_KEY);
+  if (!rawMeta) return null;
+  const meta = _vehPARSE_(rawMeta, null);
+  if (!meta || !meta.ok) return null;
+  const all = [];
+  for (let i=0;i<meta.chunkCount;i++){
+    const k = meta.chunkKeys[i];
+    const raw = cache.get(k);
+    if (!raw) return null; // partial miss → fallback to backup
+    const chunk = _vehPARSE_(raw, []);
+    all.push.apply(all, chunk);
+  }
+  return { meta: meta, catalog: all };
+}
+
+function _vehWriteBackup_(payload){
+  const json = _vehJSON_(payload);
+  const it = DriveApp.getFilesByName(VEH_BACKEND_CACHE.BACKUP_FILE);
+  if (it.hasNext()) {
+    it.next().setContent(json);
+  } else {
+    DriveApp.createFile(VEH_BACKEND_CACHE.BACKUP_FILE, json, MimeType.JSON);
+  }
+}
+
+function _vehReadBackup_(){
+  const it = DriveApp.getFilesByName(VEH_BACKEND_CACHE.BACKUP_FILE);
+  if (!it.hasNext()) return null;
+  const f = it.next();
+  return _vehPARSE_(f.getBlob().getDataAsString('UTF-8'), null);
+}
+
+/** Debounced schedule: 5s after last CarT_P change */
+function _vehScheduleWarmJob_(){
+  // Remove any existing warmVehiclesCacheJob time triggers to debounce
+  ScriptApp.getProjectTriggers()
+    .filter(function(t){ return t.getHandlerFunction && t.getHandlerFunction() === 'warmVehiclesCacheJob'; })
+    .forEach(function(t){ ScriptApp.deleteTrigger(t); });
+  ScriptApp.newTrigger('warmVehiclesCacheJob').timeBased().after(VEH_BACKEND_CACHE.PREWARM_DELAY_MS).create();
+  _vehLog_('Warm job scheduled in', VEH_BACKEND_CACHE.PREWARM_DELAY_MS, 'ms');
+}
+
+/**
+ * Call this from your existing onEdit(e) or create an installable trigger:
+ * ensureVehiclesChangeTrigger()
+ */
+function vehicles_onEdit(e){
+  try{
+    if (!e || !e.range) return;
+    const sh = e.range.getSheet();
+    if (!sh || sh.getName() !== 'CarT_P') return; // only react to CarT_P
+    _vehCacheProps_().setProperty(VEH_BACKEND_CACHE.PROP_LAST_EDIT_TS, String(_vehNow_()));
+    _vehScheduleWarmJob_();
+  } catch(err){ _vehLog_('vehicles_onEdit error', err); }
+}
+
+function ensureVehiclesChangeTrigger(){
+  const triggers = ScriptApp.getProjectTriggers();
+  const exists = triggers.some(function(t){ return t.getHandlerFunction && t.getHandlerFunction() === 'vehicles_onEdit'; });
+  if (!exists){
+    ScriptApp.newTrigger('vehicles_onEdit').forSpreadsheet(SpreadsheetApp.getActive()).onEdit().create();
+  }
+  return { ok: true, created: !exists };
+}
+
+/** The actual warm job (runs after debounce) */
+function warmVehiclesCacheJob(){
+  try{
+    const props = _vehCacheProps_();
+    const lastStr = props.getProperty(VEH_BACKEND_CACHE.PROP_LAST_EDIT_TS);
+    const last = lastStr ? Number(lastStr) : 0;
+    const diff = _vehNow_() - last;
+    if (last && diff < VEH_BACKEND_CACHE.PREWARM_DELAY_MS){
+      const remaining = VEH_BACKEND_CACHE.PREWARM_DELAY_MS - diff + 50;
+      ScriptApp.newTrigger('warmVehiclesCacheJob').timeBased().after(remaining).create();
+      _vehLog_('Warm job re-scheduled in', remaining, 'ms (recent edit)');
+      return;
+    }
+    SpreadsheetApp.flush(); // let Vehicle_Released settle
+    const built = _vehBuildPayload_();
+    const meta = _vehPutCache_(built.catalog, built.lists);
+    _vehLog_('Warm complete:', built.catalog.length, 'vehicles; version', meta.version);
+  } catch(err){
+    _vehLog_('warmVehiclesCacheJob error', err);
+  }
+}
+
+/** ============================================================================
+ * PUBLIC endpoints for the popup (instant reads from backend cache)
+ * - fetchVehiclesForExisting(): full list + filter lists
+ * - fetchNewVehicleOptions(): lists + compact catalog
+ * - fetchVehiclesCached(): both in one call
+ * ============================================================================
+ */
+
+function fetchVehiclesForExisting(){
+  var cached = _vehGetCache_();
+  if (!cached){
+    // fallback to durable backup
+    var backup = _vehReadBackup_();
+    if (backup && backup.meta && backup.chunks){
+      var all = [].concat.apply([], backup.chunks);
+      _vehPutCache_(all, backup.meta.lists || { vehicleNumber: [], make: [], model: [], category: [], usageType: [], owner: [] });
+      cached = { meta: backup.meta, catalog: all };
+    } else {
+      // last resort read
+      var built = _vehBuildPayload_();
+      var meta = _vehPutCache_(built.catalog, built.lists);
+      cached = { meta: meta, catalog: built.catalog };
+    }
+  }
+  var vehicles = cached.catalog.map(function(o){
+    return { vehicleNumber:o.v, make:o.m, model:o.mo, category:o.c, usageType:o.u, owner:o.o };
+  });
+  return { ok:true, version: cached.meta.version, updatedAt: cached.meta.updatedAt, vehicles: vehicles, lists: cached.meta.lists };
+}
+
+function fetchNewVehicleOptions(){
+  var res = fetchVehiclesForExisting();
+  var opts = {
+    vehicleNumber: res.lists.vehicleNumber,
+    make: res.lists.make,
+    model: res.lists.model,
+    category: res.lists.category,
+    usageType: res.lists.usageType,
+    owner: res.lists.owner,
+    catalog: res.vehicles.map(function(v){
+      return { vehicleNumber:v.vehicleNumber, make:v.make, model:v.model, category:v.category, usageType:v.usageType, owner:v.owner };
+    })
+  };
+  return { ok:true, options: opts, version: res.version, updatedAt: res.updatedAt };
+}
+
+function fetchVehiclesCached(){
+  var a = fetchVehiclesForExisting();
+  var b = fetchNewVehicleOptions();
+  return { ok:true, version:a.version, updatedAt:a.updatedAt, vehicles:a.vehicles, lists:a.lists, options:b.options };
+}
+
+// ---- BEGIN VEHICLE CACHE V2 ADDITIONS ----
+
+function vehProps_(){ return PropertiesService.getScriptProperties(); }
+function vehCache_(){ return CacheService.getScriptCache(); }
+function vehNow_(){ return Date.now(); }
+
+function _veh_v2_normTeamKey_(s){
+  try { return typeof _normTeamKey === 'function' ? _normTeamKey(String(s||'')) : String(s||'').trim().toLowerCase().replace(/\s+/g,' '); } catch(_){ return String(s||'').trim().toLowerCase(); }
+}
+function _veh_v2_normVeh_(v){
+  const s = String(v||'').trim();
+  return s ? s.toUpperCase() : '';
+}
+function _veh_v2_version_(){
+  return String(Math.floor(Date.now()/1000));
+}
+function _veh_v2_putChunks_(prefix, version, json, ttlSeconds){
+  const cache = vehCache_();
+  const props = vehProps_();
+  var text = String(json);
+  var max = 90000;
+  var parts = [];
+  for (var i=0;i<text.length;i+=max){ parts.push(text.substring(i, i+max)); }
+  for (var j=0;j<parts.length;j++){
+    var key = prefix + version + ':' + j;
+    try { cache.put(key, parts[j], Math.max(5, Number(ttlSeconds)||600)); } catch(_){ }
+    try { props.setProperty(key, parts[j]); } catch(_){ }
+  }
+  try { props.setProperty(prefix + version + ':count', String(parts.length)); } catch(_){ }
+  return parts.length;
+}
+function _veh_v2_getChunks_(prefix, version){
+  const cache = vehCache_();
+  const props = vehProps_();
+  var count = Number(props.getProperty(prefix + version + ':count') || '0') || 0;
+  if (!count) return '';
+  var out = [];
+  for (var i=0;i<count;i++){
+    var key = prefix + version + ':' + i;
+    var chunk = cache.get(key);
+    if (!chunk){
+      try { chunk = props.getProperty(key) || ''; } catch(_){ chunk = ''; }
+    }
+    out.push(chunk || '');
+  }
+  return out.join('');
+}
+function _veh_v2_atomicFlip_(propKey, newVersion){
+  const props = vehProps_();
+  props.setProperty(propKey, String(newVersion));
+}
+
+function vehStampCarTPChange_(reason){
+  const props = vehProps_();
+  try { props.setProperty(VEH_V2.LAST_EDIT_TS_PROP, String(vehNow_())); } catch(_){ }
+  try { props.setProperty('veh:v2:lastReason', String(reason||'')); } catch(_){ }
+  try { ScriptApp.newTrigger('vehDebouncedWarmCoordinator').timeBased().after(VEH_V2.PREWARM_DELAY_MS).create(); } catch(_){ }
+}
+
+function vehDebouncedWarmCoordinator(){
+  const props = vehProps_();
+  var lastEdit = Number(props.getProperty(VEH_V2.LAST_EDIT_TS_PROP) || '0') || 0;
+  if (!lastEdit){ return; }
+  var now = vehNow_();
+  var since = now - lastEdit;
+  if (since < VEH_V2.PREWARM_DELAY_MS){
+    try { ScriptApp.newTrigger('vehDebouncedWarmCoordinator').timeBased().after(VEH_V2.PREWARM_DELAY_MS).create(); } catch(_){
+    }
+    return;
+  }
+  warmVehiclesCacheJobV2();
+}
+
+function warmVehiclesCacheJobV2(){
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(5000)) { return; }
+  try {
+    vehPublishInUse_();
+    vehPublishPool_();
+    vehProps_().setProperty(VEH_V2.LAST_PUBLISH_TS, String(vehNow_()));
+  } catch (e) {
+    try { console.error('[vehPublish] failed', e); } catch(_){
+    }
+  } finally {
+    try { lock.releaseLock(); } catch(_){
+    }
+  }
+}
+
+function vehPublishInUse_(){
+  var summary = getVehicleInUseSummary();
+  if (!summary || summary.ok === false) return;
+  var byBeneficiary = {};
+  var byVehicle = {};
+  var teamSet = {};
+  var list = Array.isArray(summary.assignments) ? summary.assignments : [];
+  for (var i=0;i<list.length;i++){
+    var row = list[i] || {};
+    var ben = String(row.beneficiary || row.responsibleBeneficiary || '').trim();
+    var veh = _veh_v2_normVeh_(row.vehicleNumber || row.carNumber || '');
+    var team = _veh_v2_normTeamKey_(row.team || '');
+    if (team) teamSet[team] = 1;
+    if (ben && veh){
+      byBeneficiary[ben.toLowerCase()] = { name: ben, vehicleNumber: veh, team: row.team || '', project: row.project || '', ts: row.latestTimestamp || '' };
+      byVehicle[veh] = { vehicleNumber: veh, beneficiary: ben, team: row.team || '', project: row.project || '', ts: row.latestTimestamp || '' };
+    }
+  }
+  var payload = { ok:true, generatedAt: new Date().toISOString(), byBeneficiary: byBeneficiary, byVehicle: byVehicle };
+  var version = _veh_v2_version_();
+  var json = JSON.stringify(payload);
+  _veh_v2_putChunks_(VEH_V2.INUSE_CHUNK_PREFIX, version, json, VEH_V2.CACHE_TTL_SECONDS);
+  var props = vehProps_();
+  for (var t in teamSet){
+    try { props.setProperty(VEH_V2.INUSE_TEAM_STAMP + t, version); } catch(_){ }
+  }
+  _veh_v2_atomicFlip_(VEH_V2.INUSE_ACTIVE_VERSION, version);
+}
+
+function vehPublishPool_(){
+  var summary = getVehicleReleasedSummary();
+  if (!summary || summary.ok === false) return;
+  var rows = Array.isArray(summary.vehicles) ? summary.vehicles : [];
+  var pool = rows.map(function(e){
+    var v = _veh_v2_normVeh_(e.vehicleNumber || e.carNumber || e.vehicle || '');
+    if (!v) return null;
+    return {
+      vehicleNumber: v,
+      project: e.project || '',
+      team: e.team || '',
+      owner: e.owner || '',
+      category: e.category || '',
+      usageType: e.usageType || '',
+      make: e.make || '',
+      model: e.model || '',
+      status: e.status || '',
+      latestRelease: e.latestRelease || ''
+    };
+  }).filter(function(x){ return !!x; });
+  var payload = { ok:true, generatedAt: new Date().toISOString(), vehicles: pool };
+  var version = _veh_v2_version_();
+  var json = JSON.stringify(payload);
+  _veh_v2_putChunks_(VEH_V2.POOL_CHUNK_PREFIX, version, json, VEH_V2.CACHE_TTL_SECONDS);
+  _veh_v2_atomicFlip_(VEH_V2.POOL_ACTIVE_VERSION, version);
+}
+
+function getVehicleCacheVersionsV2(){
+  var props = vehProps_();
+  return {
+    poolActiveVersion: props.getProperty(VEH_V2.POOL_ACTIVE_VERSION) || '',
+    inuseActiveVersion: props.getProperty(VEH_V2.INUSE_ACTIVE_VERSION) || '',
+    lastPublishTs: props.getProperty(VEH_V2.LAST_PUBLISH_TS) || '',
+    lastEditTs: props.getProperty(VEH_V2.LAST_EDIT_TS_PROP) || ''
+  };
+}
+
+function readVehiclePoolV2(version){
+  var v = String(version || '').trim();
+  if (!v) {
+    var props = vehProps_();
+    v = props.getProperty(VEH_V2.POOL_ACTIVE_VERSION) || '';
+    if (!v) return { ok:false, error:'No pool version' };
+  }
+  var json = _veh_v2_getChunks_(VEH_V2.POOL_CHUNK_PREFIX, v);
+  if (!json) return { ok:false, error:'Pool chunks missing for version '+v };
+  try { var payload = JSON.parse(json); payload.version = v; return payload; } catch(e){ return { ok:false, error:String(e) }; }
+}
+function readVehicleInUseV2(version){
+  var v = String(version || '').trim();
+  if (!v) {
+    var props = vehProps_();
+    v = props.getProperty(VEH_V2.INUSE_ACTIVE_VERSION) || '';
+    if (!v) return { ok:false, error:'No in-use version' };
+  }
+  var json = _veh_v2_getChunks_(VEH_V2.INUSE_CHUNK_PREFIX, v);
+  if (!json) return { ok:false, error:'In-use chunks missing for version '+v };
+  try { var payload = JSON.parse(json); payload.version = v; return payload; } catch(e){ return { ok:false, error:String(e) }; }
+}
+
+// ---- END VEHICLE CACHE V2 ADDITIONS ----
