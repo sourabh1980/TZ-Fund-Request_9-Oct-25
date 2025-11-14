@@ -4,6 +4,8 @@ const VEHICLE_RELEASED_CACHE_KEY = 'vehicle_released_dropdown_payload_v1';
 const VEHICLE_RELEASED_PROP_KEY = 'vehicle_released_dropdown_payload_v1_json';
 const VEHICLE_RELEASED_VERSION_PROP_KEY = 'vehicle_released_dropdown_payload_v1_version';
 const VEHICLE_RELEASED_CACHE_TTL_SECONDS = 120;
+const VEH_CACHE_SHEET_NAME = 'vehcache';
+
 const VEHICLE_SUMMARY_HEADER = [
   'Ref','Date and time of entry','Project','Team','R.Beneficiary','Vehicle Number',
   'Make','Model','Category','Usage Type','Owner','Status','Last Users remarks','Ratings','Submitter username','R.Ben Time','R. Ben'
@@ -176,23 +178,9 @@ function invalidateVehicleReleasedCache(reason) {
 
 function invalidateVehicleCache(reason) {
   try {
-    CacheService.getScriptCache().remove(VEHICLE_CACHE_KEY);
-  } catch (_cacheErr) {
-    // ignore cache purge failures
-  }
-  try {
-    const props = PropertiesService.getScriptProperties();
-    props.deleteProperty(VEHICLE_PROP_KEY);
-    props.deleteProperty(VEHICLE_VERSION_PROP_KEY);
-  } catch (_propErr) {
-    // ignore property purge failures
-  }
-  if (reason) {
-    try {
-      console.log('[CACHE] Vehicle cache invalidated:', reason);
-    } catch (_logErr) {
-      // logging optional
-    }
+    invalidateVehicleSheetCache('vehicle', reason || 'Vehicle cache invalidated');
+  } catch (err) {
+    console.error('invalidateVehicleCache failed:', err);
   }
 }
 
@@ -528,7 +516,7 @@ function getVehicleInUseSummary() {
     vehicleIdx = _findCarNumberColumn_(summary.headerRow, summary.rows);
     if (vehicleIdx >= 0) {
       try {
-        console.log('[BACKEND] Vehicle_Released header fallback matched car column at index', vehicleIdx, {
+        console.log('[BACKEND] Vehicle_InUse header fallback matched car column at index', vehicleIdx, {
           header: String(summary.headerRow[vehicleIdx] || '')
         });
       } catch (_logErr) {
@@ -538,7 +526,7 @@ function getVehicleInUseSummary() {
   }
   if (vehicleIdx < 0) {
     try {
-      console.error('[BACKEND] Vehicle_Released summary missing vehicle column', {
+      console.error('[BACKEND] Vehicle_InUse summary missing vehicle column', {
         headers: Array.isArray(summary.headerRow) ? summary.headerRow : null,
         sheetId: summary.sheetId || null,
         sheetLabel: summary.sheetLabel || null
@@ -597,6 +585,53 @@ function getVehicleInUseSummary() {
     assignments: assignments,
     updatedAt: summary.updatedAt || new Date().toISOString()
   };
+}
+
+function _isActiveVehicleInUseEntry_(entry) {
+  if (!entry) return false;
+  const statusValue = (entry.assignmentStatus != null) ? entry.assignmentStatus : entry.status;
+  const status = String(statusValue == null ? '' : statusValue).trim();
+  const beneficiary = String(entry.beneficiary || entry.responsibleBeneficiary || '').trim();
+
+  if (!status) {
+    return beneficiary.length > 0;
+  }
+
+  const upper = status.toUpperCase();
+  const compact = upper.replace(/[\s_\-\/]+/g, '');
+
+  const releaseRegex = /(RELEASE|AVAILABLE|RETURN|RELIEVED|FREE|SPARE|POOL)/;
+  const activeRegex = /(INUSE|ASSIGNED|ACTIVE|OCCUPIED|ALLOCATED|DEPLOYED|RUNNING|ONROAD|ONTRIP|HOLDING|BLOCKED|BUSY|ENGAGED)/;
+
+  const hasRelease = releaseRegex.test(compact);
+  const hasActive = activeRegex.test(compact);
+
+  if (hasActive && !hasRelease) {
+    return true;
+  }
+  if (!hasActive && hasRelease) {
+    return false;
+  }
+
+  if (hasActive && hasRelease) {
+    const releasePos = compact.search(/RELEASE/);
+    const inUsePos = compact.search(/INUSE/);
+    if (inUsePos !== -1 && (releasePos === -1 || inUsePos < releasePos)) {
+      return true;
+    }
+    if (releasePos !== -1 && (inUsePos === -1 || releasePos < inUsePos)) {
+      return false;
+    }
+  }
+
+  if (/UNASSIGNED|AVAILABLE|FREE|SPARE|POOL/.test(compact)) {
+    return false;
+  }
+  if (/RESERVED|BLOCKED|HOLD/.test(compact)) {
+    return true;
+  }
+
+  return !hasRelease && (beneficiary.length > 0 || !compact.length);
 }
 
 function getVehicleReleasedSummary() {
@@ -2188,6 +2223,27 @@ function refreshVehicleStatusSheets() {
     }
   });
 
+  const inUseVehicleNumbers = new Set();
+  finalInUseSummaries.forEach(function(row) {
+    const vehicleNumber = String(
+      row['Vehicle Number'] ||
+      row.vehicleNumber ||
+      row.carNumber ||
+      ''
+    ).trim().toUpperCase();
+    if (vehicleNumber) {
+      inUseVehicleNumbers.add(vehicleNumber);
+    }
+  });
+
+  const availableVehicleSummaries = [];
+  latestByVehicle.forEach(function(row, vehicleKey){
+    const normalizedKey = String(vehicleKey || '').trim().toUpperCase();
+    if (!normalizedKey) return;
+    if (inUseVehicleNumbers.has(normalizedKey)) return;
+    availableVehicleSummaries.push(row);
+  });
+
   const sortByLatestEntry = (a, b) => {
     const tsA = typeof a._ts === 'number' ? a._ts : 0;
     const tsB = typeof b._ts === 'number' ? b._ts : 0;
@@ -2199,6 +2255,7 @@ function refreshVehicleStatusSheets() {
 
   finalInUseSummaries.sort(sortByLatestEntry);
   finalReleasedSummaries.sort(sortByLatestEntry);
+  availableVehicleSummaries.sort(sortByLatestEntry);
 
   console.log(`Writing ${finalInUseSummaries.length} rows to Vehicle_InUse sheet.`);
   writeVehicleSummarySheet('Vehicle_InUse', finalInUseSummaries);
@@ -2206,12 +2263,16 @@ function refreshVehicleStatusSheets() {
   console.log(`Writing ${finalReleasedSummaries.length} rows to Vehicle_Released sheet.`);
   writeVehicleSummarySheet('Vehicle_Released', finalReleasedSummaries);
 
+  console.log(`Writing ${availableVehicleSummaries.length} rows to ${VEH_CACHE_SHEET_NAME} sheet.`);
+  writeVehicleSummarySheet(VEH_CACHE_SHEET_NAME, availableVehicleSummaries);
+
   writeVehicleSummarySheet('Vehicle_History', allCarRows);
 
   return {
     ok: true,
     inUse: finalInUseSummaries.length,
-    released: finalReleasedSummaries.length
+    released: finalReleasedSummaries.length,
+    available: availableVehicleSummaries.length
   };
 }
 
@@ -12490,7 +12551,7 @@ function _loadVehicleDropdownPayload_(sheetName) {
   if (payload && payload.cached && payload.ok !== false) {
     const vehicles = Array.isArray(payload.vehicles) ? payload.vehicles : [];
     if (!vehicles.length) {
-      invalidateVehicleCache(sheetName, 'Cached ' + sheetName + ' payload empty, forcing rebuild');
+      invalidateVehicleSheetCache(sheetName, 'Cached ' + sheetName + ' payload empty, forcing rebuild');
       const fresh = _buildVehicleDropdownPayload_(sheetName);
       payload = Object.assign({}, fresh, {
         cached: false,
@@ -12532,20 +12593,24 @@ function _loadVehicleDropdownPayload_(sheetName) {
 }
 
 function _buildVehicleReleasedDropdownPayload_() {
+  // The vehcache tab is the single source of truth for the Select Vehicle popup.
+  // It is refreshed automatically whenever CarT_P changes by diffing Vehicle_InUse
+  // entries against all CarT_P vehicles and storing the remaining vehicles.
   _maybeAutoRefreshCarTPSummaries_(10);
 
-  const summary = getVehicleReleasedSummary();
   const generatedAt = new Date().toISOString();
+  const sheetName = VEH_CACHE_SHEET_NAME;
+  const summary = getVehicleSummaryRows(sheetName);
 
-  if (!summary.ok) {
+  if (summary.error) {
     return {
       ok: false,
-      source: 'Vehicle_Released',
+      source: sheetName,
       count: 0,
       vehicles: [],
       cached: false,
       updatedAt: summary.updatedAt || '',
-      error: summary.error || 'Vehicle_Released summary unavailable',
+      error: summary.error || `${sheetName} summary unavailable`,
       notes: summary.notes || null,
       sheetId: summary.sheetId || null,
       tried: summary.tried || null,
@@ -12554,44 +12619,175 @@ function _buildVehicleReleasedDropdownPayload_() {
     };
   }
 
-  const vehicles = (summary.vehicles || []).map(function(entry) {
-    const carNumber = String(entry.vehicleNumber || entry.carNumber || '').trim();
-    const status = _normStatus_(entry.status || 'RELEASE') || 'RELEASE';
-    return Object.assign({}, entry, {
+  const rows = Array.isArray(summary.rows) ? summary.rows : [];
+  const notes = Array.isArray(summary.notes) ? summary.notes.slice() : [];
+
+  if (!rows.length) {
+    if (!notes.includes(`${sheetName} summary empty`)) {
+      notes.push(`${sheetName} summary empty`);
+    }
+    console.warn('[BACKEND] getVehiclePickerData via cache builder returned 0 vehicles (vehcache summary empty)', {
+      summaryMessage: summary.message || null,
+      notes: notes,
+      tried: summary.tried || null,
+      sheetId: summary.sheetId || null,
+      headers: summary.headerRow || null
+    });
+    return {
+      ok: true,
+      source: sheetName,
+      count: 0,
+      vehicles: [],
+      cached: false,
+      updatedAt: summary.updatedAt || generatedAt,
+      generatedAt: generatedAt,
+      notes: notes.length ? notes : null,
+      headers: summary.headerRow || null,
+      sheetId: summary.sheetId || null,
+      tried: summary.tried || null,
+      summaryMessage: summary.message || null
+    };
+  }
+
+  const IX = summary.headerIndex;
+  const idx = function(labels) {
+    if (!IX) return -1;
+    try { return IX.get(labels); } catch (_err) { return -1; }
+  };
+
+  let vehicleIdx = idx(['Vehicle Number', 'Car Number', 'Vehicle No', 'Car No', 'Car #', 'Car', 'Vehicle']);
+  if (vehicleIdx < 0 && Array.isArray(summary.headerRow)) {
+    vehicleIdx = _findCarNumberColumn_(summary.headerRow, rows);
+    if (vehicleIdx >= 0) {
+      try {
+        console.log('[BACKEND] vehcache header fallback matched car column at index', vehicleIdx, {
+          header: String(summary.headerRow[vehicleIdx] || '')
+        });
+      } catch (_logErr) {
+        // logging best effort
+      }
+    }
+  }
+
+  if (vehicleIdx < 0) {
+    const errorMessage = `${sheetName} summary missing vehicle number column`;
+    try {
+      console.error('[BACKEND] vehcache summary missing vehicle column', {
+        headers: Array.isArray(summary.headerRow) ? summary.headerRow : null,
+        sheetId: summary.sheetId || null,
+        sheetLabel: summary.sheetLabel || null
+      });
+    } catch (_logErr) {
+      // ignore logging failure
+    }
+    return {
+      ok: false,
+      source: sheetName,
+      count: 0,
+      vehicles: [],
+      cached: false,
+      updatedAt: summary.updatedAt || '',
+      error: errorMessage,
+      notes: notes.length ? notes : null,
+      headers: summary.headerRow || null,
+      sheetId: summary.sheetId || null,
+      tried: summary.tried || null,
+      summaryMessage: summary.message || null,
+      generatedAt: generatedAt
+    };
+  }
+
+  const makeIdx = idx(['Make', 'Car Make', 'Brand']);
+  const modelIdx = idx(['Model', 'Car Model']);
+  const categoryIdx = idx(['Category', 'Vehicle Category', 'Cat']);
+  const usageIdx = idx(['Usage Type', 'Usage', 'Use Type']);
+  const contractIdx = idx(['Contract Type', 'Contract', 'Agreement Type']);
+  const ownerIdx = idx(['Owner', 'Owner Name', 'Owner Info']);
+  const remarksIdx = idx(['Last Users remarks', 'Remarks', 'Feedback']);
+  const projectIdx = idx(['Project', 'Project Name']);
+  const teamIdx = idx(['Team', 'Team Name']);
+  const starsIdx = idx(['Ratings', 'Stars', 'Rating']);
+  const responsibleIdx = idx(['Responsible Beneficiary', 'R.Beneficiary', 'R. Ben', 'R Ben']);
+  const timestampIdx = idx(['Date and time of entry', 'Date and time', 'Timestamp', 'Latest Timestamp']);
+
+  const seen = new Set();
+  const vehicles = [];
+
+  for (let r = rows.length - 1; r >= 0; r--) {
+    const row = rows[r];
+    const carNumber = String(row[vehicleIdx] || '').trim();
+    if (!carNumber) continue;
+    const key = carNumber.toUpperCase();
+    if (seen.has(key)) continue;
+
+    const responsible = responsibleIdx >= 0 ? String(row[responsibleIdx] || '').trim() : '';
+    const starsValue = starsIdx >= 0 ? row[starsIdx] : '';
+    const numericStars = typeof starsValue === 'number' ? starsValue : Number(starsValue || 0) || 0;
+    const latestEntry = timestampIdx >= 0 ? row[timestampIdx] : '';
+
+    const entry = {
       carNumber: carNumber,
       vehicleNumber: carNumber,
-      latestRelease: entry.latestRelease || summary.updatedAt || '',
-      status: status
-    });
-  }).filter(function(entry) {
-    return String(entry.carNumber || '').trim() !== '';
+      make: makeIdx >= 0 ? row[makeIdx] : '',
+      model: modelIdx >= 0 ? row[modelIdx] : '',
+      category: categoryIdx >= 0 ? row[categoryIdx] : '',
+      usageType: usageIdx >= 0 ? row[usageIdx] : '',
+      contractType: contractIdx >= 0 ? row[contractIdx] : '',
+      owner: ownerIdx >= 0 ? row[ownerIdx] : '',
+      project: projectIdx >= 0 ? row[projectIdx] : '',
+      team: teamIdx >= 0 ? row[teamIdx] : '',
+      remarks: remarksIdx >= 0 ? row[remarksIdx] : '',
+      status: 'AVAILABLE',
+      Status: 'AVAILABLE',
+      assignmentStatus: 'AVAILABLE',
+      latestRelease: latestEntry,
+      latestTimestamp: latestEntry,
+      updatedAt: latestEntry,
+      stars: numericStars,
+      Ratings: starsValue,
+      responsibleBeneficiary: responsible,
+      'Responsible Beneficiary': responsible,
+      'R.Beneficiary': responsible,
+      'R. Ben': responsible
+    };
+
+    vehicles.push(entry);
+    seen.add(key);
+  }
+
+  vehicles.sort(function(a, b) {
+    return String(a.carNumber || '').localeCompare(String(b.carNumber || ''));
   });
 
   if (!vehicles.length) {
-    console.warn('[BACKEND] getVehiclePickerData via cache builder returned 0 vehicles (Vehicle_Released empty)', {
+    console.warn('[BACKEND] getVehiclePickerData via cache builder returned 0 available vehicles (vehcache empty)', {
+      totalVehCacheRows: rows.length,
       summaryMessage: summary.message || null,
-      notes: summary.notes || null,
+      notes: notes,
       tried: summary.tried || null,
       sheetId: summary.sheetId || null,
       headers: summary.headerRow || null
     });
   } else {
-    console.log(`[BACKEND] getVehiclePickerData cache builder loaded ${vehicles.length} vehicles from Vehicle_Released (sheet ${summary.sheetLabel || summary.sheetId || 'unknown'})`);
+    console.log(`[BACKEND] getVehiclePickerData cache builder loaded ${vehicles.length} available vehicles from ${sheetName} (sheet ${summary.sheetLabel || summary.sheetId || 'unknown'}).`);
   }
 
   return {
     ok: true,
-    source: 'Vehicle_Released',
+    source: sheetName,
     count: vehicles.length,
     vehicles: vehicles,
     cached: false,
-    updatedAt: summary.updatedAt || new Date().toISOString(),
+    updatedAt: summary.updatedAt || generatedAt,
     generatedAt: generatedAt,
-  notes: summary.notes || null,
-  headers: summary.headerRow || null,
+    notes: notes.length ? notes : null,
+    headers: summary.headerRow || null,
     sheetId: summary.sheetId || null,
     tried: summary.tried || null,
-    summaryMessage: summary.message || null
+    summaryMessage: summary.message || null,
+    debug: {
+      vehcacheRows: rows.length
+    }
   };
 }
 
@@ -12717,11 +12913,13 @@ function getVehiclePickerData(isNewCar){
     if (isNewCar) {
       return _loadVehicleDropdownPayload_('vehicle');
     } else {
+      // Legacy naming retained for cache compatibility; the underlying payload
+      // now reads exclusively from the vehcache sheet maintained by CarT_P syncs.
       return _loadVehicleReleasedDropdownPayload_();
     }
   } catch (e) {
     console.error('getVehiclePickerData failed:', e);
-    return { ok:false, source: isNewCar ? 'vehicle' : 'Vehicle_Released', error:String(e) };
+    return { ok:false, source: isNewCar ? 'vehicle' : VEH_CACHE_SHEET_NAME, error:String(e) };
   }
 }
 

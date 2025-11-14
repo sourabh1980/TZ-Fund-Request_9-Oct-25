@@ -3100,7 +3100,24 @@
             const ok = res && res.ok !== false;
             const list = ok && Array.isArray(res.vehicles) ? res.vehicles : [];
             const metaLines = [];
-            metaLines.push(`Source: ${res && res.source ? res.source : 'Vehicle_Released'}`);
+            const sourceLabel = (function(){
+              if (!res || !res.source) return 'vehicle catalog';
+              switch (res.source) {
+                case 'Vehicle_Released':
+                  return 'Vehicle_Released summary';
+                case 'CarT_P':
+                  return 'CarT_P summary';
+                case 'latestRelease':
+                  return 'Latest RELEASE list';
+                case 'uniqueRelease':
+                  return 'Unique RELEASE list';
+                case 'allUnique':
+                  return 'All vehicles';
+                default:
+                  return res.source;
+              }
+            })();
+            metaLines.push(`Source: ${sourceLabel}`);
             if (res && res.sheetId) metaLines.push(`Sheet: ${res.sheetId}`);
             if (res && res.summaryMessage) metaLines.push(`Summary: ${res.summaryMessage}`);
             if (res && Array.isArray(res.notes) && res.notes.length) {
@@ -3113,7 +3130,7 @@
             if (res && res.updatedAt) metaLines.push(`Updated: ${fmtDate(res.updatedAt)}`);
 
             if (!list.length) {
-              status.textContent = 'No RELEASE vehicles found in Vehicle_Released.';
+              status.textContent = 'No available vehicles found.';
               appendMeta(metaLines);
               table.style.display = 'none';
               tbody.innerHTML = '';
@@ -3136,10 +3153,10 @@
             tbody.innerHTML = rows;
             table.style.display = 'table';
             populated = true;
-            metaLines.unshift(`Showing ${list.length} vehicles from Vehicle_Released.`);
+            metaLines.unshift(`Showing ${list.length} available vehicle${list.length === 1 ? '' : 's'}.`);
             appendMeta(metaLines);
           } catch (err) {
-            status.textContent = 'Failed to load Vehicle_Released data.';
+            status.textContent = 'Failed to load available vehicle data.';
             console.error(err);
           }
         })
