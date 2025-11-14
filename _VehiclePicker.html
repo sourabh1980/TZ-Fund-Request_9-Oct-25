@@ -3335,7 +3335,7 @@
               const status = statusEl || document.getElementById('vpStatus');
               if (!silentFetch && status) {
                 status.setAttribute('data-state', 'error');
-                status.textContent = 'Failed to load Vehicle_Released summary.';
+                status.textContent = 'Failed to load available vehicles.';
               }
               if (manualRefreshInProgress) {
                 finalizeManualRefresh();
@@ -3664,6 +3664,25 @@
           return set;
         }
 
+        function formatVehicleSourceLabel(source){
+          const label = String(source || '').trim();
+          if (!label) return 'vehicle catalog';
+          switch (label) {
+            case 'Vehicle_Released':
+              return 'Vehicle_Released summary';
+            case 'CarT_P':
+              return 'CarT_P summary';
+            case 'latestRelease':
+              return 'Latest RELEASE list';
+            case 'uniqueRelease':
+              return 'Unique RELEASE list';
+            case 'allUnique':
+              return 'All vehicles';
+            default:
+              return label;
+          }
+        }
+
         function renderVehicles(list){
           if (vehicleRetryTimer){
             clearTimeout(vehicleRetryTimer);
@@ -3705,7 +3724,7 @@
             if (statusEl) {
               statusEl.setAttribute('data-state', 'error');
               const emptyMsg = (meta && meta.source)
-                ? `No vehicles available from ${meta.source === 'Vehicle_Released' ? 'Vehicle_Released summary' : meta.source}.`
+                ? `No vehicles available from ${formatVehicleSourceLabel(meta.source)}.`
                 : 'No vehicles available right now.';
               const extraParts = [];
               if (fetchedCount > 0) extraParts.push(`Fetched: ${fetchedCount}`);
@@ -3742,16 +3761,7 @@
                 parts.push(`Loaded in ${(meta.duration/1000).toFixed(1)}s`);
               }
               if (meta.source) {
-                  const sourceLabel = meta.source === 'Vehicle_Released'
-                    ? 'Vehicle_Released summary'
-                    : meta.source === 'latestRelease'
-                      ? 'Latest RELEASE list'
-                      : meta.source === 'uniqueRelease'
-                        ? 'Unique RELEASE list'
-                        : meta.source === 'allUnique'
-                          ? 'All vehicles'
-                          : meta.source;
-                parts.push(sourceLabel);
+                parts.push(formatVehicleSourceLabel(meta.source));
               }
               if (meta.cached) {
                 parts.push('Cached');
