@@ -33,14 +33,14 @@ function testNewCarToggle() {
     console.log('❌ Error testing getVehiclePickerData(true):', error);
   }
 
-  // Test 2: Verify getVehiclePickerData with isNewCar=false returns available vehicles from CarT_P
+  // Test 2: Verify getVehiclePickerData with isNewCar=false returns available vehicles from vehcache
   console.log('Test 2: Testing getVehiclePickerData(false)...');
   try {
     const result = getVehiclePickerData(false);
     console.log('✅ getVehiclePickerData(false) returned:', result);
 
     if (result && result.vehicles && Array.isArray(result.vehicles)) {
-      console.log(`✅ Found ${result.vehicles.length} available vehicles from CarT_P summary`);
+      console.log(`✅ Found ${result.vehicles.length} available vehicles from vehcache summary`);
     } else {
       console.log('❌ getVehiclePickerData(false) did not return expected structure');
     }
