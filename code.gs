@@ -585,6 +585,53 @@ function getVehicleInUseSummary() {
   };
 }
 
+function _isActiveVehicleInUseEntry_(entry) {
+  if (!entry) return false;
+  const statusValue = (entry.assignmentStatus != null) ? entry.assignmentStatus : entry.status;
+  const status = String(statusValue == null ? '' : statusValue).trim();
+  const beneficiary = String(entry.beneficiary || entry.responsibleBeneficiary || '').trim();
+
+  if (!status) {
+    return beneficiary.length > 0;
+  }
+
+  const upper = status.toUpperCase();
+  const compact = upper.replace(/[\s_\-\/]+/g, '');
+
+  const releaseRegex = /(RELEASE|AVAILABLE|RETURN|RELIEVED|FREE|SPARE|POOL)/;
+  const activeRegex = /(INUSE|ASSIGNED|ACTIVE|OCCUPIED|ALLOCATED|DEPLOYED|RUNNING|ONROAD|ONTRIP|HOLDING|BLOCKED|BUSY|ENGAGED)/;
+
+  const hasRelease = releaseRegex.test(compact);
+  const hasActive = activeRegex.test(compact);
+
+  if (hasActive && !hasRelease) {
+    return true;
+  }
+  if (!hasActive && hasRelease) {
+    return false;
+  }
+
+  if (hasActive && hasRelease) {
+    const releasePos = compact.search(/RELEASE/);
+    const inUsePos = compact.search(/INUSE/);
+    if (inUsePos !== -1 && (releasePos === -1 || inUsePos < releasePos)) {
+      return true;
+    }
+    if (releasePos !== -1 && (inUsePos === -1 || releasePos < inUsePos)) {
+      return false;
+    }
+  }
+
+  if (/UNASSIGNED|AVAILABLE|FREE|SPARE|POOL/.test(compact)) {
+    return false;
+  }
+  if (/RESERVED|BLOCKED|HOLD/.test(compact)) {
+    return true;
+  }
+
+  return !hasRelease && (beneficiary.length > 0 || !compact.length);
+}
+
 function getVehicleReleasedSummary() {
   const summary = getVehicleSummaryRows('Vehicle_Released');
   if (summary.error) {
@@ -12638,9 +12685,14 @@ function _buildVehicleReleasedDropdownPayload_() {
   }
   const inUseAssignments = Array.isArray(inUseSummary.assignments) ? inUseSummary.assignments : [];
   const inUseSet = new Set();
+  let activeInUseCount = 0;
   inUseAssignments.forEach(function(entry) {
+    if (!_isActiveVehicleInUseEntry_(entry)) {
+      return;
+    }
     const carNumber = String(entry.vehicleNumber || entry.carNumber || '').trim();
     if (!carNumber) return;
+    activeInUseCount++;
     inUseSet.add(carNumber.toUpperCase());
   });
 
@@ -12697,7 +12749,10 @@ function _buildVehicleReleasedDropdownPayload_() {
   });
 
   if (inUseSet.size) {
-    notes.push(`Excluded ${inUseSet.size} vehicle${inUseSet.size === 1 ? '' : 's'} currently in Vehicle_InUse.`);
+    const label = activeInUseCount !== inUseSet.size
+      ? `${inUseSet.size} unique vehicle${inUseSet.size === 1 ? '' : 's'} (${activeInUseCount} active rows)`
+      : `${inUseSet.size} vehicle${inUseSet.size === 1 ? '' : 's'}`;
+    notes.push(`Excluded ${label} currently in Vehicle_InUse.`);
   }
 
   if (!vehicles.length) {
@@ -12733,6 +12788,7 @@ function _buildVehicleReleasedDropdownPayload_() {
     debug: {
       totalCarTPRows: rows.length,
       excludedInUseCount: inUseSet.size,
+      excludedInUseActiveRows: activeInUseCount,
       inUseSource: inUseSource,
       inUseUpdatedAt: inUseUpdatedAt
     }

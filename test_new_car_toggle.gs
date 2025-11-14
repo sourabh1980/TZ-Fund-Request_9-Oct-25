@@ -78,5 +78,31 @@ function testNewCarToggle() {
     console.log('❌ Error testing cache invalidation:', error);
   }
 
+  // Test 4: Verify Vehicle_InUse filtering heuristic for active assignments
+  console.log('Test 4: Verifying Vehicle_InUse active status heuristics...');
+  const statusCases = [
+    { status: 'IN USE', beneficiary: 'Alice', expected: true },
+    { status: 'Release', beneficiary: '', expected: false },
+    { status: 'AVAILABLE', beneficiary: '', expected: false },
+    { status: 'Assigned', beneficiary: 'Bob', expected: true },
+    { status: '', beneficiary: '', expected: false },
+    { status: '', beneficiary: 'Charlie', expected: true }
+  ];
+  statusCases.forEach(function(testCase, index) {
+    try {
+      const result = _isActiveVehicleInUseEntry_({
+        assignmentStatus: testCase.status,
+        beneficiary: testCase.beneficiary
+      });
+      if (result === testCase.expected) {
+        console.log(`✅ Case ${index + 1} passed for status "${testCase.status}" with beneficiary "${testCase.beneficiary}".`);
+      } else {
+        console.log(`❌ Case ${index + 1} failed for status "${testCase.status}" with beneficiary "${testCase.beneficiary}". Expected ${testCase.expected} but got ${result}.`);
+      }
+    } catch (error) {
+      console.log(`❌ Error evaluating case ${index + 1}:`, error);
+    }
+  });
+
   console.log('Test completed. Check the logs above for results.');
 }
