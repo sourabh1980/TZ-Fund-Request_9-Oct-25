@@ -176,23 +176,9 @@ function invalidateVehicleReleasedCache(reason) {
 
 function invalidateVehicleCache(reason) {
   try {
-    CacheService.getScriptCache().remove(VEHICLE_CACHE_KEY);
-  } catch (_cacheErr) {
-    // ignore cache purge failures
-  }
-  try {
-    const props = PropertiesService.getScriptProperties();
-    props.deleteProperty(VEHICLE_PROP_KEY);
-    props.deleteProperty(VEHICLE_VERSION_PROP_KEY);
-  } catch (_propErr) {
-    // ignore property purge failures
-  }
-  if (reason) {
-    try {
-      console.log('[CACHE] Vehicle cache invalidated:', reason);
-    } catch (_logErr) {
-      // logging optional
-    }
+    invalidateVehicleSheetCache('vehicle', reason || 'Vehicle cache invalidated');
+  } catch (err) {
+    console.error('invalidateVehicleCache failed:', err);
   }
 }
 
@@ -528,7 +514,7 @@ function getVehicleInUseSummary() {
     vehicleIdx = _findCarNumberColumn_(summary.headerRow, summary.rows);
     if (vehicleIdx >= 0) {
       try {
-        console.log('[BACKEND] Vehicle_Released header fallback matched car column at index', vehicleIdx, {
+        console.log('[BACKEND] Vehicle_InUse header fallback matched car column at index', vehicleIdx, {
           header: String(summary.headerRow[vehicleIdx] || '')
         });
       } catch (_logErr) {
@@ -538,7 +524,7 @@ function getVehicleInUseSummary() {
   }
   if (vehicleIdx < 0) {
     try {
-      console.error('[BACKEND] Vehicle_Released summary missing vehicle column', {
+      console.error('[BACKEND] Vehicle_InUse summary missing vehicle column', {
         headers: Array.isArray(summary.headerRow) ? summary.headerRow : null,
         sheetId: summary.sheetId || null,
         sheetLabel: summary.sheetLabel || null
@@ -12490,7 +12476,7 @@ function _loadVehicleDropdownPayload_(sheetName) {
   if (payload && payload.cached && payload.ok !== false) {
     const vehicles = Array.isArray(payload.vehicles) ? payload.vehicles : [];
     if (!vehicles.length) {
-      invalidateVehicleCache(sheetName, 'Cached ' + sheetName + ' payload empty, forcing rebuild');
+      invalidateVehicleSheetCache(sheetName, 'Cached ' + sheetName + ' payload empty, forcing rebuild');
       const fresh = _buildVehicleDropdownPayload_(sheetName);
       payload = Object.assign({}, fresh, {
         cached: false,
@@ -12728,6 +12714,9 @@ function _buildVehicleReleasedDropdownPayload_() {
     console.log(`[BACKEND] getVehiclePickerData cache builder loaded ${vehicles.length} available vehicles from CarT_P (sheet ${summary.sheetLabel || summary.sheetId || 'unknown'}) after excluding ${inUseSet.size} in-use vehicles.`);
   }
 
+  const inUseSource = inUseSummary && inUseSummary.source ? inUseSummary.source : 'Vehicle_InUse';
+  const inUseUpdatedAt = inUseSummary && inUseSummary.updatedAt ? inUseSummary.updatedAt : '';
+
   return {
     ok: true,
     source: 'CarT_P',
@@ -12744,8 +12733,8 @@ function _buildVehicleReleasedDropdownPayload_() {
     debug: {
       totalCarTPRows: rows.length,
       excludedInUseCount: inUseSet.size,
-      inUseSource: inUseSummary.source || 'Vehicle_InUse',
-      inUseUpdatedAt: inUseSummary.updatedAt || ''
+      inUseSource: inUseSource,
+      inUseUpdatedAt: inUseUpdatedAt
     }
   };
 }
