@@ -12565,6 +12565,10 @@ function _loadVehicleDropdownPayload_(sheetName) {
 }
 
 function _buildVehicleReleasedDropdownPayload_() {
+  // NOTE: Despite the legacy "Vehicle_Released" cache key, this builder sources
+  // availability exclusively from CarT_P summary data and filters out vehicles
+  // that are currently listed in Vehicle_InUse. The Vehicle_Released sheet does
+  // not participate in this payload.
   _maybeAutoRefreshCarTPSummaries_(10);
 
   const generatedAt = new Date().toISOString();
@@ -12917,6 +12921,8 @@ function getVehiclePickerData(isNewCar){
     if (isNewCar) {
       return _loadVehicleDropdownPayload_('vehicle');
     } else {
+      // Legacy naming retained for cache compatibility; the underlying payload
+      // is produced from CarT_P data with Vehicle_InUse exclusions only.
       return _loadVehicleReleasedDropdownPayload_();
     }
   } catch (e) {
