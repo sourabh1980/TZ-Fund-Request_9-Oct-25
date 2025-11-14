@@ -4292,10 +4292,25 @@
                     console.log('[VP] Data successfully saved to CarT_P');
                   }
 
+                  let expectedVersion = null;
+                  if (result && result.cacheVersion != null) {
+                    expectedVersion = String(result.cacheVersion);
+                    try {
+                      vehicleDataCacheVersion = expectedVersion;
+                      lastKnownVehicleServerVersion = expectedVersion;
+                    } catch (versionErr) {
+                      console.warn('[VP] Failed to apply returned cache version', versionErr);
+                    }
+                  }
+
                   // ✅ NOW trigger refresh AFTER successful backend save
                   if (typeof window.refreshVehicleAssignments === 'function') {
                     console.log('[VP] Triggering Vehicle_InUse refresh after backend save');
-                    window.refreshVehicleAssignments();
+                    const refreshOptions = { prefetchVehicles: true };
+                    if (expectedVersion) {
+                      refreshOptions.expectedVersion = expectedVersion;
+                    }
+                    window.refreshVehicleAssignments(refreshOptions);
                   }
 
                   // Dispatch success event
@@ -4701,6 +4716,15 @@
               window.vehicleAssignmentManager.clearAll({ suppressUI: true });
             } catch (err) {
               console.warn('[VP] vehicleAssignmentManager.clearAll failed', err);
+            }
+          }
+          if (typeof opts.expectedVersion === 'string' && opts.expectedVersion.trim()) {
+            const expected = opts.expectedVersion.trim();
+            try {
+              vehicleDataCacheVersion = expected;
+              lastKnownVehicleServerVersion = expected;
+            } catch (versionErr) {
+              console.warn('[VP] Failed to set expected vehicle cache version', versionErr);
             }
           }
           if (typeof window.refreshVehicleInUseData === 'function') {

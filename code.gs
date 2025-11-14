@@ -176,6 +176,69 @@ function invalidateVehicleReleasedCache(reason) {
   try { vehStampCarTPChange_(reason || 'Vehicle_Released invalidated'); } catch (_e) { /* ignore */ }
 }
 
+function rebuildVehicleReleasedCacheSync(reason) {
+  try {
+    const payload = _buildVehicleReleasedDropdownPayload_();
+    if (!payload || payload.ok === false) {
+      const errorMessage = payload && payload.error ? String(payload.error) : 'Vehicle_Released payload unavailable';
+      return { ok: false, error: errorMessage };
+    }
+
+    const versionStamp = String(Date.now());
+    const wrapper = { version: versionStamp, payload: payload };
+    const serialized = JSON.stringify(wrapper);
+
+    let cacheStored = false;
+    let propsStored = false;
+
+    try {
+      const cache = CacheService.getScriptCache();
+      if (cache) {
+        cache.put(VEHICLE_RELEASED_CACHE_KEY, serialized, VEHICLE_RELEASED_CACHE_TTL_SECONDS);
+        cacheStored = true;
+      }
+    } catch (cacheErr) {
+      console.warn('rebuildVehicleReleasedCacheSync cache write failed:', cacheErr);
+    }
+
+    try {
+      const props = PropertiesService.getScriptProperties();
+      if (props) {
+        props.setProperty(VEHICLE_RELEASED_PROP_KEY, serialized);
+        props.setProperty(VEHICLE_RELEASED_VERSION_PROP_KEY, versionStamp);
+        propsStored = true;
+      }
+    } catch (propErr) {
+      console.warn('rebuildVehicleReleasedCacheSync properties write failed:', propErr);
+    }
+
+    if (reason) {
+      try {
+        console.log('[CACHE] Vehicle_Released cache rebuilt synchronously:', reason, {
+          version: versionStamp,
+          cached: cacheStored,
+          stored: propsStored,
+          vehicles: Array.isArray(payload.vehicles) ? payload.vehicles.length : 0
+        });
+      } catch (_logErr) {
+        // logging optional
+      }
+    }
+
+    return {
+      ok: true,
+      version: versionStamp,
+      updatedAt: payload.updatedAt || payload.generatedAt || new Date().toISOString(),
+      vehicleCount: Array.isArray(payload.vehicles) ? payload.vehicles.length : 0,
+      cacheStored: cacheStored,
+      propsStored: propsStored
+    };
+  } catch (err) {
+    console.error('rebuildVehicleReleasedCacheSync failed:', err);
+    return { ok: false, error: String(err) };
+  }
+}
+
 function invalidateVehicleCache(reason) {
   try {
     invalidateVehicleSheetCache('vehicle', reason || 'Vehicle cache invalidated');
@@ -6393,7 +6456,20 @@ function assignCarToTeam(payload){
 
     try { CacheService.getScriptCache().remove('VEH_PICKER_V1'); } catch (_cacheDropErr) { /* ignore */ }
 
+    let cacheMeta = null;
+    try {
+      invalidateVehicleReleasedCache('assign_car_to_team');
+      cacheMeta = rebuildVehicleReleasedCacheSync('assign_car_to_team');
+    } catch (cacheRefreshErr) {
+      console.error('Vehicle cache rebuild (assign) failed:', cacheRefreshErr);
+    }
+
     const result = { ok:true, written: rows.length };
+    if (cacheMeta && cacheMeta.ok) {
+      result.cacheVersion = cacheMeta.version || null;
+      result.cacheUpdatedAt = cacheMeta.updatedAt || '';
+      result.cacheVehicleCount = cacheMeta.vehicleCount || 0;
+    }
     console.log('[ASSIGN_CAR] ✅ COMPLETED SUCCESSFULLY - Returning result:', result);
     return result;
   }catch(e){
