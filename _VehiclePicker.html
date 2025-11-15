@@ -908,6 +908,7 @@
     }
 
     function renderFromCacheNow(){
+      if (window.__vpForceFreshVehicleFetch) return false;
       if (!cacheIsFresh()) return false;
       try{
         // Prefer an existing renderer if your file defines one
@@ -1090,6 +1091,7 @@
 
       <script>
       (function(){
+        window.__vpForceFreshVehicleFetch = true;
         let targetInput=null, vehicles=[], master=[], vpMode='existing';
         const VEHICLE_CACHE_TTL = 60000; // 60s client cache window
         const VEHICLE_STORAGE_KEY = 'vp:vehiclePicker:v1';
@@ -2998,35 +3000,9 @@
           try{ populateContextFromRow(targetInput); }catch(_){ }
           bootstrapVehicleCacheFromStorage();
           const statusEl = document.getElementById('vpStatus');
-          const hadCache = Array.isArray(vehicleDataCache) && vehicleDataCache.length;
-          if (hadCache) {
-            try {
-              renderVehicles(vehicleDataCache.slice());
-            } catch (cacheRenderErr) {
-              console.warn('[VP] Failed to render cached vehicles on open', cacheRenderErr);
-            }
-            const isFresh = (Date.now() - vehicleDataCacheTs) < VEHICLE_CACHE_TTL;
-            if (statusEl) {
-              statusEl.removeAttribute('data-state');
-              statusEl.textContent = isFresh
-                ? 'Vehicles loaded from cache.'
-                : 'Vehicles loaded from cache. Re-apply project & team to refresh.';
-            }
-          } else {
-            const warmPending = vehicleFetchPending || vehicleWarmInFlight;
-            if (warmPending) {
-              setDropdownLoading(true, 'Loading vehicles…');
-              if (statusEl) {
-                statusEl.removeAttribute('data-state');
-                statusEl.textContent = 'Loading vehicles…';
-              }
-            } else {
-              setDropdownLoading(true, 'Waiting for vehicle cache…');
-              if (statusEl) {
-                statusEl.removeAttribute('data-state');
-                statusEl.textContent = 'Select a project & team, then click Apply to load vehicles.';
-              }
-            }
+          if (statusEl) {
+            statusEl.removeAttribute('data-state');
+            statusEl.textContent = 'Loading latest vehicles…';
           }
           setMode('existing', { autoFetch: false });
 
@@ -3332,11 +3308,17 @@
                 timestamp: new Date().toISOString(),
                 error: err
               };
-              const status = statusEl || document.getElementById('vpStatus');
-              if (!silentFetch && status) {
-                status.setAttribute('data-state', 'error');
-                status.textContent = 'Failed to load available vehicles.';
-              }
+               const status = statusEl || document.getElementById('vpStatus');
+               if (!silentFetch && renderCacheFallback(status, 'Unable to load latest vehicles; showing cached list.')) {
+                 if (manualRefreshInProgress) {
+                   finalizeManualRefresh();
+                 }
+                 return;
+               }
+               if (!silentFetch && status) {
+                 status.setAttribute('data-state', 'error');
+                 status.textContent = 'Failed to load available vehicles.';
+               }
               if (manualRefreshInProgress) {
                 finalizeManualRefresh();
               }
@@ -3409,6 +3391,12 @@
 
           const attemptNumber = typeof opts.attempt === 'number' ? opts.attempt : 0;
           if (!list.length) {
+            if (shouldFallbackToStale && renderCacheFallback(statusEl, 'Showing cached vehicles because the backend response was empty.')) {
+              if (manualRefreshInProgress) {
+                finalizeManualRefresh();
+              }
+              return;
+            }
             if (!shouldFallbackToStale && attemptNumber < MAX_VEHICLE_FETCH_RETRIES) {
               const nextAttempt = attemptNumber + 1;
               console.warn('[VP] Vehicle picker received empty list, scheduling retry', {
@@ -3486,6 +3474,7 @@
           };
           vehicleVersionRefreshPending = false;
 
+          window.__vpForceFreshVehicleFetch = true;
           renderVehicles(list);
           if (manualRefreshInProgress) {
             finalizeManualRefresh();
@@ -3779,6 +3768,17 @@
           vehiclePickerMeta = null;
           updateFilterChoices();
           updateVehiclesDropdown();
+        }
+
+        function renderCacheFallback(statusEl, message){
+          if (!Array.isArray(vehicleDataCache) || !vehicleDataCache.length) return false;
+          window.__vpForceFreshVehicleFetch = false;
+          renderVehicles(vehicleDataCache.slice());
+          if (statusEl) {
+            statusEl.setAttribute('data-state', 'warning');
+            statusEl.textContent = message || 'Showing cached vehicles (last known data)';
+          }
+          return true;
         }
 
         function getCriteria(){
@@ -4674,6 +4674,7 @@
           clearVehicleStorage();
           storageHydrationAttempted = false;
           lastWarmSelectionKey='';
+          window.__vpForceFreshVehicleFetch = true;
         }
 
         // Expose cache controls so other modules (release modal) can force a reload
@@ -5106,6 +5107,7 @@
   }
 
   function renderFromCacheIfPossible(){
+    if (window.__vpForceFreshVehicleFetch) return false;
     try{
       if (!Array.isArray(window.vehicleDataCache) || !window.vehicleDataCache.length) return false;
       var list = window.vehicleDataCache.slice();
