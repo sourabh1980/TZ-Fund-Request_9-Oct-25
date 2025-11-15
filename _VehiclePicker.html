@@ -4290,12 +4290,25 @@
                   // Show success message to user
                   if (result && result.ok) {
                     console.log('[VP] Data successfully saved to CarT_P');
+                    if (result.message) {
+                      setTimeout(() => {
+                        try {
+                          window.alert(result.message);
+                        } catch (msgErr) {
+                          console.warn('[VP] Assignment notification failed', msgErr);
+                        }
+                      }, 0);
+                    }
                   }
 
                   // ✅ NOW trigger refresh AFTER successful backend save
                   if (typeof window.refreshVehicleAssignments === 'function') {
                     console.log('[VP] Triggering Vehicle_InUse refresh after backend save');
-                    window.refreshVehicleAssignments();
+                    window.refreshVehicleAssignments({
+                      preserveCache: true,
+                      prefetchVehicles: true,
+                      prefetchSilent: true
+                    });
                   }
 
                   // Dispatch success event
@@ -4694,9 +4707,22 @@
 
         // ✅ Updated: actively refresh assignments and vehicle data when invoked externally
         window.refreshVehicleAssignments = function(options = {}) {
-          const opts = typeof options === 'object' && options ? options : {};
+          const opts = Object.assign({
+            prefetchVehicles: false,
+            prefetchSilent: false,
+            preserveCache: false
+          }, typeof options === 'object' && options ? options : {});
           console.log('[VP] refreshVehicleAssignments triggered', opts);
-          clearVehiclePickerCacheInternal();
+          if (opts.preserveCache) {
+            try {
+              window.__vpForceFreshVehicleFetch = false;
+            } catch (flagErr) {
+              console.warn('[VP] Failed to reset prefresh cache flag', flagErr);
+            }
+            vehicleVersionRefreshPending = true;
+          } else {
+            clearVehiclePickerCacheInternal();
+          }
           if (window.vehicleAssignmentManager && typeof window.vehicleAssignmentManager.clearAll === 'function') {
             try {
               window.vehicleAssignmentManager.clearAll({ suppressUI: true });
@@ -4713,7 +4739,12 @@
           }
           if (opts.prefetchVehicles === true) {
             try {
-              fetchVehicles({ force: true, skipCache: true });
+              const fetchOpts = {
+                force: true,
+                skipCache: !opts.preserveCache,
+                silent: opts.prefetchSilent === true
+              };
+              fetchVehicles(fetchOpts);
             } catch (err) {
               console.warn('[VP] Prefetch vehicles failed', err);
             }

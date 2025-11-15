@@ -6393,7 +6393,18 @@ function assignCarToTeam(payload){
 
     try { CacheService.getScriptCache().remove('VEH_PICKER_V1'); } catch (_cacheDropErr) { /* ignore */ }
 
-    const result = { ok:true, written: rows.length };
+    const assignedNames = targetBeneficiaries.filter(Boolean);
+    const messageParts = [];
+    if (carNum) {
+      messageParts.push(`Vehicle ${carNum}`);
+    }
+    if (assignedNames.length) {
+      messageParts.push(`assigned to ${assignedNames.join(', ')}`);
+    } else {
+      messageParts.push('assignment recorded');
+    }
+    const resultMessage = messageParts.join(' ');
+    const result = { ok:true, written: rows.length, message: resultMessage };
     console.log('[ASSIGN_CAR] ✅ COMPLETED SUCCESSFULLY - Returning result:', result);
     return result;
   }catch(e){
