@@ -474,48 +474,28 @@
 
         .vp-body{padding:24px;background:rgba(255,255,255,.9);
           backdrop-filter:blur(6px);overflow-y:auto;overscroll-behavior:contain;display:grid;gap:20px}
-        .vp-prefetch{position:fixed;inset:0;background:rgba(15,23,42,.82);backdrop-filter:blur(6px);display:none;
-          align-items:center;justify-content:center;flex-direction:column;text-align:center;z-index:10020;padding:32px;color:#f8fafc;
-          gap:18px;pointer-events:auto;cursor:wait}
-        .vp-prefetch__content{display:flex;flex-direction:column;align-items:center;gap:12px}
-        .vp-prefetch.is-active{display:flex}
-        .vp-prefetch__title{margin:0;font-size:18px;font-weight:600;letter-spacing:.5px}
-        .vp-prefetch__timer{display:flex;align-items:flex-end;gap:8px;font-size:68px;font-weight:700;line-height:1;letter-spacing:2px}
-        .vp-prefetch__seconds{font-size:18px;font-weight:500;letter-spacing:.5px}
-        .vp-prefetch__sub{margin:0;font-size:14px;color:rgba(248,250,252,.82);max-width:320px}
-        .vp-prefetch__live{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);border:0}
-        body.vp-prefetch-active{overflow:hidden}
         .vp-hold{position:fixed;inset:0;background:rgba(15,23,42,.68);backdrop-filter:blur(4px);display:none;
           align-items:center;justify-content:center;flex-direction:column;gap:20px;text-align:center;z-index:10050;padding:32px;
           pointer-events:auto;cursor:wait}
         .vp-hold.is-active{display:flex}
-        .vp-hold__lights{display:flex;gap:28px}
-        .vp-light{position:relative;width:64px;height:64px;border-radius:50%;background:#1f2937;
-          box-shadow:inset 0 0 18px rgba(0,0,0,.6);overflow:hidden}
-        .vp-light::after{content:'';position:absolute;inset:-10px;border-radius:50%;box-shadow:0 0 12px rgba(255,255,255,.35);
-          opacity:0;transition:opacity .2s ease}
-        .vp-light.vp-light--run::after{opacity:.45}
-        .vp-light--yellow.vp-light--run{animation:vpHoldYellow 4s linear forwards}
-        .vp-light--green.vp-light--run{animation:vpHoldGreen 4s linear forwards}
         .vp-hold__message{margin:0;font-size:16px;font-weight:600;color:#f8fafc}
         .vp-hold__sub{margin:0;font-size:13px;color:rgba(248,250,252,.8)}
         body.vp-hold-active{overflow:hidden}
-        @keyframes vpHoldYellow{
-          0%{background:#1f2937;box-shadow:inset 0 0 18px rgba(0,0,0,.65)}
-          5%,48%{background:#fbbf24;box-shadow:0 0 22px rgba(251,191,36,.7),inset 0 0 12px rgba(0,0,0,.35)}
-          52%,100%{background:#1f2937;box-shadow:inset 0 0 18px rgba(0,0,0,.65)}
-        }
-        @keyframes vpHoldGreen{
-          0%,48%{background:#1f2937;box-shadow:inset 0 0 18px rgba(0,0,0,.65)}
-          52%,95%{background:#34d399;box-shadow:0 0 22px rgba(52,211,153,.6),inset 0 0 12px rgba(0,0,0,.35)}
-          100%{background:#065f46;box-shadow:0 0 18px rgba(5,150,105,.55),inset 0 0 12px rgba(0,0,0,.35)}
-        }
         #vpExistingSection{display:grid;grid-template-columns:1fr 1fr;gap:20px}
         .vp-status{grid-column:1/-1;font-size:13px;color:var(--vp-muted);margin-top:-2px}
         .vp-status[data-state="error"]{color:var(--vp-bad);font-weight:600}
 
         /* Top context row: 3 fields aligned in one line on desktop */
         .vp-context{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+        #vpExistingSection.vp-stage-assignment .vp-left,
+        #vpExistingSection.vp-stage-assignment .vp-right{display:none}
+        #vpExistingSection.vp-stage-assignment .vp-assignment-banner{display:flex}
+        #vpExistingSection.vp-stage-vehicle .vp-assignment-banner{display:none}
+        .vp-assignment-banner{grid-column:1/-1;display:none;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;
+          border-radius:12px;border:1px solid rgba(99,102,241,.4);background:rgba(59,130,246,.12);color:#0f172a;font-size:14px}
+        .vp-assignment-banner__text strong{color:#0f172a}
+        .vp-btn--ghost{background:transparent;border-color:rgba(15,23,42,.2);color:#0f172a}
+        .vp-btn--ghost:hover{border-color:rgba(15,23,42,.4)}
         .vp-field{position:relative}
         .vp-field--full{grid-column:1/-1}
         .vp-field label{display:block;font-size:13px;font-weight:700;color:#334155;margin-bottom:6px}
@@ -681,22 +661,7 @@
       }
       </style>
 
-      <div id="vpPrefetchOverlay" class="vp-prefetch" aria-hidden="true">
-        <div class="vp-prefetch__content">
-          <p class="vp-prefetch__title">Preparing vehicles…</p>
-          <div class="vp-prefetch__timer" aria-hidden="true">
-            <span id="vpPrefetchCountdownValue">5</span>
-            <span class="vp-prefetch__seconds">seconds</span>
-          </div>
-          <p id="vpPrefetchLive" class="vp-prefetch__live" aria-live="assertive"></p>
-          <p class="vp-prefetch__sub">Please wait while we refresh the latest list.</p>
-        </div>
-      </div>
       <div id="vpSelectionHold" class="vp-hold" aria-hidden="true">
-        <div class="vp-hold__lights" aria-hidden="true">
-          <div class="vp-light vp-light--yellow"></div>
-          <div class="vp-light vp-light--green"></div>
-        </div>
         <p class="vp-hold__message">Saving your vehicle selection…</p>
         <p class="vp-hold__sub">Please keep the window open while we secure the assignment.</p>
       </div>
@@ -732,7 +697,7 @@
               <div id="vpStatus" class="vp-status">Loading latest vehicles…</div>
 
               <!-- Top context row: aligned 3 fields -->
-              <div class="vp-context">
+              <div class="vp-context" id="vpContextRow">
                 <div class="vp-field">
                   <label>Project Name</label>
                   <input id="vpProject" class="vp-input" readonly />
@@ -741,17 +706,21 @@
                   <label>Team Name</label>
                   <input id="vpTeam" class="vp-input" readonly />
                 </div>
-                <div class="vp-field">
+                <div class="vp-field" data-stage="assignment">
                   <label>Name of Responsible Beneficiary</label>
                   <select id="vpBeneficiary" class="vp-select">
                     <option value="">Select Responsible Beneficiary Only</option>
                   </select>
                 </div>
-                <div class="vp-field vp-field--full">
+                <div class="vp-field vp-field--full" data-stage="assignment">
                   <label>Users</label>
                   <div id="vpUsersMulti" class="vp-users-select" role="group" aria-label="Users" aria-expanded="false" tabindex="0"></div>
                   <div id="vpUsersSummary" class="vp-users-summary">Selected: No team members</div>
                 </div>
+              </div>
+              <div id="vpAssignmentBanner" class="vp-assignment-banner" data-stage="assignment">
+                <span class="vp-assignment-banner__text">Vehicles are loading; selected vehicle: <strong id="vpSelectedVehicleLabel">—</strong></span>
+                <button id="vpBackToVehicleBtn" type="button" class="vp-btn vp-btn--ghost">Back to users</button>
               </div>
 
               <!-- Left column: filters + vehicle number -->
@@ -1093,6 +1062,8 @@
       (function(){
         window.__vpForceFreshVehicleFetch = true;
         let targetInput=null, vehicles=[], master=[], vpMode='existing';
+        let vpAssignmentStage='assignment';
+        let assignmentCacheWarmupStarted=false;
         const VEHICLE_CACHE_TTL = 60000; // 60s client cache window
         const VEHICLE_STORAGE_KEY = 'vp:vehiclePicker:v1';
         const VEHICLE_STORAGE_MAX_AGE = 5 * 60 * 1000; // 5 minutes persisted cache
@@ -1120,11 +1091,6 @@
         const SELECTION_HOLD_DURATION = 4000;
         let selectionHoldTimer = null;
         let selectionHoldCallback = null;
-        const PREFETCH_COUNTDOWN_DURATION = 5000;
-        const PREFETCH_COUNTDOWN_SECONDS = Math.ceil(PREFETCH_COUNTDOWN_DURATION / 1000);
-        let prefetchCountdownTimer = null;
-        let prefetchCountdownInterval = null;
-        let prefetchCountdownCallback = null;
         let pendingVehiclePrefillValue = '';
         let pendingVehiclePrefillLabel = '';
         let vehiclePrefillApplied = true;
@@ -1436,6 +1402,7 @@
             activeInUseMembers = new Set();
             activeInUseMemberObjects = [];
             activeInUseTeamKey = '';
+            assignmentCacheWarmupStarted = false;
           };
 
           const postInvalidate = (scriptAvailable) => {
@@ -2977,6 +2944,72 @@
           if (usersSummary) usersSummary.textContent = 'Selected: No team members';
           refreshHighlightState();
           updateSelectButtonState();
+          assignmentCacheWarmupStarted = false;
+          enterAssignmentSelectionStage();
+        }
+
+        function enterVehicleSelectionStage(){
+          if (vpMode !== 'existing') {
+            vpAssignmentStage = 'vehicle';
+            return;
+          }
+          const section = document.getElementById('vpExistingSection');
+          if (section) {
+            section.classList.add('vp-stage-vehicle');
+            section.classList.remove('vp-stage-assignment');
+          }
+          vpAssignmentStage = 'vehicle';
+          updateSelectButtonState();
+          warmupAssignmentCache();
+          updateStageVehicleLabel();
+        }
+
+        function enterAssignmentSelectionStage(){
+          if (vpMode !== 'existing') return;
+          const section = document.getElementById('vpExistingSection');
+          if (section) {
+            section.classList.remove('vp-stage-vehicle');
+            section.classList.add('vp-stage-assignment');
+          }
+          vpAssignmentStage = 'assignment';
+          warmupAssignmentCache();
+          refreshAssignmentFields();
+          updateSelectButtonState();
+          updateStageVehicleLabel();
+          const beneficiarySelect = document.getElementById('vpBeneficiary');
+          if (beneficiarySelect) {
+            beneficiarySelect.focus();
+          }
+        }
+
+        function warmupAssignmentCache(project, team, beneficiary){
+          if (assignmentCacheWarmupStarted) return;
+          assignmentCacheWarmupStarted = true;
+          const ctxProject = (project || document.getElementById('vpProject')?.value || window.__vpLastContext?.project || '').trim();
+          const ctxTeam = (team || document.getElementById('vpTeam')?.value || window.__vpLastContext?.team || '').trim();
+          const ctxBeneficiary = (beneficiary || window.__vpSourceBeneficiary || '').trim();
+          if (typeof window.populateResponsibleBeneficiaryOptions === 'function') {
+            window.populateResponsibleBeneficiaryOptions(ctxProject, ctxTeam, ctxBeneficiary);
+          }
+          if (typeof ensureActiveInUseMembers === 'function') {
+            ensureActiveInUseMembers(ctxProject, ctxTeam, () => {});
+          }
+        }
+
+        function refreshAssignmentFields(){
+          const project = (document.getElementById('vpProject')?.value || window.__vpLastContext?.project || '').trim();
+          const team = (document.getElementById('vpTeam')?.value || window.__vpLastContext?.team || '').trim();
+          const currentValue = (document.getElementById('vpBeneficiary')?.value || window.__vpSourceBeneficiary || '').trim();
+          if (typeof window.populateResponsibleBeneficiaryOptions === 'function') {
+            window.populateResponsibleBeneficiaryOptions(project, team, currentValue);
+          }
+        }
+
+        function updateStageVehicleLabel(){
+          const label = document.getElementById('vpSelectedVehicleLabel');
+          if (!label) return;
+          const carNumber = (document.getElementById('vpDropdown')?.value || '').trim();
+          label.textContent = carNumber || '—';
         }
 
         function open(target){
@@ -2988,8 +3021,7 @@
             return;
           }
           cancelSelectionHold();
-          cancelPrefetchCountdown();
-          modal.setAttribute('aria-hidden','true');
+          modal.setAttribute('aria-hidden','false');
           if (typeof document !== 'undefined' && document.body) {
             document.body.style.overflow='hidden';
           }
@@ -3006,123 +3038,8 @@
           }
           setMode('existing', { autoFetch: false });
 
-          const revealModal = function(){
-            modal.setAttribute('aria-hidden','false');
-          };
-
-          startPrefetchCountdown(revealModal);
-
           const startedAt = (typeof performance !== 'undefined' && typeof performance.now === 'function') ? performance.now() : Date.now();
           fetchVehicles({ force: true, skipCache: false, allowStaleOnEmpty: false, startedAt });
-        }
-
-        function updatePrefetchCountdownDisplay(value){
-          const numeric = (typeof value === 'number' && isFinite(value)) ? value : PREFETCH_COUNTDOWN_SECONDS;
-          const safeValue = Math.max(0, Math.floor(numeric));
-          const countdownEl = document.getElementById('vpPrefetchCountdownValue');
-          if (countdownEl) {
-            countdownEl.textContent = String(safeValue);
-          }
-          const liveRegion = document.getElementById('vpPrefetchLive');
-          if (liveRegion) {
-            liveRegion.textContent = safeValue === 1 ? '1 second remaining' : `${safeValue} seconds remaining`;
-          }
-        }
-
-        function showPrefetchOverlay(){
-          const overlay = document.getElementById('vpPrefetchOverlay');
-          if (!overlay) return false;
-          overlay.classList.add('is-active');
-          overlay.setAttribute('aria-hidden', 'false');
-          if (typeof document !== 'undefined' && document.body) {
-            document.body.classList.add('vp-prefetch-active');
-          }
-          return true;
-        }
-
-        function hidePrefetchOverlay(){
-          const overlay = document.getElementById('vpPrefetchOverlay');
-          if (!overlay) return;
-          overlay.classList.remove('is-active');
-          overlay.setAttribute('aria-hidden', 'true');
-          if (typeof document !== 'undefined' && document.body) {
-            document.body.classList.remove('vp-prefetch-active');
-          }
-          updatePrefetchCountdownDisplay(PREFETCH_COUNTDOWN_SECONDS);
-        }
-
-        function cancelPrefetchCountdown(){
-          if (prefetchCountdownInterval){
-            clearInterval(prefetchCountdownInterval);
-            prefetchCountdownInterval = null;
-          }
-          if (prefetchCountdownTimer){
-            clearTimeout(prefetchCountdownTimer);
-            prefetchCountdownTimer = null;
-          }
-          prefetchCountdownCallback = null;
-          hidePrefetchOverlay();
-        }
-
-        function completePrefetchCountdown(){
-          if (prefetchCountdownInterval){
-            clearInterval(prefetchCountdownInterval);
-            prefetchCountdownInterval = null;
-          }
-          if (prefetchCountdownTimer){
-            clearTimeout(prefetchCountdownTimer);
-            prefetchCountdownTimer = null;
-          }
-          const callback = prefetchCountdownCallback;
-          prefetchCountdownCallback = null;
-          hidePrefetchOverlay();
-          if (typeof callback === 'function') {
-            try {
-              callback();
-            } catch (prefetchErr) {
-              console.warn('[VP] Prefetch countdown callback failed', prefetchErr);
-            }
-          }
-        }
-
-        function startPrefetchCountdown(onComplete){
-          const overlayShown = showPrefetchOverlay();
-          if (!overlayShown) {
-            if (typeof onComplete === 'function') {
-              try {
-                onComplete();
-              } catch (prefetchOpenErr) {
-                console.warn('[VP] Prefetch fallback callback failed', prefetchOpenErr);
-              }
-            }
-            return;
-          }
-          if (prefetchCountdownInterval){
-            clearInterval(prefetchCountdownInterval);
-            prefetchCountdownInterval = null;
-          }
-          if (prefetchCountdownTimer){
-            clearTimeout(prefetchCountdownTimer);
-            prefetchCountdownTimer = null;
-          }
-          prefetchCountdownCallback = (typeof onComplete === 'function') ? onComplete : null;
-
-          let remaining = PREFETCH_COUNTDOWN_SECONDS;
-          updatePrefetchCountdownDisplay(remaining);
-
-          prefetchCountdownInterval = window.setInterval(function(){
-            remaining -= 1;
-            if (remaining <= 0) {
-              updatePrefetchCountdownDisplay(0);
-              completePrefetchCountdown();
-            } else {
-              updatePrefetchCountdownDisplay(remaining);
-            }
-          }, 1000);
-
-          prefetchCountdownTimer = window.setTimeout(function(){
-            completePrefetchCountdown();
-          }, PREFETCH_COUNTDOWN_DURATION);
         }
 
         function showSelectionHoldOverlay(){
@@ -3131,17 +3048,9 @@
           if (typeof document !== 'undefined' && document.body) {
             document.body.classList.add('vp-hold-active');
           }
-          const lights = overlay.querySelectorAll('.vp-light');
-          lights.forEach(light => {
-            light.classList.remove('vp-light--run');
-          });
           // Force reflow so animations restart cleanly when the overlay re-opens
-          void overlay.offsetWidth;
           overlay.classList.add('is-active');
           overlay.setAttribute('aria-hidden','false');
-          lights.forEach(light => {
-            light.classList.add('vp-light--run');
-          });
         }
 
         function hideSelectionHoldOverlay(){
@@ -3152,9 +3061,6 @@
           if (!overlay) return;
           overlay.classList.remove('is-active');
           overlay.setAttribute('aria-hidden','true');
-          overlay.querySelectorAll('.vp-light').forEach(light => {
-            light.classList.remove('vp-light--run');
-          });
         }
 
         function startSelectionHold(onComplete){
@@ -3202,7 +3108,6 @@
           if (!preserveHold) {
             cancelSelectionHold();
           }
-          cancelPrefetchCountdown();
           if (vehicleRetryTimer){
             clearTimeout(vehicleRetryTimer);
             vehicleRetryTimer = null;
@@ -4028,6 +3933,13 @@
             btn.disabled = !valid || newVehicleFetchInFlight;
             return;
           }
+          if (vpAssignmentStage === 'assignment') {
+            btn.textContent = 'Next: Show vehicles';
+            const beneficiarySelected = String(document.getElementById('vpBeneficiary')?.value || '').trim();
+            const hasUserSelection = selectedUserValues.length > 0;
+            btn.disabled = !(beneficiarySelected && hasUserSelection);
+            return;
+          }
           btn.textContent = 'Select';
           const carSelected = String(document.getElementById('vpDropdown')?.value || '').trim();
           const beneficiarySelected = String(document.getElementById('vpBeneficiary')?.value || '').trim();
@@ -4135,9 +4047,16 @@
             submitNewVehicle();
             return;
           }
+          if (vpAssignmentStage === 'assignment') {
+            enterVehicleSelectionStage();
+            return;
+          }
           const sel = document.getElementById('vpDropdown');
           const carNumber = sel && sel.value ? sel.value.trim() : '';
-          if (!carNumber) return;
+          if (!carNumber) {
+            if (sel) sel.focus();
+            return;
+          }
 
           const selectBtn = document.getElementById('vpSelectBtn');
           const benSelectEl = document.getElementById('vpBeneficiary');
@@ -4311,6 +4230,32 @@
                     });
                   }
 
+                  try {
+                    const ctxKey = computeContextKey(String(projectForPayload||'').trim(), String(teamForPayload||'').trim());
+                    if (window.google && google.script && google.script.run) {
+                      google.script.run
+                        .withSuccessHandler(function(){
+                          try {
+                            google.script.run
+                              .withSuccessHandler(function(res){
+                                try {
+                                  if (res && res.ok !== false && Array.isArray(res.list) && res.list.length) {
+                                    persistMinimalCache(ctxKey, res.list, res.cacheVersion || null);
+                                    console.log('[VP] Prefetched vehcache minimal for next popup', { count: res.list.length });
+                                  }
+                                } catch(_){ }
+                              })
+                              .withFailureHandler(function(err){
+                                console.warn('[VP] Prefetch vehcache minimal failed', err);
+                              })
+                              .getVehcacheMinimal();
+                          } catch(_){ }
+                        })
+                        .withFailureHandler(function(err){ console.warn('[VP] ensureVehcacheReady failed', err); })
+                        .ensureVehcacheReady();
+                    }
+                  } catch(_){ }
+
                   // Dispatch success event
                   window.dispatchEvent(new CustomEvent('vehicleAssignmentComplete', {
                     detail: { carNumber, responsibleBeneficiary: benFromContext, saved: true }
@@ -4406,6 +4351,14 @@
           const selectBtnEl = x('vpSelectBtn');
           if (selectBtnEl) {
             selectBtnEl.addEventListener('click', selectVehicle);
+          }
+          const backBtn = x('vpBackToVehicleBtn');
+          if (backBtn) {
+            backBtn.addEventListener('click', () => {
+              enterAssignmentSelectionStage();
+              const beneficiarySelect = document.getElementById('vpBeneficiary');
+              if (beneficiarySelect) beneficiarySelect.focus();
+            });
           }
 
           // Switch events
@@ -4534,6 +4487,7 @@
               }
               refreshHighlightState();
               updateSelectButtonState();
+              updateStageVehicleLabel();
             }
             if(e.target.id==='vpBeneficiary'){
               const chosen = String(e.target.value || '').trim();
@@ -5234,19 +5188,6 @@
   })();
 
   // Also render when the 5s overlay ends
-  (function observeOverlay(){
-    var ov = document.getElementById('vpPrefetchOverlay');
-    if (!ov) return;
-    var obs = new MutationObserver(function(list){
-      list.forEach(function(m){
-        if (m.attributeName === 'aria-hidden'){
-          var hidden = ov.getAttribute('aria-hidden') !== 'false';
-          if (hidden){ renderFromCacheIfPossible(); }
-        }
-      });
-    });
-    obs.observe(ov, { attributes:true, attributeFilter:['aria-hidden'] });
-  })();
 })();
 /* === /VP FIRST-OPEN FAST RENDER PATCH === */
 </script>
