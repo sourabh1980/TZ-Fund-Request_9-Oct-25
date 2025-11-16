@@ -6616,105 +6616,15 @@ function getProjectFromBeneficiary(beneficiaryName) {
       setTimeout(() => {
         // Attach car number input click handler for fragmented approach
         document.addEventListener('click', function(event) {
-          if (event.target.classList.contains('car-number-input')) {
-            console.log('Car number input clicked:', event.target);
-            const carNumberValue = event.target.value.trim();
-            console.log('Car number value:', carNumberValue);
-            
-            if (carNumberValue) {
-              console.log('Car number filled, opening release modal for:', carNumberValue);
+          if (!event.target.classList.contains('car-number-input')) {
+            return;
+          }
 
-              const row = event.target.closest('.row-data');
-              const resolvedTeam = resolveRowTeam(row);
-              const resolvedProject = resolveRowProject(row);
-              let baseCarData = {
-                carNumber: carNumberValue,
-                project: resolvedProject || 'Unknown Project',
-                projectName: resolvedProject || '',
-                team: resolvedTeam || 'Unknown Team',
-                teamName: resolvedTeam || '',
-                category: row ? (row.getAttribute('data-category') || '') : '',
-                make: 'Unknown Make',
-                model: 'Unknown Model',
-                usageType: 'Unknown Usage',
-                contractType: 'Unknown Contract',
-                owner: 'Unknown Owner',
-                status: 'IN USE',
-                lastUsers: ['Current User'],
-                remarks: '',
-                stars: 0,
-                submitter: 'Current User',
-                responsibleBeneficiary: (event.target?.dataset?.responsibleBeneficiary || '').trim()
-              };
-
-              const openModalWith = (carData) => {
-                if (typeof window.openCarModal === 'function') {
-                  window.openCarModal(carData, { carInput: event.target });
-                } else {
-                  console.error('Car modal function not available');
-                }
-              };
-
-              const applySupplemental = (extraData) => {
-                if (!extraData) return;
-                const normalized = normalizeCarRecord(extraData);
-                if (!normalized) return;
-                const merged = { ...normalized };
-                merged.project = baseCarData.project || merged.project || merged.Project || '';
-                merged.projectName = baseCarData.projectName || merged.projectName || merged.Project || merged.project || '';
-                merged.team = baseCarData.team || merged.team || merged.Team || '';
-                merged.teamName = baseCarData.teamName || merged.teamName || merged.Team || merged.team || '';
-                merged.category = baseCarData.category || merged.category || merged.Category || '';
-                if (baseCarData.projectName && !merged.projectName) merged.projectName = baseCarData.projectName;
-                if (baseCarData.teamName && !merged.teamName) merged.teamName = baseCarData.teamName;
-                merged.responsibleBeneficiary = baseCarData.responsibleBeneficiary || merged.responsibleBeneficiary || merged['R.Beneficiary'] || merged['R. Ben'] || '';
-                if (merged.responsibleBeneficiary) {
-                  if (!merged['R.Beneficiary']) merged['R.Beneficiary'] = merged.responsibleBeneficiary;
-                  if (!merged['R. Ben']) merged['R. Ben'] = merged.responsibleBeneficiary;
-                }
-                if (merged.lastUsers && !Array.isArray(merged.lastUsers)) {
-                  const users = String(merged.lastUsers || '').split(',').map(u => u.trim()).filter(Boolean);
-                  merged.lastUsers = users.length ? users : baseCarData.lastUsers;
-                }
-                if (typeof window.applyCarModalSupplementalData === 'function') {
-                  window.applyCarModalSupplementalData(merged);
-                } else {
-                  openModalWith({ ...baseCarData, ...merged });
-                }
-              };
-
-              const matchFromCached = () => {
-                if (!window.availableCarsData || !window.availableCarsData.length) return null;
-                const target = carNumberValue.trim().toUpperCase();
-                return window.availableCarsData.find(car => String(car.carNumber || '').trim().toUpperCase() === target) || null;
-              };
-
-              openModalWith(baseCarData);
-
-              const warmPromise = (window.FRTZ && typeof window.FRTZ.ensureVehicleInventoryWarm === 'function')
-                ? window.FRTZ.ensureVehicleInventoryWarm()
-                : Promise.resolve(window.availableCarsData || []);
-
-              warmPromise.then(function() {
-                const cached = matchFromCached();
-                if (cached) {
-                  applySupplemental(cached);
-                  return;
-                }
-                applySupplemental(null);
-              }).catch(function(err) {
-                console.error('Vehicle inventory warm-up failed', err);
-                applySupplemental(null);
-              });
-            }
-            else {
-              // Empty Vehicle Number: open vehicle picker dropdown modal
-              if (typeof window.openVehiclePicker === 'function') {
-                window.openVehiclePicker(event.target);
-              } else {
-                alert('Vehicle picker is not available. Please refresh the page.');
-              }
-            }
+          console.log('[VehiclePicker] Car number input clicked:', event.target);
+          if (typeof window.openVehiclePicker === 'function') {
+            window.openVehiclePicker(event.target);
+          } else {
+            alert('Vehicle picker is not available. Please refresh the page.');
           }
         });
         
