@@ -3168,10 +3168,19 @@
       return normalized;
     }
 
+    function syncReleaseVehicleGlobals(){
+      try {
+        window.releaseVehicleCatalogList = state.list.slice();
+      } catch (_err) {
+        /* ignore */
+      }
+    }
+
     function ensureReleaseVehicles(options){
       const opts = options || {};
       const force = opts.force === true;
       if (!force && state.list.length && (Date.now() - state.cacheTs) < RELEASE_CACHE_TTL) {
+        syncReleaseVehicleGlobals();
         return Promise.resolve(state.list.slice());
       }
       if (state.pending) return state.pending;
@@ -3179,6 +3188,7 @@
       const hydrateFallback = function(){
         state.list = fallback;
         state.cacheTs = Date.now();
+        syncReleaseVehicleGlobals();
         return state.list.slice();
       };
       if (!(window.google && google.script && google.script.run)) {
@@ -3191,6 +3201,7 @@
             try {
               state.list = prepareList(res && res.vehicles ? res.vehicles : res);
               state.cacheTs = Date.now();
+              syncReleaseVehicleGlobals();
               resolve(state.list.slice());
             } catch (normalizeErr) {
               console.warn('[ReleaseVehicles] Failed to normalize payload', normalizeErr);
@@ -3207,6 +3218,16 @@
       });
       return state.pending;
     }
+
+    window.ensureReleaseVehicleCatalog = function(options){
+      return ensureReleaseVehicles(options).then(function(list){
+        return list.slice();
+      });
+    };
+
+    window.getReleaseVehicleCatalogSnapshot = function(){
+      return state.list.slice();
+    };
 
     function formatDate(value){
       if (!value) return '—';
