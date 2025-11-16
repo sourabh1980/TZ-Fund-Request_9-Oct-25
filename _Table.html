@@ -1347,6 +1347,355 @@
 
 <script>
 (function(){
+  'use strict';
+
+  const MODAL_ID = 'vehCacheModal';
+  const STYLE_ID = 'vehCacheModalStyles';
+  const CACHE_TTL_MS = 5 * 60 * 1000;
+  const state = {
+    vehicles: [],
+    lastFetch: 0,
+    pending: null,
+    activeInput: null
+  };
+
+  let modalEl = null;
+  let tableBodyEl = null;
+  let statusEl = null;
+  let emptyStateEl = null;
+
+  function ensureStyles(){
+    if (document.getElementById(STYLE_ID)) return;
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = `
+      #${MODAL_ID}{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;visibility:hidden;pointer-events:none;background:rgba(15,23,42,.4);backdrop-filter:blur(3px);transition:opacity .18s ease,visibility .18s ease;z-index:10005;padding:20px;}
+      #${MODAL_ID}.vehcache-modal--visible{opacity:1;visibility:visible;pointer-events:auto;}
+      #${MODAL_ID} .vehcache-modal__dialog{background:#fff;border-radius:18px;box-shadow:0 30px 60px rgba(15,23,42,.35);width:min(960px,96vw);max-height:90vh;display:flex;flex-direction:column;position:relative;z-index:2;overflow:hidden;}
+      #${MODAL_ID} .vehcache-modal__backdrop{position:absolute;inset:0;background:transparent;z-index:1;}
+      .vehcache-modal__header{padding:20px 24px 12px 24px;border-bottom:1px solid #e2e8f0;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+      .vehcache-modal__eyebrow{margin:0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#64748b;font-weight:600;}
+      .vehcache-modal__header h3{margin:4px 0;font-size:20px;color:#0f172a;}
+      .vehcache-modal__subtitle{margin:0;font-size:13px;color:#475569;}
+      .vehcache-close-btn{border:0;background:#e2e8f0;color:#0f172a;border-radius:999px;width:34px;height:34px;font-size:20px;line-height:1;cursor:pointer;transition:background .15s ease;}
+      .vehcache-close-btn:hover{background:#cbd5f5;}
+      .vehcache-modal__body{padding:16px 24px 24px 24px;overflow:auto;}
+      .vehcache-status{margin:0 0 12px 0;font-size:13px;color:#475569;}
+      .vehcache-status[data-state="loading"]{color:#2563eb;}
+      .vehcache-status[data-state="error"]{color:#b91c1c;}
+      .vehcache-status[data-state="empty"]{color:#475569;}
+      .vehcache-table-wrap{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;background:#fff;}
+      .vehcache-table{width:100%;border-collapse:collapse;font-size:13px;line-height:1.4;}
+      .vehcache-table thead th{background:#f8fafc;color:#0f172a;text-align:left;font-weight:600;padding:10px;border-bottom:1px solid #e2e8f0;position:sticky;top:0;}
+      .vehcache-table tbody td{padding:10px;border-bottom:1px solid #f1f5f9;vertical-align:top;}
+      .vehcache-table tbody tr{cursor:pointer;transition:background .12s ease;}
+      .vehcache-table tbody tr:hover{background:#f1f5f9;}
+      .vehcache-status-cell{font-weight:600;color:#0f172a;white-space:nowrap;}
+      .vehcache-remarks-cell{color:#475569;}
+      .vehcache-empty{padding:18px;text-align:center;font-size:13px;color:#94a3b8;}
+      @media (max-width:720px){
+        .vehcache-modal__header,.vehcache-modal__body{padding:16px;}
+        .vehcache-table thead{display:none;}
+        .vehcache-table tbody tr{display:flex;flex-direction:column;align-items:flex-start;border-bottom:1px solid #e2e8f0;}
+        .vehcache-table tbody td{width:100%;border:0;padding:6px 10px;}
+        .vehcache-table tbody td::before{content:attr(data-label);display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:2px;}
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function buildModal(){
+    const template = document.createElement('template');
+    template.innerHTML = `
+      <div id="${MODAL_ID}" class="vehcache-modal" aria-hidden="true" role="dialog" aria-labelledby="vehCacheTitle">
+        <div class="vehcache-modal__backdrop" data-vehcache-close="true"></div>
+        <div class="vehcache-modal__dialog" role="document">
+          <header class="vehcache-modal__header">
+            <div>
+              <p class="vehcache-modal__eyebrow">vehcache inventory</p>
+              <h3 id="vehCacheTitle">Available Vehicles</h3>
+              <p class="vehcache-modal__subtitle">Click a vehicle to fill the selected row.</p>
+            </div>
+            <button type="button" class="vehcache-close-btn" data-vehcache-close="true" aria-label="Close vehicles list">×</button>
+          </header>
+          <div class="vehcache-modal__body">
+            <p id="vehCacheStatus" class="vehcache-status" data-state="loading">Loading vehicles…</p>
+            <div class="vehcache-table-wrap">
+              <table class="vehcache-table" aria-live="polite">
+                <thead>
+                  <tr>
+                    <th scope="col">Vehicle Number</th>
+                    <th scope="col">Project</th>
+                    <th scope="col">Team</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Notes</th>
+                  </tr>
+                </thead>
+                <tbody id="vehCacheTableBody"></tbody>
+              </table>
+              <div id="vehCacheEmptyState" class="vehcache-empty" hidden>No vehicles found in vehcache.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    return template.content.firstElementChild;
+  }
+
+  function ensureModal(){
+    if (modalEl && modalEl.isConnected) return modalEl;
+    ensureStyles();
+    modalEl = buildModal();
+    tableBodyEl = modalEl.querySelector('#vehCacheTableBody');
+    statusEl = modalEl.querySelector('#vehCacheStatus');
+    emptyStateEl = modalEl.querySelector('#vehCacheEmptyState');
+    modalEl.addEventListener('click', handleModalClick, true);
+    document.body.appendChild(modalEl);
+    return modalEl;
+  }
+
+  function handleModalClick(event){
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('[data-vehcache-close="true"]')) {
+      event.preventDefault();
+      closeModal();
+      return;
+    }
+    const row = target.closest('tr[data-vehicle-index]');
+    if (row && row.closest(`#${MODAL_ID}`)) {
+      event.preventDefault();
+      const index = Number(row.getAttribute('data-vehicle-index'));
+      if (Number.isFinite(index) && index >= 0 && index < state.vehicles.length) {
+        applyVehicleToInput(state.vehicles[index]);
+      }
+    }
+  }
+
+  document.addEventListener('keydown', function(evt){
+    if (evt.key === 'Escape' && isModalVisible()) {
+      evt.preventDefault();
+      closeModal();
+    }
+  });
+
+  function isModalVisible(){
+    return !!(modalEl && modalEl.classList.contains('vehcache-modal--visible'));
+  }
+
+  function showModal(){
+    const modal = ensureModal();
+    modal.classList.add('vehcache-modal--visible');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeModal(){
+    if (!modalEl) return;
+    modalEl.classList.remove('vehcache-modal--visible');
+    modalEl.setAttribute('aria-hidden', 'true');
+    state.activeInput = null;
+  }
+
+  function resetVehicleTable(){
+    if (tableBodyEl) tableBodyEl.innerHTML = '';
+    if (emptyStateEl) emptyStateEl.hidden = true;
+  }
+
+  function setStatus(message, status){
+    ensureModal();
+    if (!statusEl) return;
+    statusEl.textContent = message;
+    if (status) {
+      statusEl.setAttribute('data-state', status);
+    } else {
+      statusEl.removeAttribute('data-state');
+    }
+  }
+
+  function normalizeVehicleEntry(entry){
+    if (!entry) return null;
+    const carNumber = String(entry.carNumber || entry.vehicleNumber || entry.vehicle || '').trim();
+    if (!carNumber) return null;
+    const normalized = {
+      carNumber: carNumber.toUpperCase(),
+      project: String(entry.project || entry.projectName || entry.Project || '').trim(),
+      team: String(entry.team || entry.teamName || entry.Team || '').trim(),
+      status: String(entry.status || entry.Status || entry.assignmentStatus || 'AVAILABLE').trim() || 'AVAILABLE',
+      category: String(entry.category || entry.Category || entry.usageType || '').trim(),
+      owner: String(entry.owner || entry.Owner || '').trim(),
+      responsible: String(entry.responsibleBeneficiary || entry['Responsible Beneficiary'] || entry['R.Beneficiary'] || entry['R. Ben'] || '').trim(),
+      remarks: ''
+    };
+    if (Array.isArray(entry.lastUsers) && entry.lastUsers.length) {
+      normalized.remarks = entry.lastUsers.map(function(user){ return String(user || '').trim(); }).filter(Boolean).join(', ');
+    }
+    if (!normalized.remarks) {
+      normalized.remarks = String(entry.remarks || entry.Remarks || entry.latestRelease || '').trim();
+    }
+    return normalized;
+  }
+
+  function normalizeVehicleList(rawList){
+    const normalized = (Array.isArray(rawList) ? rawList : [])
+      .map(normalizeVehicleEntry)
+      .filter(Boolean);
+    normalized.sort(function(a, b){
+      return a.carNumber.localeCompare(b.carNumber);
+    });
+    return normalized;
+  }
+
+  function getFallbackVehiclesRaw(){
+    if (Array.isArray(window.availableCarsData) && window.availableCarsData.length) {
+      return window.availableCarsData;
+    }
+    if (Array.isArray(window.vehicleDataCache) && window.vehicleDataCache.length) {
+      return window.vehicleDataCache;
+    }
+    if (Array.isArray(window.availableCarsRaw) && window.availableCarsRaw.length) {
+      return window.availableCarsRaw;
+    }
+    return [];
+  }
+
+  function fetchVehcacheVehicles(force){
+    const now = Date.now();
+    if (!force && state.vehicles.length && (now - state.lastFetch) < CACHE_TTL_MS) {
+      return Promise.resolve(state.vehicles);
+    }
+    if (state.pending) {
+      return state.pending;
+    }
+
+    state.pending = new Promise(function(resolve, reject){
+      function finishFromRaw(rawList){
+        const normalized = normalizeVehicleList(rawList);
+        state.pending = null;
+        state.vehicles = normalized;
+        state.lastFetch = Date.now();
+        resolve(normalized);
+      }
+
+      function fail(err){
+        state.pending = null;
+        reject(err);
+      }
+
+      const gasAvailable = !!(window.google && google.script && google.script.run);
+      if (!gasAvailable) {
+        const fallbackRaw = getFallbackVehiclesRaw();
+        if (fallbackRaw.length) {
+          finishFromRaw(fallbackRaw);
+        } else {
+          fail(new Error('Vehicle list unavailable (Apps Script not ready).'));
+        }
+        return;
+      }
+
+      google.script.run
+        .withSuccessHandler(function(res){
+          const raw = Array.isArray(res && res.vehicles) ? res.vehicles : (Array.isArray(res) ? res : []);
+          finishFromRaw(raw);
+        })
+        .withFailureHandler(function(err){
+          const fallbackRaw = getFallbackVehiclesRaw();
+          if (fallbackRaw.length) {
+            finishFromRaw(fallbackRaw);
+          } else {
+            fail(err || new Error('Failed to load vehcache list.'));
+          }
+        })
+        .getVehiclePickerData(false);
+    });
+
+    return state.pending;
+  }
+
+  function renderVehicles(list){
+    ensureModal();
+    if (!tableBodyEl) return;
+    tableBodyEl.innerHTML = '';
+    if (!Array.isArray(list) || !list.length) {
+      if (emptyStateEl) emptyStateEl.hidden = false;
+      return;
+    }
+    const fragment = document.createDocumentFragment();
+    list.forEach(function(vehicle, index){
+      const tr = document.createElement('tr');
+      tr.setAttribute('data-vehicle-index', String(index));
+      tr.setAttribute('data-vehicle-number', vehicle.carNumber);
+
+      const cells = [
+        { label: 'Vehicle Number', value: vehicle.carNumber, className: 'vehcache-cell--primary' },
+        { label: 'Project', value: vehicle.project || '—' },
+        { label: 'Team', value: vehicle.team || '—' },
+        { label: 'Status', value: vehicle.status || 'AVAILABLE', className: 'vehcache-status-cell' }
+      ];
+
+      const noteParts = [];
+      if (vehicle.responsible) noteParts.push('Responsible: ' + vehicle.responsible);
+      if (vehicle.category) noteParts.push(vehicle.category);
+      if (vehicle.owner) noteParts.push(vehicle.owner);
+      if (vehicle.remarks) noteParts.push(vehicle.remarks);
+      cells.push({ label: 'Notes', value: noteParts.join(' • ') || '—', className: 'vehcache-remarks-cell' });
+
+      cells.forEach(function(cell){
+        const td = document.createElement('td');
+        if (cell.className) td.className = cell.className;
+        if (td.setAttribute) td.setAttribute('data-label', cell.label);
+        td.textContent = cell.value;
+        tr.appendChild(td);
+      });
+
+      fragment.appendChild(tr);
+    });
+    tableBodyEl.appendChild(fragment);
+    if (emptyStateEl) emptyStateEl.hidden = true;
+  }
+
+  function applyVehicleToInput(vehicle){
+    if (!vehicle) return;
+    const input = state.activeInput;
+    if (!input) return;
+    const value = String(vehicle.carNumber || '').trim();
+    if (!value) return;
+    input.value = value;
+    try { input.dispatchEvent(new Event('input', { bubbles: true })); } catch (_){ /* ignore */ }
+    try { input.dispatchEvent(new Event('change', { bubbles: true })); } catch (_){ /* ignore */ }
+    closeModal();
+  }
+
+  function openVehicleCachePopup(targetInput, options){
+    const forceRefresh = !!(options && options.force === true);
+    state.activeInput = (targetInput && String(targetInput.tagName).toUpperCase() === 'INPUT') ? targetInput : null;
+    ensureModal();
+    resetVehicleTable();
+    setStatus('Loading vehicles…', 'loading');
+    showModal();
+    fetchVehcacheVehicles(forceRefresh)
+      .then(function(list){
+        if (!Array.isArray(list) || !list.length) {
+          renderVehicles([]);
+          setStatus('No vehicles found in vehcache.', 'empty');
+          return;
+        }
+        renderVehicles(list);
+        setStatus(`Showing ${list.length} vehcache vehicle${list.length === 1 ? '' : 's'}.`, 'ready');
+      })
+      .catch(function(err){
+        console.error('[VehcacheModal] Vehicle list load failed', err);
+        renderVehicles([]);
+        setStatus('Failed to load vehicles. Please try again.', 'error');
+      });
+  }
+
+  window.openVehicleCachePopup = openVehicleCachePopup;
+  window.closeVehicleCachePopup = closeModal;
+})();
+</script>
+
+<script>
+(function(){
   const tableWrap = document.querySelector('.table-wrap');
   const leftBtn = document.getElementById('scrollLeft');
   const rightBtn = document.getElementById('scrollRight');
@@ -6708,8 +7057,10 @@ function getProjectFromBeneficiary(beneficiaryName) {
               });
             }
             else {
-              // Empty Vehicle Number: open vehicle picker dropdown modal
-              if (typeof window.openVehiclePicker === 'function') {
+              // Empty Vehicle Number: open vehcache list modal first, fallback to legacy picker
+              if (typeof window.openVehicleCachePopup === 'function') {
+                window.openVehicleCachePopup(event.target);
+              } else if (typeof window.openVehiclePicker === 'function') {
                 window.openVehiclePicker(event.target);
               } else {
                 alert('Vehicle picker is not available. Please refresh the page.');
