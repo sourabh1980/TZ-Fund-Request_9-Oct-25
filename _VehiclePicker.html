@@ -1166,6 +1166,19 @@
           }
         }
 
+        function primeVehiclePrefillFromOptions(prefillValue){
+          const label = String(prefillValue || '').trim();
+          if (!label) {
+            return;
+          }
+          pendingVehiclePrefillLabel = label;
+          pendingVehiclePrefillValue = normalizeVehicleNumber(label);
+          vehiclePrefillApplied = !pendingVehiclePrefillValue;
+          if (!pendingVehiclePrefillValue) {
+            removeSyntheticPrefillOption();
+          }
+        }
+
         function clearVehiclePrefill(){
           pendingVehiclePrefillLabel = '';
           pendingVehiclePrefillValue = '';
@@ -3030,9 +3043,13 @@
           label.textContent = carNumber || '—';
         }
 
-        function open(target){
+        function open(target, options){
+          const opts = (options && typeof options === 'object') ? options : null;
           try{ targetInput=target||null; }catch(_){ targetInput=null; }
           try { primeVehiclePrefillFromTarget(targetInput); } catch (_err) { /* best effort */ }
+          if (opts && Object.prototype.hasOwnProperty.call(opts, 'prefillVehicle')) {
+            primeVehiclePrefillFromOptions(opts.prefillVehicle);
+          }
           const modal=document.getElementById('vehiclePickerModal');
           if (!modal) {
             console.warn('[VP] Vehicle picker modal element not found');

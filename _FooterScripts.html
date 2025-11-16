@@ -3349,7 +3349,7 @@
       } catch (_err) { /* ignore */ }
       handleClose();
       if (typeof window.openVehiclePicker === 'function') {
-        window.openVehiclePicker(target);
+        window.openVehiclePicker(target, { prefillVehicle: carNumber });
       } else {
         target.value = carNumber;
         try { target.dispatchEvent(new Event('input', { bubbles: true })); } catch (_evErr) { /* ignore */ }
