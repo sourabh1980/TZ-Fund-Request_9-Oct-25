@@ -3634,11 +3634,25 @@
       if (a){ if (b){ a.dataset.busy='1'; } else { delete a.dataset.busy; } }
     }catch(_){}
   }
+  function primeReleaseFlagging(){
+    if (!(window.google && google.script && google.script.run)) return;
+    try {
+      google.script.run
+        .withFailureHandler(function(err){
+          console.warn('[ReleaseFlagger] primeCarTPReleaseFlags failed', err);
+        })
+        .primeCarTPReleaseFlags();
+    } catch (err) {
+      console.warn('[ReleaseFlagger] Unable to trigger release flagging', err);
+    }
+  }
   document.addEventListener('pp:applied', function(e){
     var d = (e && e.detail) || {};
     var projectId = d.projectId || '';
     var teamIds = d.teamIds || [];
     if (!projectId){ return; }
+
+    primeReleaseFlagging();
 
     // 1) Try cache first for instant paint
     var cached = (window.ppGetCached && window.ppGetCached(projectId, teamIds)) || null;

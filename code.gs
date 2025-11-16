@@ -5116,6 +5116,18 @@ function getLatestReleaseCars() {
   }
 }
 
+function primeCarTPReleaseFlags() {
+  try {
+    const vehicles = _collectLatestReleaseCarsFromCarTP_();
+    const processedCount = Array.isArray(vehicles) ? vehicles.length : 0;
+    console.log(`[RELEASE_POPUP] primeCarTPReleaseFlags processed ${processedCount} latest release candidates.`);
+    return processedCount;
+  } catch (err) {
+    console.warn('primeCarTPReleaseFlags error:', err);
+    return 0;
+  }
+}
+
 function _collectLatestReleaseCarsFromVehicleReleased_() {
   try {
     const summary = getVehicleReleasedSummary();
