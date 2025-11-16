@@ -3176,10 +3176,13 @@
       }
       if (state.pending) return state.pending;
       const fallback = Array.isArray(window.availableCarsData) ? prepareList(window.availableCarsData) : [];
-      if (!(window.google && google.script && google.script.run)) {
+      const hydrateFallback = function(){
         state.list = fallback;
         state.cacheTs = Date.now();
-        return Promise.resolve(state.list.slice());
+        return state.list.slice();
+      };
+      if (!(window.google && google.script && google.script.run)) {
+        return Promise.resolve(hydrateFallback());
       }
       state.pending = new Promise(function(resolve, reject){
         google.script.run
@@ -3191,16 +3194,16 @@
               resolve(state.list.slice());
             } catch (normalizeErr) {
               console.warn('[ReleaseVehicles] Failed to normalize payload', normalizeErr);
-              state.list = fallback;
-              state.cacheTs = Date.now();
-              resolve(state.list.slice());
+              resolve(hydrateFallback());
             }
           })
           .withFailureHandler(function(err){
             state.pending = null;
-            reject(err || new Error('Failed to load release vehicles'));
+            state.lastError = err || null;
+            console.warn('[ReleaseVehicles] Fetch failed, falling back to cached vehicles', err);
+            resolve(hydrateFallback());
           })
-          .getVehiclePickerData();
+          .getLatestReleaseCars();
       });
       return state.pending;
     }
