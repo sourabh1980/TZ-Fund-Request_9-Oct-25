@@ -6464,7 +6464,12 @@ function getProjectFromBeneficiary(beneficiaryName) {
     const status = get('status','Status','inUseRelease','In Use/Release');
     const remarksRaw = get('remarks','Remarks','feedback','Feedback');
     const stars = get('stars','rating','Rating');
-    const category = get('category','Category','vehicleCategory','Vehicle Category','Cat');
+    const category = get(
+      'category','Category','categoryName','Category Name','category_name','Category_Name',
+      'categoryLabel','Category Label','category_label','Category_Label','categoryDisplay','Category Display',
+      'vehicleCategory','Vehicle Category','vehicle_category','Vehicle_Category','vehicleCat','VehicleCat',
+      '_vm_category','categoryNormalized','CategoryNormalized','categoryNorm','CategoryNorm','Cat'
+    );
     const responsibleBeneficiary = get('responsibleBeneficiary','Responsible Beneficiary','R.Beneficiary','R Beneficiary','R. Ben','responsible');
     let lastUsers = car.lastUsers;
     if (!Array.isArray(lastUsers)) {
