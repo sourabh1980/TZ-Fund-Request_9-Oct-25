@@ -6709,7 +6709,9 @@ function getProjectFromBeneficiary(beneficiaryName) {
             }
             else {
               // Empty Vehicle Number: open vehicle picker dropdown modal
-              if (typeof window.openVehiclePicker === 'function') {
+              if (typeof window.showReleaseVehiclesPopup === 'function') {
+                window.showReleaseVehiclesPopup(event.target);
+              } else if (typeof window.openVehiclePicker === 'function') {
                 window.openVehiclePicker(event.target);
               } else {
                 alert('Vehicle picker is not available. Please refresh the page.');
