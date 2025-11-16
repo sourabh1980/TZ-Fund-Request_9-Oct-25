@@ -4145,32 +4145,6 @@
                     });
                   }
 
-                  try {
-                    const ctxKey = computeContextKey(String(projectForPayload||'').trim(), String(teamForPayload||'').trim());
-                    if (window.google && google.script && google.script.run) {
-                      google.script.run
-                        .withSuccessHandler(function(){
-                          try {
-                            google.script.run
-                              .withSuccessHandler(function(res){
-                                try {
-                                  if (res && res.ok !== false && Array.isArray(res.list) && res.list.length) {
-                                    persistMinimalCache(ctxKey, res.list, res.cacheVersion || null);
-                                    console.log('[VP] Prefetched vehcache minimal for next popup', { count: res.list.length });
-                                  }
-                                } catch(_){ }
-                              })
-                              .withFailureHandler(function(err){
-                                console.warn('[VP] Prefetch vehcache minimal failed', err);
-                              })
-                              .getVehcacheMinimal();
-                          } catch(_){ }
-                        })
-                        .withFailureHandler(function(err){ console.warn('[VP] ensureVehcacheReady failed', err); })
-                        .ensureVehcacheReady();
-                    }
-                  } catch(_){ }
-
                   // Dispatch success event
                   window.dispatchEvent(new CustomEvent('vehicleAssignmentComplete', {
                     detail: { carNumber, responsibleBeneficiary: benFromContext, saved: true }
