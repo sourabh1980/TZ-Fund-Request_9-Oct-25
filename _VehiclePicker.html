@@ -1112,8 +1112,16 @@
 
         function extractVehicleNumberFromTarget(target){
           let raw = '';
+          if (target && target.dataset) {
+            const dsValue = target.dataset.vpPrefillVehicle || target.getAttribute('data-vp-prefill-vehicle');
+            if (dsValue) {
+              raw = dsValue;
+              try { delete target.dataset.vpPrefillVehicle; } catch (_err) { /* ignore */ }
+              try { target.removeAttribute('data-vp-prefill-vehicle'); } catch (_err) { /* ignore */ }
+            }
+          }
           if (target && typeof target.value === 'string' && target.classList && target.classList.contains('car-number-input')) {
-            raw = target.value;
+            raw = raw || target.value;
           }
           if (!raw) {
             const row = deriveRowFromTarget(target);
