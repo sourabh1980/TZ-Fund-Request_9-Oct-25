@@ -2817,7 +2817,12 @@
           const carNumber = get('carNumber','car_number','car','vehicleNumber','vehicle_number');
           const make = get('make','Make','brand','Brand');
           const model = get('model','Model');
-          const category = get('category','Category');
+          const category = get(
+            'category','Category','categoryName','Category Name','category_name','Category_Name',
+            'categoryLabel','Category Label','category_label','Category_Label','categoryDisplay','Category Display',
+            'vehicleCategory','Vehicle Category','vehicle_category','Vehicle_Category','vehicleCat','VehicleCat',
+            '_vm_category','categoryNormalized','CategoryNormalized','categoryNorm','CategoryNorm','Cat'
+          );
           const usageType = get('usageType','usage_type','Usage Type','usage','Usage');
           const contractType = get('contractType','contract_type','Contract Type','contract','Contract','agreementType','Agreement Type');
           const owner = get('owner','Owner','ownerName','Owner Name');

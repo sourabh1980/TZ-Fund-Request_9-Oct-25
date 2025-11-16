@@ -1243,7 +1243,12 @@
           team: data.team || '',
           teamName: data.teamName || data.team || '',
           carNumber: data.carNumber || data.car_number || '',
-          category: data.category || data.Category || data.vehicleCategory || data.categoryName || '',
+          category: data.category || data.Category || data.categoryName || data['Category Name'] ||
+            data.category_name || data.Category_Name || data.categoryLabel || data['Category Label'] ||
+            data.category_label || data.Category_Label || data.categoryDisplay || data['Category Display'] ||
+            data.vehicleCategory || data['Vehicle Category'] || data.vehicle_category || data.Vehicle_Category ||
+            data.vehicleCat || data.VehicleCat || data._vm_category || data.categoryNormalized ||
+            data.CategoryNormalized || data.categoryNorm || data.CategoryNorm || data.Cat || '',
           make: data.make || '',
           model: data.model || '',
           usageType: data.usageType || data.usage_type || '',
