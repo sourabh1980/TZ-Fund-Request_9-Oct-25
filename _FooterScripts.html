@@ -3015,6 +3015,378 @@
   </div>
 </div>
 
+<!-- Release vehicles quick list -->
+<style>
+  #releaseVehicleModal{position:fixed;inset:0;display:none;place-items:center;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:10002;padding:20px;}
+  .release-vehicle-card{width:min(980px,96vw);max-height:86vh;background:#fff;border-radius:18px;box-shadow:0 30px 70px rgba(15,23,42,.35);display:flex;flex-direction:column;overflow:hidden;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
+  .release-vehicle-header{padding:18px 20px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+  .release-vehicle-header h3{margin:0;font-size:18px;font-weight:800;}
+  .release-vehicle-header p{margin:4px 0 0;font-size:13px;opacity:.9;}
+  .release-vehicle-actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .release-vehicle-actions button{appearance:none;border:0;border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer;transition:background .2s,color .2s;}
+  #releaseVehicleRefresh{background:rgba(255,255,255,.2);color:#fff;}
+  #releaseVehicleRefresh:hover{background:rgba(255,255,255,.32);}
+  #releaseVehicleClose{background:rgba(15,23,42,.25);color:#fff;}
+  #releaseVehicleClose:hover{background:rgba(15,23,42,.35);}
+  .release-vehicle-controls{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;gap:12px;flex-wrap:wrap;background:#f8fafc;border-bottom:1px solid #e2e8f0;}
+  #releaseVehicleSearch{flex:1 1 280px;min-width:240px;border:1px solid #cbd5f5;border-radius:10px;padding:10px 14px;font-size:14px;}
+  .release-vehicle-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  #releaseVehicleCount{font-size:13px;color:#0f172a;font-weight:600;}
+  #releaseVehicleOpenPicker{appearance:none;border:0;background:#0f172a;color:#fff;border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer;transition:background .2s;}
+  #releaseVehicleOpenPicker:hover{background:#111827;}
+  .release-vehicle-status{padding:10px 20px;font-size:13px;color:#475569;border-bottom:1px solid #e2e8f0;background:#fff;}
+  .release-vehicle-tablewrap{flex:1 1 auto;overflow:auto;background:#fff;}
+  .release-vehicle-table{width:100%;border-collapse:collapse;font-size:13px;min-width:720px;}
+  .release-vehicle-table th,.release-vehicle-table td{border-bottom:1px solid #f1f5f9;padding:10px 12px;text-align:left;vertical-align:middle;}
+  .release-vehicle-table th{position:sticky;top:0;background:#f8fafc;font-weight:700;color:#0f172a;z-index:1;}
+  .release-vehicle-number{display:flex;flex-direction:column;gap:6px;font-weight:700;color:#0f172a;}
+  .release-pick-btn{appearance:none;border:1px solid #cbd5f5;background:#fff;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:600;color:#2563eb;align-self:flex-start;cursor:pointer;transition:all .2s;}
+  .release-pick-btn:hover{background:#dbeafe;border-color:#93c5fd;color:#1d4ed8;}
+  .release-vehicle-model{color:#475569;font-size:12px;font-weight:500;}
+  .release-vehicle-tag{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#334155;}
+  .release-vehicle-tag span{display:inline-flex;align-items:center;padding:4px 8px;background:#eef2ff;border-radius:999px;font-weight:600;color:#4338ca;}
+  .release-vehicle-owner{font-weight:600;color:#0f172a;}
+  .release-vehicle-empty{padding:24px;text-align:center;color:#94a3b8;font-style:italic;}
+  .release-vehicle-tablewrap.is-empty table{display:none;}
+  .release-vehicle-tablewrap.is-empty::after{content:'No release vehicles available right now.';display:block;padding:32px;text-align:center;color:#94a3b8;font-size:14px;}
+  @media (max-width:768px){
+    .release-vehicle-controls{flex-direction:column;align-items:stretch;}
+    .release-vehicle-meta{width:100%;justify-content:space-between;}
+  }
+</style>
+
+<div id="releaseVehicleModal" aria-hidden="true" role="dialog" aria-labelledby="releaseVehicleTitle">
+  <div class="release-vehicle-card">
+    <div class="release-vehicle-header">
+      <div>
+        <h3 id="releaseVehicleTitle">Release Vehicle Catalog</h3>
+        <p>Latest CarT_P entries marked as RELEASE (newest first)</p>
+      </div>
+      <div class="release-vehicle-actions">
+        <button id="releaseVehicleRefresh" type="button">Refresh</button>
+        <button id="releaseVehicleClose" type="button">Close</button>
+      </div>
+    </div>
+    <div class="release-vehicle-controls">
+      <input id="releaseVehicleSearch" type="search" placeholder="Search by vehicle #, make, model, usage, owner" autocomplete="off" />
+      <div class="release-vehicle-meta">
+        <span id="releaseVehicleCount">&nbsp;</span>
+        <button id="releaseVehicleOpenPicker" type="button">Open Vehicle Picker</button>
+      </div>
+    </div>
+    <div id="releaseVehicleStatus" class="release-vehicle-status">Loading release vehicles…</div>
+    <div id="releaseVehicleTableWrap" class="release-vehicle-tablewrap is-empty">
+      <table class="release-vehicle-table" aria-describedby="releaseVehicleStatus">
+        <thead>
+          <tr>
+            <th style="min-width:140px">Vehicle</th>
+            <th style="min-width:200px">Make / Model</th>
+            <th style="min-width:140px">Usage</th>
+            <th style="min-width:160px">Owner</th>
+            <th style="min-width:120px">Status</th>
+            <th style="min-width:170px">Last Release</th>
+          </tr>
+        </thead>
+        <tbody id="releaseVehicleTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+  <script>
+  (function(){
+    'use strict';
+    const modal = document.getElementById('releaseVehicleModal');
+    if (!modal) return;
+    const searchInput = document.getElementById('releaseVehicleSearch');
+    const statusEl = document.getElementById('releaseVehicleStatus');
+    const countEl = document.getElementById('releaseVehicleCount');
+    const tableBody = document.getElementById('releaseVehicleTableBody');
+    const tableWrap = document.getElementById('releaseVehicleTableWrap');
+    const refreshBtn = document.getElementById('releaseVehicleRefresh');
+    const closeBtn = document.getElementById('releaseVehicleClose');
+    const openPickerBtn = document.getElementById('releaseVehicleOpenPicker');
+    const body = document.body || document.documentElement;
+    const state = { list: [], filtered: [], search: '', target: null, pending: null, cacheTs: 0 };
+    const RELEASE_CACHE_TTL = 60 * 1000;
+
+    function escapeHtml(value){
+      return String(value == null ? '' : value)
+        .replace(/[&<>\"']/g, function(ch){
+          switch (ch) {
+            case '&': return '&amp;';
+            case '<': return '&lt;';
+            case '>': return '&gt;';
+            case '"': return '&quot;';
+            case "'": return '&#39;';
+            default: return ch;
+          }
+        });
+    }
+
+    function normalizeStatus(value){
+      const raw = String(value || '').trim();
+      const compact = raw.replace(/\s+/g, '').toUpperCase();
+      return { raw, compact };
+    }
+
+    function isReleaseStatus(value){
+      const { compact } = normalizeStatus(value);
+      if (!compact) return false;
+      return /RELEASE|RELIEVED|RETURN|AVAILABLE/.test(compact);
+    }
+
+    function normalizeVehicle(entry){
+      if (!entry) return null;
+      const carNumber = String(entry.carNumber || entry.vehicleNumber || entry.vehicle || entry['Vehicle Number'] || '').trim();
+      if (!carNumber) return null;
+      const statusValue = entry.status || entry.Status || entry.inUseRelease || entry['In Use/Release'] || '';
+      if (!isReleaseStatus(statusValue)) return null;
+      const make = String(entry.make || entry.Make || '').trim();
+      const model = String(entry.model || entry.Model || '').trim();
+      const usageType = String(entry.usageType || entry['Usage Type'] || entry.usage || '').trim();
+      const owner = String(entry.owner || entry.Owner || '').trim();
+      const latestRelease = entry.latestRelease || entry.latestTimestamp || entry.updatedAt || entry.dateTime || entry.Timestamp || '';
+      const releaseTs = latestRelease ? Date.parse(latestRelease) : 0;
+      return {
+        carNumber,
+        make,
+        model,
+        usageType,
+        owner,
+        status: statusValue || 'RELEASE',
+        latestRelease,
+        releaseTs: Number.isFinite(releaseTs) ? releaseTs : 0
+      };
+    }
+
+    function prepareList(payload){
+      const rows = Array.isArray(payload) ? payload : (payload && Array.isArray(payload.vehicles) ? payload.vehicles : []);
+      const normalized = rows.map(normalizeVehicle).filter(Boolean);
+      normalized.sort(function(a, b){
+        if (b.releaseTs !== a.releaseTs) return b.releaseTs - a.releaseTs;
+        return a.carNumber.localeCompare(b.carNumber);
+      });
+      return normalized;
+    }
+
+    function ensureReleaseVehicles(options){
+      const opts = options || {};
+      const force = opts.force === true;
+      if (!force && state.list.length && (Date.now() - state.cacheTs) < RELEASE_CACHE_TTL) {
+        return Promise.resolve(state.list.slice());
+      }
+      if (state.pending) return state.pending;
+      const fallback = Array.isArray(window.availableCarsData) ? prepareList(window.availableCarsData) : [];
+      if (!(window.google && google.script && google.script.run)) {
+        state.list = fallback;
+        state.cacheTs = Date.now();
+        return Promise.resolve(state.list.slice());
+      }
+      state.pending = new Promise(function(resolve, reject){
+        google.script.run
+          .withSuccessHandler(function(res){
+            state.pending = null;
+            try {
+              state.list = prepareList(res && res.vehicles ? res.vehicles : res);
+              state.cacheTs = Date.now();
+              resolve(state.list.slice());
+            } catch (normalizeErr) {
+              console.warn('[ReleaseVehicles] Failed to normalize payload', normalizeErr);
+              state.list = fallback;
+              state.cacheTs = Date.now();
+              resolve(state.list.slice());
+            }
+          })
+          .withFailureHandler(function(err){
+            state.pending = null;
+            reject(err || new Error('Failed to load release vehicles'));
+          })
+          .getVehiclePickerData();
+      });
+      return state.pending;
+    }
+
+    function formatDate(value){
+      if (!value) return '—';
+      try {
+        const d = new Date(value);
+        if (!Number.isNaN(d.getTime())) {
+          return d.toLocaleString();
+        }
+      } catch (_err) {
+        /* ignore */
+      }
+      return String(value);
+    }
+
+    function renderRows(list){
+      if (!Array.isArray(list) || !list.length) {
+        tableBody.innerHTML = '';
+        tableWrap.classList.add('is-empty');
+        return;
+      }
+      tableWrap.classList.remove('is-empty');
+      const rows = list.map(function(item){
+        return `<tr data-car-number="${escapeHtml(item.carNumber)}">
+          <td>
+            <div class="release-vehicle-number">${escapeHtml(item.carNumber)}<button type="button" class="release-pick-btn" data-release-car="${escapeHtml(item.carNumber)}">Assign</button></div>
+          </td>
+          <td>
+            <div>${escapeHtml(item.make || '—')}</div>
+            <div class="release-vehicle-model">${escapeHtml(item.model || '')}</div>
+          </td>
+          <td>
+            <div class="release-vehicle-tag">${item.usageType ? `<span>${escapeHtml(item.usageType)}</span>` : '<span>—</span>'}</div>
+          </td>
+          <td class="release-vehicle-owner">${escapeHtml(item.owner || '—')}</td>
+          <td>${escapeHtml(item.status || 'RELEASE')}</td>
+          <td>${escapeHtml(formatDate(item.latestRelease))}</td>
+        </tr>`;
+      }).join('');
+      tableBody.innerHTML = rows;
+    }
+
+    function applyFilters(){
+      const term = state.search.trim().toLowerCase();
+      const source = state.list.slice();
+      if (!term) {
+        state.filtered = source;
+      } else {
+        state.filtered = source.filter(function(item){
+          return [item.carNumber, item.make, item.model, item.usageType, item.owner, item.status]
+            .some(function(value){ return String(value || '').toLowerCase().includes(term); });
+        });
+      }
+      countEl.textContent = state.filtered.length
+        ? `${state.filtered.length} release vehicle${state.filtered.length === 1 ? '' : 's'} available`
+        : 'No release vehicles match the search.';
+      renderRows(state.filtered);
+    }
+
+    function handleOpen(target){
+      state.target = target || null;
+      state.search = '';
+      if (searchInput) searchInput.value = '';
+      modal.style.display = 'grid';
+      modal.setAttribute('aria-hidden', 'false');
+      if (body && body.style) {
+        state.prevOverflow = body.style.overflow;
+        body.style.overflow = 'hidden';
+      }
+      statusEl.textContent = 'Loading release vehicles…';
+      tableWrap.classList.add('is-empty');
+      ensureReleaseVehicles()
+        .then(function(list){
+          statusEl.textContent = list.length
+            ? 'Showing vehicles released most recently from CarT_P.'
+            : 'No release vehicles currently available.';
+          applyFilters();
+          if (searchInput) {
+            setTimeout(function(){ searchInput.focus(); }, 50);
+          }
+        })
+        .catch(function(err){
+          console.warn('[ReleaseVehicles] Fetch failed', err);
+          statusEl.textContent = 'Unable to load release vehicles. Please try refreshing.';
+          state.list = [];
+          applyFilters();
+        });
+    }
+
+    function handleClose(){
+      modal.style.display = 'none';
+      modal.setAttribute('aria-hidden', 'true');
+      if (body && body.style) {
+        body.style.overflow = state.prevOverflow || '';
+      }
+      state.target = null;
+    }
+
+    function openVehiclePickerForTarget(){
+      const target = state.target;
+      handleClose();
+      if (!target) return;
+      if (typeof window.openVehiclePicker === 'function') {
+        window.openVehiclePicker(target);
+      } else {
+        alert('Vehicle picker is not available. Please refresh the page.');
+      }
+    }
+
+    function selectVehicle(carNumber){
+      if (!carNumber) return;
+      const target = state.target;
+      if (!target) {
+        handleClose();
+        return;
+      }
+      try {
+        target.dataset.vpPrefillVehicle = carNumber;
+        target.setAttribute('data-vp-prefill-vehicle', carNumber);
+      } catch (_err) { /* ignore */ }
+      handleClose();
+      if (typeof window.openVehiclePicker === 'function') {
+        window.openVehiclePicker(target);
+      } else {
+        target.value = carNumber;
+        try { target.dispatchEvent(new Event('input', { bubbles: true })); } catch (_evErr) { /* ignore */ }
+      }
+    }
+
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', function(){
+        statusEl.textContent = 'Refreshing release vehicles…';
+        ensureReleaseVehicles({ force: true })
+          .then(function(){
+            statusEl.textContent = state.list.length
+              ? 'Showing vehicles released most recently from CarT_P.'
+              : 'No release vehicles currently available.';
+            applyFilters();
+          })
+          .catch(function(err){
+            console.warn('[ReleaseVehicles] Refresh failed', err);
+            statusEl.textContent = 'Unable to refresh release vehicles. Please try again.';
+          });
+      });
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', function(e){
+        state.search = e.target.value || '';
+        applyFilters();
+      });
+    }
+
+    if (closeBtn) {
+      closeBtn.addEventListener('click', handleClose);
+    }
+
+    modal.addEventListener('click', function(event){
+      if (event.target === modal) {
+        handleClose();
+      }
+      const pickBtn = event.target.closest && event.target.closest('[data-release-car]');
+      if (pickBtn) {
+        const carNumber = pickBtn.getAttribute('data-release-car');
+        selectVehicle(carNumber);
+      }
+    });
+
+    document.addEventListener('keydown', function(event){
+      if (event.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') {
+        handleClose();
+      }
+    });
+
+    if (openPickerBtn) {
+      openPickerBtn.addEventListener('click', openVehiclePickerForTarget);
+    }
+
+    window.showReleaseVehiclesPopup = handleOpen;
+    window.closeReleaseVehiclesPopup = handleClose;
+  })();
+  </script>
+</div>
+
 <!-- Debug: Car RELEASE list popup (for quick verification) -->
 <style>
   #carDebugModal{position:fixed;inset:0;display:none;place-items:center;background:rgba(0,0,0,.45);backdrop-filter:blur(2px);z-index:10000}
