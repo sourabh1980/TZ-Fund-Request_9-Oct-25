@@ -2805,11 +2805,44 @@
 
         const normalizeCar = (car) => {
           if (!car) return null;
+          const coerceValue = (value) => {
+            if (value == null) return '';
+            if (typeof value === 'string') return value.trim();
+            if (typeof value === 'number' && Number.isFinite(value)) return String(value).trim();
+            if (typeof value === 'object') {
+              if (typeof value.getText === 'function') {
+                return String(value.getText() || '').trim();
+              }
+              if (typeof value.text === 'string') {
+                return value.text.trim();
+              }
+              if (typeof value.displayValue === 'string') {
+                return value.displayValue.trim();
+              }
+              if (typeof value.value === 'string') {
+                return value.value.trim();
+              }
+              return String(value).trim();
+            }
+            return String(value).trim();
+          };
           const get = (...keys) => {
             for (const key of keys) {
-              if (key in car && car[key] != null) {
-                const val = String(car[key]).trim();
-                if (val) return val;
+              if (!key || !Object.prototype.hasOwnProperty.call(car, key)) continue;
+              const text = coerceValue(car[key]);
+              if (text) return text;
+            }
+            return '';
+          };
+          const findFallbackCategory = () => {
+            if (!car || typeof car !== 'object') return '';
+            for (const key of Object.keys(car)) {
+              if (!key) continue;
+              const normalizedKey = String(key).trim().toLowerCase().replace(/[^a-z]+/g, '');
+              if (!normalizedKey) continue;
+              if (normalizedKey === 'cat' || normalizedKey === 'category' || normalizedKey.startsWith('category')) {
+                const text = coerceValue(car[key]);
+                if (text) return text;
               }
             }
             return '';
@@ -2817,7 +2850,7 @@
           const carNumber = get('carNumber','car_number','car','vehicleNumber','vehicle_number');
           const make = get('make','Make','brand','Brand');
           const model = get('model','Model');
-          const category = get('category','Category','vehicleCategory','Vehicle Category','Cat','categoryName','Category Name');
+          const category = get('category','Category','vehicleCategory','Vehicle Category','Cat','categoryName','Category Name') || findFallbackCategory();
           const usageType = get('usageType','usage_type','Usage Type','usage','Usage');
           const contractType = get('contractType','contract_type','Contract Type','contract','Contract','agreementType','Agreement Type');
           const owner = get('owner','Owner','ownerName','Owner Name');
@@ -4972,6 +5005,21 @@
   if (window.__vpFirstOpenPatched) return;
   window.__vpFirstOpenPatched = true;
 
+  var VEHICLE_CATEGORY_KEYS = ['category','Category','vehicleCategory','Vehicle Category','Cat','categoryName','Category Name'];
+
+  function resolveVehicleCategory(vehicle){
+    if (!vehicle) return '';
+    for (var i = 0; i < VEHICLE_CATEGORY_KEYS.length; i++) {
+      var key = VEHICLE_CATEGORY_KEYS[i];
+      if (!Object.prototype.hasOwnProperty.call(vehicle, key)) continue;
+      var raw = vehicle[key];
+      if (raw == null) continue;
+      var text = String(raw).trim();
+      if (text) return text;
+    }
+    return '';
+  }
+
   function uniqueSorted(list, key){
     var s = new Set();
     (list||[]).forEach(function(v){ var k = (key? key(v): v); if (k!=null) s.add(String(k).trim()); });
@@ -4982,7 +5030,11 @@
     var lists = {
       make:      uniqueSorted(vehicles, function(v){ return v && v.make; }),
       model:     uniqueSorted(vehicles, function(v){ return v && v.model; }),
-      category:  uniqueSorted(vehicles, function(v){ return v && v.category; }),
+      category:  uniqueSorted(vehicles, function(v){
+        var normalized = v && v.category;
+        if (normalized) return normalized;
+        return resolveVehicleCategory(v);
+      }),
       usageType: uniqueSorted(vehicles, function(v){ return v && v.usageType; }),
       owner:     uniqueSorted(vehicles, function(v){ return v && v.owner; })
     };

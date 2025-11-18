@@ -3142,6 +3142,7 @@
       if (!isReleaseStatus(statusValue)) return null;
       const make = String(entry.make || entry.Make || '').trim();
       const model = String(entry.model || entry.Model || '').trim();
+      const category = String(entry.category || entry.Category || entry.vehicleCategory || entry['Category Name'] || entry['Vehicle Category'] || entry.cat || '').trim();
       const usageType = String(entry.usageType || entry['Usage Type'] || entry.usage || '').trim();
       const owner = String(entry.owner || entry.Owner || '').trim();
       const latestRelease = entry.latestRelease || entry.latestTimestamp || entry.updatedAt || entry.dateTime || entry.Timestamp || '';
@@ -3150,6 +3151,7 @@
         carNumber,
         make,
         model,
+        category,
         usageType,
         owner,
         status: statusValue || 'RELEASE',
