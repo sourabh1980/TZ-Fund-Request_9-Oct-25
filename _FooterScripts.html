@@ -3020,6 +3020,7 @@
   #releaseVehicleModal{position:fixed;inset:0;display:none;place-items:center;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:10002;padding:20px;}
   .release-vehicle-card{width:min(980px,96vw);max-height:86vh;background:#fff;border-radius:18px;box-shadow:0 30px 70px rgba(15,23,42,.35);display:flex;flex-direction:column;overflow:hidden;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
   .release-vehicle-header{padding:18px 20px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+  .release-vehicle-heading{display:flex;flex-direction:column;gap:6px;min-width:0}
   .release-vehicle-header h3{margin:0;font-size:18px;font-weight:800;}
   .release-vehicle-header p{margin:4px 0 0;font-size:13px;opacity:.9;}
   .release-vehicle-actions{display:flex;gap:10px;flex-wrap:wrap;}
@@ -3058,9 +3059,24 @@
 <div id="releaseVehicleModal" aria-hidden="true" role="dialog" aria-labelledby="releaseVehicleTitle">
   <div class="release-vehicle-card">
     <div class="release-vehicle-header">
-      <div>
+      <div class="release-vehicle-heading">
         <h3 id="releaseVehicleTitle">Release Vehicle Catalog</h3>
         <p>Latest CarT_P entries marked as RELEASE (newest first)</p>
+        <div id="releaseWaveLoader" class="wave-loader wave-loader--compact wave-loader--on-dark" aria-live="polite" aria-hidden="true" role="status">
+          <div class="wave-loader__pill">
+            <div class="wave-loader__bars" aria-hidden="true">
+              <span class="wave-loader__bar"></span>
+              <span class="wave-loader__bar"></span>
+              <span class="wave-loader__bar"></span>
+              <span class="wave-loader__bar"></span>
+              <span class="wave-loader__bar"></span>
+            </div>
+            <div class="wave-loader__text">
+              <div class="wave-loader__primary" data-wave-primary>Syncing release vehicle catalog…</div>
+              <div class="wave-loader__secondary" data-wave-secondary>Loading latest fleet and assignment data…</div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="release-vehicle-actions">
         <button id="releaseVehicleRefresh" type="button">Refresh</button>
@@ -3107,6 +3123,45 @@
     const body = document.body || document.documentElement;
     const state = { list: [], filtered: [], search: '', target: null, pending: null, cacheTs: 0 };
     const RELEASE_CACHE_TTL = 60 * 1000;
+    let releaseWaveLoaderCtrl = null;
+    let releaseWaveHideTimer = null;
+
+    function getReleaseWaveLoader(){
+      if (releaseWaveLoaderCtrl) return releaseWaveLoaderCtrl;
+      if (typeof window.createWaveLoaderController !== 'function') return null;
+      releaseWaveLoaderCtrl = window.createWaveLoaderController('releaseWaveLoader');
+      return releaseWaveLoaderCtrl;
+    }
+
+    function showReleaseWaveLoader(primaryText, secondaryText){
+      if (releaseWaveHideTimer) {
+        clearTimeout(releaseWaveHideTimer);
+        releaseWaveHideTimer = null;
+      }
+      const ctrl = getReleaseWaveLoader();
+      if (!ctrl) return;
+      const primary = primaryText || 'Syncing release vehicle catalog…';
+      const secondary = secondaryText || 'Loading latest fleet and assignment data…';
+      ctrl.show(primary, secondary);
+    }
+
+    function hideReleaseWaveLoader(options){
+      const ctrl = getReleaseWaveLoader();
+      if (!ctrl) return;
+      const delay = options && typeof options.delay === 'number' ? Math.max(0, options.delay) : 0;
+      const finish = function(){
+        ctrl.hide();
+        releaseWaveHideTimer = null;
+      };
+      if (delay > 0) {
+        if (releaseWaveHideTimer) {
+          clearTimeout(releaseWaveHideTimer);
+        }
+        releaseWaveHideTimer = setTimeout(finish, delay);
+      } else {
+        finish();
+      }
+    }
 
     function escapeHtml(value){
       return String(value == null ? '' : value)
@@ -3300,12 +3355,14 @@
       }
       statusEl.textContent = 'Loading release vehicles…';
       tableWrap.classList.add('is-empty');
+      showReleaseWaveLoader('Syncing release vehicle catalog…', 'Loading latest fleet and assignment data…');
       ensureReleaseVehicles()
         .then(function(list){
           statusEl.textContent = list.length
             ? 'Showing vehicles released most recently from CarT_P.'
             : 'No release vehicles currently available.';
           applyFilters();
+          hideReleaseWaveLoader({ delay: 200 });
           if (searchInput) {
             setTimeout(function(){ searchInput.focus(); }, 50);
           }
@@ -3315,6 +3372,8 @@
           statusEl.textContent = 'Unable to load release vehicles. Please try refreshing.';
           state.list = [];
           applyFilters();
+          showReleaseWaveLoader('Couldn’t reach the vehicle catalog.', 'Please try refreshing.');
+          hideReleaseWaveLoader({ delay: 2800 });
         });
     }
 
@@ -3325,6 +3384,7 @@
         body.style.overflow = state.prevOverflow || '';
       }
       state.target = null;
+      hideReleaseWaveLoader();
     }
 
     function openVehiclePickerForTarget(){
@@ -3361,16 +3421,20 @@
     if (refreshBtn) {
       refreshBtn.addEventListener('click', function(){
         statusEl.textContent = 'Refreshing release vehicles…';
+        showReleaseWaveLoader('Refreshing release catalog…', 'Syncing fleet availability…');
         ensureReleaseVehicles({ force: true })
           .then(function(){
             statusEl.textContent = state.list.length
               ? 'Showing vehicles released most recently from CarT_P.'
               : 'No release vehicles currently available.';
             applyFilters();
+            hideReleaseWaveLoader({ delay: 200 });
           })
           .catch(function(err){
             console.warn('[ReleaseVehicles] Refresh failed', err);
             statusEl.textContent = 'Unable to refresh release vehicles. Please try again.';
+            showReleaseWaveLoader('Couldn’t reach the vehicle catalog.', 'Please try again.');
+            hideReleaseWaveLoader({ delay: 2800 });
           });
       });
     }
