@@ -5165,6 +5165,19 @@ function primeCarTPReleaseFlags() {
 
 function _collectLatestReleaseCarsFromVehicleReleased_() {
   try {
+    let activeVehicles = new Set();
+    try {
+      const inUseSummary = getVehicleInUseSummary();
+      if (inUseSummary && inUseSummary.ok && Array.isArray(inUseSummary.assignments)) {
+        activeVehicles = new Set(
+          inUseSummary.assignments
+            .map(function(entry){ return _vehicleKey_(entry.vehicleNumber || entry.carNumber || ''); })
+            .filter(Boolean)
+        );
+      }
+    } catch (_activeErr) {
+      // best-effort; ignore
+    }
     const summary = getVehicleReleasedSummary();
     if (!summary.ok || !Array.isArray(summary.vehicles)) {
       console.warn('getLatestReleaseCars: Vehicle_Released summary unavailable or empty');
@@ -5178,6 +5191,8 @@ function _collectLatestReleaseCarsFromVehicleReleased_() {
       const status = statusRaw ? statusRaw : 'RELEASE';
       const compactStatus = status.replace(/[\s_\-/]+/g,'');
       if (compactStatus !== 'RELEASE' && compactStatus !== 'RELEASED') return null;
+      const normalizedKey = _vehicleKey_(carNumber);
+      if (normalizedKey && activeVehicles.has(normalizedKey)) return null;
 
       return {
         carNumber: carNumber,
@@ -5252,7 +5267,10 @@ function _collectLatestReleaseCarsFromCarTP_() {
       ? CARTP_PREVIOUS_RELEASE_FLAG_COLUMN - 1
       : -1;
 
-    const releaseByVehicle = Object.create(null);
+    const vehiclesMap = Object.create(null);
+    const releaseRowsToMark = new Set();
+    const prevReleaseRowsToMark = new Set();
+    const inUseRowsToMark = new Set();
 
     summary.rows.forEach(function(row, rowOffset) {
       if (!row) return;
@@ -5299,68 +5317,103 @@ function _collectLatestReleaseCarsFromCarTP_() {
         timestamp: timestamp || 0,
         rowNumber: rowNumber,
         isRelease: !!isRelease,
-        isFlagged: !!isFlagged
+        isFlagged: !!isFlagged,
+        flagNormalized: normalizedFlag,
+        beneficiaryValue: beneficiaryValue
       };
 
-      let bucket = releaseByVehicle[canonicalKey];
-      if (!bucket) {
-        bucket = { latest: null, releaseEntries: [] };
-        releaseByVehicle[canonicalKey] = bucket;
+      let vehicleBucket = vehiclesMap[canonicalKey];
+      if (!vehicleBucket) {
+        vehicleBucket = {
+          carNumber: rawVehicle,
+          beneficiaries: new Map()
+        };
+        vehiclesMap[canonicalKey] = vehicleBucket;
       }
-      const currentLatest = bucket.latest;
-      if (!currentLatest || entry.timestamp > currentLatest.timestamp ||
-          (entry.timestamp === currentLatest.timestamp && entry.rowNumber > currentLatest.rowNumber)) {
-        bucket.latest = entry;
-      }
-      if (entry.isRelease && !entry.isFlagged) {
-        bucket.releaseEntries.push(entry);
-      }
+
+      const benKey = _beneficiaryKey_(beneficiaryValue);
+      const list = vehicleBucket.beneficiaries.get(benKey) || [];
+      list.push(entry);
+      vehicleBucket.beneficiaries.set(benKey, list);
     });
 
-    const rowsToFlag = [];
     const vehicles = [];
+    Object.keys(vehiclesMap).forEach(function(vehicleKey) {
+      const bucket = vehiclesMap[vehicleKey];
+      if (!bucket || !bucket.beneficiaries) return;
 
-    Object.keys(releaseByVehicle).forEach(function(key) {
-      const bucket = releaseByVehicle[key];
-      if (!bucket || !bucket.latest) return;
+      let fullyReleased = true;
+      let latestVehicleRelease = null;
+      let hasRelease = false;
 
-      if (bucket.releaseEntries.length) {
-        bucket.releaseEntries.sort(function(a, b) {
+      bucket.beneficiaries.forEach(function(entries) {
+        if (!Array.isArray(entries) || !entries.length) return;
+
+        entries.sort(function(a, b) {
           if ((b.timestamp || 0) !== (a.timestamp || 0)) {
             return (b.timestamp || 0) - (a.timestamp || 0);
           }
           return (b.rowNumber || 0) - (a.rowNumber || 0);
         });
 
-        const keepCount = bucket.latest.isRelease ? 1 : 0;
-        const toFlag = bucket.releaseEntries.slice(keepCount);
-        toFlag.forEach(function(entry) {
-          if (entry && entry.rowNumber > 1) {
-            rowsToFlag.push(entry.rowNumber);
-          }
-        });
-      }
+        const latest = entries[0];
+        if (!latest) return;
 
-      if (bucket.latest.isRelease) {
+        if (latest.isRelease) {
+          hasRelease = true;
+          releaseRowsToMark.add(latest.rowNumber);
+
+          if (!latestVehicleRelease ||
+              (latest.timestamp || 0) > (latestVehicleRelease.timestamp || 0) ||
+              ((latest.timestamp || 0) === (latestVehicleRelease.timestamp || 0) && (latest.rowNumber || 0) > (latestVehicleRelease.rowNumber || 0))) {
+            latestVehicleRelease = latest;
+          }
+
+          for (let i = 1; i < entries.length; i++) {
+            const older = entries[i];
+            if (!older || older.flagNormalized === CARTP_PREVIOUS_RELEASE_FLAG_VALUE) continue;
+            prevReleaseRowsToMark.add(older.rowNumber);
+          }
+        } else {
+          fullyReleased = false;
+          inUseRowsToMark.add(latest.rowNumber);
+        }
+      });
+
+      if (fullyReleased && hasRelease && latestVehicleRelease) {
         vehicles.push({
-          carNumber: bucket.latest.carNumber,
-          make: bucket.latest.make || '',
-          model: bucket.latest.model || '',
-          category: bucket.latest.category || '',
-          usageType: bucket.latest.usageType || '',
-          contractType: bucket.latest.contractType || '',
-          owner: bucket.latest.owner || '',
-          project: bucket.latest.project || '',
-          team: bucket.latest.team || '',
-          status: bucket.latest.status || 'RELEASE',
-          latestRelease: bucket.latest.latestRelease || '',
-          releaseTs: bucket.latest.timestamp || 0
+          carNumber: latestVehicleRelease.carNumber,
+          make: latestVehicleRelease.make || '',
+          model: latestVehicleRelease.model || '',
+          category: latestVehicleRelease.category || '',
+          usageType: latestVehicleRelease.usageType || '',
+          contractType: latestVehicleRelease.contractType || '',
+          owner: latestVehicleRelease.owner || '',
+          project: latestVehicleRelease.project || '',
+          team: latestVehicleRelease.team || '',
+          status: latestVehicleRelease.status || 'RELEASE',
+          latestRelease: latestVehicleRelease.latestRelease || '',
+          releaseTs: latestVehicleRelease.timestamp || 0
         });
       }
     });
 
-    if (rowsToFlag.length) {
-      _flagPreviousCarTPReleaseRows_(rowsToFlag);
+    releaseRowsToMark.forEach(function(rowNum) {
+      prevReleaseRowsToMark.delete(rowNum);
+      inUseRowsToMark.delete(rowNum);
+    });
+    prevReleaseRowsToMark.forEach(function(rowNum) {
+      inUseRowsToMark.delete(rowNum);
+    });
+
+    if (releaseRowsToMark.size) {
+      _flagCarTPReleaseRows_(Array.from(releaseRowsToMark));
+    }
+    if (prevReleaseRowsToMark.size) {
+      _flagPreviousCarTPReleaseRows_(Array.from(prevReleaseRowsToMark));
+    }
+    if (inUseRowsToMark.size) {
+      _flagCarTPInUseRows_(Array.from(inUseRowsToMark));
     }
 
     vehicles.sort(function(a, b) {
@@ -5423,6 +5476,104 @@ function _flagPreviousCarTPReleaseRows_(rowNumbers) {
     console.log(`[RELEASE_POPUP] Flagged ${sortedRows.length} previous release rows in column S.`);
   } catch (err) {
     console.warn('_flagPreviousCarTPReleaseRows_ error:', err);
+  }
+}
+
+function _flagCarTPInUseRows_(rowNumbers) {
+  try {
+    if (!Array.isArray(rowNumbers) || !rowNumbers.length) return;
+    const uniqueRows = Array.from(new Set(rowNumbers.filter(function(num) {
+      return typeof num === 'number' && num > 1;
+    })));
+    if (!uniqueRows.length) return;
+
+    const sh = _openCarTP_();
+    if (!sh) {
+      console.warn('_flagCarTPInUseRows_: CarT_P sheet unavailable');
+      return;
+    }
+
+    const targetColumn = CARTP_PREVIOUS_RELEASE_FLAG_COLUMN > 0
+      ? CARTP_PREVIOUS_RELEASE_FLAG_COLUMN
+      : 19;
+    const maxColumns = sh.getMaxColumns();
+    if (maxColumns < targetColumn) {
+      sh.insertColumnsAfter(maxColumns, targetColumn - maxColumns);
+    }
+
+    const headerCell = sh.getRange(1, targetColumn);
+    const headerValue = String(headerCell.getDisplayValue() || headerCell.getValue() || '').trim();
+    if (!headerValue) {
+      headerCell.setValue(CARTP_PREVIOUS_RELEASE_FLAG_HEADER);
+    }
+
+    const columnLetter = _columnIndexToLetter_(targetColumn);
+    const sortedRows = uniqueRows.sort(function(a, b) { return a - b; });
+    if (columnLetter) {
+      const rangeIds = sortedRows.map(function(row) { return columnLetter + row; });
+      const chunkSize = 30;
+      for (let offset = 0; offset < rangeIds.length; offset += chunkSize) {
+        const chunk = rangeIds.slice(offset, offset + chunkSize);
+        sh.getRangeList(chunk).setValue('IN USE');
+      }
+    } else {
+      sortedRows.forEach(function(row) {
+        sh.getRange(row, targetColumn).setValue('IN USE');
+      });
+    }
+
+    console.log(`[RELEASE_POPUP] Flagged ${sortedRows.length} IN USE rows in column S.`);
+  } catch (err) {
+    console.warn('_flagCarTPInUseRows_ error:', err);
+  }
+}
+
+function _flagCarTPReleaseRows_(rowNumbers) {
+  try {
+    if (!Array.isArray(rowNumbers) || !rowNumbers.length) return;
+    const uniqueRows = Array.from(new Set(rowNumbers.filter(function(num) {
+      return typeof num === 'number' && num > 1;
+    })));
+    if (!uniqueRows.length) return;
+
+    const sh = _openCarTP_();
+    if (!sh) {
+      console.warn('_flagCarTPReleaseRows_: CarT_P sheet unavailable');
+      return;
+    }
+
+    const targetColumn = CARTP_PREVIOUS_RELEASE_FLAG_COLUMN > 0
+      ? CARTP_PREVIOUS_RELEASE_FLAG_COLUMN
+      : 19;
+    const maxColumns = sh.getMaxColumns();
+    if (maxColumns < targetColumn) {
+      sh.insertColumnsAfter(maxColumns, targetColumn - maxColumns);
+    }
+
+    const headerCell = sh.getRange(1, targetColumn);
+    const headerValue = String(headerCell.getDisplayValue() || headerCell.getValue() || '').trim();
+    if (!headerValue) {
+      headerCell.setValue(CARTP_PREVIOUS_RELEASE_FLAG_HEADER);
+    }
+
+    const columnLetter = _columnIndexToLetter_(targetColumn);
+    const sortedRows = uniqueRows.sort(function(a, b) { return a - b; });
+    if (columnLetter) {
+      const rangeIds = sortedRows.map(function(row) { return columnLetter + row; });
+      const chunkSize = 30;
+      for (let offset = 0; offset < rangeIds.length; offset += chunkSize) {
+        const chunk = rangeIds.slice(offset, offset + chunkSize);
+        sh.getRangeList(chunk).setValue('RELEASE');
+      }
+    } else {
+      sortedRows.forEach(function(row) {
+        sh.getRange(row, targetColumn).setValue('RELEASE');
+      });
+    }
+
+    console.log(`[RELEASE_POPUP] Flagged ${sortedRows.length} RELEASE rows in column S.`);
+  } catch (err) {
+    console.warn('_flagCarTPReleaseRows_ error:', err);
   }
 }
 
@@ -13991,7 +14142,23 @@ function _vehBuildPayload_() {
   if (!sum || sum.ok === false) {
     return { catalog: [], lists: { vehicleNumber: [], make: [], model: [], category: [], usageType: [], owner: [] } };
   }
-  const raw = Array.isArray(sum.vehicles) ? sum.vehicles : [];
+  let activeVehicles = new Set();
+  try {
+    const inUseSummary = getVehicleInUseSummary();
+    if (inUseSummary && inUseSummary.ok && Array.isArray(inUseSummary.assignments)) {
+      activeVehicles = new Set(
+        inUseSummary.assignments
+          .map(function(entry){ return _vehicleKey_(entry.vehicleNumber || entry.carNumber || ''); })
+          .filter(Boolean)
+      );
+    }
+  } catch (_activeErr) {
+    // ignore, best-effort
+  }
+  const raw = (Array.isArray(sum.vehicles) ? sum.vehicles : []).filter(function(entry){
+    const key = _vehicleKey_(entry && (entry.vehicleNumber || entry.carNumber || entry.vehicle || ''));
+    return key && !activeVehicles.has(key);
+  });
   const cat = [];
   const setMake = new Set(), setModel = new Set(), setCat = new Set(), setUse = new Set(), setOwner = new Set(), setNum = new Set();
   raw.forEach(function(entry){
