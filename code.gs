@@ -1689,6 +1689,7 @@ function refreshVehicleStatusSheets() {
 
   const latestByBeneficiary = new Map();
   const latestByVehicle = new Map();
+  const latestByVehicleBeneficiary = new Map();
 
   for (let idx = 0; idx < allCarRows.length; idx++) {
     const row = allCarRows[idx];
@@ -1700,6 +1701,29 @@ function refreshVehicleStatusSheets() {
     const names = _beneficiaryNamesFromRow_(row);
     const responsibleName = _extractResponsibleName(row);
     const responsibleKey = _beneficiaryKey_(responsibleName);
+
+    const vehicleKey = _vehicleKey_(row['Vehicle Number']);
+    const recordVehicleBeneficiaryStatus = function(name) {
+      if (!vehicleKey) return;
+      const cleaned = _sanitizeResponsibleName(name) || _norm(name);
+      if (!cleaned) return;
+      const benKey = _beneficiaryKey_(cleaned);
+      if (!benKey) return;
+
+      let vehicleMap = latestByVehicleBeneficiary.get(vehicleKey);
+      if (!vehicleMap) {
+        vehicleMap = new Map();
+        latestByVehicleBeneficiary.set(vehicleKey, vehicleMap);
+      }
+
+      const prevBen = vehicleMap.get(benKey);
+      if (!prevBen || row._ts > prevBen._ts || (row._ts === prevBen._ts && row._rowIndex >= prevBen._rowIndex)) {
+        const clone = Object.assign({}, row);
+        clone['R.Beneficiary'] = cleaned;
+        clone.__beneficiaryKey = benKey;
+        vehicleMap.set(benKey, clone);
+      }
+    };
     if (names.length) {
       names.forEach(function(name){
         const cleaned = _sanitizeResponsibleName(name) || _norm(name);
@@ -1715,6 +1739,7 @@ function refreshVehicleStatusSheets() {
           clone.__beneficiaryKey = key;
           latestByBeneficiary.set(key, clone);
         }
+        recordVehicleBeneficiaryStatus(cleaned);
       });
     } else {
       const beneficiary = _sanitizeResponsibleName(String(
@@ -1739,14 +1764,16 @@ function refreshVehicleStatusSheets() {
           clone.__beneficiaryKey = key;
           latestByBeneficiary.set(key, clone);
         }
+        recordVehicleBeneficiaryStatus(beneficiary);
       }
     }
 
-    const vehicle = String(row['Vehicle Number'] || '').trim().toUpperCase();
-    if (vehicle) {
-      const prevVeh = latestByVehicle.get(vehicle);
+    const vehicle = String(row['Vehicle Number'] || '').trim();
+    const normalizedVehicle = _vehicleKey_(vehicle);
+    if (normalizedVehicle) {
+      const prevVeh = latestByVehicle.get(normalizedVehicle);
       if (!prevVeh || row._ts > prevVeh._ts || (row._ts === prevVeh._ts && row._rowIndex >= prevVeh._rowIndex)) {
-        latestByVehicle.set(vehicle, row);
+        latestByVehicle.set(normalizedVehicle, row);
       }
     }
   }
@@ -1764,8 +1791,15 @@ function refreshVehicleStatusSheets() {
   });
 
   const finalReleasedSummaries = [];
-  latestByVehicle.forEach(function(row){
-    if (_normStatus_(row.Status) === 'RELEASE') {
+  latestByVehicle.forEach(function(row, vehicleKey){
+    if (_normStatus_(row.Status) !== 'RELEASE') {
+      return;
+    }
+    const beneficiaryStatusMap = latestByVehicleBeneficiary.get(vehicleKey);
+    const hasActiveBeneficiary = beneficiaryStatusMap && Array.from(beneficiaryStatusMap.values()).some(function(entry){
+      return _normStatus_(entry.Status) === 'IN USE';
+    });
+    if (!hasActiveBeneficiary) {
       finalReleasedSummaries.push(row);
     }
   });
@@ -5878,9 +5912,22 @@ function assignCarToTeam(payload){
       });
       
       console.log('[ASSIGN_CAR] Data being written:', rows);
-      
+
       sh.getRange(start,1,rows.length,rows[0].length).setValues(rows);
-      
+
+      const colPrevRelease = _columnLetterToIndex_('S');
+      if (colPrevRelease > 0) {
+        try {
+          if (sh.getMaxColumns() < colPrevRelease) {
+            sh.insertColumnsAfter(sh.getMaxColumns(), colPrevRelease - sh.getMaxColumns());
+          }
+          const markerValues = Array(rows.length).fill(['IN USE']);
+          sh.getRange(start, colPrevRelease, rows.length, 1).setValues(markerValues);
+        } catch (markerErr) {
+          console.warn('[ASSIGN_CAR] Unable to mark IN USE in column S:', markerErr);
+        }
+      }
+
       console.log('[ASSIGN_CAR] ✅ Data successfully written to CarT_P sheet');
       console.log('[ASSIGN_CAR] New last row after write:', sh.getLastRow());
 
