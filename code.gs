@@ -606,6 +606,71 @@ function _isActiveVehicleInUseEntry_(entry) {
   return !hasRelease && (beneficiary.length > 0 || !compact.length);
 }
 
+function testNewRules() {
+  try {
+    console.log('=== Testing New Rules ===');
+    
+    // 1. Test Team Constraint
+    // We need a vehicle that is currently IN USE.
+    // Let's try to find one from getVehicleInUseSummary
+    const summary = getVehicleInUseSummary();
+    if (summary.ok && summary.assignments.length > 0) {
+      const target = summary.assignments[0];
+      const veh = target.vehicleNumber || target.carNumber;
+      const team = target.team;
+      
+      console.log(`Testing Team Constraint on Vehicle: ${veh} (Assigned to: ${team})`);
+      
+      // Try to assign to a DIFFERENT team
+      const diffTeam = team + '_TEST_DIFF';
+      const resDiff = assignCarToTeam({
+        project: 'TEST_PROJECT',
+        team: diffTeam,
+        carNumber: veh,
+        beneficiaries: ['TEST_USER']
+      });
+      
+      console.log('Result (Different Team):', resDiff);
+      if (resDiff.ok === false && resDiff.error.includes('currently assigned to team')) {
+        console.log('PASS: Team constraint blocked assignment to different team.');
+      } else {
+        console.warn('FAIL: Team constraint did NOT block assignment to different team.');
+      }
+      
+      // Try to assign to the SAME team (should pass constraint check, but might fail later if we don't want to write)
+      // We won't actually write, just checking if it passed the constraint check.
+      // Since assignCarToTeam writes immediately, we might skip this or accept a write.
+      // For now, let's just rely on the blockage test.
+    } else {
+      console.warn('SKIPPING Team Constraint Test: No IN USE vehicles found.');
+    }
+    
+    // 2. Test Auto-Refresh
+    console.log('Testing Auto-Refresh...');
+    const props = PropertiesService.getScriptProperties();
+    const now = Date.now();
+    
+    // Set last edit to NOW + 10 seconds (future) to force stale
+    props.setProperty(VEH_BACKEND_CACHE.PROP_LAST_EDIT_TS, String(now + 10000));
+    
+    const t0 = Date.now();
+    const res = fetchVehiclesForExisting();
+    const t1 = Date.now();
+    
+    console.log('fetchVehiclesForExisting took', t1 - t0, 'ms');
+    console.log('Result version:', res.version);
+    
+    // Reset property
+    props.setProperty(VEH_BACKEND_CACHE.PROP_LAST_EDIT_TS, String(now));
+    
+    return 'Tests Completed';
+    
+  } catch (e) {
+    console.error('testNewRules failed:', e);
+    return 'Test Failed: ' + e.toString();
+  }
+}
+
 function getVehicleReleasedSummary() {
   const summary = getVehicleSummaryRows('Vehicle_Released');
   if (summary.error) {
@@ -6599,8 +6664,33 @@ function assignCarToTeam(payload){
     const sh = _openCarTP_();
     if(!sh) {
       console.error('[ASSIGN_CAR] CarT_P sheet not found');
-      return { ok:false, error:'CarT_P not found' };
+      return { ok:false, error:'CarT_P sheet not found' };
     }
+
+    // RULE 1: Team Constraint Check
+    try {
+      const inUseSummary = getVehicleInUseSummary();
+      if (inUseSummary && inUseSummary.ok && Array.isArray(inUseSummary.assignments)) {
+        const targetVehKey = _vehicleKey_(carNum);
+        const existingAssignment = inUseSummary.assignments.find(a => _vehicleKey_(a.vehicleNumber || a.carNumber) === targetVehKey);
+        
+        if (existingAssignment) {
+          const currentTeam = _norm(existingAssignment.team);
+          const newTeam = _norm(team);
+          
+          if (currentTeam && newTeam && currentTeam !== newTeam) {
+            console.warn(`[ASSIGN_CAR] Team constraint violation: Vehicle ${carNum} is assigned to '${currentTeam}', cannot assign to '${newTeam}'`);
+            return { 
+              ok: false, 
+              error: `Vehicle ${carNum} is currently assigned to team '${currentTeam}'. Cannot assign to '${newTeam}'.` 
+            };
+          }
+        }
+      }
+    } catch (ruleErr) {
+      console.warn('[ASSIGN_CAR] Team constraint check failed, proceeding with caution:', ruleErr);
+    }
+
     
     console.log('[ASSIGN_CAR] CarT_P sheet found:', {
       sheetName: sh.getName(),
@@ -14308,6 +14398,33 @@ function warmVehiclesCacheJob(){
 
 function fetchVehiclesForExisting(){
   var cached = _vehGetCache_();
+  
+  // RULE 2: Auto-Refresh on CarT_P change
+  // Check if cache is stale compared to last CarT_P edit
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const lastEditStr = props.getProperty(VEH_BACKEND_CACHE.PROP_LAST_EDIT_TS);
+    const lastEdit = lastEditStr ? Number(lastEditStr) : 0;
+    
+    let isStale = false;
+    if (cached && cached.meta && cached.meta.updatedAt) {
+      const cacheTs = new Date(cached.meta.updatedAt).getTime();
+      if (lastEdit > cacheTs) {
+        isStale = true;
+        console.log('[AUTO_REFRESH] Cache is stale (Last Edit: ' + lastEdit + ' > Cache: ' + cacheTs + '), rebuilding...');
+      }
+    }
+    
+    if (!cached || isStale) {
+      // Rebuild immediately
+      var built = _vehBuildPayload_();
+      var meta = _vehPutCache_(built.catalog, built.lists);
+      cached = { meta: meta, catalog: built.catalog };
+    }
+  } catch (refreshErr) {
+    console.warn('[AUTO_REFRESH] Check failed, falling back to standard cache logic', refreshErr);
+  }
+
   if (!cached){
     // fallback to durable backup
     var backup = _vehReadBackup_();
