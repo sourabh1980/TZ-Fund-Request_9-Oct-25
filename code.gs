@@ -581,14 +581,17 @@ function getVehicleInUseSummary() {
     return String(entry.vehicleNumber || '').trim() !== '';
   });
 
-  if (assignments.length && carTPRows.length) {
+  if (assignments.length) {
     assignments.forEach(function(entry){
       if (!entry) return;
       const vehicleKey = _vehicleKey_(entry.vehicleNumber);
       const beneficiaryKey = _beneficiaryKey_(entry.beneficiary || entry.responsibleBeneficiary || '');
       if (!vehicleKey || !beneficiaryKey) return;
       const meta = cartpMetaByBeneficiary[vehicleKey + '|' + beneficiaryKey];
-      if (!meta) return;
+      if (!meta) {
+        console.info("[CARTP META] No IN-USE metadata for", vehicleKey, beneficiaryKey);
+        return;
+      }
       if (!entry.make && meta.make) entry.make = meta.make;
       if (!entry.model && meta.model) entry.model = meta.model;
       if (!entry.category && meta.category) entry.category = meta.category;
@@ -11208,6 +11211,10 @@ function _readCarTP_objects_(){
       }
     }
 
+    const statusValue = iStat>=0 ? (row[iStat] || disp[r][iStat] || '') : '';
+    const normalizedStatus = _normStatus_(statusValue);
+    if (normalizedStatus !== 'IN USE') continue;
+
     const obj = {
       Ref: iRef>=0 ? (row[iRef] || disp[r][iRef] || '') : '',
       'Date and time of entry': iDate>=0 ? (row[iDate] || disp[r][iDate] || '') : '',
@@ -11221,7 +11228,7 @@ function _readCarTP_objects_(){
       Owner: iOwner>=0 ? (row[iOwner] || disp[r][iOwner] || '') : '',
       'R.Beneficiary': beneficiaryValue,
       'R. Ben': responsibleValue || '',
-      Status: iStat>=0 ? (row[iStat] || disp[r][iStat] || '') : '',
+      Status: statusValue,
       'Last Users remarks': iRem>=0 ? (row[iRem] || disp[r][iRem] || '') : '',
       Ratings: iRate>=0 ? (row[iRate] || disp[r][iRate] || '') : '',
       'Submitter username': iSubmit>=0 ? (row[iSubmit] || disp[r][iSubmit] || '') : '',
