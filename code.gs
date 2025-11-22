@@ -521,6 +521,30 @@ function getVehicleInUseSummary() {
   const starsIdx = idx(['Ratings', 'Stars', 'Rating']);
   const rBenTimeIdx = idx(['R.Ben Time','R.Ben timestamp','Responsible Beneficiary Time'], false);
 
+  const carTPRows = _readCarTP_objects_();
+  const cartpMetaByBeneficiary = Object.create(null);
+  if (carTPRows.length) {
+    carTPRows.forEach(function(row){
+      if (!row) return;
+      const vehicleKey = _vehicleKey_(row['Vehicle Number']);
+      const beneficiaryKey = _beneficiaryKey_(row.responsibleBeneficiary || row['R.Beneficiary'] || row['R. Ben'] || '');
+      if (!vehicleKey || !beneficiaryKey) return;
+      const ts = _parseTs_(row._ts || row['Date and time of entry']);
+      const key = vehicleKey + '|' + beneficiaryKey;
+      const existing = cartpMetaByBeneficiary[key];
+      if (!existing || ts > existing.ts) {
+        cartpMetaByBeneficiary[key] = {
+          ts: ts,
+          make: row.Make || '',
+          model: row.Model || '',
+          category: row.Category || '',
+          usageType: row['Usage Type'] || '',
+          owner: row.Owner || ''
+        };
+      }
+    });
+  }
+
   const assignments = summary.rows.map(function(row) {
     return {
       beneficiary: beneficiaryIdx >= 0 ? row[beneficiaryIdx] : '',
@@ -543,6 +567,22 @@ function getVehicleInUseSummary() {
   }).filter(function(entry) {
     return String(entry.vehicleNumber || '').trim() !== '';
   });
+
+  if (assignments.length && carTPRows.length) {
+    assignments.forEach(function(entry){
+      if (!entry) return;
+      const vehicleKey = _vehicleKey_(entry.vehicleNumber);
+      const beneficiaryKey = _beneficiaryKey_(entry.beneficiary || entry.responsibleBeneficiary || '');
+      if (!vehicleKey || !beneficiaryKey) return;
+      const meta = cartpMetaByBeneficiary[vehicleKey + '|' + beneficiaryKey];
+      if (!meta) return;
+      if (!entry.make && meta.make) entry.make = meta.make;
+      if (!entry.model && meta.model) entry.model = meta.model;
+      if (!entry.category && meta.category) entry.category = meta.category;
+      if (!entry.usageType && meta.usageType) entry.usageType = meta.usageType;
+      if (!entry.owner && meta.owner) entry.owner = meta.owner;
+    });
+  }
 
   assignments.sort(function(a, b) {
     var tsA = a.latestTimestamp ? new Date(a.latestTimestamp).getTime() : 0;
