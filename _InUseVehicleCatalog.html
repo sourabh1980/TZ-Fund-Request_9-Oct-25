@@ -1,7 +1,7 @@
 <div id="inUseVehicleModal" class="in-use-modal">
     <div class="in-use-modal-content">
         <div class="in-use-header">
-            <h2 class="in-use-title">In Use Vehicle Catalog</h2>
+            <h2 id="inUseCatalogTitle" class="in-use-title">In Use Vehicle Catalog</h2>
             <button class="in-use-close" onclick="closeInUseVehicleCatalog()">&times;</button>
         </div>
 
@@ -623,7 +623,7 @@
                         try { window.vehicleInUseRecords = allInUseVehicles.slice(); } catch (_cacheErr) { }
                         buildTeamColorMap();
                         populateDropdowns(allInUseVehicles);
-                        renderInUseVehicles(allInUseVehicles);
+                        filterInUseVehicles(); // Apply filters instead of rendering all
                         ensureReleaseRatings(allInUseVehicles);
                         watchReleaseSnapshotsReady();
                     } else {
@@ -672,7 +672,7 @@
                             try { window.vehicleInUseRecords = allInUseVehicles.slice(); } catch (_cacheErr) { }
                             buildTeamColorMap();
                             populateDropdowns(allInUseVehicles);
-                            renderInUseVehicles(allInUseVehicles);
+                            filterInUseVehicles(); // Apply filters instead of rendering all
                             ensureReleaseRatings(allInUseVehicles);
                             watchReleaseSnapshotsReady();
                         } else {
@@ -713,7 +713,8 @@
                 allInUseVehicles = normalizeVehicleList(cached.slice());
                 buildTeamColorMap();
                 populateDropdowns(allInUseVehicles);
-                renderInUseVehicles(allInUseVehicles);
+                populateDropdowns(allInUseVehicles);
+                filterInUseVehicles();
                 ensureReleaseRatings(allInUseVehicles);
                 console.warn('Loaded in-use vehicles from local cache', { reason, count: allInUseVehicles.length });
                 return true;
@@ -760,7 +761,7 @@
                 if (window.vehicleReleaseSnapshotsReady === true) {
                     clearInterval(releaseReadyWatcher);
                     releaseReadyWatcher = null;
-                    renderInUseVehicles(allInUseVehicles);
+                    filterInUseVehicles();
                 }
             } catch (_err) {
                 clearInterval(releaseReadyWatcher);
@@ -799,7 +800,8 @@
                     }
                 });
                 console.log('Updated ratings for ' + updateCount + ' vehicles');
-                renderInUseVehicles(assignments);
+                console.log('Updated ratings for ' + updateCount + ' vehicles');
+                filterInUseVehicles(); // Re-apply filters with new ratings
             })
             .withFailureHandler(err => {
                 console.warn('Release ratings fetch failed:', err);
@@ -808,43 +810,56 @@
     }
 
     function populateDropdowns(vehicles) {
-        const sets = {
-            make: new Set(),
-            model: new Set(),
-            category: new Set(),
-            usageType: new Set(),
-            project: new Set(),
-            team: new Set(),
-            owner: new Set()
+        const counts = {
+            make: {},
+            model: {},
+            category: {},
+            usageType: {},
+            project: {},
+            team: {},
+            owner: {}
         };
 
         vehicles.forEach(v => {
-            if (v.make) sets.make.add(v.make);
-            if (v.model) sets.model.add(v.model);
-            if (v.category) sets.category.add(v.category);
-            if (v.usageType) sets.usageType.add(v.usageType);
-            if (v.project) sets.project.add(v.project);
-            if (v.team) sets.team.add(v.team);
-            if (v.owner) sets.owner.add(v.owner);
+            const vid = (v.vehicleNumber || '').trim();
+            if (!vid) return;
+
+            const add = (key, val) => {
+                if (!val) return;
+                if (!counts[key][val]) counts[key][val] = new Set();
+                counts[key][val].add(vid);
+            };
+
+            add('make', v.make);
+            add('model', v.model);
+            add('category', v.category);
+            add('usageType', v.usageType);
+            add('project', v.project);
+            add('team', v.team);
+            add('owner', v.owner);
         });
 
-        fillDropdown('makeDropdown', sets.make, 'make');
-        fillDropdown('modelDropdown', sets.model, 'model');
-        fillDropdown('categoryDropdown', sets.category, 'category');
-        fillDropdown('usageDropdown', sets.usageType, 'usage');
-        fillDropdown('typeDropdown', sets.category, 'type'); // type mapped to category
-        fillDropdown('projectDropdown', sets.project, 'project');
-        fillDropdown('teamDropdown', sets.team, 'team');
-        fillDropdown('ownerDropdown', sets.owner, 'owner');
+        fillDropdown('makeDropdown', counts.make, 'make');
+        fillDropdown('modelDropdown', counts.model, 'model');
+        fillDropdown('categoryDropdown', counts.category, 'category');
+        fillDropdown('usageDropdown', counts.usageType, 'usage');
+        fillDropdown('typeDropdown', counts.category, 'type'); // type mapped to category
+        fillDropdown('projectDropdown', counts.project, 'project');
+        fillDropdown('teamDropdown', counts.team, 'team');
+        fillDropdown('ownerDropdown', counts.owner, 'owner');
     }
 
-    function fillDropdown(id, set, filterKey) {
+    function fillDropdown(id, countMap, filterKey) {
         const el = document.getElementById(id);
         el.innerHTML = '';
-        Array.from(set).sort().forEach(val => {
+        Object.keys(countMap).sort().forEach(val => {
+            const count = countMap[val].size;
             const div = document.createElement('div');
             div.className = 'dropdown-item';
-            div.textContent = val;
+            if (activeFilters[filterKey] === val) {
+                div.classList.add('selected');
+            }
+            div.textContent = `${val} [${count}]`;
             div.onclick = () => selectDropdownItem(filterKey, val, div);
             el.appendChild(div);
         });
@@ -1049,9 +1064,17 @@
         renderInUseVehicles(filtered);
     }
 
-    function renderInUseVehicles(vehicles) {
+    function renderInUseVehicles(list) {
+        // Update Header Counts
+        const uniqueTeams = new Set(list.map(v => v.team || 'Unassigned')).size;
+        const uniqueVehicles = new Set(list.map(v => (v.vehicleNumber || '').trim()).filter(Boolean)).size;
+        const titleEl = document.getElementById('inUseCatalogTitle');
+        if (titleEl) {
+            titleEl.textContent = `In Use Vehicle Catalog - [${uniqueVehicles}] ; Teams [${uniqueTeams}]`;
+        }
+
         const grid = document.getElementById('inUseVehicleGrid');
-        if (!vehicles.length) {
+        if (!list.length) {
             grid.innerHTML = '<div class="loading-spinner">No vehicles found matching criteria.</div>';
             return;
         }
@@ -1076,7 +1099,7 @@
                     <tbody>
         `;
 
-        const rows = vehicles.map(v => {
+        const rows = list.map(v => {
             const releaseAvg = v.releaseAvg || computeReleaseAvgRating(v);
             const fallbackAvg = typeof v.stars === 'number' ? Number(v.stars) : 0;
             const avgValue = releaseAvg ? releaseAvg.avg : fallbackAvg;
