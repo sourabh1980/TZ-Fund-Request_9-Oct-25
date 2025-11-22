@@ -451,11 +451,111 @@
     let teamColorMap = {};
     const IN_USE_REFRESH_INTERVAL = 20000; // ms
     let inUseRefreshTimer = null;
+    let metaReady = false;
+
+    function pickFirstFilled() {
+        for (let i = 0; i < arguments.length; i++) {
+            const val = arguments[i];
+            if (val == null) continue;
+            const str = typeof val === 'string' ? val.trim() : String(val);
+            if (str) return str;
+        }
+        return '';
+    }
+
+    function findVehicleMeta(vehicleNumber) {
+        const key = (vehicleNumber || '').toString().trim().toLowerCase();
+        if (!key) return null;
+
+        const metaMap = (typeof window !== 'undefined' && window.carTPVehicleMeta)
+            ? window.carTPVehicleMeta
+            : null;
+
+        // Object map lookup (keys may be mixed-case)
+        if (metaMap && !Array.isArray(metaMap) && typeof metaMap === 'object') {
+            if (metaMap[vehicleNumber]) return metaMap[vehicleNumber];
+            if (metaMap[key]) return metaMap[key];
+            if (metaMap[key.toUpperCase()]) return metaMap[key.toUpperCase()];
+            for (const metaKey in metaMap) {
+                if (!metaKey) continue;
+                if (metaKey.toString().trim().toLowerCase() === key) {
+                    return metaMap[metaKey];
+                }
+            }
+        }
+
+        const asArray = Array.isArray(metaMap) ? metaMap
+            : (metaMap && Array.isArray(metaMap.vehicles) ? metaMap.vehicles : null);
+
+        if (asArray) {
+            const match = asArray.find(car => {
+                const cNum = (car.carNumber || car.vehicleNumber || car.car || car.vehicle || '').toString().trim().toLowerCase();
+                return cNum === key;
+            });
+            if (match && typeof window.normalizeVehiclePickerRow === 'function') {
+                return window.normalizeVehiclePickerRow(match) || match;
+            }
+            if (match) return match;
+        }
+
+        // Local cached picker data
+        if (Array.isArray(window.availableCarsData)) {
+            const match = window.availableCarsData.find(car => {
+                const cNum = (car.carNumber || car.vehicleNumber || '').toString().trim().toLowerCase();
+                return cNum === key;
+            });
+            if (match) return match;
+        }
+        return null;
+    }
+
+    function normalizeInUseVehicle(entry) {
+        const e = entry || {};
+        const vehicleNumber = pickFirstFilled(e.vehicleNumber, e.carNumber, e.car, e.Vehicle, e['Vehicle No'], e['Car No']);
+        const meta = findVehicleMeta(vehicleNumber) || {};
+
+        return {
+            ...e,
+            vehicleNumber,
+            make: pickFirstFilled(e.make, e.Make, e.vehicleMake, e['Vehicle Make'], e['Car Make'], e.brand, e.Brand, meta.make, meta.Make, meta.Brand, meta.brand),
+            model: pickFirstFilled(e.model, e.Model, e.vehicleModel, e['Vehicle Model'], e['Car Model'], meta.model, meta.Model),
+            category: pickFirstFilled(e.category, e.Category, e.type, e.Type, e['Vehicle Category'], e['Vehicle Type'], e.cat, meta.category, meta.Category, meta.type, meta.Type, meta['Vehicle Category']),
+            usageType: pickFirstFilled(e.usageType, e.usage, e['Usage Type'], e['Usage'], e.usage_type, meta.usageType, meta['Usage Type'], meta.usage),
+            owner: pickFirstFilled(e.owner, e.Owner, e['Owner Name'], e['Vehicle Owner'], meta.owner, meta.Owner),
+            project: pickFirstFilled(e.project, e.Project, meta.project, meta.Project),
+            team: pickFirstFilled(e.team, e.Team, meta.team, meta.Team)
+        };
+    }
+
+    function normalizeVehicleList(list) {
+        return Array.isArray(list) ? list.map(normalizeInUseVehicle) : [];
+    }
+
+    function ensureMetaThen(fn) {
+        if (metaReady) {
+            fn();
+            return;
+        }
+        const fallback = () => { metaReady = true; fn(); };
+        if (typeof window.ensureVehicleMetaCache === 'function') {
+            window.ensureVehicleMetaCache(() => {
+                metaReady = true;
+                fn();
+            });
+        } else if (window.FRTZ && typeof window.FRTZ.ensureVehicleInventoryWarm === 'function') {
+            window.FRTZ.ensureVehicleInventoryWarm().finally(() => {
+                metaReady = true;
+                fn();
+            });
+        } else {
+            fallback();
+        }
+    }
 
     function openInUseVehicleCatalog() {
         const modal = document.getElementById('inUseVehicleModal');
         modal.classList.add('show');
-        fetchInUseVehicles();
+        ensureMetaThen(fetchInUseVehicles);
         startInUseAutoRefresh();
     }
 
@@ -507,7 +607,8 @@
                             grid.innerHTML = '<div class="loading-spinner">Error: Invalid data format received</div>';
                             return;
                         }
-                        allInUseVehicles = data.assignments;
+                        allInUseVehicles = normalizeVehicleList(data.assignments);
+                        try { window.vehicleInUseRecords = allInUseVehicles.slice(); } catch (_cacheErr) {}
                         buildTeamColorMap();
                         populateDropdowns(allInUseVehicles);
                         renderInUseVehicles(allInUseVehicles);
@@ -534,14 +635,14 @@
                     }
                 }
             })
-            .getVehicleInUseSummary();
+            .getVehicleInUseSummaryFromCarTP();
     }
 
     function renderInUseFromCache(reason) {
         try {
             const cached = Array.isArray(window.vehicleInUseRecords) ? window.vehicleInUseRecords : [];
             if (cached.length) {
-                allInUseVehicles = cached.slice();
+                allInUseVehicles = normalizeVehicleList(cached.slice());
                 buildTeamColorMap();
                 populateDropdowns(allInUseVehicles);
                 renderInUseVehicles(allInUseVehicles);

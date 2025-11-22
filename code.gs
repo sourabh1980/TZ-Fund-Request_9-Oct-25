@@ -559,6 +559,64 @@ function getVehicleInUseSummary() {
   };
 }
 
+/**
+ * Direct CarT_P reader for the In Use Vehicle Catalog.
+ * Bypasses the Vehicle_InUse mirror and builds assignments straight from CarT_P rows
+ * so the popup always reflects live CarT_P data (including Make/Model/Category/Usage/Owner).
+ */
+function getVehicleInUseSummaryFromCarTP() {
+  try {
+    const derived = _computeCarTPVehicleSnapshots_();
+    if (!derived || derived.ok === false) {
+      return { ok: false, source: 'CarT_P', assignments: [], updatedAt: '', error: derived && derived.error ? derived.error : 'CarT_P data unavailable' };
+    }
+
+    const rows = Array.isArray(derived.inUseRows) ? derived.inUseRows : [];
+    const assignments = rows.map(function(row) {
+      const vehicleNumber = String(row['Vehicle Number'] || row.vehicleNumber || row.carNumber || '').trim();
+      const beneficiary = String(row['R.Beneficiary'] || row['R. Ben'] || row.responsibleBeneficiary || '').trim();
+      const ts = row._ts || _parseTs_(row['Date and time of entry']);
+      return {
+        beneficiary: beneficiary,
+        vehicleNumber: vehicleNumber,
+        assignmentStatus: row.Status || 'IN USE',
+        status: row.Status || 'IN USE',
+        latestTimestamp: ts ? new Date(ts).toISOString() : '',
+        project: row.Project || '',
+        team: row.Team || '',
+        remarks: row['Last Users remarks'] || row.remarks || '',
+        owner: row.Owner || '',
+        category: row.Category || '',
+        usageType: row['Usage Type'] || '',
+        make: row.Make || '',
+        model: row.Model || '',
+        stars: Number(row.Ratings || row.stars || 0) || 0,
+        rowNumber: row._rowIndex || '',
+        rBenTime: row['R.Ben Time'] || row.rBenTime || ''
+      };
+    }).filter(function(entry) {
+      return entry.vehicleNumber;
+    });
+
+    assignments.sort(function(a, b) {
+      const tsA = a.latestTimestamp ? new Date(a.latestTimestamp).getTime() : 0;
+      const tsB = b.latestTimestamp ? new Date(b.latestTimestamp).getTime() : 0;
+      if (tsA !== tsB) return tsB - tsA;
+      return String(a.beneficiary || '').localeCompare(String(b.beneficiary || ''));
+    });
+
+    return {
+      ok: true,
+      source: 'CarT_P',
+      assignments: assignments,
+      updatedAt: derived.updatedAt || new Date().toISOString()
+    };
+  } catch (err) {
+    console.error('getVehicleInUseSummaryFromCarTP failed:', err);
+    return { ok: false, source: 'CarT_P', assignments: [], updatedAt: '', error: String(err) };
+  }
+}
+
 function _isActiveVehicleInUseEntry_(entry) {
   if (!entry) return false;
   const statusValue = (entry.assignmentStatus != null) ? entry.assignmentStatus : entry.status;
@@ -1859,6 +1917,15 @@ function getCarTPVehicleMeta(limitPerVehicle) {
     }
     const remarksIdx = idx(['Last 3 User Remarks', 'Last Users remarks', 'Remarks', 'User Remarks', 'Last 3 Remarks'], 12);
     const ratingsIdx = idx(['Last 3 Ratings', 'Ratings', 'Stars', 'Rating'], 13);
+    const makeIdx = idx(['Make', 'Vehicle Make', 'Car Make', 'Brand'], 1);
+    const modelIdx = idx(['Model'], 2);
+    const categoryIdx = idx(['Category', 'Vehicle Category', 'Type'], 3);
+    const usageIdx = idx(['Usage Type', 'Usage'], 4);
+    const ownerIdx = idx(['Owner', 'Owner Name', 'Vehicle Owner'], 6);
+    const contractIdx = idx(['Contract Type', 'Contract', 'Agreement Type'], 7);
+    const statusIdx = idx(['Status', 'In Use/Release'], 8);
+    const teamIdx = idx(['Team', 'Team Name'], -1);
+    const projectIdx = idx(['Project', 'Project Name'], -1);
 
     const vehicles = {};
 
@@ -1908,6 +1975,16 @@ function getCarTPVehicleMeta(limitPerVehicle) {
       if (aliasKey && !vehicles[aliasKey]) {
         vehicles[aliasKey] = bucket;
       }
+      if (!bucket.vehicleNumber) bucket.vehicleNumber = rawVehicle;
+      if (makeIdx >= 0 && !bucket.make) bucket.make = String(row[makeIdx] || '').trim();
+      if (modelIdx >= 0 && !bucket.model) bucket.model = String(row[modelIdx] || '').trim();
+      if (categoryIdx >= 0 && !bucket.category) bucket.category = String(row[categoryIdx] || '').trim();
+      if (usageIdx >= 0 && !bucket.usageType) bucket.usageType = String(row[usageIdx] || '').trim();
+      if (ownerIdx >= 0 && !bucket.owner) bucket.owner = String(row[ownerIdx] || '').trim();
+      if (contractIdx >= 0 && !bucket.contractType) bucket.contractType = String(row[contractIdx] || '').trim();
+      if (statusIdx >= 0 && !bucket.status) bucket.status = String(row[statusIdx] || '').trim();
+      if (teamIdx >= 0 && !bucket.team) bucket.team = String(row[teamIdx] || '').trim();
+      if (projectIdx >= 0 && !bucket.project) bucket.project = String(row[projectIdx] || '').trim();
       if (remarksIdx >= 0) {
         appendUniqueLimited(bucket.remarks, metaList(row[remarksIdx]));
       }
