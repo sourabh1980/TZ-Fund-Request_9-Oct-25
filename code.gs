@@ -11119,6 +11119,12 @@ function _readCarTP_objects_(){
   const iUse   = idx(['Usage Type','Usage','Use Type'], false);
   const iOwner = idx(['Owner','Owner Name','Owner Info'], false);
 
+  const makeIdx = iMake >= 0 ? iMake : (head.length >= 8 ? 7 : -1);
+  const modelIdx = iModel >= 0 ? iModel : (head.length >= 9 ? 8 : -1);
+  const categoryIdx = iCat >= 0 ? iCat : (head.length >= 10 ? 9 : -1);
+  const usageIdx = iUse >= 0 ? iUse : (head.length >= 11 ? 10 : -1);
+  const ownerIdx = iOwner >= 0 ? iOwner : (head.length >= 12 ? 11 : -1);
+
   const normalizedHead = head.map(function(h){ return String(h || '').trim().toLowerCase(); });
   const sanitizedHead = normalizedHead.map(function(h){ return h.replace(/[^a-z0-9]+/g, ''); });
   function findHeaderIndex(predicate) {
@@ -11221,11 +11227,11 @@ function _readCarTP_objects_(){
       Project: iProj>=0 ? (row[iProj] || disp[r][iProj] || '') : '',
       Team: iTeam>=0 ? (row[iTeam] || disp[r][iTeam] || '') : '',
       'Vehicle Number': iCarNo>=0 ? (row[iCarNo] || disp[r][iCarNo] || '') : '',
-      Make: iMake>=0 ? (row[iMake] || disp[r][iMake] || '') : '',
-      Model: iModel>=0 ? (row[iModel] || disp[r][iModel] || '') : '',
-      Category: iCat>=0 ? (row[iCat] || disp[r][iCat] || '') : '',
-      'Usage Type': iUse>=0 ? (row[iUse] || disp[r][iUse] || '') : '',
-      Owner: iOwner>=0 ? (row[iOwner] || disp[r][iOwner] || '') : '',
+      Make: makeIdx>=0 ? (row[makeIdx] || disp[r][makeIdx] || '') : '',
+      Model: modelIdx>=0 ? (row[modelIdx] || disp[r][modelIdx] || '') : '',
+      Category: categoryIdx>=0 ? (row[categoryIdx] || disp[r][categoryIdx] || '') : '',
+      'Usage Type': usageIdx>=0 ? (row[usageIdx] || disp[r][usageIdx] || '') : '',
+      Owner: ownerIdx>=0 ? (row[ownerIdx] || disp[r][ownerIdx] || '') : '',
       'R.Beneficiary': beneficiaryValue,
       'R. Ben': responsibleValue || '',
       Status: statusValue,
