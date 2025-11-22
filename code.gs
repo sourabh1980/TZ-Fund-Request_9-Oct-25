@@ -529,12 +529,25 @@ function getVehicleInUseSummary() {
       const vehicleKey = _vehicleKey_(row['Vehicle Number']);
       const beneficiaryKey = _beneficiaryKey_(row.responsibleBeneficiary || row['R.Beneficiary'] || row['R. Ben'] || '');
       if (!vehicleKey || !beneficiaryKey) return;
-      const ts = _parseTs_(row._ts || row['Date and time of entry']);
+
+      const tsRaw = row._ts || row['Date and time of entry'];
+      const ts = _parseTs_(tsRaw);
+      const rowIndex = Number(row._rowIndex || 0) || 0;
       const key = vehicleKey + '|' + beneficiaryKey;
       const existing = cartpMetaByBeneficiary[key];
-      if (!existing || ts > existing.ts) {
+
+      const currentTs = (existing && isFinite(existing.ts)) ? existing.ts : null;
+      const candidateTs = isFinite(ts) ? ts : null;
+      const currentRowIdx = existing ? existing.rowIndex || 0 : 0;
+
+      const isNewer = (candidateTs != null && currentTs == null) ||
+        (candidateTs != null && currentTs != null && candidateTs > currentTs) ||
+        (candidateTs == null && currentTs == null && rowIndex > currentRowIdx);
+
+      if (!existing || isNewer) {
         cartpMetaByBeneficiary[key] = {
-          ts: ts,
+          ts: candidateTs,
+          rowIndex: rowIndex,
           make: row.Make || '',
           model: row.Model || '',
           category: row.Category || '',
