@@ -617,6 +617,22 @@ function getVehicleInUseSummaryFromCarTP() {
   }
 }
 
+/**
+ * Popup-friendly endpoint that auto-refreshes CarT_P summaries before
+ * returning the live IN USE list. This ensures the modal always sees the
+ * latest row that was just added to CarT_P.
+ */
+function getVehicleInUseCatalogData() {
+  try {
+    // Throttle to avoid excessive refresh but force a quick sync if stale.
+    try { _maybeAutoRefreshCarTPSummaries_(2); } catch (_refreshErr) { /* best effort */ }
+    return getVehicleInUseSummaryFromCarTP();
+  } catch (err) {
+    console.error('getVehicleInUseCatalogData failed:', err);
+    return { ok: false, source: 'CarT_P', assignments: [], updatedAt: '', error: String(err) };
+  }
+}
+
 function _isActiveVehicleInUseEntry_(entry) {
   if (!entry) return false;
   const statusValue = (entry.assignmentStatus != null) ? entry.assignmentStatus : entry.status;
@@ -1798,7 +1814,7 @@ function _vehicleSheetReleaseVehicles(){
 
 function getVehicleReleaseSnapshots(limitPerVehicle) {
   try {
-    const maxPerVehicle = Math.max(1, Math.min(10, Number(limitPerVehicle) || 3));
+    const maxPerVehicle = Math.max(1, Math.min(10, Number(limitPerVehicle) || 5));
     const summary = getVehicleSummaryRows('Vehicle_History');
     if (!summary.rows || !summary.rows.length) {
       return { ok: true, limit: maxPerVehicle, vehicles: {} };
@@ -1825,8 +1841,8 @@ function getVehicleReleaseSnapshots(limitPerVehicle) {
       if (!row) return;
       const rawVehicleNumber = String(row[vehicleIdx] || '').trim();
       if (!rawVehicleNumber) return;
-  const status = statusIdx >= 0 ? _normStatus_(row[statusIdx]) : '';
-  if (status && status !== 'RELEASE' && status !== 'IN USE') return;
+      const status = statusIdx >= 0 ? _normStatus_(row[statusIdx]) : '';
+      if (statusIdx >= 0 && status !== 'RELEASE') return;
       const canonicalKey = _vehicleKey_(rawVehicleNumber);
       if (!canonicalKey) return;
       const aliasKey = rawVehicleNumber.toUpperCase();
@@ -1836,9 +1852,9 @@ function getVehicleReleaseSnapshots(limitPerVehicle) {
       const timestamp = dateIdx >= 0 ? _parseTs_(dateValue) : 0;
       const entry = {
         vehicleNumber: rawVehicleNumber,
-  status: status || '',
-  rating: ratingIdx >= 0 ? row[ratingIdx] || '' : '',
-  remark: remarkIdx >= 0 ? row[remarkIdx] || '' : '',
+        status: status || '',
+        rating: ratingIdx >= 0 ? row[ratingIdx] || '' : '',
+        remark: remarkIdx >= 0 ? row[remarkIdx] || '' : '',
         timestamp: timestamp || 0,
         date: dateValue || ''
       };
@@ -1869,6 +1885,143 @@ function getVehicleReleaseSnapshots(limitPerVehicle) {
     console.error('getVehicleReleaseSnapshots failed:', err);
     return { ok: false, error: String(err) };
   }
+}
+
+function getReleaseRatingsForVehicles(vehicleKeys) {
+  try {
+    const snapshot = getVehicleReleaseSnapshots(5);
+    if (!snapshot.ok) {
+      return { ok: false, error: snapshot.error || 'Release snapshots unavailable' };
+    }
+    const vehicles = snapshot.vehicles || {};
+    const result = {};
+    if (!Array.isArray(vehicleKeys)) {
+      return { ok: true, ratings: result };
+    }
+    const fallbackKeys = [];
+    vehicleKeys.forEach(function(origKey) {
+      if (!origKey) return;
+      const key = _vehicleKey_(origKey);
+      const candidates = [];
+      if (vehicles[key]) candidates.push(vehicles[key]);
+      const alias = String(origKey || '').toUpperCase();
+      if (vehicles[alias]) candidates.push(vehicles[alias]);
+      if (!candidates.length) {
+        for (const mapKey in vehicles) {
+          if (mapKey && key === _vehicleKey_(mapKey)) {
+            candidates.push(vehicles[mapKey]);
+            break;
+          }
+        }
+      }
+      const merged = [].concat.apply([], candidates);
+      const ratings = merged
+        .map(function(entry) {
+          return entry && entry.rating ? Number(entry.rating) : (entry && entry.stars ? Number(entry.stars) : 0);
+        })
+        .filter(function(n) {
+          return Number.isFinite(n) && n > 0;
+        })
+        .slice(0, 5);
+      if (!ratings.length) {
+        fallbackKeys.push(key);
+        return;
+      }
+      const sum = ratings.reduce(function(total, value) { return total + value; }, 0);
+      result[key] = { avg: sum / ratings.length, count: ratings.length };
+    });
+
+    if (fallbackKeys.length) {
+      const fallback = _collectReleaseRatingsFromCarTP_(fallbackKeys, 5);
+      Object.keys(fallback).forEach(function(fkey) {
+        if (fallback[fkey] && !result[fkey]) {
+          result[fkey] = fallback[fkey];
+        }
+      });
+    }
+
+    return { ok: true, ratings: result };
+  } catch (err) {
+    console.error('getReleaseRatingsForVehicles failed:', err);
+    return { ok: false, error: String(err) };
+  }
+}
+
+function _collectReleaseRatingsFromCarTP_(vehicleKeys, limitPerVehicle) {
+  if (!Array.isArray(vehicleKeys) || !vehicleKeys.length) return {};
+  const limit = Math.max(1, Math.min(10, Number(limitPerVehicle) || 5));
+  const sh = _openCarTP_();
+  if (!sh) return {};
+
+  const lastRow = sh.getLastRow();
+  const lastCol = sh.getLastColumn();
+  if (lastRow <= 1 || lastCol <= 0) return {};
+
+  const header = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+  const IX = _headerIndex_(header);
+  const idx = function(labels, required) {
+    if (!IX) return required ? -1 : -1;
+    try { return IX.get(labels); } catch (_err) { return required ? -1 : -1; }
+  };
+
+  const vehicleIdx = idx(['Vehicle Number', 'Car Number', 'Vehicle', 'Vehicle No', 'Car No', 'Car #'], true);
+  const statusIdx = idx(['Status', 'In Use/Release', 'In Use / release', 'In Use'], false);
+  const ratingIdx = idx(['Ratings', 'Rating', 'Stars'], false);
+
+  const targets = new Set();
+  vehicleKeys.forEach(function(key) {
+    const norm = _vehicleKey_(key);
+    if (norm) targets.add(norm);
+  });
+  if (!targets.size) return {};
+
+  const counts = Object.create(null);
+  const ratingsMap = Object.create(null);
+  const rows = sh.getRange(2, 1, lastRow - 1, lastCol).getValues();
+
+  for (let r = rows.length - 1; r >= 0 && targets.size; r--) {
+    const row = rows[r];
+    const rawCar = row[vehicleIdx] || '';
+    const canonical = _vehicleKey_(rawCar);
+    if (!canonical || !targets.has(canonical)) continue;
+
+    const currentCount = counts[canonical] || 0;
+    if (currentCount >= limit) {
+      targets.delete(canonical);
+      continue;
+    }
+
+    const status = statusIdx >= 0 ? _normStatus_(row[statusIdx]) : 'RELEASE';
+    if (statusIdx >= 0 && status !== 'RELEASE') {
+      continue;
+    }
+
+    counts[canonical] = currentCount + 1;
+    const ratingValue = _parseReleaseRatingValue_(ratingIdx >= 0 ? row[ratingIdx] : null);
+    if (ratingValue == null) continue;
+    if (!ratingsMap[canonical]) ratingsMap[canonical] = [];
+    ratingsMap[canonical].push(ratingValue);
+  }
+
+  const result = {};
+  Object.keys(ratingsMap).forEach(function(key) {
+    const values = ratingsMap[key] || [];
+    if (!values.length) return;
+    const sum = values.reduce(function(total, num) { return total + num; }, 0);
+    result[key] = { avg: sum / values.length, count: values.length };
+  });
+  return result;
+}
+
+function _parseReleaseRatingValue_(value) {
+  if (value == null) return null;
+  if (typeof value === 'number' && isFinite(value)) return value;
+  const text = String(value || '').trim();
+  if (!text) return null;
+  const match = text.match(/[-+]?\d*\.?\d+/);
+  if (!match) return null;
+  const parsed = parseFloat(match[0]);
+  return Number.isFinite(parsed) ? parsed : null;
 }
 
 function getCarTPVehicleMeta(limitPerVehicle) {
@@ -2640,6 +2793,7 @@ function _runCarTPSummaryRefresh_(source, meta) {
     context.refreshResult = refreshResult;
     context.syncResult = syncResult;
     console.log('CarT_P summaries refreshed', context);
+    try { vehStampCarTPChange_(context.source || 'CarT_P refresh'); } catch (_stampErr) { /* best effort */ }
     invalidateVehicleReleasedCache(`CarT_P summary refresh (${context.source || 'unknown'})`);
     return { ok: true, durationMs, refreshResult, syncResult };
   } catch (err) {
@@ -14600,6 +14754,8 @@ function vehStampCarTPChange_(reason){
   const props = vehProps_();
   try { props.setProperty(VEH_V2.LAST_EDIT_TS_PROP, String(vehNow_())); } catch(_){ }
   try { props.setProperty('veh:v2:lastReason', String(reason||'')); } catch(_){ }
+  // Force the lightweight auto-refresh path to run on the next popup call.
+  try { props.deleteProperty('CAR_TP_LAST_AUTO_REFRESH'); } catch(_){ }
   try { ScriptApp.newTrigger('vehDebouncedWarmCoordinator').timeBased().after(VEH_V2.PREWARM_DELAY_MS).create(); } catch(_){ }
 }
 

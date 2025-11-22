@@ -452,6 +452,10 @@
     const IN_USE_REFRESH_INTERVAL = 20000; // ms
     let inUseRefreshTimer = null;
     let metaReady = false;
+    let releaseReadyWatcher = null;
+    let releaseSnapshotsLoading = false;
+    let inUseFallbackAttempted = false;
+    let releaseRatingsCache = {};
 
     function pickFirstFilled() {
         for (let i = 0; i < arguments.length; i++) {
@@ -612,13 +616,19 @@
                         buildTeamColorMap();
                         populateDropdowns(allInUseVehicles);
                         renderInUseVehicles(allInUseVehicles);
+                        ensureReleaseRatings(allInUseVehicles);
+                        watchReleaseSnapshotsReady();
                     } else {
-                        const errorText = (data && (data.error || data.message))
-                            ? (data.error || data.message)
-                            : 'Unknown error';
+                        // If the primary call returned nothing/failed, try a direct CarT_P fallback once.
+                        if (!inUseFallbackAttempted) {
+                            inUseFallbackAttempted = true;
+                            fetchInUseVehiclesFallback();
+                            return;
+                        }
+                        const errorText = (data && (data.error || data.message)) ? (data.error || data.message) : 'Unknown error';
                         console.error('Server returned error:', data || 'No data');
-                        if (!renderInUseFromCache(errorText)) {
-                            grid.innerHTML = '<div class="loading-spinner">Error loading vehicles: ' + errorText + '</div>';
+                        if (!renderInUseFromCache(errorText || 'No data returned')) {
+                            grid.innerHTML = '<div class="loading-spinner">Error loading vehicles: ' + (errorText || 'No data returned') + '</div>';
                         }
                     }
                 } catch (e) {
@@ -629,13 +639,63 @@
             .withFailureHandler(err => {
                 const errMsg = err && err.message ? err.message : String(err || 'Unknown error');
                 console.error('Failed to fetch vehicles:', errMsg);
-                if (!renderInUseFromCache(errMsg)) {
+                if (!inUseFallbackAttempted) {
+                    inUseFallbackAttempted = true;
+                    fetchInUseVehiclesFallback();
+                    return;
+                }
+                if (!renderInUseFromCache(errMsg || 'No data returned')) {
                     if (!silent) {
-                        grid.innerHTML = '<div class="loading-spinner">Failed to fetch data: ' + errMsg + '</div>';
+                        grid.innerHTML = '<div class="loading-spinner">Failed to fetch data: ' + (errMsg || 'No data returned') + '</div>';
                     }
                 }
             })
-            .getVehicleInUseSummaryFromCarTP();
+            .getVehicleInUseCatalogData();
+    }
+
+    function fetchInUseVehiclesFallback() {
+        try {
+            const grid = document.getElementById('inUseVehicleGrid');
+            google.script.run
+                .withSuccessHandler(res => {
+                    try {
+                        if (res && res.ok && Array.isArray(res.assignments)) {
+                            allInUseVehicles = normalizeVehicleList(res.assignments);
+                            try { window.vehicleInUseRecords = allInUseVehicles.slice(); } catch (_cacheErr) { }
+                            buildTeamColorMap();
+                            populateDropdowns(allInUseVehicles);
+                            renderInUseVehicles(allInUseVehicles);
+                            ensureReleaseRatings(allInUseVehicles);
+                            watchReleaseSnapshotsReady();
+                        } else {
+                            const msg = res && (res.error || res.message) ? (res.error || res.message) : 'No data returned';
+                            console.error('Fallback CarT_P fetch failed:', msg);
+                            if (!renderInUseFromCache(msg)) {
+                                grid.innerHTML = '<div class="loading-spinner">Error loading vehicles: ' + msg + '</div>';
+                            }
+                        }
+                    } catch (fallbackErr) {
+                        console.error('Fallback handler error:', fallbackErr);
+                        if (!renderInUseFromCache('Fallback failed')) {
+                            grid.innerHTML = '<div class="loading-spinner">Error loading vehicles: ' + fallbackErr.message + '</div>';
+                        }
+                    }
+                })
+                .withFailureHandler(err => {
+                    const msg = err && err.message ? err.message : String(err || 'Unknown error');
+                    console.error('Fallback fetch failed:', msg);
+                    if (!renderInUseFromCache(msg)) {
+                        grid.innerHTML = '<div class="loading-spinner">Error loading vehicles: ' + msg + '</div>';
+                    }
+                })
+                .getVehicleInUseSummaryFromCarTP();
+        } catch (fallbackOuterErr) {
+            console.error('Fallback invocation failed:', fallbackOuterErr);
+            const grid = document.getElementById('inUseVehicleGrid');
+            if (!renderInUseFromCache('Fallback invocation failed')) {
+                grid.innerHTML = '<div class="loading-spinner">Error loading vehicles: ' + fallbackOuterErr.message + '</div>';
+            }
+        }
     }
 
     function renderInUseFromCache(reason) {
@@ -676,6 +736,59 @@
                 index++;
             }
         });
+    }
+
+    function watchReleaseSnapshotsReady() {
+        try {
+            if (window.vehicleReleaseSnapshotsReady === true) {
+                return;
+            }
+        } catch (_ignore) { /* noop */ }
+        if (releaseReadyWatcher) return;
+
+        releaseReadyWatcher = setInterval(() => {
+            try {
+                if (window.vehicleReleaseSnapshotsReady === true) {
+                    clearInterval(releaseReadyWatcher);
+                    releaseReadyWatcher = null;
+                    renderInUseVehicles(allInUseVehicles);
+                }
+            } catch (_err) {
+                clearInterval(releaseReadyWatcher);
+                releaseReadyWatcher = null;
+            }
+        }, 400);
+
+        setTimeout(() => {
+            if (releaseReadyWatcher) {
+                clearInterval(releaseReadyWatcher);
+                releaseReadyWatcher = null;
+            }
+        }, 5000);
+    }
+
+    function ensureReleaseRatings(assignments) {
+        if (!Array.isArray(assignments) || !assignments.length) return;
+        const numbers = Array.from(new Set(assignments
+            .map(v => vehicleKeyForSnapshots(v.vehicleNumber))
+            .filter(Boolean)));
+        if (!numbers.length) return;
+        google.script.run
+            .withSuccessHandler(res => {
+                if (!res || res.ok === false || !res.ratings) return;
+                releaseRatingsCache = res.ratings;
+                assignments.forEach(v => {
+                    const key = vehicleKeyForSnapshots(v.vehicleNumber);
+                    if (res.ratings[key]) {
+                        v.releaseAvg = res.ratings[key];
+                    }
+                });
+                renderInUseVehicles(assignments);
+            })
+            .withFailureHandler(err => {
+                console.warn('Release ratings fetch failed:', err);
+            })
+            .getReleaseRatingsForVehicles(numbers);
     }
 
     function populateDropdowns(vehicles) {
@@ -799,13 +912,92 @@
 
     function computeInUseDays(entry) {
         try {
-            const raw = entry && (entry.rBenTime || entry.latestTimestamp);
-            if (!raw) return null;
-            const ts = new Date(raw).getTime();
-            if (!ts || Number.isNaN(ts)) return null;
-            const diff = Date.now() - ts;
+            if (!entry) return null;
+
+            function parseTs(value) {
+                if (value == null) return null;
+                if (typeof value === 'number' && isFinite(value)) return value;
+                if (value instanceof Date && !Number.isNaN(value.getTime())) return value.getTime();
+                const parsed = new Date(value).getTime();
+                return Number.isNaN(parsed) ? null : parsed;
+            }
+
+            const ts = [
+                parseTs(entry.entryTimestamp),
+                parseTs(entry.entryDate),
+                parseTs(entry.latestTimestamp),
+                parseTs(entry.rBenTime),
+                parseTs(entry.checkedAt),
+                parseTs(entry.generatedAt)
+            ].find(v => v != null);
+
+            if (ts == null) return null;
+            const startDate = new Date(ts);
+            if (Number.isNaN(startDate.getTime())) return null;
+
+            const startOfUse = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const diff = today.getTime() - startOfUse.getTime();
             if (diff < 0) return 0;
-            return Math.max(1, Math.floor(diff / 86400000) + 1);
+
+            return Math.floor(diff / 86400000) + 1;
+        } catch (_err) { return null; }
+    }
+
+    function vehicleKeyForSnapshots(vehicleNumber) {
+        const raw = String(vehicleNumber || '').trim().toUpperCase();
+        if (!raw) return '';
+        const stripped = raw.replace(/[^A-Z0-9]/g, '');
+        return stripped || raw;
+    }
+
+    function parseReleaseRatingValue(value) {
+        if (value == null) return null;
+        if (typeof value === 'number' && Number.isFinite(value)) return value;
+        const text = String(value || '').trim();
+        if (!text) return null;
+        const match = text.match(/[-+]?\d*\.?\d+/);
+        if (!match) return null;
+        const parsed = parseFloat(match[0]);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    function computeReleaseAvgRating(entry) {
+        try {
+            const map = window.vehicleReleaseSnapshots || {};
+            const ready = window.vehicleReleaseSnapshotsReady === true || (map && Object.keys(map).length > 0);
+            if (!ready || !map) return null;
+            const key = vehicleKeyForSnapshots(entry && entry.vehicleNumber);
+            let list = [];
+            if (key && map[key]) {
+                list = Array.isArray(map[key]) ? map[key] : [];
+            } else {
+                // try fuzzy match by normalized keys
+                const candidate = Object.keys(map).find(k => vehicleKeyForSnapshots(k) === key);
+                if (candidate && map[candidate]) {
+                    list = Array.isArray(map[candidate]) ? map[candidate] : [];
+                }
+            }
+            if (!list.length) return null;
+            const ratings = list
+                .slice(0, 5)
+                .map(r => {
+                    const candidates = [
+                        r && r.rating,
+                        r && r.ratings,
+                        r && r.stars
+                    ];
+                    for (let i = 0; i < candidates.length; i++) {
+                        const parsed = parseReleaseRatingValue(candidates[i]);
+                        if (parsed != null && parsed > 0) return parsed;
+                    }
+                    return null;
+                })
+                .filter(n => Number.isFinite(n) && n > 0);
+            if (!ratings.length) return null;
+            const sum = ratings.reduce((a, b) => a + b, 0);
+            return { avg: sum / ratings.length, count: ratings.length };
         } catch (_err) {
             return null;
         }
@@ -869,11 +1061,17 @@
         `;
 
         const rows = vehicles.map(v => {
-            const starsCount = Math.round(v.stars || 0);
-            const fullStars = '★'.repeat(Math.min(starsCount, 5));
-            const emptyStars = '☆'.repeat(5 - Math.min(starsCount, 5));
-            const avgRating = typeof v.stars === 'number' ? (Math.round(v.stars * 10) / 10).toFixed(1) : '0.0';
-            const ratingHtml = `<span>${fullStars}</span><span class="dim">${emptyStars}</span> <span style="color:#374151;">(${avgRating})</span>`;
+            const releaseAvg = v.releaseAvg || computeReleaseAvgRating(v);
+            const fallbackAvg = typeof v.stars === 'number' ? Number(v.stars) : 0;
+            const avgValue = releaseAvg ? releaseAvg.avg : fallbackAvg;
+            const starCount = avgValue > 0 ? Math.min(5, Math.ceil(avgValue)) : 0;
+            const fullStars = '★'.repeat(starCount);
+            const emptyStars = '☆'.repeat(5 - starCount);
+            const avgLabel = avgValue > 0 ? (Math.round(avgValue * 10) / 10).toFixed(1) : '0.0';
+            const ratingHtml = starCount
+                ? `<span>${fullStars}</span><span class="dim">${emptyStars}</span> <span style="color:#374151;">(${avgLabel})</span>`
+                : '<span class="dim">No ratings</span>';
+            const avgTitle = avgLabel;
 
             const team = v.team || 'Unassigned';
             const bg = teamColorMap[team] || '#ffffff';
@@ -891,7 +1089,7 @@
                     <td>${v.beneficiary || '-'}</td>
                     <td class="vc-owner-cell">${v.owner || '-'}</td>
                     <td class="vc-days-cell">${daysLabel}</td>
-                    <td class="vc-rating-cell" title="Avg Rating: ${avgRating}">${ratingHtml}</td>
+                    <td class="vc-rating-cell" title="Avg Rating: ${avgTitle}">${ratingHtml}</td>
                 </tr>
             `;
         }).join('');
