@@ -1,327 +1,1127 @@
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-google.script.run
-  .withSuccessHandler(res => {
-    console.log('getVehicleInUseData response:', res);
-  })
-  .withFailureHandler(err => console.error('getVehicleInUseData failed:', err))
-  .getVehicleInUseData();
-
-VM931:1 Uncaught ReferenceError: google is not defined
-    at <anonymous>:1:1
-(anonymous) @ VM931:1
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-google.script.run
-  .withSuccessHandler(res => console.log('getVehicleInUseData response:', res))
-  .withFailureHandler(err => console.error('getVehicleInUseData failed:', err))
-  .getVehicleInUseData();
-
-undefined
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-window.vehicleInUseRecords?.find(rec =>
-  String(rec?.beneficiary || rec?.responsibleBeneficiary || '').trim().toLowerCase() === 'mohassin'
-);
-
-undefined
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 getVehicleInUseData response: {fromProperties: true, assignments: Array(0), cached: true, source: 'Vehicle_InUse', message: 'No IN USE assignments found', …}
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-VM871:553 [VP] Vehicle picker response {count: 0, source: '', cached: false, debug: null}
-VM874:1509 [VP] Vehicle picker received empty list, scheduling retry {attempt: 0, response: null, nextAttempt: 1, viaInvalidate: true}
-handleVehicleFetchSuccess @ VM874:1509
-(anonymous) @ VM874:1434
-hs @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:222
-(anonymous) @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:50
-Vs.F @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:247
-yr @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:202
-c @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:300
-a @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:200
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from IDLE to BUSY
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-window.vehicleInUseRecords?.find(rec =>
-  String(rec?.beneficiary || rec?.responsibleBeneficiary || '').trim().toLowerCase() === 'mohassin'
-);
-
-undefined
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-VM871:553 Updating Teams icon state...
-VM871:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
-VM871:553 Applied success state (green glow) - teams selected, no violations
-1084822700-warden_bin_i18n_warden.js:151 Net state changed from BUSY to IDLE
-VM871:553 [VP] Vehicle picker response {count: 0, source: '', cached: false, debug: null}
-VM874:1509 [VP] Vehicle picker received empty list, scheduling retry {attempt: 1, response: null, nextAttempt: 2, viaInvalidate: false}
-handleVehicleFetchSuccess @ VM874:1509
-(anonymous) @ VM874:1434
-hs @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:222
-(anonymous) @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:50
-Vs.F @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:247
-yr @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:202
-c @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:300
-a @ 31385757-mae_html_user_bin_i18n_mae_html_user__en_gb.js:200
+ content script working...
+dev:10 Unrecognized feature: 'ambient-light-sensor'.
+dev:10 Unrecognized feature: 'speaker'.
+dev:10 Unrecognized feature: 'vibrate'.
+dev:10 Unrecognized feature: 'vr'.
+about:blank:1 An iframe which has both allow-scripts and allow-same-origin for its sandbox attribute can escape its sandboxing.
+userCodeAppPanel?createOAuthDialog=true:1 Unrecognized feature: 'ambient-light-sensor'.
+userCodeAppPanel?createOAuthDialog=true:1 Unrecognized feature: 'speaker'.
+userCodeAppPanel?createOAuthDialog=true:1 Unrecognized feature: 'vibrate'.
+userCodeAppPanel?createOAuthDialog=true:1 Unrecognized feature: 'vr'.
+ Net state changed from IDLE to BUSY
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 2: Rahman in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 2, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - fuel (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - fuel validation status: no-data
+ Debug: HW_VOD_M_Moh - F set to GREY (no data)
+ 
+--- VALIDATING DA FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh da - validDates found: 0, hasDate: false
+ Debug: Team HW_VOD_M_Moh, beneficiary Mohassin da/erda - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 2: Rahman in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh da - validDates found: 0, hasDate: false
+ Debug: Team HW_VOD_M_Moh, beneficiary Rahman da/erda - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 2, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - da (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - da validation status: no-data
+ Debug: HW_VOD_M_Moh - D set to GREY (no data)
+ 
+--- VALIDATING CARRENT FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 2: Rahman in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 2, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - carrent (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - carrent validation status: no-data
+ Debug: HW_VOD_M_Moh - C set to GREY (no data)
+ 
+--- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 2: Rahman in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 2, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - airtime (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - airtime validation status: no-data
+ Debug: HW_VOD_M_Moh - A set to GREY (no data)
+ 
+--- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 2: Rahman in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 2, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - transport (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - transport validation status: no-data
+ Debug: HW_VOD_M_Moh - T set to GREY (no data)
+ 
+--- VALIDATING MISC FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 2: Rahman in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 2, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - misc (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - misc validation status: no-data
+ Debug: HW_VOD_M_Moh - M set to GREY (no data)
+ Debug: Final symbols HTML for HW_VOD_M_Moh: <div class="expense-symbol grey">F</div><div class="expense-symbol grey">D</div><div class="expense-symbol grey">C</div><div class="expense-symbol grey">A</div><div class="expense-symbol grey">T</div><div class="expense-symbol grey">M</div>
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
+=== GENERATING SYMBOLS FOR TEAM: HW_VOD_M_Rah ===
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah - isTeamDeactivated: false
+ 
+--- VALIDATING FUEL FOR TEAM HW_VOD_M_Rah ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Rah fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - fuel (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - fuel validation status: no-data
+ Debug: HW_VOD_M_Rah - F set to GREY (no data)
+ 
+--- VALIDATING DA FOR TEAM HW_VOD_M_Rah ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah da - validDates found: 0, hasDate: false
+ Debug: Team HW_VOD_M_Rah, beneficiary Rahman da/erda - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - da (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - da validation status: no-data
+ Debug: HW_VOD_M_Rah - D set to GREY (no data)
+ 
+--- VALIDATING CARRENT FOR TEAM HW_VOD_M_Rah ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - carrent (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - carrent validation status: no-data
+ Debug: HW_VOD_M_Rah - C set to GREY (no data)
+ 
+--- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Rah ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - airtime (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - airtime validation status: no-data
+ Debug: HW_VOD_M_Rah - A set to GREY (no data)
+ 
+--- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Rah ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - transport (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - transport validation status: no-data
+ Debug: HW_VOD_M_Rah - T set to GREY (no data)
+ 
+--- VALIDATING MISC FOR TEAM HW_VOD_M_Rah ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - misc (no calendar or amount data)
+ Debug: HW_VOD_M_Rah - misc validation status: no-data
+ Debug: HW_VOD_M_Rah - M set to GREY (no data)
+ Debug: Final symbols HTML for HW_VOD_M_Rah: <div class="expense-symbol grey">F</div><div class="expense-symbol grey">D</div><div class="expense-symbol grey">C</div><div class="expense-symbol grey">A</div><div class="expense-symbol grey">T</div><div class="expense-symbol grey">M</div>
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
+--- VALIDATING FUEL FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 2: Rahman in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 2, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - fuel (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
+--- VALIDATING FUEL FOR TEAM HW_VOD_M_Rah ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Rah fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - fuel (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
+--- VALIDATING CARRENT FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 2: Rahman in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 2, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - carrent (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
+--- VALIDATING CARRENT FOR TEAM HW_VOD_M_Rah ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - carrent (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
+--- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 2: Rahman in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 2, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - airtime (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
+--- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Rah ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - airtime (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
+--- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 2: Rahman in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 2, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - transport (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
+--- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Rah ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - transport (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
+--- VALIDATING MISC FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 2: Rahman in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Moh'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 2, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - misc (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ 
+--- VALIDATING MISC FOR TEAM HW_VOD_M_Rah ---
+ Debug: Found 3 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Rah'
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Rahman
+ Debug: Checking beneficiary 'Rahman' in team 'HW_VOD_M_Rah' against target team 'HW_VOD_M_Rah'
+ Debug: Found team member 1: Rahman in team HW_VOD_M_Rah
+ Debug: HW_VOD_M_Rah misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Team HW_VOD_M_Rah validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Rah - misc (no calendar or amount data)
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol content change detected
+ Expense symbol content change detected
+ Expense symbol content change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Expense symbol visual change detected
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Rah
+ Expense symbol content change detected
+ Teams icon update notification received
+ Teams icon update notification received
+ Teams icon update notification received
+ Teams icon update notification received
+ [VAM] Adding vehicles ONLY to exact responsible beneficiaries
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ Team loading timeout for project: Admin/ Mislenious
+(anonymous) @ unknown
+ Updating Teams icon state...
+ Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+ Applied success state (green glow) - teams selected, no violations
+ fillRowFromItem - Processing item: Object
+ fillRowFromItem - Beneficiary: Mohassin Team: HW_VOD_M_Moh TeamName: HW_VOD_M_Moh
+ fillRowFromItem - Added to bDet: Mohassin → Object
+ fillRowFromItem - Current bDet state: Object
+ 
+=== REFRESHING TEAM SIDEBAR ===
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Refreshing with actual team names: Array(1)
+ Debug: Updated selectedTeams: Array(1)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ 
+--- VALIDATING FUEL FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 1 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - fuel (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ 
+--- VALIDATING CARRENT FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 1 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - carrent (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ 
+--- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 1 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - airtime (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ 
+--- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 1 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - transport (no calendar or amount data)
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ 
+--- VALIDATING MISC FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 1 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - misc (no calendar or amount data)
+ 
+=== GENERATING SYMBOLS FOR TEAM: HW_VOD_M_Moh ===
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh - isTeamDeactivated: false
+ 
+--- VALIDATING FUEL FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 1 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
+ Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - fuel (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - fuel validation status: no-data
+ Debug: HW_VOD_M_Moh - F set to GREY (no data)
+ 
+--- VALIDATING DA FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 1 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh da - validDates found: 0, hasDate: false
+ Debug: Team HW_VOD_M_Moh, beneficiary Mohassin da/erda - Final check: amount=0, hasDate=false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - da (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - da validation status: no-data
+ Debug: HW_VOD_M_Moh - D set to GREY (no data)
+ 
+--- VALIDATING CARRENT FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 1 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - carrent (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - carrent validation status: no-data
+ Debug: HW_VOD_M_Moh - C set to GREY (no data)
+ 
+--- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 1 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - airtime (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - airtime validation status: no-data
+ Debug: HW_VOD_M_Moh - A set to GREY (no data)
+ 
+--- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 1 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+ Debug: Returning 'no-data' for team HW_VOD_M_Moh - transport (no calendar or amount data)
+ Debug: HW_VOD_M_Moh - transport validation status: no-data
+ Debug: HW_VOD_M_Moh - T set to GREY (no data)
+ 
+--- VALIDATING MISC FOR TEAM HW_VOD_M_Moh ---
+ Debug: Found 1 total rows in table
+ Debug: Checking all beneficiaries in team for violations
+ Debug: Found team name in data attributes: HW_VOD_M_Moh
+ Debug: Getting beneficiary name from row: 
+ Debug: Found beneficiary name: Mohassin
+ Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+ Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+ Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+VM107:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - misc (no calendar or amount data)
+VM107:553 Debug: HW_VOD_M_Moh - misc validation status: no-data
+VM107:553 Debug: HW_VOD_M_Moh - M set to GREY (no data)
+VM107:553 Debug: Final symbols HTML for HW_VOD_M_Moh: <div class="expense-symbol grey">F</div><div class="expense-symbol grey">D</div><div class="expense-symbol grey">C</div><div class="expense-symbol grey">A</div><div class="expense-symbol grey">T</div><div class="expense-symbol grey">M</div>
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 
+--- VALIDATING FUEL FOR TEAM HW_VOD_M_Moh ---
+VM107:553 Debug: Found 1 total rows in table
+VM107:553 Debug: Checking all beneficiaries in team for violations
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
+VM107:553 Debug: Found beneficiary name: Mohassin
+VM107:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+VM107:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+VM107:553 Debug: HW_VOD_M_Moh fuel - validDates found: 0, hasDate: false
+VM107:553 Debug: HW_VOD_M_Moh fuel - Final check: amount=0, hasDate=false
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+VM107:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - fuel (no calendar or amount data)
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 
+--- VALIDATING CARRENT FOR TEAM HW_VOD_M_Moh ---
+VM107:553 Debug: Found 1 total rows in table
+VM107:553 Debug: Checking all beneficiaries in team for violations
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
+VM107:553 Debug: Found beneficiary name: Mohassin
+VM107:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+VM107:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+VM107:553 Debug: HW_VOD_M_Moh carrent - validDates found: 0, hasDate: false
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+VM107:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - carrent (no calendar or amount data)
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 
+--- VALIDATING AIRTIME FOR TEAM HW_VOD_M_Moh ---
+VM107:553 Debug: Found 1 total rows in table
+VM107:553 Debug: Checking all beneficiaries in team for violations
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
+VM107:553 Debug: Found beneficiary name: Mohassin
+VM107:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+VM107:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+VM107:553 Debug: HW_VOD_M_Moh airtime - validDates found: 0, hasDate: false
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+VM107:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - airtime (no calendar or amount data)
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 
+--- VALIDATING TRANSPORT FOR TEAM HW_VOD_M_Moh ---
+VM107:553 Debug: Found 1 total rows in table
+VM107:553 Debug: Checking all beneficiaries in team for violations
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
+VM107:553 Debug: Found beneficiary name: Mohassin
+VM107:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+VM107:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+VM107:553 Debug: HW_VOD_M_Moh transport - validDates found: 0, hasDate: false
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+VM107:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - transport (no calendar or amount data)
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 
+--- VALIDATING MISC FOR TEAM HW_VOD_M_Moh ---
+VM107:553 Debug: Found 1 total rows in table
+VM107:553 Debug: Checking all beneficiaries in team for violations
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Getting beneficiary name from row: <div class=​"row-data" style=​"--row-tint:​ rgba(255,153,51,0.15)​;​ --row-ring:​ rgba(255,153,51,0.5)​;​" data-team=​"HW_VOD_M_Moh" data-project=​"Admin/​ Mislenious">​…​</div>​
+VM107:553 Debug: Found beneficiary name: Mohassin
+VM107:553 Debug: Checking beneficiary 'Mohassin' in team 'HW_VOD_M_Moh' against target team 'HW_VOD_M_Moh'
+VM107:553 Debug: Found team member 1: Mohassin in team HW_VOD_M_Moh
+VM107:553 Debug: HW_VOD_M_Moh misc - validDates found: 0, hasDate: false
+VM107:553 Debug: Found team name in data attributes: HW_VOD_M_Moh
+VM107:553 Debug: Team HW_VOD_M_Moh validation summary - Members found: 1, Has violations: false, Has deactivated: false, Has data: false
+VM107:553 Debug: Returning 'no-data' for team HW_VOD_M_Moh - misc (no calendar or amount data)
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol content change detected
+VM107:553 Expense symbol content change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Expense symbol visual change detected
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Teams icon update notification received
+VM107:553 Teams icon update notification received
+VM107:553 Teams icon update notification received
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 [VAM] Adding vehicles ONLY to exact responsible beneficiaries
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 [PREFILL] ⚠️ Team vehicle prefill disabled to prevent overriding exclusive assignments
+VM107:553 [PREFILL] Vehicle assignments should only be managed through the exclusive assignment system
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 [PREFILL] ⚠️ Team vehicle prefill disabled to prevent overriding exclusive assignments
+VM107:553 [PREFILL] Vehicle assignments should only be managed through the exclusive assignment system
+VM107:553 [VehicleInUse] No vehicle assignments found for selection {projectCandidates: Array(2), teamCandidates: Array(1), recordsLoaded: 11}
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+1643216058-warden_bin_i18n_warden.js:164 Net state changed from BUSY to IDLE
+1643216058-warden_bin_i18n_warden.js:164 Net state changed from IDLE to BUSY
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+1643216058-warden_bin_i18n_warden.js:164 Net state changed from BUSY to IDLE
+VM132:236 Fallback CarT_P fetch failed: No data returned
+(anonymous) @ VM132:236
+hv @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:243
+(anonymous) @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:62
+Vv.F @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:269
+yu @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:223
+c @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:323
+a @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:221
+VM132:273 Loaded in-use vehicles from local cache {reason: 'No data returned', count: 11}
+renderInUseFromCache @ VM132:273
+(anonymous) @ VM132:237
+hv @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:243
+(anonymous) @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:62
+Vv.F @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:269
+yu @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:223
+c @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:323
+a @ 3015389492-mae_html_user_bin_i18n_mae_html_user__en_gb.js:221
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations
+1643216058-warden_bin_i18n_warden.js:164 Net state changed from IDLE to BUSY
+VM107:553 Updating Teams icon state...
+VM107:553 Teams icon state - hasViolations: false, hasTeamsSelected: true, hasData: true
+VM107:553 Applied success state (green glow) - teams selected, no violations

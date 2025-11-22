@@ -23,42 +23,50 @@
                 <button class="filter-chip" onclick="toggleInUseFilter('lowRated', this)">Low Rated (1-3★)</button>
 
                 <div class="dropdown-filter">
-                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('makeDropdown')">Make ▾</button>
+                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('makeDropdown')">Make
+                        ▾</button>
                     <div id="makeDropdown" class="dropdown-content"></div>
                 </div>
 
                 <div class="dropdown-filter">
-                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('modelDropdown')">Model ▾</button>
+                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('modelDropdown')">Model
+                        ▾</button>
                     <div id="modelDropdown" class="dropdown-content"></div>
                 </div>
 
                 <div class="dropdown-filter">
-                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('categoryDropdown')">Category ▾</button>
+                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('categoryDropdown')">Category
+                        ▾</button>
                     <div id="categoryDropdown" class="dropdown-content"></div>
                 </div>
 
                 <div class="dropdown-filter">
-                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('usageDropdown')">Usage ▾</button>
+                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('usageDropdown')">Usage
+                        ▾</button>
                     <div id="usageDropdown" class="dropdown-content"></div>
                 </div>
 
                 <div class="dropdown-filter">
-                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('typeDropdown')">Type ▾</button>
+                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('typeDropdown')">Type
+                        ▾</button>
                     <div id="typeDropdown" class="dropdown-content"></div>
                 </div>
 
                 <div class="dropdown-filter">
-                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('projectDropdown')">Project ▾</button>
+                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('projectDropdown')">Project
+                        ▾</button>
                     <div id="projectDropdown" class="dropdown-content"></div>
                 </div>
 
                 <div class="dropdown-filter">
-                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('teamDropdown')">Team ▾</button>
+                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('teamDropdown')">Team
+                        ▾</button>
                     <div id="teamDropdown" class="dropdown-content"></div>
                 </div>
 
                 <div class="dropdown-filter">
-                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('ownerDropdown')">Owner ▾</button>
+                    <button class="filter-chip dropdown-trigger" onclick="toggleDropdown('ownerDropdown')">Owner
+                        ▾</button>
                     <div id="ownerDropdown" class="dropdown-content"></div>
                 </div>
             </div>
@@ -612,7 +620,7 @@
                             return;
                         }
                         allInUseVehicles = normalizeVehicleList(data.assignments);
-                        try { window.vehicleInUseRecords = allInUseVehicles.slice(); } catch (_cacheErr) {}
+                        try { window.vehicleInUseRecords = allInUseVehicles.slice(); } catch (_cacheErr) { }
                         buildTeamColorMap();
                         populateDropdowns(allInUseVehicles);
                         renderInUseVehicles(allInUseVehicles);
@@ -706,6 +714,7 @@
                 buildTeamColorMap();
                 populateDropdowns(allInUseVehicles);
                 renderInUseVehicles(allInUseVehicles);
+                ensureReleaseRatings(allInUseVehicles);
                 console.warn('Loaded in-use vehicles from local cache', { reason, count: allInUseVehicles.length });
                 return true;
             }
@@ -772,17 +781,24 @@
         const numbers = Array.from(new Set(assignments
             .map(v => vehicleKeyForSnapshots(v.vehicleNumber))
             .filter(Boolean)));
+
+        console.log('Fetching ratings for ' + numbers.length + ' vehicles', numbers.slice(0, 5));
+
         if (!numbers.length) return;
         google.script.run
             .withSuccessHandler(res => {
+                console.log('Ratings fetch response:', res);
                 if (!res || res.ok === false || !res.ratings) return;
                 releaseRatingsCache = res.ratings;
+                let updateCount = 0;
                 assignments.forEach(v => {
                     const key = vehicleKeyForSnapshots(v.vehicleNumber);
                     if (res.ratings[key]) {
                         v.releaseAvg = res.ratings[key];
+                        updateCount++;
                     }
                 });
+                console.log('Updated ratings for ' + updateCount + ' vehicles');
                 renderInUseVehicles(assignments);
             })
             .withFailureHandler(err => {
@@ -881,17 +897,17 @@
 
     function clearInUseFilters() {
         activeFilters = {
-        topRated: false,
-        lowRated: false,
-        make: null,
-        model: null,
-        category: null,
-        usage: null,
-        type: null,
-        project: null,
-        team: null,
-        owner: null
-    };
+            topRated: false,
+            lowRated: false,
+            make: null,
+            model: null,
+            category: null,
+            usage: null,
+            type: null,
+            project: null,
+            team: null,
+            owner: null
+        };
 
         document.getElementById('inUseSearchInput').value = '';
         document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));

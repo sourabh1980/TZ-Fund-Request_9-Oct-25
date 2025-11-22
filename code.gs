@@ -566,51 +566,78 @@ function getVehicleInUseSummary() {
  */
 function getVehicleInUseSummaryFromCarTP() {
   try {
-    const derived = _computeCarTPVehicleSnapshots_();
-    if (!derived || derived.ok === false) {
-      return { ok: false, source: 'CarT_P', assignments: [], updatedAt: '', error: derived && derived.error ? derived.error : 'CarT_P data unavailable' };
+    console.log('[InUseDirect] Starting direct read...');
+    const sh = _openCarTP_();
+    if (!sh) return { ok: false, error: 'CarT_P not found' };
+    
+    const data = sh.getDataRange().getValues();
+    if (data.length < 2) return { ok: true, assignments: [] };
+    
+    const head = data[0];
+    const IX = _headerIndex_(head);
+    const idx = (labels) => { try { return IX.get(labels); } catch(e) { return -1; } };
+    
+    const iVeh = idx(['Vehicle Number', 'Car Number', 'Vehicle']);
+    const iStatus = idx(['Status', 'Assignment Status']);
+    const iBen = idx(['R.Beneficiary', 'Beneficiary', 'Responsible Beneficiary']);
+    
+    // Meta columns
+    const iMake = idx(['Make']);
+    const iModel = idx(['Model']);
+    const iCat = idx(['Category']);
+    const iUsage = idx(['Usage Type']);
+    const iOwner = idx(['Owner']);
+    const iProject = idx(['Project']);
+    const iTeam = idx(['Team']);
+    const iRemarks = idx(['Last Users remarks', 'Remarks']);
+    const iRating = idx(['Ratings', 'Stars', 'Rating']);
+    const iTs = idx(['Date and time of entry', 'Timestamp']);
+    const iRBenTime = idx(['R.Ben Time', 'R.Ben timestamp']);
+    
+    console.log('[InUseDirect] Columns:', { iVeh, iStatus, iBen });
+
+    if (iVeh < 0 || iStatus < 0) return { ok: false, error: 'Missing columns' };
+    
+    const assignments = [];
+    let inUseCount = 0;
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const status = _normStatus_(row[iStatus]);
+      const veh = String(row[iVeh] || '').trim();
+      
+      if (status === 'IN USE' && veh) {
+        inUseCount++;
+        assignments.push({
+          vehicleNumber: veh,
+          beneficiary: iBen >= 0 ? String(row[iBen] || '') : '',
+          status: 'IN USE',
+          assignmentStatus: 'IN USE',
+          make: iMake >= 0 ? String(row[iMake]||'') : '',
+          model: iModel >= 0 ? String(row[iModel]||'') : '',
+          category: iCat >= 0 ? String(row[iCat]||'') : '',
+          usageType: iUsage >= 0 ? String(row[iUsage]||'') : '',
+          owner: iOwner >= 0 ? String(row[iOwner]||'') : '',
+          project: iProject >= 0 ? String(row[iProject]||'') : '',
+          team: iTeam >= 0 ? String(row[iTeam]||'') : '',
+          remarks: iRemarks >= 0 ? String(row[iRemarks]||'') : '',
+          stars: iRating >= 0 ? (Number(row[iRating] || 0) || 0) : 0,
+          latestTimestamp: iTs >= 0 && row[iTs] ? new Date(row[iTs]).toISOString() : '',
+          rBenTime: iRBenTime >= 0 ? String(row[iRBenTime]||'') : '',
+          rowNumber: i + 1
+        });
+      }
     }
-
-    const rows = Array.isArray(derived.inUseRows) ? derived.inUseRows : [];
-    const assignments = rows.map(function(row) {
-      const vehicleNumber = String(row['Vehicle Number'] || row.vehicleNumber || row.carNumber || '').trim();
-      const beneficiary = String(row['R.Beneficiary'] || row['R. Ben'] || row.responsibleBeneficiary || '').trim();
-      const ts = row._ts || _parseTs_(row['Date and time of entry']);
-      return {
-        beneficiary: beneficiary,
-        vehicleNumber: vehicleNumber,
-        assignmentStatus: row.Status || 'IN USE',
-        status: row.Status || 'IN USE',
-        latestTimestamp: ts ? new Date(ts).toISOString() : '',
-        project: row.Project || '',
-        team: row.Team || '',
-        remarks: row['Last Users remarks'] || row.remarks || '',
-        owner: row.Owner || '',
-        category: row.Category || '',
-        usageType: row['Usage Type'] || '',
-        make: row.Make || '',
-        model: row.Model || '',
-        stars: Number(row.Ratings || row.stars || 0) || 0,
-        rowNumber: row._rowIndex || '',
-        rBenTime: row['R.Ben Time'] || row.rBenTime || ''
-      };
-    }).filter(function(entry) {
-      return entry.vehicleNumber;
-    });
-
-    assignments.sort(function(a, b) {
-      const tsA = a.latestTimestamp ? new Date(a.latestTimestamp).getTime() : 0;
-      const tsB = b.latestTimestamp ? new Date(b.latestTimestamp).getTime() : 0;
-      if (tsA !== tsB) return tsB - tsA;
-      return String(a.beneficiary || '').localeCompare(String(b.beneficiary || ''));
-    });
-
+    
+    console.log('[InUseDirect] Found ' + inUseCount + ' IN USE vehicles');
+    
     return {
       ok: true,
-      source: 'CarT_P',
+      source: 'CarT_P_Direct',
       assignments: assignments,
-      updatedAt: derived.updatedAt || new Date().toISOString()
+      updatedAt: new Date().toISOString()
     };
+    
   } catch (err) {
     console.error('getVehicleInUseSummaryFromCarTP failed:', err);
     return { ok: false, source: 'CarT_P', assignments: [], updatedAt: '', error: String(err) };
@@ -6284,6 +6311,7 @@ function getAllCarTPData() {
         carNumber: carNumber,
         make: iMake >= 0 ? (row[iMake] || '') : '',
         model: iModel >= 0 ? (row[iModel] || '') : '',
+        category: iCat >= 0 ? (row[iCat] || '') : '',
         usageType: iUsage >= 0 ? (row[iUsage] || '') : '',
         contractType: iContract >= 0 ? (row[iContract] || '') : '',
         owner: iOwner >= 0 ? (row[iOwner] || '') : '',
@@ -14879,3 +14907,93 @@ function readVehicleInUseV2(version){
 }
 
 // ---- END VEHICLE CACHE V2 ADDITIONS ----
+
+function testRatingsLogic() {
+  var log = [];
+  function l(msg) { console.log(msg); log.push(msg); }
+  
+  try {
+    l('=== Testing Ratings Logic (Robust) ===');
+    
+    // 1. Open Sheet
+    var sh = null;
+    try { sh = _openCarTP_(); } catch(e) { return 'Error opening CarT_P: ' + e.message; }
+    if (!sh) return 'CarT_P sheet not found via _openCarTP_';
+    
+    // 2. Read Headers
+    var lastCol = sh.getLastColumn();
+    if (lastCol < 1) return 'Sheet has no columns';
+    var headers = sh.getRange(1, 1, 1, lastCol).getDisplayValues()[0];
+    l('Headers found: ' + JSON.stringify(headers));
+    
+    // 3. Identify Columns manually to be sure
+    var colMap = {};
+    headers.forEach(function(h, i) { colMap[h.toUpperCase()] = i; });
+    
+    var findCol = function(possibles) {
+      for (var i=0; i<possibles.length; i++) {
+        var key = possibles[i].toUpperCase();
+        if (colMap.hasOwnProperty(key)) return colMap[key];
+      }
+      return -1;
+    };
+    
+    var iVeh = findCol(['Vehicle Number', 'Car Number', 'Vehicle', 'Vehicle No', 'Car No']);
+    var iStatus = findCol(['Status', 'Assignment Status']);
+    var iRating = findCol(['Ratings', 'Rating', 'Stars', 'Rate']);
+    
+    l('Column Indices: Vehicle=' + iVeh + ', Status=' + iStatus + ', Rating=' + iRating);
+    
+    if (iVeh < 0) return 'Vehicle column not found';
+    if (iStatus < 0) return 'Status column not found';
+    // Rating might be missing, which explains the issue
+    if (iRating < 0) l('WARNING: Rating column not found!');
+    
+    // 4. Scan a few rows
+    var data = sh.getRange(2, 1, Math.min(50, sh.getLastRow()-1), lastCol).getValues();
+    l('Scanned ' + data.length + ' rows.');
+    
+    var foundRelease = false;
+    var foundRating = false;
+    var targetVeh = null; // Define here
+    
+    for (var r=0; r<data.length; r++) {
+      var row = data[r];
+      var veh = row[iVeh];
+      var stat = String(row[iStatus] || '').toUpperCase();
+      var rate = iRating >= 0 ? row[iRating] : null;
+      
+      if (stat.indexOf('RELEASE') >= 0) {
+        foundRelease = true;
+        if (rate != null && rate !== '') {
+          foundRating = true;
+          targetVeh = veh; // Capture it
+          l('Row ' + (r+2) + ': ' + veh + ' | ' + stat + ' | ' + rate);
+          
+          // Test the collection logic for this specific vehicle
+          if (veh) {
+             l('Testing collection for: ' + veh);
+             var collected = _collectReleaseRatingsFromCarTP_([veh], 5);
+             l('Result: ' + JSON.stringify(collected));
+             // Continue to Step 3
+          }
+        }
+      }
+    }
+    
+    if (!foundRelease) return 'No RELEASE rows found in first 50 rows. Log: ' + log.join('\n');
+    if (!foundRating) return 'Found RELEASE rows but NO ratings. Log: ' + log.join('\n');
+    
+    if (targetVeh) {
+      l('Testing getReleaseRatingsForVehicles for ' + targetVeh + '...');
+      var apiResult = getReleaseRatingsForVehicles([targetVeh]);
+      l('API result: ' + JSON.stringify(apiResult));
+    }
+    
+    return 'Scan complete. Log: ' + log.join('\n');
+    
+  } catch (e) {
+    console.error(e);
+    return 'Fatal Error: ' + e.message + '\nStack: ' + e.stack;
+  }
+}
