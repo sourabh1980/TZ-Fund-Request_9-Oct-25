@@ -3448,6 +3448,20 @@ function doGet(e) {
   // Ensure spreadsheet timezone is Tanzania (EAT)
   try { ensureSpreadsheetTZ(); } catch(_tz) {}
 
+  // Check for page parameter to determine which page to serve
+  var page = (e && e.parameter && e.parameter.page) ? e.parameter.page : '';
+
+  // Serve Login page by default
+  if (page !== 'main') {
+    var loginTpl = HtmlService.createTemplateFromFile('Login');
+    loginTpl.scriptUrl = ScriptApp.getService().getUrl();
+    return loginTpl.evaluate()
+        .setTitle('Portal Login')
+        .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+        .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  }
+
+  // Serve Main App (Index.html) if page=main
   var tpl = HtmlService.createTemplateFromFile('Index.html');
   var out = tpl.evaluate()
     .setTitle('Fund Request — Split-Flap Form')
