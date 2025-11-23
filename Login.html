@@ -5,256 +5,498 @@
     <base target="_top">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Login</title>
+    <title>Emerald Telecom Tanzania Fund Request - Login</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --glass-bg: rgba(255, 255, 255, 0.1);
-            --glass-border: rgba(255, 255, 255, 0.2);
-            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-            --input-bg: rgba(255, 255, 255, 0.05);
-            --primary-color: #a855f7;
-            /* Purple */
-            --secondary-color: #3b82f6;
-            /* Blue */
-            --text-color: #ffffff;
+            --card-bg: #ffffff;
+            --card-radius: 18px;
+            --card-shadow: 0 24px 80px rgba(15, 23, 42, 0.28);
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border-soft: #e5e7eb;
+            --accent: #6366f1;
+            --accent-2: #22d3ee;
+            --accent-3: #ec4899;
+            --error: #ef4444;
+            --success: #16a34a;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         body {
             margin: 0;
             padding: 0;
             font-family: 'Outfit', sans-serif;
-            height: 100vh;
+            min-height: 100vh;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, #111827 0, #020617 45%, #020617 100%);
+            color: var(--text-main);
             overflow: hidden;
-            background: #000;
-            color: var(--text-color);
+            position: relative;
         }
 
-        /* Dynamic Northern Lights Effect */
-        body::before,
-        body::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 200vw;
-            height: 200vh;
-            transform: translate(-50%, -50%);
+        /* Aurora animated background with color shift */
+        .aurora-layer,
+        .aurora-layer-2 {
+            position: fixed;
+            inset: -40%;
+            z-index: -3;
+            pointer-events: none;
+        }
+
+        .aurora-layer {
             background:
-                radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.5), transparent 50%),
-                /* Blue */
-                radial-gradient(circle at 20% 20%, rgba(239, 68, 68, 0.4), transparent 40%),
-                /* Red */
-                radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.4), transparent 40%),
-                /* Green */
-                radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.5), transparent 40%),
-                /* Violet */
-                radial-gradient(circle at 20% 80%, rgba(6, 182, 212, 0.4), transparent 40%);
-            /* Cyan */
-            background-size: 200% 200%;
-            animation: aurora 15s ease infinite alternate;
-            z-index: -1;
-            filter: blur(60px);
+                radial-gradient(circle at 15% 10%, rgba(56, 189, 248, 0.9), transparent 55%),
+                radial-gradient(circle at 80% 20%, rgba(168, 85, 247, 0.9), transparent 60%),
+                radial-gradient(circle at 10% 80%, rgba(45, 212, 191, 0.85), transparent 55%),
+                radial-gradient(circle at 90% 85%, rgba(236, 72, 153, 0.8), transparent 55%);
+            animation:
+                auroraMove 26s ease-in-out infinite alternate,
+                auroraColor 46s ease-in-out infinite alternate;
         }
 
-        body::after {
+        .aurora-layer-2 {
+            z-index: -4;
             background:
-                radial-gradient(circle at 40% 60%, rgba(124, 58, 237, 0.4), transparent 40%),
-                /* Violet */
-                radial-gradient(circle at 60% 40%, rgba(59, 130, 246, 0.4), transparent 40%),
-                /* Blue */
-                radial-gradient(circle at 30% 30%, rgba(16, 185, 129, 0.3), transparent 40%);
-            /* Green */
-            animation: aurora-shift 20s linear infinite reverse;
-            mix-blend-mode: screen;
+                radial-gradient(circle at 0% 40%, rgba(59, 130, 246, 0.75), transparent 55%),
+                radial-gradient(circle at 100% 60%, rgba(6, 182, 212, 0.75), transparent 55%);
+            animation:
+                auroraMove2 34s ease-in-out infinite alternate,
+                auroraColor 52s ease-in-out infinite alternate;
+            opacity: 0.7;
         }
 
-        @keyframes aurora {
+        @keyframes auroraMove {
             0% {
-                background-position: 0% 50%;
-                transform: translate(-50%, -50%) scale(1);
+                transform: translate3d(-6%, -4%, 0) scale(1);
             }
 
             50% {
-                background-position: 100% 50%;
-                transform: translate(-50%, -50%) scale(1.1);
+                transform: translate3d(4%, 4%, 0) scale(1.08);
             }
 
             100% {
-                background-position: 0% 50%;
-                transform: translate(-50%, -50%) scale(1);
+                transform: translate3d(-2%, 1%, 0) scale(1.03);
             }
         }
 
-        @keyframes aurora-shift {
+        @keyframes auroraMove2 {
             0% {
-                transform: translate(-50%, -50%) rotate(0deg) scale(1.2);
+                transform: translate3d(4%, 2%, 0) scale(1.05);
+            }
+
+            50% {
+                transform: translate3d(-4%, -4%, 0) scale(1.1);
             }
 
             100% {
-                transform: translate(-50%, -50%) rotate(360deg) scale(1.2);
+                transform: translate3d(2%, -1%, 0) scale(1.02);
             }
         }
 
-        @keyframes drift {
+        @keyframes auroraColor {
             0% {
-                transform: rotate(0deg);
+                filter: blur(60px) hue-rotate(0deg);
+            }
+
+            50% {
+                filter: blur(60px) hue-rotate(30deg);
             }
 
             100% {
+                filter: blur(60px) hue-rotate(-20deg);
+            }
+        }
+
+        .noise-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: -2;
+            pointer-events: none;
+            opacity: 0.14;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='noStitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+            mix-blend-mode: soft-light;
+        }
+
+        /* Motivational chips floating in background (never over card) */
+        .motivation-chip {
+            position: fixed;
+            padding: 8px 20px;
+            border-radius: 999px;
+            font-size: 1.6rem; /* bigger base size */
+            color: #f9fafb;
+            background: radial-gradient(circle at 0 0, rgba(248, 250, 252, 0.9), transparent 55%),
+                linear-gradient(120deg, rgba(56, 189, 248, 0.95), rgba(168, 85, 247, 0.95));
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.6);
+            opacity: 0;
+            transform: translateY(16px) scale(0.8);
+            animation: chipPop 10s ease-in-out infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .motivation-chip.chip-1 {
+            top: 8%;
+            left: 6%;
+        }
+
+        .motivation-chip.chip-2 {
+            top: 22%;
+            right: 6%;
+            animation-delay: 2.5s;
+        }
+
+        .motivation-chip.chip-3 {
+            bottom: 10%;
+            left: 12%;
+            animation-delay: 5s;
+        }
+
+        @keyframes chipPop {
+            0% {
+                opacity: 0;
+                transform: translateY(18px) scale(0.8);
+            }
+
+            15% {
+                opacity: 1;
+                transform: translateY(0) scale(1.0); /* appears already large */
+            }
+
+            45% {
+                opacity: 1;
+                transform: translateY(-6px) scale(1.4); /* growing */
+            }
+
+            70% {
+                opacity: 0;
+                transform: translateY(-14px) scale(2.0); /* about double */
+            }
+
+            100% {
+                opacity: 0;
+                transform: translateY(18px) scale(0.8);
+            }
+        }
+
+        /* Center wrapper */
+        .login-wrapper {
+            width: 100%;
+            max-width: 560px;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .login-card {
+            width: 100%;
+            background: var(--card-bg);
+            border-radius: var(--card-radius);
+            box-shadow: var(--card-shadow);
+            padding: 32px 34px 26px;
+            text-align: left;
+        }
+
+        @media (max-width: 580px) {
+            .login-wrapper {
+                max-width: 100%;
+            }
+
+            .login-card {
+                padding: 26px 20px 22px;
+                border-radius: 14px;
+            }
+        }
+
+        .app-heading {
+            margin: 0 0 6px;
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text-main);
+            text-align: center;
+        }
+
+        .divider {
+            margin: 16px auto 18px;
+            height: 1px;
+            width: 100%;
+            background: linear-gradient(90deg, rgba(229, 231, 235, 0), rgba(209, 213, 219, 1), rgba(229, 231, 235, 0));
+        }
+
+        /* Completion bar */
+        .completion-bar {
+            position: relative;
+            width: 100%;
+            height: 6px;
+            border-radius: 999px;
+            background: #f3f4f6;
+            overflow: hidden;
+            margin-bottom: 14px;
+        }
+
+        .completion-fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 0%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, #22d3ee, #6366f1, #ec4899);
+            transition: width 0.18s ease-out;
+        }
+
+        .completion-label {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            text-align: right;
+        }
+
+        /* Form fields */
+        .form-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .field-group {
+            text-align: left;
+        }
+
+        .field-label-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .field-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
+        .field-status {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .field-status.ok {
+            color: var(--success);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .field-status.ok::before {
+            content: '✓';
+            font-size: 0.75rem;
+        }
+
+        .field-status.error {
+            color: var(--error);
+        }
+
+        .field-input-shell {
+            display: flex;
+            align-items: center;
+            border-radius: 999px;
+            border: 1px solid var(--border-soft);
+            padding: 0 16px;
+            background: #f9fafb;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        }
+
+        .field-input-shell.focused {
+            border-color: rgba(99, 102, 241, 0.85);
+            box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.35);
+            background: #ffffff;
+        }
+
+        .field-input-shell.error {
+            border-color: rgba(239, 68, 68, 0.9);
+            box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.35);
+        }
+
+        .field-input-shell.success {
+            border-color: rgba(34, 197, 94, 0.95);
+            box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3);
+        }
+
+        .field-icon {
+            margin-right: 10px;
+            font-size: 0.92rem;
+            color: #9ca3af;
+        }
+
+        .field-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            padding: 10px 4px 10px 0;
+            font-size: 0.92rem;
+            background: transparent;
+            color: var(--text-main);
+            font-family: inherit;
+        }
+
+        .field-input::placeholder {
+            color: #d1d5db;
+        }
+
+        .field-helper {
+            margin-top: 4px;
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        .error-msg-global {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            color: var(--error);
+            min-height: 18px;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+
+        /* Robot check */
+        .robot-row {
+            margin-top: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .robot-check {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border-soft);
+            background: #f9fafb;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: var(--text-main);
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, transform 0.12s ease;
+        }
+
+        .robot-check:hover {
+            background: #ffffff;
+            box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.35);
+        }
+
+        .robot-check.checked {
+            border-color: rgba(34, 197, 94, 0.95);
+            box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4);
+            background: #ecfdf5;
+            transform: translateY(-1px);
+        }
+
+        .robot-box {
+            width: 16px;
+            height: 16px;
+            border-radius: 6px;
+            border: 1.5px solid #9ca3af;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            color: var(--success);
+            background: #ffffff;
+        }
+
+        .robot-check.checked .robot-box {
+            border-color: rgba(34, 197, 94, 1);
+        }
+
+        .robot-check.checked .robot-box::before {
+            content: "✓";
+        }
+
+        .robot-meta {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        /* Login button */
+        .login-actions {
+            margin-top: 18px;
+        }
+
+        .login-button {
+            width: 100%;
+            border-radius: 999px;
+            padding: 11px 16px;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #ffffff;
+            background: linear-gradient(90deg, #22d3ee, #6366f1, #ec4899);
+            box-shadow: 0 14px 30px rgba(79, 70, 229, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.14s ease, box-shadow 0.14s ease, filter 0.14s ease;
+        }
+
+        .login-button:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 18px 36px rgba(79, 70, 229, 0.55);
+            filter: brightness(1.03);
+        }
+
+        .login-button:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: 0 10px 22px rgba(79, 70, 229, 0.5);
+            filter: brightness(0.98);
+        }
+
+        .login-button:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            box-shadow: 0 10px 22px rgba(148, 163, 184, 0.5);
+        }
+
+        .btn-arrow {
+            font-size: 0.9rem;
+        }
+
+        .spinner {
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            border: 2px solid rgba(248, 250, 252, 0.4);
+            border-top-color: rgba(15, 23, 42, 0.8);
+            animation: spin 0.8s linear infinite;
+            display: none;
+            background: transparent;
+        }
+
+        @keyframes spin {
+            to {
                 transform: rotate(360deg);
             }
         }
 
-        .login-card {
-            background: var(--glass-bg);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
-            padding: 40px;
-            width: 360px;
-            box-shadow: var(--glass-shadow);
+        .login-footer {
+            margin-top: 10px;
+            font-size: 0.74rem;
+            color: var(--text-muted);
             text-align: center;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.3s ease;
-        }
-
-        .login-card:hover {
-            transform: translateY(-5px);
-        }
-
-        h1 {
-            margin-bottom: 30px;
-            font-weight: 600;
-            letter-spacing: 1px;
-            background: linear-gradient(to right, #c084fc, #60a5fa);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-size: 2rem;
-        }
-
-        .input-group {
-            position: relative;
-            margin-bottom: 20px;
-        }
-
-        input {
-            width: 100%;
-            padding: 12px 16px;
-            background: var(--input-bg);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            color: white;
-            font-size: 1rem;
-            outline: none;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-            font-family: 'Outfit', sans-serif;
-        }
-
-        input:focus {
-            border-color: var(--primary-color);
-            background: rgba(255, 255, 255, 0.1);
-            box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
-        }
-
-        input::placeholder {
-            color: rgba(255, 255, 255, 0.5);
-        }
-
-        /* Custom Checkbox "I'm not a robot" */
-        .robot-check {
-            display: flex;
-            align-items: center;
-            margin-bottom: 25px;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 10px 15px;
-            border-radius: 10px;
-            border: 1px solid var(--glass-border);
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        .robot-check:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        .robot-box {
-            width: 20px;
-            height: 20px;
-            border: 2px solid rgba(255, 255, 255, 0.6);
-            border-radius: 4px;
-            margin-right: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s;
-        }
-
-        .robot-check.checked .robot-box {
-            background: #10b981;
-            /* Green */
-            border-color: #10b981;
-        }
-
-        .robot-box::after {
-            content: '✓';
-            color: white;
-            font-size: 14px;
-            display: none;
-        }
-
-        .robot-check.checked .robot-box::after {
-            display: block;
-        }
-
-        .robot-text {
-            font-size: 0.9rem;
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        button {
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            font-family: 'Outfit', sans-serif;
-        }
-
-        button:hover {
-            transform: scale(1.02);
-            box-shadow: 0 0 20px rgba(168, 85, 247, 0.5);
-        }
-
-        button:active {
-            transform: scale(0.98);
-        }
-
-        button:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-
-        .error-msg {
-            color: #f87171;
-            font-size: 0.85rem;
-            margin-top: 15px;
-            min-height: 20px;
-            opacity: 0;
-            transition: opacity 0.3s;
         }
 
         .shake {
@@ -262,7 +504,6 @@
         }
 
         @keyframes shake {
-
             10%,
             90% {
                 transform: translate3d(-1px, 0, 0);
@@ -284,60 +525,258 @@
                 transform: translate3d(4px, 0, 0);
             }
         }
-
-        /* Loading Spinner */
-        .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-            display: none;
-        }
-
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
     </style>
 </head>
 
 <body>
+    <div class="aurora-layer"></div>
+    <div class="aurora-layer-2"></div>
+    <div class="noise-overlay"></div>
 
-    <div class="login-card" id="loginCard">
-        <h1>Welcome</h1>
+    <!-- Motivational chips in background (kept away from form) -->
+    <div class="motivation-chip chip-1" id="chip1">Discipline</div>
+    <div class="motivation-chip chip-2" id="chip2">Focus</div>
+    <div class="motivation-chip chip-3" id="chip3">Impact</div>
 
-        <div class="input-group">
-            <input type="text" id="username" placeholder="Username" autocomplete="off">
+    <div class="login-wrapper">
+        <div class="login-card" id="loginCard">
+            <h1 class="app-heading">Emerald Telecom Tanzania Fund Request</h1>
+
+            <div class="divider"></div>
+
+            <div class="completion-bar">
+                <div class="completion-fill" id="completionFill"></div>
+            </div>
+            <div class="completion-label" id="completionLabel">Profile completion: 0%</div>
+
+            <form class="form-stack" onsubmit="event.preventDefault(); attemptLogin();">
+                <div class="field-group" data-field="username">
+                    <div class="field-label-row">
+                        <label class="field-label" for="username">Username</label>
+                        <div class="field-status" id="status-username">Waiting...</div>
+                    </div>
+                    <div class="field-input-shell" id="shell-username">
+                        <span class="field-icon">👤</span>
+                        <input type="text" id="username" class="field-input" autocomplete="off"
+                            placeholder="Type your username"
+                            onfocus="setFocus('username', true)" onblur="setFocus('username', false)"
+                            oninput="handleInput('username')">
+                    </div>
+                    <div class="field-helper">Use your official Emerald / ETel login ID.</div>
+                </div>
+
+                <div class="field-group" data-field="password">
+                    <div class="field-label-row">
+                        <label class="field-label" for="password">Password</label>
+                        <div class="field-status" id="status-password"></div>
+                    </div>
+                    <div class="field-input-shell" id="shell-password">
+                        <span class="field-icon">🔒</span>
+                        <input type="password" id="password" class="field-input" placeholder="Type your password"
+                            onfocus="setFocus('password', true)" onblur="setFocus('password', false)"
+                            oninput="handleInput('password')">
+                    </div>
+                    <div class="field-helper">Keep this confidential. Do not share over calls or chats.</div>
+                </div>
+
+                <div class="field-group" data-field="secretCode">
+                    <div class="field-label-row">
+                        <label class="field-label" for="secretCode">Security Code</label>
+                        <div class="field-status" id="status-secretCode">Waiting...</div>
+                    </div>
+                    <div class="field-input-shell" id="shell-secretCode">
+                        <span class="field-icon">🛡️</span>
+                        <input type="password" id="secretCode" class="field-input" placeholder="Finance shared code"
+                            onfocus="setFocus('secretCode', true)" onblur="setFocus('secretCode', false)"
+                            oninput="handleInput('secretCode')">
+                    </div>
+                    <div class="field-helper">Second factor shared by Finance / Admin team.</div>
+                </div>
+
+                <div class="robot-row">
+                    <div class="robot-check" onclick="toggleRobot()" id="robotCheck">
+                        <div class="robot-box"></div>
+                        <span>I'm not a robot</span>
+                    </div>
+                    <div class="robot-meta">Required to proceed</div>
+                </div>
+
+                <div class="login-actions">
+                    <button type="submit" class="login-button" id="loginBtn">
+                        <span id="btnText">Login</span>
+                        <div class="spinner" id="btnSpinner"></div>
+                        <span class="btn-arrow">⟶</span>
+                    </button>
+                    <div class="login-footer">
+                        Access is restricted to authorised Emerald Telecom Tanzania users only.
+                    </div>
+                </div>
+
+                <div class="error-msg-global" id="errorMsg">Invalid credentials</div>
+            </form>
         </div>
-
-        <div class="input-group">
-            <input type="password" id="password" placeholder="Password">
-        </div>
-
-        <div class="input-group">
-            <input type="password" id="secretCode" placeholder="Secret Code">
-        </div>
-
-        <div class="robot-check" onclick="toggleRobot()" id="robotCheck">
-            <div class="robot-box"></div>
-            <span class="robot-text">I'm not a robot</span>
-        </div>
-
-        <button onclick="attemptLogin()" id="loginBtn">
-            <span id="btnText">Login</span>
-            <div class="spinner" id="btnSpinner"></div>
-        </button>
-
-        <div class="error-msg" id="errorMsg">Invalid credentials</div>
     </div>
 
     <script>
         var SCRIPT_URL = <?= scriptUrl ?>;
         let isRobotChecked = false;
+
+        const motivationWords = [
+            "Discipline",
+            "Ownership",
+            "Accountability",
+            "Focus",
+            "Clarity",
+            "Efficiency",
+            "Smart Spending",
+            "Cost Control",
+            "Cash Flow",
+            "ROI Mindset",
+            "Value Creation",
+            "Prioritize Needs",
+            "Zero Waste",
+            "Plan Before Spend",
+            "Think Long-Term",
+            "Stay Committed",
+            "Every Shilling Counts",
+            "Lead by Example",
+            "Protect the Budget",
+            "Fund the Future",
+            "Focus"
+        ];
+
+        function startMotivationCycle() {
+            const chips = [document.getElementById('chip1'), document.getElementById('chip2'), document.getElementById('chip3')];
+            if (!chips[0] || !chips[1] || !chips[2]) return;
+
+            function shuffle(arr) {
+                for (let i = arr.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [arr[i], arr[j]] = [arr[j], arr[i]];
+                }
+                return arr;
+            }
+
+            function updateChips() {
+                const pool = shuffle(motivationWords.slice());
+                chips.forEach((chip, idx) => {
+                    chip.textContent = pool[idx % pool.length];
+                });
+            }
+
+            updateChips();
+            setInterval(updateChips, 3500);
+        }
+
+        function updateCompletion() {
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            const code = document.getElementById('secretCode').value.trim();
+
+            let stepsDone = 0;
+            const totalSteps = 4;
+
+            if (user) stepsDone++;
+            if (pass) stepsDone++;
+            if (code) stepsDone++;
+            if (isRobotChecked) stepsDone++;
+
+            const percent = Math.round((stepsDone / totalSteps) * 100);
+            const fill = document.getElementById('completionFill');
+            const label = document.getElementById('completionLabel');
+            fill.style.width = percent + "%";
+            label.textContent = "Profile completion: " + percent + "%";
+        }
+
+        function setFocus(fieldId, isFocused) {
+            const shell = document.getElementById('shell-' + fieldId);
+            if (!shell) return;
+            if (isFocused) {
+                shell.classList.add('focused');
+            } else {
+                shell.classList.remove('focused');
+            }
+        }
+
+        function setFieldState(fieldId, state, message) {
+            const shell = document.getElementById('shell-' + fieldId);
+            const status = document.getElementById('status-' + fieldId);
+            if (!shell || !status) return;
+
+            shell.classList.remove('error', 'success');
+            status.classList.remove('error', 'ok');
+
+            if (state === 'error') {
+                shell.classList.add('error');
+                status.classList.add('error');
+            } else if (state === 'success') {
+                shell.classList.add('success');
+                status.classList.add('ok');
+            }
+
+            status.textContent = message || "";
+        }
+
+        let usernameCheckTimeout = null;
+        let secretCodeCheckTimeout = null;
+
+        function handleInput(fieldId) {
+            clearGlobalError();
+            updateCompletion();
+
+            const value = document.getElementById(fieldId).value.trim();
+
+            if (fieldId === 'username') {
+                if (!value) {
+                    setFieldState('username', null, "Waiting...");
+                } else if (value.length < 3) {
+                    setFieldState('username', 'error', "Too short");
+                } else {
+                    setFieldState('username', null, "Checking...");
+                }
+
+                if (usernameCheckTimeout) clearTimeout(usernameCheckTimeout);
+                if (value.length >= 3) {
+                    usernameCheckTimeout = setTimeout(() => {
+                        // Placeholder for real Apps Script check if needed
+                        setFieldState('username', 'success', "Looks good");
+                    }, 400);
+                }
+            }
+
+            if (fieldId === 'password') {
+                const status = document.getElementById('status-password');
+                if (!status) return;
+                if (!value) {
+                    status.textContent = "";
+                    status.classList.remove('error');
+                } else if (value.length < 6) {
+                    status.textContent = "Weak";
+                    status.classList.add('error');
+                } else {
+                    status.textContent = "OK";
+                    status.classList.remove('error');
+                }
+            }
+
+            if (fieldId === 'secretCode') {
+                if (!value) {
+                    setFieldState('secretCode', null, "Waiting...");
+                } else if (value.length < 4) {
+                    setFieldState('secretCode', 'error', "Too short");
+                } else {
+                    setFieldState('secretCode', null, "Checking...");
+                }
+
+                if (secretCodeCheckTimeout) clearTimeout(secretCodeCheckTimeout);
+                if (value.length >= 4) {
+                    secretCodeCheckTimeout = setTimeout(() => {
+                        // Placeholder for real Apps Script check if needed
+                        setFieldState('secretCode', 'success', "Code format OK");
+                    }, 400);
+                }
+            }
+        }
 
         function toggleRobot() {
             const el = document.getElementById('robotCheck');
@@ -347,61 +786,85 @@
             } else {
                 el.classList.remove('checked');
             }
+            updateCompletion();
+        }
+
+        function setGlobalError(msg) {
+            const errorEl = document.getElementById('errorMsg');
+            const card = document.getElementById('loginCard');
+            errorEl.textContent = msg || '';
+            errorEl.style.opacity = msg ? '1' : '0';
+
+            if (msg) {
+                card.classList.remove('shake');
+                void card.offsetWidth;
+                card.classList.add('shake');
+            }
+        }
+
+        function clearGlobalError() {
+            setGlobalError('');
+        }
+
+        function setButtonLoading(isLoading) {
+            const btn = document.getElementById('loginBtn');
+            const text = document.getElementById('btnText');
+            const spinner = document.getElementById('btnSpinner');
+
+            if (isLoading) {
+                btn.disabled = true;
+                text.style.display = 'none';
+                spinner.style.display = 'inline-block';
+            } else {
+                btn.disabled = false;
+                text.style.display = 'inline';
+                spinner.style.display = 'none';
+            }
         }
 
         function attemptLogin() {
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
-            const code = document.getElementById('secretCode').value;
-            const errorEl = document.getElementById('errorMsg');
-            const card = document.getElementById('loginCard');
-            const btn = document.getElementById('loginBtn');
-            const btnText = document.getElementById('btnText');
-            const spinner = document.getElementById('btnSpinner');
+            const user = document.getElementById('username').value.trim();
+            const pass = document.getElementById('password').value.trim();
+            const code = document.getElementById('secretCode').value.trim();
 
-            errorEl.style.opacity = '0';
+            clearGlobalError();
 
             if (!user || !pass || !code) {
-                showError('Please fill in all fields');
+                setGlobalError('Please fill in all fields before logging in.');
                 return;
             }
 
             if (!isRobotChecked) {
-                showError('Please verify you are not a robot');
+                setGlobalError('Please confirm you are not a robot.');
                 return;
             }
 
-            // Loading State
-            btn.disabled = true;
-            btnText.style.display = 'none';
-            spinner.style.display = 'inline-block';
+            setButtonLoading(true);
 
             google.script.run
                 .withSuccessHandler(res => {
-                    if (res.success) {
-                        // Success Animation
+                    if (res && res.success) {
+                        const card = document.getElementById('loginCard');
                         card.innerHTML = `
-              <h1 style="margin:0;">Success!</h1>
-              <p style="color:rgba(255,255,255,0.8);">Welcome back, ${res.user.name}</p>
-              <div style="font-size:3rem; margin-top:20px;">🚀</div>
-              <p style="margin-top:20px; font-size:0.9rem;">Redirecting...</p>
-              <a href="${SCRIPT_URL}?page=main" target="_top" style="color:#fff; text-decoration:underline; font-size:0.8rem;">Click here if not redirected</a>
-            `;
-
-                        // Redirect to main app
-                        setTimeout(() => {
-                            window.top.location.href = SCRIPT_URL + '?page=main';
-                        }, 1000);
-
+                        <div style="padding:32px 12px 26px; text-align:center;">
+                            <h2 style="margin:0 0 8px;font-size:1.4rem;font-weight:600;color:#111827;">Welcome back</h2>
+                            <p style="margin:0 0 12px;font-size:0.9rem;color:#4b5563;">${res.user && res.user.name ? res.user.name : 'Emerald Leader'}, redirecting you to the Fund Request workspace.</p>
+                            <div style="font-size:2.8rem;margin-bottom:12px;">🚀</div>
+                            <p style="margin:0 0 10px;font-size:0.85rem;color:#6b7280;">If nothing happens, click below.</p>
+                            <a href="${SCRIPT_URL}?page=main" target="_top" style="font-size:0.86rem;color:#2563eb;text-decoration:none;border-bottom:1px solid #2563eb;padding-bottom:2px;">Open Fund Request</a>
+                        </div>
+                        `;
+                        window.top.location.href = SCRIPT_URL + '?page=main';
                     } else {
-                        resetBtn();
-                        showError(res.message);
+                        setButtonLoading(false);
+                        const message = res && res.message ? res.message : 'Invalid credentials. Please try again.';
+                        setGlobalError(message);
                     }
                 })
                 .withFailureHandler(err => {
-                    resetBtn();
-                    showError('Connection failed. Try again.');
                     console.error(err);
+                    setButtonLoading(false);
+                    setGlobalError('Connection failed. Please check your network and try again.');
                 })
                 .verifyLogin({
                     username: user,
@@ -410,27 +873,10 @@
                 });
         }
 
-        function showError(msg) {
-            const errorEl = document.getElementById('errorMsg');
-            const card = document.getElementById('loginCard');
-            errorEl.textContent = msg;
-            errorEl.style.opacity = '1';
-
-            // Shake animation
-            card.classList.remove('shake');
-            void card.offsetWidth; // trigger reflow
-            card.classList.add('shake');
-        }
-
-        function resetBtn() {
-            const btn = document.getElementById('loginBtn');
-            const btnText = document.getElementById('btnText');
-            const spinner = document.getElementById('btnSpinner');
-
-            btn.disabled = false;
-            btnText.style.display = 'inline';
-            spinner.style.display = 'none';
-        }
+        document.addEventListener('DOMContentLoaded', function () {
+            startMotivationCycle();
+            updateCompletion();
+        });
     </script>
 
 </body>
