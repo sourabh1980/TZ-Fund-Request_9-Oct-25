@@ -178,8 +178,105 @@
   const FINALIZE_BUFFER = 220; // ms cushion before final markup swap
 
   // Helpers
-  const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  const parse = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); };
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const parse = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d); };
+
+function formatSubmissionDate(value){
+  if (!value) return '';
+  try {
+    const dateObj = parse(value);
+    if (!dateObj || Number.isNaN(dateObj.getTime())) return '';
+    return `${String(dateObj.getDate()).padStart(2,'0')}/${String(dateObj.getMonth()+1).padStart(2,'0')}/${dateObj.getFullYear()}`;
+  } catch (err) {
+    console.warn('formatSubmissionDate error', err);
+    return '';
+  }
+}
+
+function setContainerRangeValue(container, from, to){
+  if (!container) return;
+  if (from) {
+    container.dataset.rangeFrom = from;
+  } else {
+    delete container.dataset.rangeFrom;
+  }
+  if (to) {
+    container.dataset.rangeTo = to;
+  } else {
+    delete container.dataset.rangeTo;
+  }
+}
+
+function clearContainerRangeValue(container){
+  if (!container) return;
+  delete container.dataset.rangeFrom;
+  delete container.dataset.rangeTo;
+}
+
+function dispatchInputAndChange(input){
+  if (!input) return;
+  ['input', 'change'].forEach(function(type){
+    try {
+      input.dispatchEvent(new Event(type, { bubbles: true }));
+    } catch (_){
+      /* ignore */
+    }
+  });
+}
+
+function clearDAAmountFromContainer(container){
+  if (!container) return;
+  const amountInput = container.querySelector('input.amount-input');
+  if (!amountInput) return;
+  if (amountInput.value) {
+    amountInput.value = '';
+    dispatchInputAndChange(amountInput);
+  }
+}
+
+function clearContainedDAAmount(container){
+  if (!container) return;
+  clearDAAmountFromContainer(container);
+}
+
+function parseDDCPackRows(){
+  if (window._cachedDdcRows) return window._cachedDdcRows;
+  const tag = document.getElementById('DDC');
+  if (!tag) {
+    window._cachedDdcRows = [];
+    return window._cachedDdcRows;
+  }
+  try {
+    const pack = JSON.parse(tag.textContent || '{}');
+    const rows = Array.isArray(pack.rows) ? pack.rows : [];
+    window._cachedDdcRows = rows;
+    return rows;
+  } catch (err) {
+    console.warn('DDC pack parse failed', err);
+    window._cachedDdcRows = [];
+    return window._cachedDdcRows;
+  }
+}
+
+function getDefaultDaForBeneficiary(name){
+  if (!name) return 0;
+  const rows = parseDDCPackRows();
+  const normalized = String(name || '').trim().toLowerCase();
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    if (!row || !row.length) continue;
+    const ben = String(row[0] || '').trim().toLowerCase();
+    if (!ben) continue;
+    if (ben === normalized) {
+      return Number(row[3] || 0) || 0;
+    }
+  }
+  return 0;
+}
+
+if (!window.getDefaultDaForBeneficiary) {
+  window.getDefaultDaForBeneficiary = getDefaultDaForBeneficiary;
+}
   const addMonths = (s, n) => ymd(new Date(parse(s).getFullYear(), parse(s).getMonth()+n, parse(s).getDate()));
   const fmtLong = s => !s ? '—' : `${String(parse(s).getDate()).padStart(2,'0')} ${monthNames[parse(s).getMonth()].slice(0,3)} ${parse(s).getFullYear()}`;
   const fmtShort = s => { if(!s) return 'DD - MM'; const d=parse(s); const dd=String(d.getDate()).padStart(2,'0'); return `${dd} - ${monthAbbr[d.getMonth()]}`; };
@@ -535,6 +632,10 @@
     const field = cs.field;
     const hostIsPill = cs.host.classList.contains('splitflap');
     const isSummary = cs.host.classList.contains('splitflap--summary') || cs.host.matches?.('.cards .card[data-cal]');
+    const daContainers = new Set();
+    const trackDaContainer = (container) => {
+      if (container) daContainers.add(container);
+    };
     
     // Global calendar mode: show confirmation dialog and clear ALL calendar pills in visible rows
     if(field === 'global') {
@@ -544,10 +645,14 @@
       }
       const allCalendarContainers = document.querySelectorAll('.tbody .split-calendar-container');
       allCalendarContainers.forEach(container => {
+        clearContainerRangeValue(container);
         // Only clear if the row is visible (not filtered out)
         if(isRowVisible(container)) {
           const pills = container.querySelectorAll('.splitflap--holo');
           pills.forEach(pill => clearPillDates(pill));
+        }
+        if (field === 'da') {
+          trackDaContainer(container);
         }
       });
     } else {
@@ -557,11 +662,22 @@
         const container = cs.host.closest('.split-calendar-container');
         if(container) {
           // Clear both pills in the container (from and to dates)
-          const allPills = container.querySelectorAll('.splitflap--holo');
-          allPills.forEach(pill => clearPillDates(pill));
+        const allPills = container.querySelectorAll('.splitflap--holo');
+        allPills.forEach(pill => clearPillDates(pill));
+        clearContainerRangeValue(container);
+        if (field === 'da') {
+          trackDaContainer(container);
+        }
         } else {
           // Fallback: clear just the clicked pill
           clearPillDates(cs.host);
+          const fallbackContainer = cs.host.closest && cs.host.closest('.split-calendar-container');
+          if (fallbackContainer) {
+            clearContainerRangeValue(fallbackContainer);
+            if (field === 'da') {
+              trackDaContainer(fallbackContainer);
+            }
+          }
         }
       }
       
@@ -569,8 +685,12 @@
       if(isSummary) {
         const containers = document.querySelectorAll(`.tbody .split-calendar-container[data-cal="${field}"]`);
         containers.forEach(container => {
+          clearContainerRangeValue(container);
           const pills = container.querySelectorAll('.splitflap--holo');
           pills.forEach(pill => clearPillDates(pill));
+          if (field === 'da') {
+            trackDaContainer(container);
+          }
         });
       }
     }
@@ -582,6 +702,10 @@
     document.getElementById('daysCounter').textContent = '0 days selected';
     render();
     
+    if (field === 'da' && daContainers.size) {
+      daContainers.forEach(clearContainedDAAmount);
+    }
+
     // Trigger validation update after clearing
     if(window.validateAllExpenseFields) {
       setTimeout(window.validateAllExpenseFields, 100);
@@ -617,14 +741,18 @@
     const isSummary = cs.host.classList.contains('splitflap--summary') || cs.host.matches?.('.cards .card[data-cal]');
     
     // Clear the current host pill
-    if(hostIsPill) {
-      clearPillDates(cs.host);
-    }
+      if(hostIsPill) {
+        clearPillDates(cs.host);
+        const container = cs.host.closest('.split-calendar-container');
+        if (container) clearContainerRangeValue(container);
+      }
     
     // If it's a summary card, clear all related row pills
     if(isSummary) {
       const rows = document.querySelectorAll(`.tbody .splitflap.splitflap--row[data-cal="${field}"]`);
       rows.forEach(pill => clearPillDates(pill));
+      const containers = document.querySelectorAll(`.tbody .split-calendar-container[data-cal="${field}"]`);
+      containers.forEach(clearContainerRangeValue);
     }
     
     // Trigger validation update after clearing
@@ -1078,6 +1206,17 @@
       }
     }
     
+    const formattedFrom = formatSubmissionDate(fromDate);
+    const formattedTo = formatSubmissionDate(toDate);
+    const applyRangeToContainer = (container) => {
+      if (!container) return;
+      if (formattedFrom && formattedTo) {
+        setContainerRangeValue(container, formattedFrom, formattedTo);
+      } else {
+        clearContainerRangeValue(container);
+      }
+    };
+    
     const animated = new Set();
     let lastFastModeUsed = false;
     const daTargetContainers = new Set();
@@ -1101,6 +1240,7 @@
       allCalendarContainers.forEach(container => {
         totalCount++;
         if(isRowVisible(container)) {
+          applyRangeToContainer(container);
           const firstPill = container.querySelector('.splitflap--holo');
           if(firstPill) {
             targets.push(firstPill);
@@ -1126,6 +1266,7 @@
       lastFastModeUsed = fastMode;
 
       visibleContainers.forEach((container) => {
+        applyRangeToContainer(container);
         const firstPill = container.querySelector('.splitflap--holo');
         if(firstPill) {
           queueAnimation(firstPill, {fastMode, baseDelay: 0});
@@ -1145,6 +1286,7 @@
     if(field !== 'global' && !isSummary) {
       const container = cs.host?.closest?.('.split-calendar-container');
       if (container) {
+        applyRangeToContainer(container);
         daTargetContainers.add(container);
       }
     }

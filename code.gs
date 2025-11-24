@@ -3640,15 +3640,16 @@ function submitToSubmissions(submissionData) {
         'Row Total',
         'Designation',
         'Fuel From','Fuel To','Fuel Amt',
-  'DA From','DA To','DA Amt',
-        'Car From','Car To','Car Amt',
+        'DA From','DA To','DA Amt',
+        'Car From','Car To','Vehicle Number','Car Amt',
         'Airtime From','Airtime To','Airtime Amt',
         'Transport From','Transport To','Transport Amt',
         'Misc From','Misc To','Misc Amt',
         'Mob No',
         'Display Name',
         'W/H Charges',
-        'Remarks'
+        'Remarks',
+        'Submitter','Approval date','Approved by','Paid amt','Transfer By','Finance Remarks'
       ];
       sh.getRange(1, 1, 1, header.length).setValues([header]);
       sh.setFrozenRows(1);
@@ -3690,15 +3691,21 @@ function submitToSubmissions(submissionData) {
       Number(r.total || 0),
       (r.designation || '').toString().trim(),
       parseDate(r.fuel?.from || ''),   parseDate(r.fuel?.to || ''),   Number(r.fuel?.amount || 0),
-  parseDate(r.da?.from || ''),   parseDate(r.da?.to || ''),   Number(r.da?.amount || 0),
-      parseDate(r.car?.from  || ''),   parseDate(r.car?.to  || ''),   Number(r.car?.amount  || 0),
+      parseDate(r.da?.from || ''),     parseDate(r.da?.to || ''),     Number(r.da?.amount || 0),
+      parseDate(r.car?.from  || ''),   parseDate(r.car?.to  || ''),   (r.vehicleNumber || '').toString().trim(), Number(r.car?.amount  || 0),
       parseDate(r.air?.from  || ''),   parseDate(r.air?.to  || ''),   Number(r.air?.amount  || 0),
       parseDate(r.transport?.from || ''), parseDate(r.transport?.to || ''), Number(r.transport?.amount || 0),
       parseDate(r.misc?.from || ''),   parseDate(r.misc?.to || ''),   Number(r.misc?.amount || 0),
       (r.mob || '').toString().trim(),
       (r.displayName || '').toString().trim(),
       Number(r.whCharges || 0),
-      (r.remarks || '').toString().trim()
+      (r.remarks || '').toString().trim(),
+      (r.submitter || '').toString().trim(),
+      parseDate(r.approvalDate || ''),
+      (r.approvedBy || '').toString().trim(),
+      Number(r.paidAmt || 0),
+      (r.transferBy || '').toString().trim(),
+      (r.financeRemarks || '').toString().trim()
     ]));
 
     if (data.length === 0) {

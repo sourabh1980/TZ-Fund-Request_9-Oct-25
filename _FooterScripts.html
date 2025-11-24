@@ -3729,6 +3729,17 @@
     return false;
   }
   
+  function hasValidCalendarSelection(container) {
+    if (!container) return false;
+    const pills = container.querySelectorAll('.splitflap--holo');
+    if (!pills || !pills.length) return false;
+    return Array.from(pills).some(function(pill){
+      const day = pill.querySelector('.day')?.textContent?.trim();
+      const month = pill.querySelector('.month')?.textContent?.trim();
+      return day && month && day !== 'DD' && month !== 'MM';
+    });
+  }
+
   // Function to collect all form data regardless of filtering
   function collectAllFormData() {
     // Get project name from header bar
@@ -3743,6 +3754,7 @@
     // Make project name globally accessible
     window.globalProjectName = globalProjectName;
     
+    const submissionMeta = (typeof window !== 'undefined' && window.submissionMeta && typeof window.submissionMeta === 'object') ? window.submissionMeta : {};
     const rows = [];
     const allRowElements = document.querySelectorAll('.tbody .row-data');
     
@@ -3756,6 +3768,11 @@
       const whChargesElement = rowElement.querySelector('.cell:nth-child(13) input.amt');
       const remarksElement = rowElement.querySelector('.cell:nth-child(14) input.txt');
       const totalElement = rowElement.querySelector('input.amt[readonly]');
+      const vehicleInput = rowElement.querySelector('input.car-number-input');
+      const totalAmount = totalElement ? parseFloat(totalElement.value.replace(/,/g, '')) || 0 : 0;
+      if (totalAmount === 0) {
+        return; // Skip rows with zero total so they are not saved
+      }
       
       if (!beneficiaryElement) return; // Skip if no beneficiary input
       
@@ -3784,7 +3801,7 @@
       }
       
       // Collect expense data for each category
-      const categories = ['fuel', 'erda', 'car', 'air', 'transport', 'misc'];
+      const categories = ['fuel', 'da', 'erda', 'car', 'air', 'transport', 'misc'];
       const expenseData = {};
       
       categories.forEach(category => {
@@ -3793,38 +3810,46 @@
           const amountInput = container.querySelector('.amount-input');
           const amount = amountInput ? parseFloat(amountInput.value.replace(/,/g, '')) || 0 : 0;
           
-          // Get date information from pills
+          const datasetFrom = container.dataset.rangeFrom ? container.dataset.rangeFrom.trim() : '';
+          const datasetTo = container.dataset.rangeTo ? container.dataset.rangeTo.trim() : '';
           let fromDate = '';
           let toDate = '';
-          const pills = container.querySelectorAll('.splitflap--holo');
-          if (pills.length >= 2) {
-            const fromPill = pills[0];
-            const toPill = pills[1];
-            
-            const fromDay = fromPill.querySelector('.day')?.textContent?.trim();
-            const fromMonth = fromPill.querySelector('.month')?.textContent?.trim();
-            const toDay = toPill.querySelector('.day')?.textContent?.trim();
-            const toMonth = toPill.querySelector('.month')?.textContent?.trim();
-            
-            if (fromDay && fromMonth && fromDay !== 'DD' && fromMonth !== 'MM') {
-              const currentYear = new Date().getFullYear();
-              // Convert month abbreviation to numeric format
-              const monthAbbr = ['JA','FE','MA','AP','MA','JU','JL','AU','SE','OC','NO','DE'];
-              const monthIndex = monthAbbr.indexOf(fromMonth);
-              const monthNum = monthIndex >= 0 ? String(monthIndex + 1).padStart(2, '0') : fromMonth;
-              // Ensure day is zero-padded and use DD/MM/YYYY format for backend parsing
-              const dayPadded = String(fromDay).padStart(2, '0');
-              fromDate = `${dayPadded}/${monthNum}/${currentYear}`;
-            }
-            if (toDay && toMonth && toDay !== 'DD' && toMonth !== 'MM') {
-              const currentYear = new Date().getFullYear();
-              // Convert month abbreviation to numeric format
-              const monthAbbr = ['JA','FE','MA','AP','MA','JU','JL','AU','SE','OC','NO','DE'];
-              const monthIndex = monthAbbr.indexOf(toMonth);
-              const monthNum = monthIndex >= 0 ? String(monthIndex + 1).padStart(2, '0') : toMonth;
-              // Ensure day is zero-padded and use DD/MM/YYYY format for backend parsing
-              const dayPadded = String(toDay).padStart(2, '0');
-              toDate = `${dayPadded}/${monthNum}/${currentYear}`;
+
+          const hasSelection = hasValidCalendarSelection(container);
+          if (hasSelection && datasetFrom && datasetTo) {
+            fromDate = datasetFrom;
+            toDate = datasetTo;
+          } else {
+            const pills = container.querySelectorAll('.splitflap--holo');
+            if (pills.length >= 2) {
+              const fromPill = pills[0];
+              const toPill = pills[1];
+              
+              const fromDay = fromPill.querySelector('.day')?.textContent?.trim();
+              const fromMonth = fromPill.querySelector('.month')?.textContent?.trim();
+              const toDay = toPill.querySelector('.day')?.textContent?.trim();
+              const toMonth = toPill.querySelector('.month')?.textContent?.trim();
+              
+              if (fromDay && fromMonth && fromDay !== 'DD' && fromMonth !== 'MM') {
+                const currentYear = new Date().getFullYear();
+                // Convert month abbreviation to numeric format
+                const monthAbbr = ['JA','FE','MA','AP','MA','JU','JL','AU','SE','OC','NO','DE'];
+                const monthIndex = monthAbbr.indexOf(fromMonth);
+                const monthNum = monthIndex >= 0 ? String(monthIndex + 1).padStart(2, '0') : fromMonth;
+                // Ensure day is zero-padded and use DD/MM/YYYY format for backend parsing
+                const dayPadded = String(fromDay).padStart(2, '0');
+                fromDate = `${dayPadded}/${monthNum}/${currentYear}`;
+              }
+              if (toDay && toMonth && toDay !== 'DD' && toMonth !== 'MM') {
+                const currentYear = new Date().getFullYear();
+                // Convert month abbreviation to numeric format
+                const monthAbbr = ['JA','FE','MA','AP','MA','JU','JL','AU','SE','OC','NO','DE'];
+                const monthIndex = monthAbbr.indexOf(toMonth);
+                const monthNum = monthIndex >= 0 ? String(monthIndex + 1).padStart(2, '0') : toMonth;
+                // Ensure day is zero-padded and use DD/MM/YYYY format for backend parsing
+                const dayPadded = String(toDay).padStart(2, '0');
+                toDate = `${dayPadded}/${monthNum}/${currentYear}`;
+              }
             }
           }
           
@@ -3836,6 +3861,18 @@
         }
       });
       
+      const normalizeExpenseEntry = function(entry){
+        const from = entry && entry.from ? entry.from : '';
+        const to = entry && entry.to ? entry.to : '';
+        const amount = entry && entry.amount ? Number(entry.amount) || 0 : 0;
+        return { from: from, to: to, amount: amount };
+      };
+      const hasExpenseValues = function(entry){
+        return Boolean(entry && (entry.from || entry.to || entry.amount));
+      };
+      const erdaEntry = normalizeExpenseEntry(expenseData.erda);
+      const daEntry = normalizeExpenseEntry(hasExpenseValues(expenseData.da) ? expenseData.da : expenseData.erda);
+
       const rowData = {
         beneficiary: beneficiaryName,
         accountHolder: accountHolderElement ? accountHolderElement.value.trim() : '',
@@ -3843,10 +3880,11 @@
         project: project,
         teamName: team, // Add explicit teamName field
         projectName: project, // Add explicit projectName field
-        total: totalElement ? parseFloat(totalElement.value.replace(/,/g, '')) || 0 : 0,
+        total: totalAmount,
         designation: designationElement ? designationElement.value.trim() : '',
         fuel: expenseData.fuel,
-        erda: expenseData.erda,
+        da: daEntry,
+        erda: erdaEntry,
         car: expenseData.car,
         air: expenseData.air,
         transport: expenseData.transport,
@@ -3854,7 +3892,14 @@
         mob: mobElement ? mobElement.value.trim() : '',
         displayName: displayNameElement ? displayNameElement.value.trim() : '',
         whCharges: whChargesElement ? parseFloat(whChargesElement.value.replace(/,/g, '')) || 0 : 0,
-        remarks: remarksElement ? remarksElement.value.trim() : ''
+        remarks: remarksElement ? remarksElement.value.trim() : '',
+        vehicleNumber: vehicleInput ? vehicleInput.value.trim() : '',
+        submitter: String(submissionMeta.submitter || '').trim(),
+        approvalDate: String(submissionMeta.approvalDate || '').trim(),
+        approvedBy: String(submissionMeta.approvedBy || '').trim(),
+        paidAmt: Number(submissionMeta.paidAmt || 0),
+        transferBy: String(submissionMeta.transferBy || '').trim(),
+        financeRemarks: String(submissionMeta.financeRemarks || '').trim()
       };
       
       rows.push(rowData);
