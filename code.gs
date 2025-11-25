@@ -3771,12 +3771,25 @@ function formatCurrency(value) {
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function formatDateTz(value) {
+  if (!value) return '';
+  const dt = value instanceof Date ? value : new Date(value);
+  if (!isFinite(dt)) return '';
+  return dt.toLocaleDateString('en-GB', { timeZone: 'Africa/Dar_es_Salaam' });
+}
+
 function buildSubmissionReportHtml(context) {
   const created = context.timestamp instanceof Date ? context.timestamp : new Date();
   const heading = `Fund Request ${context.submissionId || ''}`.trim();
   const rowsHtml = (context.rows || []).map(function(row, index) {
+    const vehicleDetails = [row.vehicleNumber || '', row.driverName || '', row.driver || '']
+      .map(function(part) { return escapeHtml(String(part || '').trim()); })
+      .filter(function(part) { return part; })
+      .join(' / ');
+    const vehicleRemarks = row.car?.remarks || row.car?.purpose || row.vehicleRemarks || '';
+    const rowDate = formatDateTz(row.date || row.doe || created);
     return `<tr>
-      <td>${index + 1}</td>
+      <td><div class="serial">${index + 1}</div><div class="muted">${rowDate}</div></td>
       <td>${escapeHtml(row.beneficiary)}</td>
       <td>${escapeHtml(row.accountHolder)}</td>
       <td>${escapeHtml(row.teamName || row.team || '')}</td>
@@ -3784,12 +3797,12 @@ function buildSubmissionReportHtml(context) {
       <td>${formatCurrency(row.fuel?.amount)}</td>
       <td>${formatCurrency(row.da?.amount || row.erda?.amount)}</td>
       <td>${formatCurrency(row.car?.amount)}</td>
-      <td>${escapeHtml(row.vehicleNumber)}</td>
+      <td>${vehicleDetails}</td>
+      <td>${escapeHtml(vehicleRemarks)}</td>
       <td>${formatCurrency(row.air?.amount)}</td>
       <td>${formatCurrency(row.transport?.amount)}</td>
       <td>${formatCurrency(row.misc?.amount)}</td>
       <td>${escapeHtml(row.mob)}</td>
-      <td>${escapeHtml(row.displayName)}</td>
       <td>${formatCurrency(row.whCharges)}</td>
       <td>${escapeHtml(row.remarks)}</td>
       <td>${escapeHtml(row.submitter)}</td>
@@ -3803,57 +3816,92 @@ function buildSubmissionReportHtml(context) {
         <style>
           @page {
             size: A4 landscape;
-            margin: 0.2in;
+            margin: 0.25in;
           }
           body {
             font-family: 'Segoe UI', 'Arial', sans-serif;
             color: #111;
-            margin: 0.5in;
+            margin: 0.4in;
           }
           h1 {
             text-align: center;
-            margin-bottom: 0.25in;
+            margin: 0 0 14px 0;
             font-size: 18px;
-            letter-spacing: 1px;
+            letter-spacing: 0.4px;
+            font-weight: 600;
           }
           .meta {
-            margin-bottom: 0.35in;
+            margin-bottom: 18px;
             font-size: 11px;
+            line-height: 1.5;
+          }
+          .meta strong {
+            display: inline-block;
+            width: 68px;
           }
           table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 10px;
+            font-size: 9px;
           }
           th, td {
-            border: 1px solid #bbb;
-            padding: 4px 6px;
+            border: 1px solid #999;
+            padding: 6px 5px;
+            vertical-align: top;
             text-align: left;
           }
           th {
-            background: #0d47a1;
-            color: #fff;
-            font-size: 9px;
-          }
-          tbody tr:nth-child(even) {
             background: #f2f2f2;
+            color: #000;
+            font-weight: 600;
+          }
+          thead tr.notes th {
+            font-weight: 500;
+            font-size: 8px;
+            background: #fafafa;
+          }
+          thead tr.notes .muted-note {
+            color: #666;
+            font-style: italic;
+          }
+          .serial {
+            font-weight: 600;
+            margin-bottom: 3px;
+          }
+          .muted {
+            color: #555;
+            font-size: 8px;
           }
         </style>
       </head>
       <body>
         <h1>${escapeHtml(heading)}</h1>
         <div class="meta">
-          <strong>Project:</strong> ${escapeHtml(context.project || '')}<br>
-          <strong>Submitter:</strong> ${escapeHtml(context.submitter || '')}<br>
-          <strong>Teams:</strong> ${(context.rows || []).map(r => escapeHtml(r.teamName || r.team || '')).filter(Boolean).join(', ')}<br>
-          <strong>Generated:</strong> ${created.toLocaleString('en-US', { timeZone: 'Africa/Dar_es_Salaam' })}
+          <div><strong>Project:</strong> ${escapeHtml(context.project || '')}</div>
+          <div><strong>Submitter:</strong> ${escapeHtml(context.submitter || '')}</div>
+          <div><strong>Teams:</strong> ${(context.rows || []).map(r => escapeHtml(r.teamName || r.team || '')).filter(Boolean).join(', ')}</div>
+          <div><strong>Generated:</strong> ${created.toLocaleString('en-US', { timeZone: 'Africa/Dar_es_Salaam' })}</div>
         </div>
         <table>
           <thead>
             <tr>
-              <th>#</th><th>Beneficiary</th><th>Account Holder</th><th>Team</th><th>Total Expense</th>
-              <th>Fuel</th><th>DA</th><th>Vehicle Rent</th><th>Vehicle Number</th><th>Airtime</th>
-              <th>Transport</th><th>Misc</th><th>Mob No</th><th>Display Name</th><th>W/H</th><th>Remarks</th><th>Submitter</th>
+              <th>Sl. No & Date</th><th>Beneficiary</th><th>Account Holder</th><th>Team</th><th>Total Expense</th>
+              <th>Fuel Amount</th><th>DA Amount</th><th>Vehicle Rent Amount</th><th>Vehicle Number & Driver</th><th>Vehicle Rent Remarks</th>
+              <th>Airtime Amount</th><th>Transport Amount</th><th>Misc Amount</th><th>Mob No</th><th>Miles Verianz</th><th>Remarks</th><th>Submitter</th>
+            </tr>
+            <tr class="notes">
+              <th></th><th></th><th></th><th></th><th></th>
+              <th class="muted-note">Not availed</th>
+              <th class="muted-note">If DA/ER/Local</th>
+              <th class="muted-note">If Car Amount</th>
+              <th class="muted-note">Vehicle & Driver information</th>
+              <th class="muted-note">Vehicle Number / Driver name / Showroom / Purpose of visit</th>
+              <th class="muted-note">Airtime amount with purpose of allocation</th>
+              <th class="muted-note">Conveyance allowed if public transport used</th>
+              <th class="muted-note">Int Total</th>
+              <th></th>
+              <th class="muted-note">Check for W/H charges in the team below</th>
+              <th></th><th></th>
             </tr>
           </thead>
           <tbody>
