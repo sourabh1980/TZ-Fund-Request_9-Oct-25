@@ -3715,6 +3715,14 @@ function submitToSubmissions(submissionData) {
     const startRow = sh.getLastRow() + 1;
     sh.getRange(startRow, 1, data.length, data[0].length).setValues(data);
     
+    sendSubmissionReport({
+      submissionId: submissionId,
+      rows: submissionData.rows,
+      project: submissionData.rows[0]?.projectName || submissionData.rows[0]?.project || '',
+      submitter: submissionData.rows[0]?.submitter || '',
+      timestamp: timestamp
+    });
+
     return { 
       ok: true, 
       submissionId: submissionId,
@@ -3725,6 +3733,173 @@ function submitToSubmissions(submissionData) {
     return { ok: false, error: String(e) };
   } finally {
     lock.releaseLock();
+  }
+}
+
+function getProjectRecipients(projectName) {
+  if (!projectName) return { to: [], cc: [] };
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+  const sheet = ss.getSheetByName('com');
+  if (!sheet) return { to: [], cc: [] };
+  const rows = sheet.getDataRange().getValues();
+  const normalizedProject = projectName.toString().trim().toLowerCase();
+  const toSet = new Set();
+  const ccSet = new Set();
+  rows.slice(1).forEach(row => {
+    const projectCell = row[1];
+    if (!projectCell) return;
+    if (projectCell.toString().trim().toLowerCase() !== normalizedProject) return;
+    const toRaw = row[2];
+    const ccRaw = row[3];
+    [toRaw].forEach(cell => parseEmails(cell).forEach(email => toSet.add(email)));
+    [ccRaw].forEach(cell => parseEmails(cell).forEach(email => ccSet.add(email)));
+  });
+  return { to: Array.from(toSet), cc: Array.from(ccSet) };
+}
+
+function parseEmails(value) {
+  if (!value) return [];
+  return String(value)
+    .split(/[,;]+/)
+    .map(function(email) { return String(email || '').trim(); })
+    .filter(function(email) { return email && email.includes('@'); });
+}
+
+function formatCurrency(value) {
+  const num = Number(value || 0);
+  if (isNaN(num)) return '';
+  return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function buildSubmissionReportHtml(context) {
+  const created = context.timestamp instanceof Date ? context.timestamp : new Date();
+  const heading = `Fund Request ${context.submissionId || ''}`.trim();
+  const rowsHtml = (context.rows || []).map(function(row, index) {
+    return `<tr>
+      <td>${index + 1}</td>
+      <td>${escapeHtml(row.beneficiary)}</td>
+      <td>${escapeHtml(row.accountHolder)}</td>
+      <td>${escapeHtml(row.teamName || row.team || '')}</td>
+      <td>${formatCurrency(row.total)}</td>
+      <td>${formatCurrency(row.fuel?.amount)}</td>
+      <td>${formatCurrency(row.da?.amount || row.erda?.amount)}</td>
+      <td>${formatCurrency(row.car?.amount)}</td>
+      <td>${escapeHtml(row.vehicleNumber)}</td>
+      <td>${formatCurrency(row.air?.amount)}</td>
+      <td>${formatCurrency(row.transport?.amount)}</td>
+      <td>${formatCurrency(row.misc?.amount)}</td>
+      <td>${escapeHtml(row.mob)}</td>
+      <td>${escapeHtml(row.displayName)}</td>
+      <td>${formatCurrency(row.whCharges)}</td>
+      <td>${escapeHtml(row.remarks)}</td>
+      <td>${escapeHtml(row.submitter)}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <html>
+      <head>
+        <base target="_top">
+        <style>
+          @page {
+            size: A4 landscape;
+            margin: 0.2in;
+          }
+          body {
+            font-family: 'Segoe UI', 'Arial', sans-serif;
+            color: #111;
+            margin: 0.5in;
+          }
+          h1 {
+            text-align: center;
+            margin-bottom: 0.25in;
+            font-size: 18px;
+            letter-spacing: 1px;
+          }
+          .meta {
+            margin-bottom: 0.35in;
+            font-size: 11px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 10px;
+          }
+          th, td {
+            border: 1px solid #bbb;
+            padding: 4px 6px;
+            text-align: left;
+          }
+          th {
+            background: #0d47a1;
+            color: #fff;
+            font-size: 9px;
+          }
+          tbody tr:nth-child(even) {
+            background: #f2f2f2;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>${escapeHtml(heading)}</h1>
+        <div class="meta">
+          <strong>Project:</strong> ${escapeHtml(context.project || '')}<br>
+          <strong>Submitter:</strong> ${escapeHtml(context.submitter || '')}<br>
+          <strong>Teams:</strong> ${(context.rows || []).map(r => escapeHtml(r.teamName || r.team || '')).filter(Boolean).join(', ')}<br>
+          <strong>Generated:</strong> ${created.toLocaleString('en-US', { timeZone: 'Africa/Dar_es_Salaam' })}
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Beneficiary</th><th>Account Holder</th><th>Team</th><th>Total Expense</th>
+              <th>Fuel</th><th>DA</th><th>Vehicle Rent</th><th>Vehicle Number</th><th>Airtime</th>
+              <th>Transport</th><th>Misc</th><th>Mob No</th><th>Display Name</th><th>W/H</th><th>Remarks</th><th>Submitter</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rowsHtml}
+          </tbody>
+        </table>
+      </body>
+    </html>`;
+}
+
+function sendSubmissionReport(payload) {
+  if (!payload || !payload.rows || !payload.rows.length || !payload.project) return;
+  const recipients = getProjectRecipients(payload.project);
+  if (!recipients.to.length && !recipients.cc.length) return;
+  const html = buildSubmissionReportHtml(payload);
+  const pdfBlob = HtmlService.createHtmlOutput(html)
+    .getAs('application/pdf')
+    .setName(`FundRequest-${payload.submissionId || 'report'}.pdf`);
+  const toList = recipients.to.join(',');
+  const ccList = recipients.cc.join(',');
+  const subject = `Fund Request ${payload.submissionId || ''} – ${payload.project}`.trim();
+  const bodyLines = [
+    `Hey ${recipients.to.join(', ') || 'Team'},`,
+    ``,
+    `A fund request has been raised for you to approve by the ${payload.submitter || 'team member'} for the ${payload.project} project and the following teams: ${(payload.rows || []).map(r => r.teamName || r.team || '').filter(Boolean).join(', ')}.`,
+    ``,
+    `Have a look and approve.`,
+    ``,
+    `Regards,`,
+    `ERP Admin`,
+    `Emerald Telecom Tanzania Company Limited.`
+  ];
+
+  const emailOptions = {
+    to: toList,
+    subject: subject,
+    htmlBody: bodyLines.join('<br>'),
+    attachments: [pdfBlob]
+  };
+  if (ccList) {
+    emailOptions.cc = ccList;
+  }
+  try {
+    MailApp.sendEmail(emailOptions);
+  } catch (err) {
+    Logger.log('Failed to send submission report email: ' + err);
   }
 }
 
@@ -14469,6 +14644,10 @@ function _escHtml(s){
   }catch(_){
     return String(s||'');
   }
+}
+
+function escapeHtml(value) {
+  return _escHtml(value);
 }
 
 // ---------------- RAG menu handlers ----------------
