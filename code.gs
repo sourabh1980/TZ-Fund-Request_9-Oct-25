@@ -3814,7 +3814,7 @@ function buildSubmissionReportHtml(context) {
   const rowsHtml = rows.map(function(row, index) {
     const teamLabel = row.teamName || row.team || '';
     const teamColor = getTeamColor(teamLabel);
-    const rowStyle = teamColor ? ` style="background: ${teamColor};"` : '';
+    const rowStyle = teamColor ? ` style="background-color: ${teamColor};"` : '';
     return `<tr${rowStyle}>
       <td>${index + 1}</td>
       <td>${escapeHtml(row.beneficiary)}</td>
@@ -3886,6 +3886,12 @@ function buildSubmissionReportHtml(context) {
             background: #dfefff;
             color: #1c2a44;
           }
+          tbody tr:nth-child(even) td {
+            background-color: #f9fafb;
+          }
+          tbody tr:nth-child(odd) td {
+            background-color: #fff;
+          }
           .summary-row th {
             background: #f8d8ff;
             color: #422a52;
@@ -3895,9 +3901,6 @@ function buildSubmissionReportHtml(context) {
             background: #f5f0ff;
             color: #1c2a44;
             font-weight: 600;
-          }
-          tbody tr:nth-child(even) {
-            background: #f9fafb;
           }
           .expense-detail {
             display: block;
