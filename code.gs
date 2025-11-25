@@ -3774,19 +3774,65 @@ function formatCurrency(value) {
 function buildSubmissionReportHtml(context) {
   const created = context.timestamp instanceof Date ? context.timestamp : new Date();
   const heading = `Fund Request ${context.submissionId || ''}`.trim();
-  const rowsHtml = (context.rows || []).map(function(row, index) {
-    return `<tr>
+  const rows = Array.isArray(context.rows) ? context.rows : [];
+  const totals = rows.reduce(function(acc, row) {
+    acc.total += parseAmount(row.total);
+    acc.fuel += parseAmount(row.fuel?.amount);
+    acc.da += parseAmount(row.da?.amount || row.erda?.amount);
+    acc.car += parseAmount(row.car?.amount);
+    acc.airtime += parseAmount(row.air?.amount);
+    acc.transport += parseAmount(row.transport?.amount);
+    acc.misc += parseAmount(row.misc?.amount);
+    return acc;
+  }, { total: 0, fuel: 0, da: 0, car: 0, airtime: 0, transport: 0, misc: 0 });
+
+  const teamColorMap = new Map();
+  function getTeamColor(teamLabel) {
+    const normalized = String(teamLabel || '').trim();
+    const key = normalized.toLowerCase();
+    if (!key) return '';
+    if (teamColorMap.has(key)) return teamColorMap.get(key);
+    const hue = (teamColorMap.size * 47) % 360;
+    const color = `hsl(${hue}, 70%, 96%)`;
+    teamColorMap.set(key, color);
+    return color;
+  }
+
+  const totalsRowHtml = `
+    <tr class="totals-row">
+      <th colspan="4">Totals</th>
+      <th>${formatCurrency(totals.total)}</th>
+      <th colspan="2">${formatCurrency(totals.fuel)}</th>
+      <th colspan="2">${formatCurrency(totals.da)}</th>
+      <th colspan="3">${formatCurrency(totals.car)}</th>
+      <th colspan="2">${formatCurrency(totals.airtime)}</th>
+      <th colspan="2">${formatCurrency(totals.transport)}</th>
+      <th colspan="2">${formatCurrency(totals.misc)}</th>
+      <th colspan="5">&nbsp;</th>
+    </tr>`;
+
+  const rowsHtml = rows.map(function(row, index) {
+    const teamLabel = row.teamName || row.team || '';
+    const teamColor = getTeamColor(teamLabel);
+    const rowStyle = teamColor ? ` style="background: ${teamColor};"` : '';
+    return `<tr${rowStyle}>
       <td>${index + 1}</td>
       <td>${escapeHtml(row.beneficiary)}</td>
       <td>${escapeHtml(row.accountHolder)}</td>
       <td>${escapeHtml(row.teamName || row.team || '')}</td>
       <td>${formatCurrency(row.total)}</td>
+      <td>${formatSubmissionExpenseDetails(row.fuel)}</td>
       <td>${formatCurrency(row.fuel?.amount)}</td>
+      <td>${formatSubmissionExpenseDetails(row.da || row.erda)}</td>
       <td>${formatCurrency(row.da?.amount || row.erda?.amount)}</td>
-      <td>${formatCurrency(row.car?.amount)}</td>
+      <td>${formatSubmissionExpenseDetails(row.car)}</td>
       <td>${escapeHtml(row.vehicleNumber)}</td>
+      <td>${formatCurrency(row.car?.amount)}</td>
+      <td>${formatSubmissionExpenseDetails(row.air)}</td>
       <td>${formatCurrency(row.air?.amount)}</td>
+      <td>${formatSubmissionExpenseDetails(row.transport)}</td>
       <td>${formatCurrency(row.transport?.amount)}</td>
+      <td>${formatSubmissionExpenseDetails(row.misc)}</td>
       <td>${formatCurrency(row.misc?.amount)}</td>
       <td>${escapeHtml(row.mob)}</td>
       <td>${escapeHtml(row.displayName)}</td>
@@ -3798,8 +3844,8 @@ function buildSubmissionReportHtml(context) {
 
   return `
     <html>
-      <head>
-        <base target="_top">
+          <head>
+            <base target="_top">
         <style>
           @page {
             size: A4 landscape;
@@ -3808,7 +3854,7 @@ function buildSubmissionReportHtml(context) {
           body {
             font-family: 'Segoe UI', 'Arial', sans-serif;
             color: #111;
-            margin: 0.5in;
+            margin: 0.25in 0.35in 0.25in 0.25in;
           }
           h1 {
             text-align: center;
@@ -3824,19 +3870,50 @@ function buildSubmissionReportHtml(context) {
             width: 100%;
             border-collapse: collapse;
             font-size: 10px;
+            table-layout: fixed;
+            word-break: break-word;
           }
           th, td {
             border: 1px solid #bbb;
-            padding: 4px 6px;
-            text-align: left;
-          }
-          th {
-            background: #0d47a1;
-            color: #fff;
+            padding: 3px 5px;
+            text-align: center;
+            word-break: break-word;
+            white-space: normal;
+            max-width: 120px;
             font-size: 9px;
           }
+          th {
+            background: #dfefff;
+            color: #1c2a44;
+          }
+          .summary-row th {
+            background: #f8d8ff;
+            color: #422a52;
+            font-weight: 600;
+          }
+          .totals-row th {
+            background: #f5f0ff;
+            color: #1c2a44;
+            font-weight: 600;
+          }
           tbody tr:nth-child(even) {
-            background: #f2f2f2;
+            background: #f9fafb;
+          }
+          .expense-detail {
+            display: block;
+            font-size: 9px;
+            line-height: 1.3;
+            text-align: center;
+          }
+          .day-pill {
+            display: inline-block;
+            padding: 2px 6px;
+            margin-top: 2px;
+            background: #e7f0ff;
+            color: #3b1673;
+            border: 1px solid #d7c0ff;
+            border-radius: 999px;
+            font-size: 7px;
           }
         </style>
       </head>
@@ -3845,15 +3922,37 @@ function buildSubmissionReportHtml(context) {
         <div class="meta">
           <strong>Project:</strong> ${escapeHtml(context.project || '')}<br>
           <strong>Submitter:</strong> ${escapeHtml(context.submitter || '')}<br>
-          <strong>Teams:</strong> ${(context.rows || []).map(r => escapeHtml(r.teamName || r.team || '')).filter(Boolean).join(', ')}<br>
-          <strong>Generated:</strong> ${created.toLocaleString('en-US', { timeZone: 'Africa/Dar_es_Salaam' })}
+          <strong>Teams:</strong> ${rows.map(r => escapeHtml(r.teamName || r.team || '')).filter(Boolean).join(', ')}<br>
+          <strong>Generated:</strong> ${Utilities.formatDate(created, TZ(), 'dd/MM/yy, h:mm:ss a')}
         </div>
         <table>
           <thead>
+            ${totalsRowHtml}
             <tr>
-              <th>#</th><th>Beneficiary</th><th>Account Holder</th><th>Team</th><th>Total Expense</th>
-              <th>Fuel</th><th>DA</th><th>Vehicle Rent</th><th>Vehicle Number</th><th>Airtime</th>
-              <th>Transport</th><th>Misc</th><th>Mob No</th><th>Display Name</th><th>W/H</th><th>Remarks</th><th>Submitter</th>
+              <th rowspan="2">#</th>
+              <th rowspan="2">Beneficiary</th>
+              <th rowspan="2">Account Holder</th>
+              <th rowspan="2">Team</th>
+              <th rowspan="2">Total Expense</th>
+              <th colspan="2">Fuel</th>
+              <th colspan="2">DA</th>
+              <th colspan="3">Vehicle</th>
+              <th colspan="2">Airtime</th>
+              <th colspan="2">Transport</th>
+              <th colspan="2">Misc</th>
+              <th rowspan="2">Mob No</th>
+              <th rowspan="2">Display Name</th>
+              <th rowspan="2">W/H</th>
+              <th rowspan="2">Remarks</th>
+              <th rowspan="2">Submitter</th>
+            </tr>
+            <tr>
+              <th>Fuel Details</th><th>Fuel Amount</th>
+              <th>DA Details</th><th>DA Amount</th>
+              <th>Vehicle Details</th><th>Vehicle Number</th><th>Vehicle Rent</th>
+              <th>Airtime Details</th><th>Airtime Amount</th>
+              <th>Transport Details</th><th>Transport Amount</th>
+              <th>Misc Details</th><th>Misc Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -3862,6 +3961,76 @@ function buildSubmissionReportHtml(context) {
         </table>
       </body>
     </html>`;
+}
+
+function formatSubmissionExpenseDetails(rawField) {
+  const field = rawField && typeof rawField === 'object' ? rawField : null;
+  if (!field) return '&nbsp;';
+  const fragments = [];
+  const from = formatSubmissionReportDate(field.from);
+  const to = formatSubmissionReportDate(field.to);
+  const days = calculateSubmissionDays(field.from, field.to);
+  if (from) fragments.push(`<div>${escapeHtml(from)}</div>`);
+  if (to) {
+    fragments.push('<div>To</div>');
+    fragments.push(`<div>${escapeHtml(to)}</div>`);
+  }
+  if (typeof days === 'number' && !isNaN(days)) {
+    const label = `${days}D`;
+    fragments.push(`<div><span class="day-pill">${escapeHtml(label)}</span></div>`);
+  }
+  if (!fragments.length) return '&nbsp;';
+  return `<div class="expense-detail">${fragments.join('')}</div>`;
+}
+
+function formatSubmissionReportDate(value) {
+  const date = parseSubmissionReportDate(value);
+  if (!date) return '';
+  return Utilities.formatDate(date, TZ(), 'dd/MM/yy');
+}
+
+function parseSubmissionReportDate(value) {
+  if (!value) return null;
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return new Date(value.getTime());
+  }
+  const str = String(value || '').trim();
+  if (!str) return null;
+  const dmyMatch = str.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if (dmyMatch) {
+    const day = Number(dmyMatch[1]);
+    const month = Number(dmyMatch[2]) - 1;
+    const year = Number(dmyMatch[3]);
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+      return new Date(year, month, day);
+    }
+  }
+  const ymdMatch = str.match(/^(\d{4})[\/\-.](\d{1,2})[\/\-.](\d{1,2})$/);
+  if (ymdMatch) {
+    const year = Number(ymdMatch[1]);
+    const month = Number(ymdMatch[2]) - 1;
+    const day = Number(ymdMatch[3]);
+    if (!isNaN(day) && !isNaN(month) && !isNaN(year)) {
+      return new Date(year, month, day);
+    }
+  }
+  const isoCandidate = new Date(str);
+  if (!isNaN(isoCandidate.getTime())) {
+    return isoCandidate;
+  }
+  return null;
+}
+
+function calculateSubmissionDays(fromValue, toValue) {
+  const from = parseSubmissionReportDate(fromValue);
+  const to = parseSubmissionReportDate(toValue);
+  if (!from || !to) return null;
+  const fromUtc = new Date(from.getFullYear(), from.getMonth(), from.getDate());
+  const toUtc = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+  const diffMs = toUtc.getTime() - fromUtc.getTime();
+  const diffDays = Math.round(diffMs / 86400000);
+  if (isNaN(diffDays) || diffDays < 0) return null;
+  return diffDays + 1;
 }
 
 function sendSubmissionReport(payload) {
