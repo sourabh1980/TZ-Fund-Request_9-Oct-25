@@ -103,8 +103,7 @@
     outline: none
   }
 
-  #btnExport,
-  #btnLogout {
+  #btnExport {
     border: 0;
     padding: 6px 12px;
     border-radius: 12px;
@@ -112,15 +111,81 @@
     font-size: 12px;
     color: #0b1220;
     cursor: pointer;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, .18)
-  }
-
-  #btnExport {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, .18);
     background: linear-gradient(135deg, #10b981, #06b6d4)
   }
 
-  #btnLogout {
-    background: linear-gradient(135deg, #fb7185, #f43f5e)
+  .row-data.search-filtered-out {
+    display: none !important;
+  }
+
+  .user-account {
+    position: relative;
+  }
+
+  .user-account__trigger {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-weight: 900;
+    font-size: 12px;
+    color: #0b1220;
+    cursor: pointer;
+    background: linear-gradient(135deg, #fb7185, #f43f5e);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, .18);
+  }
+
+  .user-account__trigger:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+  }
+
+  .user-account__caret {
+    font-size: 0.65rem;
+    line-height: 1;
+  }
+
+  .user-account__menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 160px;
+    padding: 6px 0;
+    border-radius: 12px;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 60;
+  }
+
+  .user-account__menu.open {
+    display: flex;
+  }
+
+  .user-account__logout {
+    border: none;
+    background: transparent;
+    color: #f8fafc;
+    padding: 8px 16px;
+    text-align: left;
+    font-weight: 700;
+    font-size: 12px;
+    cursor: pointer;
+  }
+
+  .user-account__logout:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .user-account__logout:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
   }
 
   /* Teams Icon Button Styles */
@@ -710,7 +775,17 @@
       </button>
       <input id="tableSearch" type="search" placeholder="Search…" />
       <button id="btnExport" type="button" title="Export">Export</button>
-      <button id="btnLogout" type="button" title="Logout">Logout</button>
+      <div class="user-account">
+        <button id="userMenuTrigger" class="user-account__trigger" type="button" aria-haspopup="true" aria-expanded="false">
+          <span id="userNameDisplay">—</span>
+          <span class="user-account__caret" aria-hidden="true">▾</span>
+        </button>
+        <div id="userMenuDropdown" class="user-account__menu" role="menu" aria-label="User options">
+          <button id="userMenuLogout" type="button" class="user-account__logout" role="menuitem">
+            Logout
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </header>
@@ -1418,5 +1493,313 @@
 
     console.log('Telecom Projects Icon initialized in header bar');
     console.log('Available methods:', Object.keys(window.telecomProjectsIcon));
+  })();
+</script>
+<script>
+  (function () {
+    const STORAGE_KEY = 'frtzUser';
+    const trigger = document.getElementById('userMenuTrigger');
+    const menu = document.getElementById('userMenuDropdown');
+    const display = document.getElementById('userNameDisplay');
+    const logoutBtn = document.getElementById('userMenuLogout');
+    const fallbackText = 'Guest';
+
+    function readStoredUser() {
+      if (typeof window === 'undefined' || !window.localStorage) return null;
+      try {
+        const raw = window.localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : null;
+      } catch (err) {
+        console.warn('Unable to parse user storage', err);
+        return null;
+      }
+    }
+
+    function createGreetingLabel(name) {
+      return name ? `Hey, ${name}` : fallbackText;
+    }
+
+    function updateUserDisplay() {
+      if (!display) return;
+      const stored = readStoredUser();
+      if (stored && (stored.displayName || stored.username)) {
+        const label = stored.displayName || stored.username;
+        display.textContent = createGreetingLabel(label);
+        display.setAttribute('title', stored.username ? `Signed in as ${stored.username}` : 'Signed in user');
+      } else {
+        display.textContent = createGreetingLabel('');
+        display.setAttribute('title', 'Click to open account menu');
+      }
+    }
+
+    function closeMenu() {
+      if (menu) menu.classList.remove('open');
+      if (trigger) trigger.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleMenu(event) {
+      if (!menu || !trigger) return;
+      event.stopPropagation();
+      const isOpen = menu.classList.contains('open');
+      if (isOpen) {
+        closeMenu();
+      } else {
+        menu.classList.add('open');
+        trigger.setAttribute('aria-expanded', 'true');
+      }
+    }
+
+    function redirectToLoginPage() {
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('page');
+        url.hash = '';
+        const base = url.origin + url.pathname;
+        const search = url.searchParams.toString();
+        window.top.location.href = base + (search ? '?' + search : '');
+      } catch (err) {
+        console.warn('Logout redirect fallback triggered', err);
+        window.top.location.href = window.location.origin + window.location.pathname;
+      }
+    }
+
+    function handleLogout() {
+      if (logoutBtn) {
+        logoutBtn.disabled = true;
+        logoutBtn.textContent = 'Logging out…';
+      }
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(STORAGE_KEY);
+      }
+      closeMenu();
+      redirectToLoginPage();
+    }
+
+    if (trigger) {
+      trigger.addEventListener('click', toggleMenu);
+    }
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', handleLogout);
+    }
+
+    document.addEventListener('click', function (event) {
+      if (!menu || !trigger) return;
+      if (menu.contains(event.target) || trigger.contains(event.target)) return;
+      closeMenu();
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        closeMenu();
+      }
+    });
+
+    window.addEventListener('storage', function (event) {
+      if (event.key === STORAGE_KEY) {
+        updateUserDisplay();
+      }
+    });
+
+    updateUserDisplay();
+  })();
+</script>
+<script>
+  (function () {
+    'use strict';
+
+    const exportBtn = document.getElementById('btnExport');
+    if (!exportBtn) return;
+
+    const ROW_SELECTOR = '.tbody .row-data';
+    const EXPORT_COLUMNS = [
+      { key: 'team', label: 'Team' },
+      { key: 'project', label: 'Project' },
+      { key: 'beneficiary', label: 'Beneficiary' },
+      { key: 'accountHolder', label: 'Account Holder' },
+      { key: 'rowTotal', label: 'Row Total' },
+      { key: 'designation', label: 'Designation' },
+      { key: 'fuel', label: 'Fuel' },
+      { key: 'da', label: 'DA' },
+      { key: 'car', label: 'Vehicle Rent' },
+      { key: 'air', label: 'Airtime' },
+      { key: 'transport', label: 'Transport' },
+      { key: 'misc', label: 'Misc' },
+      { key: 'mobile', label: 'Mob No' },
+      { key: 'displayName', label: 'Display Name' },
+      { key: 'wh', label: 'W/H Charge' },
+      { key: 'remarks', label: 'Remarks' }
+    ];
+
+    function parseNumber(value) {
+      if (typeof value === 'number') return value;
+      if (value == null) return 0;
+      const cleaned = String(value).replace(/[^\d\.\-]+/g, '');
+      const parsed = parseFloat(cleaned);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function formatNumber(value) {
+      return Number.isFinite(value) ? value.toFixed(2) : '';
+    }
+
+    function getInputValue(input) {
+      if (!input) return '';
+      const val = input.value;
+      return val == null ? '' : String(val).trim();
+    }
+
+    function getCellInputValue(row, cellIndex) {
+      const selector = `.cells > .cell:nth-child(${cellIndex}) input`;
+      return getInputValue(row.querySelector(selector));
+    }
+
+    function getAmountField(row, field) {
+      const input = row.querySelector(`input.amount-input[data-field="${field}"]`);
+      return getInputValue(input);
+    }
+
+    function isRowVisible(row) {
+      if (!row) return false;
+      const style = window.getComputedStyle(row);
+      return style && style.display !== 'none' && row.offsetParent !== null;
+    }
+
+    function buildRowData(row) {
+      const rowTotalInput = row.querySelector('.cells > .cell:nth-child(3) input');
+      const totalValue = parseNumber(getInputValue(rowTotalInput));
+
+      return {
+        team: row.dataset.team || '',
+        project: row.dataset.project || '',
+        beneficiary: getCellInputValue(row, 1),
+        accountHolder: getInputValue(row.querySelector('.account-holder-input')),
+        rowTotal: formatNumber(totalValue),
+        rowTotalValue: totalValue,
+        designation: getCellInputValue(row, 4),
+        fuel: getAmountField(row, 'fuel'),
+        da: getAmountField(row, 'da') || getAmountField(row, 'erda'),
+        car: getAmountField(row, 'car'),
+        air: getAmountField(row, 'air'),
+        transport: getAmountField(row, 'transport'),
+        misc: getAmountField(row, 'misc'),
+        mobile: getCellInputValue(row, 11),
+        displayName: getCellInputValue(row, 12),
+        wh: getInputValue(row.querySelector('input[data-field="wh"]')),
+        remarks: getInputValue(row.querySelector('.remarks-input'))
+      };
+    }
+
+    function buildTableHtml(rows) {
+      const header = EXPORT_COLUMNS.map(column => `<th>${escapeHtml(column.label)}</th>`).join('');
+      const body = rows
+        .map(row =>
+          `<tr>${EXPORT_COLUMNS.map(column => `<td>${escapeHtml(row[column.key] || '')}</td>`).join('')}</tr>`
+        )
+        .join('');
+      return `<table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+
+    function escapeHtml(value) {
+      if (value == null) return '';
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+        .replace(/\r?\n/g, ' ');
+    }
+
+    function triggerDownload(content, filename) {
+      const blob = new Blob([content], { type: 'application/vnd.ms-excel' });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = filename;
+      document.body.appendChild(anchor);
+      anchor.click();
+      window.setTimeout(() => {
+        URL.revokeObjectURL(url);
+        anchor.remove();
+      }, 200);
+    }
+
+    function createFilename() {
+      const now = new Date();
+      const dateStamp = now.toISOString().slice(0, 10);
+      return `Fund-Request-Export-${dateStamp}.xls`;
+    }
+
+    function handleExport() {
+      const rows = Array.from(document.querySelectorAll(ROW_SELECTOR));
+      const activeRows = rows.filter(row => isRowVisible(row) && !row.classList.contains('row-deactivated'));
+      const exportPayload = activeRows
+        .map(buildRowData)
+        .filter(row => row && row.rowTotalValue > 0);
+
+      if (!exportPayload.length) {
+        alert('No active rows with totals above 0.00 are available for export.');
+        return;
+      }
+
+      const tableHtml = buildTableHtml(exportPayload);
+      triggerDownload(tableHtml, createFilename());
+    }
+
+    exportBtn.addEventListener('click', handleExport);
+  })();
+</script>
+<script>
+  (function () {
+    'use strict';
+
+    const searchInput = document.getElementById('tableSearch');
+    if (!searchInput) return;
+
+    const ROW_SELECTOR = '.tbody .row-data';
+    const DEBOUNCE_MS = 150;
+    let debounceTimer = null;
+
+    function gatherRowText(row) {
+      const parts = [];
+      if (row.dataset.team) parts.push(row.dataset.team);
+      if (row.dataset.project) parts.push(row.dataset.project);
+      row.querySelectorAll('input, textarea, select').forEach(el => {
+        if (el.value) parts.push(el.value);
+      });
+      row.querySelectorAll('.cell').forEach(cell => {
+        if (cell.textContent) parts.push(cell.textContent);
+      });
+      return parts.join(' ').toLowerCase();
+    }
+
+    function applySearch() {
+      const query = searchInput.value.trim().toLowerCase();
+      const rows = document.querySelectorAll(ROW_SELECTOR);
+      rows.forEach(row => {
+        if (row.classList.contains('row-deactivated')) {
+          row.classList.remove('search-filtered-out');
+          return;
+        }
+        if (!query) {
+          row.classList.remove('search-filtered-out');
+          return;
+        }
+        const text = gatherRowText(row);
+        const matches = text.includes(query);
+        row.classList.toggle('search-filtered-out', !matches);
+      });
+    }
+
+    searchInput.addEventListener('input', () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        applySearch();
+        debounceTimer = null;
+      }, DEBOUNCE_MS);
+    });
+
+    searchInput.addEventListener('search', applySearch);
   })();
 </script>

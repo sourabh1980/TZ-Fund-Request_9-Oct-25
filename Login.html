@@ -844,6 +844,18 @@
             google.script.run
                 .withSuccessHandler(res => {
                     if (res && res.success) {
+                        const storedUser = {
+                            username: user,
+                            displayName: res.user && res.user.name ? res.user.name : user,
+                            email: res.user && res.user.email ? res.user.email : ''
+                        };
+                        try {
+                            if (window.localStorage) {
+                                window.localStorage.setItem('frtzUser', JSON.stringify(storedUser));
+                            }
+                        } catch (storageError) {
+                            console.warn('Unable to persist user profile', storageError);
+                        }
                         const card = document.getElementById('loginCard');
                         card.innerHTML = `
                         <div style="padding:32px 12px 26px; text-align:center;">
