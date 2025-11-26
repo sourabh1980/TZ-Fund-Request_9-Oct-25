@@ -3787,13 +3787,26 @@ function buildSubmissionReportHtml(context) {
   }, { total: 0, fuel: 0, da: 0, car: 0, airtime: 0, transport: 0, misc: 0 });
 
   const teamColorMap = new Map();
+  const pastelPalette = [
+    '#dbeafe', // Blue 100
+    '#dcfce7', // Green 100
+    '#fee2e2', // Red 100
+    '#fef3c7', // Amber 100
+    '#f3e8ff', // Purple 100
+    '#cffafe', // Cyan 100
+    '#fce7f3', // Pink 100
+    '#ffedd5'  // Orange 100
+  ];
+  
   function getTeamColor(teamLabel) {
     const normalized = String(teamLabel || '').trim();
     const key = normalized.toLowerCase();
     if (!key) return '';
     if (teamColorMap.has(key)) return teamColorMap.get(key);
-    const hue = (teamColorMap.size * 47) % 360;
-    const color = `hsl(${hue}, 70%, 96%)`;
+    
+    // Assign next color from palette
+    const index = teamColorMap.size % pastelPalette.length;
+    const color = pastelPalette[index];
     teamColorMap.set(key, color);
     return color;
   }
@@ -3814,31 +3827,34 @@ function buildSubmissionReportHtml(context) {
   const rowsHtml = rows.map(function(row, index) {
     const teamLabel = row.teamName || row.team || '';
     const teamColor = getTeamColor(teamLabel);
-    const rowStyle = teamColor ? ` style="background-color: ${teamColor};"` : '';
-    return `<tr${rowStyle}>
-      <td>${index + 1}</td>
-      <td>${escapeHtml(row.beneficiary)}</td>
-      <td>${escapeHtml(row.accountHolder)}</td>
-      <td>${escapeHtml(row.teamName || row.team || '')}</td>
-      <td>${formatCurrency(row.total)}</td>
-      <td>${formatSubmissionExpenseDetails(row.fuel)}</td>
-      <td>${formatCurrency(row.fuel?.amount)}</td>
-      <td>${formatSubmissionExpenseDetails(row.da || row.erda)}</td>
-      <td>${formatCurrency(row.da?.amount || row.erda?.amount)}</td>
-      <td>${formatSubmissionExpenseDetails(row.car)}</td>
-      <td>${escapeHtml(row.vehicleNumber)}</td>
-      <td>${formatCurrency(row.car?.amount)}</td>
-      <td>${formatSubmissionExpenseDetails(row.air)}</td>
-      <td>${formatCurrency(row.air?.amount)}</td>
-      <td>${formatSubmissionExpenseDetails(row.transport)}</td>
-      <td>${formatCurrency(row.transport?.amount)}</td>
-      <td>${formatSubmissionExpenseDetails(row.misc)}</td>
-      <td>${formatCurrency(row.misc?.amount)}</td>
-      <td>${escapeHtml(row.mob)}</td>
-      <td>${escapeHtml(row.displayName)}</td>
-      <td>${formatCurrency(row.whCharges)}</td>
-      <td>${escapeHtml(row.remarks)}</td>
-      <td>${escapeHtml(row.submitter)}</td>
+    console.log(`Row ${index}: Team='${teamLabel}', Color='${teamColor}'`); // Debug log
+    // Apply style to TDs for better PDF support
+    const cellStyle = teamColor ? ` style="background-color: ${teamColor} !important; -webkit-print-color-adjust: exact;"` : '';
+    
+    return `<tr>
+      <td${cellStyle}>${index + 1}</td>
+      <td${cellStyle}>${escapeHtml(row.beneficiary)}</td>
+      <td${cellStyle}>${escapeHtml(row.accountHolder)}</td>
+      <td${cellStyle}>${escapeHtml(row.teamName || row.team || '')}</td>
+      <td${cellStyle}>${formatCurrency(row.total)}</td>
+      <td${cellStyle}>${formatSubmissionExpenseDetails(row.fuel)}</td>
+      <td${cellStyle}>${formatCurrency(row.fuel?.amount)}</td>
+      <td${cellStyle}>${formatSubmissionExpenseDetails(row.da || row.erda)}</td>
+      <td${cellStyle}>${formatCurrency(row.da?.amount || row.erda?.amount)}</td>
+      <td${cellStyle}>${formatSubmissionExpenseDetails(row.car)}</td>
+      <td${cellStyle}>${escapeHtml(row.vehicleNumber)}</td>
+      <td${cellStyle}>${formatCurrency(row.car?.amount)}</td>
+      <td${cellStyle}>${formatSubmissionExpenseDetails(row.air)}</td>
+      <td${cellStyle}>${formatCurrency(row.air?.amount)}</td>
+      <td${cellStyle}>${formatSubmissionExpenseDetails(row.transport)}</td>
+      <td${cellStyle}>${formatCurrency(row.transport?.amount)}</td>
+      <td${cellStyle}>${formatSubmissionExpenseDetails(row.misc)}</td>
+      <td${cellStyle}>${formatCurrency(row.misc?.amount)}</td>
+      <td${cellStyle}>${escapeHtml(row.mob)}</td>
+      <td${cellStyle}>${escapeHtml(row.displayName)}</td>
+      <td${cellStyle}>${formatCurrency(row.whCharges)}</td>
+      <td${cellStyle}>${escapeHtml(row.remarks)}</td>
+      <td${cellStyle}>${escapeHtml(row.submitter)}</td>
     </tr>`;
   }).join('');
 
@@ -3886,12 +3902,15 @@ function buildSubmissionReportHtml(context) {
             background: #dfefff;
             color: #1c2a44;
           }
+          /* Removed even/odd striping to allow team colors to show */
+          /*
           tbody tr:nth-child(even) td {
             background-color: #f9fafb;
           }
           tbody tr:nth-child(odd) td {
             background-color: #fff;
           }
+          */
           .summary-row th {
             background: #f8d8ff;
             color: #422a52;
@@ -3912,11 +3931,12 @@ function buildSubmissionReportHtml(context) {
             display: inline-block;
             padding: 2px 6px;
             margin-top: 2px;
-            background: #e7f0ff;
-            color: #3b1673;
-            border: 1px solid #d7c0ff;
+            background: #ffedd5; /* Orange 100 */
+            color: #9a3412;       /* Orange 800 */
+            border: 1px solid #fed7aa; /* Orange 200 */
             border-radius: 999px;
             font-size: 7px;
+            font-weight: 600;
           }
         </style>
       </head>
