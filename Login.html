@@ -74,45 +74,21 @@
         }
 
         @keyframes auroraMove {
-            0% {
-                transform: translate3d(-6%, -4%, 0) scale(1);
-            }
-
-            50% {
-                transform: translate3d(4%, 4%, 0) scale(1.08);
-            }
-
-            100% {
-                transform: translate3d(-2%, 1%, 0) scale(1.03);
-            }
+            0% { transform: translate3d(-6%, -4%, 0) scale(1); }
+            50% { transform: translate3d(4%, 4%, 0) scale(1.08); }
+            100% { transform: translate3d(-2%, 1%, 0) scale(1.03); }
         }
 
         @keyframes auroraMove2 {
-            0% {
-                transform: translate3d(4%, 2%, 0) scale(1.05);
-            }
-
-            50% {
-                transform: translate3d(-4%, -4%, 0) scale(1.1);
-            }
-
-            100% {
-                transform: translate3d(2%, -1%, 0) scale(1.02);
-            }
+            0% { transform: translate3d(4%, 2%, 0) scale(1.05); }
+            50% { transform: translate3d(-4%, -4%, 0) scale(1.1); }
+            100% { transform: translate3d(2%, -1%, 0) scale(1.02); }
         }
 
         @keyframes auroraColor {
-            0% {
-                filter: blur(60px) hue-rotate(0deg);
-            }
-
-            50% {
-                filter: blur(60px) hue-rotate(30deg);
-            }
-
-            100% {
-                filter: blur(60px) hue-rotate(-20deg);
-            }
+            0% { filter: blur(60px) hue-rotate(0deg); }
+            50% { filter: blur(60px) hue-rotate(30deg); }
+            100% { filter: blur(60px) hue-rotate(-20deg); }
         }
 
         .noise-overlay {
@@ -130,7 +106,7 @@
             position: fixed;
             padding: 8px 20px;
             border-radius: 999px;
-            font-size: 1.6rem; /* bigger base size */
+            font-size: 1.6rem;
             color: #f9fafb;
             background: radial-gradient(circle at 0 0, rgba(248, 250, 252, 0.9), transparent 55%),
                 linear-gradient(120deg, rgba(56, 189, 248, 0.95), rgba(168, 85, 247, 0.95));
@@ -142,48 +118,16 @@
             z-index: -1;
         }
 
-        .motivation-chip.chip-1 {
-            top: 8%;
-            left: 6%;
-        }
-
-        .motivation-chip.chip-2 {
-            top: 22%;
-            right: 6%;
-            animation-delay: 2.5s;
-        }
-
-        .motivation-chip.chip-3 {
-            bottom: 10%;
-            left: 12%;
-            animation-delay: 5s;
-        }
+        .motivation-chip.chip-1 { top: 8%; left: 6%; }
+        .motivation-chip.chip-2 { top: 22%; right: 6%; animation-delay: 2.5s; }
+        .motivation-chip.chip-3 { bottom: 10%; left: 12%; animation-delay: 5s; }
 
         @keyframes chipPop {
-            0% {
-                opacity: 0;
-                transform: translateY(18px) scale(0.8);
-            }
-
-            15% {
-                opacity: 1;
-                transform: translateY(0) scale(1.0); /* appears already large */
-            }
-
-            45% {
-                opacity: 1;
-                transform: translateY(-6px) scale(1.4); /* growing */
-            }
-
-            70% {
-                opacity: 0;
-                transform: translateY(-14px) scale(2.0); /* about double */
-            }
-
-            100% {
-                opacity: 0;
-                transform: translateY(18px) scale(0.8);
-            }
+            0% { opacity: 0; transform: translateY(18px) scale(0.8); }
+            15% { opacity: 1; transform: translateY(0) scale(1.0); }
+            45% { opacity: 1; transform: translateY(-6px) scale(1.4); }
+            70% { opacity: 0; transform: translateY(-14px) scale(2.0); }
+            100% { opacity: 0; transform: translateY(18px) scale(0.8); }
         }
 
         /* Center wrapper */
@@ -205,14 +149,8 @@
         }
 
         @media (max-width: 580px) {
-            .login-wrapper {
-                max-width: 100%;
-            }
-
-            .login-card {
-                padding: 26px 20px 22px;
-                border-radius: 14px;
-            }
+            .login-wrapper { max-width: 100%; }
+            .login-card { padding: 26px 20px 22px; border-radius: 14px; }
         }
 
         .app-heading {
@@ -260,15 +198,8 @@
         }
 
         /* Form fields */
-        .form-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-
-        .field-group {
-            text-align: left;
-        }
+        .form-stack { display: flex; flex-direction: column; gap: 18px; }
+        .field-group { text-align: left; }
 
         .field-label-row {
             display: flex;
@@ -277,16 +208,8 @@
             margin-bottom: 4px;
         }
 
-        .field-label {
-            font-size: 0.8rem;
-            font-weight: 500;
-            color: var(--text-main);
-        }
-
-        .field-status {
-            font-size: 0.72rem;
-            color: var(--text-muted);
-        }
+        .field-label { font-size: 0.8rem; font-weight: 500; color: var(--text-main); }
+        .field-status { font-size: 0.72rem; color: var(--text-muted); }
 
         .field-status.ok {
             color: var(--success);
@@ -295,14 +218,8 @@
             gap: 4px;
         }
 
-        .field-status.ok::before {
-            content: '✓';
-            font-size: 0.75rem;
-        }
-
-        .field-status.error {
-            color: var(--error);
-        }
+        .field-status.ok::before { content: '✓'; font-size: 0.75rem; }
+        .field-status.error { color: var(--error); }
 
         .field-input-shell {
             display: flex;
@@ -330,11 +247,7 @@
             box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.3);
         }
 
-        .field-icon {
-            margin-right: 10px;
-            font-size: 0.92rem;
-            color: #9ca3af;
-        }
+        .field-icon { margin-right: 10px; font-size: 0.92rem; color: #9ca3af; }
 
         .field-input {
             flex: 1;
@@ -347,9 +260,7 @@
             font-family: inherit;
         }
 
-        .field-input::placeholder {
-            color: #d1d5db;
-        }
+        .field-input::placeholder { color: #d1d5db; }
 
         .field-helper {
             margin-top: 4px;
@@ -414,24 +325,13 @@
             background: #ffffff;
         }
 
-        .robot-check.checked .robot-box {
-            border-color: rgba(34, 197, 94, 1);
-        }
+        .robot-check.checked .robot-box { border-color: rgba(34, 197, 94, 1); }
+        .robot-check.checked .robot-box::before { content: "✓"; }
 
-        .robot-check.checked .robot-box::before {
-            content: "✓";
-        }
-
-        .robot-meta {
-            font-size: 0.72rem;
-            color: var(--text-muted);
-            text-align: right;
-        }
+        .robot-meta { font-size: 0.72rem; color: var(--text-muted); text-align: right; }
 
         /* Login button */
-        .login-actions {
-            margin-top: 18px;
-        }
+        .login-actions { margin-top: 18px; }
 
         .login-button {
             width: 100%;
@@ -471,9 +371,7 @@
             box-shadow: 0 10px 22px rgba(148, 163, 184, 0.5);
         }
 
-        .btn-arrow {
-            font-size: 0.9rem;
-        }
+        .btn-arrow { font-size: 0.9rem; }
 
         .spinner {
             width: 18px;
@@ -486,11 +384,7 @@
             background: transparent;
         }
 
-        @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .login-footer {
             margin-top: 10px;
@@ -499,31 +393,159 @@
             text-align: center;
         }
 
-        .shake {
-            animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
-        }
+        .shake { animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) both; }
 
         @keyframes shake {
-            10%,
-            90% {
-                transform: translate3d(-1px, 0, 0);
-            }
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
 
-            20%,
-            80% {
-                transform: translate3d(2px, 0, 0);
-            }
+        /* -----------------------------
+           SUCCESS (Welcome back) card
+           Only applies after login success
+        ------------------------------ */
+        .login-card.success-mode {
+            background: transparent;
+            box-shadow: none;
+            padding: 0;
+        }
 
-            30%,
-            50%,
-            70% {
-                transform: translate3d(-4px, 0, 0);
-            }
+        .success-stage {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 6px 0;
+        }
 
-            40%,
-            60% {
-                transform: translate3d(4px, 0, 0);
-            }
+        .success-glass {
+            width: min(440px, 92vw);
+            border-radius: 22px;
+            border: 2px solid transparent;
+            background:
+                linear-gradient(135deg, rgba(17, 24, 39, 0.72), rgba(15, 23, 42, 0.62)) padding-box,
+                linear-gradient(135deg, rgba(56, 189, 248, 0.65), rgba(168, 85, 247, 0.55), rgba(236, 72, 153, 0.55)) border-box;
+            box-shadow:
+                0 24px 70px rgba(0, 0, 0, 0.38),
+                inset 0 1px 0 rgba(255, 255, 255, 0.20);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            padding: 22px 22px 18px;
+            color: rgba(255, 255, 255, 0.92);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .success-glass::before {
+            content: "";
+            position: absolute;
+            inset: -40%;
+            background:
+                radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.22), transparent 55%),
+                radial-gradient(circle at 80% 30%, rgba(168, 85, 247, 0.18), transparent 60%),
+                radial-gradient(circle at 65% 85%, rgba(236, 72, 153, 0.12), transparent 55%);
+            filter: blur(22px);
+            pointer-events: none;
+        }
+
+        .success-title {
+            position: relative;
+            margin: 4px 0 10px;
+            font-size: 2rem;
+            font-weight: 650;
+            letter-spacing: -0.025em;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.94);
+            text-shadow: 0 6px 22px rgba(0, 0, 0, 0.25);
+        }
+
+        .success-sub {
+            position: relative;
+            margin: 0 0 16px;
+            text-align: center;
+            font-size: 1.03rem;
+            line-height: 1.55;
+            color: rgba(226, 232, 240, 0.92);
+        }
+
+        .success-sub b {
+            color: rgba(255, 255, 255, 0.98);
+            font-weight: 600;
+        }
+
+        .success-progress {
+            position: relative;
+            width: 100%;
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.22);
+            overflow: hidden;
+            margin: 10px 0 18px;
+        }
+
+        .success-progress-fill {
+            height: 100%;
+            width: 40%;
+            border-radius: inherit;
+            background: linear-gradient(90deg, rgba(34, 211, 238, 0.95), rgba(99, 102, 241, 0.95), rgba(236, 72, 153, 0.95));
+            box-shadow: 0 10px 24px rgba(79, 70, 229, 0.30);
+            transform-origin: left center;
+        }
+
+        .success-btn-row {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            margin: 0 0 6px;
+        }
+
+        .success-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 18px;
+            border-radius: 14px;
+            color: rgba(255, 255, 255, 0.94);
+            text-decoration: none;
+            font-size: 0.98rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow:
+                0 10px 24px rgba(0, 0, 0, 0.20),
+                inset 0 1px 0 rgba(255, 255, 255, 0.14);
+            transition: transform 160ms ease, background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+        }
+
+        .success-btn:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.20);
+            box-shadow:
+                0 14px 30px rgba(0, 0, 0, 0.26),
+                inset 0 1px 0 rgba(255, 255, 255, 0.18);
+        }
+
+        .success-note {
+            position: relative;
+            margin: 0;
+            text-align: center;
+            font-size: 0.86rem;
+            color: rgba(226, 232, 240, 0.70);
+        }
+
+        @keyframes successBar {
+            0% { transform: scaleX(0.18); opacity: 0.9; }
+            55% { transform: scaleX(0.92); opacity: 1; }
+            100% { transform: scaleX(1); opacity: 0.98; }
+        }
+
+        @media (max-width: 580px) {
+            .success-title { font-size: 1.75rem; }
+            .success-sub { font-size: 0.98rem; }
+            .success-glass { padding: 20px 18px 16px; border-radius: 20px; }
         }
     </style>
 </head>
@@ -558,9 +580,8 @@
                     <div class="field-input-shell" id="shell-username">
                         <span class="field-icon">👤</span>
                         <input type="text" id="username" class="field-input" autocomplete="off"
-                            placeholder="Type your username"
-                            onfocus="setFocus('username', true)" onblur="setFocus('username', false)"
-                            oninput="handleInput('username')">
+                            placeholder="Type your username" onfocus="setFocus('username', true)"
+                            onblur="setFocus('username', false)" oninput="handleInput('username')">
                     </div>
                     <div class="field-helper">Use your official Emerald / ETel login ID.</div>
                 </div>
@@ -822,6 +843,12 @@
             }
         }
 
+        function startSuccessBarAnimation() {
+            const fill = document.getElementById('successBarFill');
+            if (!fill) return;
+            fill.style.animation = 'successBar 900ms ease-out both';
+        }
+
         function attemptLogin() {
             const user = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value.trim();
@@ -856,16 +883,31 @@
                         } catch (storageError) {
                             console.warn('Unable to persist user profile', storageError);
                         }
+
                         const card = document.getElementById('loginCard');
+                        card.classList.add('success-mode');
+
+                        const safeName = (res.user && res.user.name) ? res.user.name : 'Emerald Leader';
+
                         card.innerHTML = `
-                        <div style="padding:32px 12px 26px; text-align:center;">
-                            <h2 style="margin:0 0 8px;font-size:1.4rem;font-weight:600;color:#111827;">Welcome back</h2>
-                            <p style="margin:0 0 12px;font-size:0.9rem;color:#4b5563;">${res.user && res.user.name ? res.user.name : 'Emerald Leader'}, redirecting you to the Fund Request workspace.</p>
-                            <div style="font-size:2.8rem;margin-bottom:12px;">🚀</div>
-                            <p style="margin:0 0 10px;font-size:0.85rem;color:#6b7280;">If nothing happens, click below.</p>
-                            <a href="${SCRIPT_URL}?page=main" target="_top" style="font-size:0.86rem;color:#2563eb;text-decoration:none;border-bottom:1px solid #2563eb;padding-bottom:2px;">Open Fund Request</a>
-                        </div>
+                          <div class="success-stage">
+                            <div class="success-glass">
+                              <div class="success-title">Welcome back</div>
+                              <div class="success-sub">
+                                <b>${safeName}</b> redirecting you to Fund Request workspace
+                              </div>
+                              <div class="success-progress" aria-label="Redirect progress">
+                                <div class="success-progress-fill" id="successBarFill"></div>
+                              </div>
+                              <div class="success-btn-row">
+                                <a class="success-btn" href="${SCRIPT_URL}?page=main" target="_top">Open Fund Request</a>
+                              </div>
+                              <p class="success-note">If nothing happens, click above.</p>
+                            </div>
+                          </div>
                         `;
+
+                        startSuccessBarAnimation();
                         window.top.location.href = SCRIPT_URL + '?page=main';
                     } else {
                         setButtonLoading(false);

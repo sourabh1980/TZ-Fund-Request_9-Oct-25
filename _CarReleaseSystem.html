@@ -3004,6 +3004,39 @@
         }
       }
 
+      showAssignedVehiclesPopup(summaryOverride) {
+        const summaryText = typeof summaryOverride === 'string' && summaryOverride.trim()
+          ? summaryOverride.trim()
+          : 'Assigned vehicles refreshed after release.';
+        try {
+          window.refreshVehicleMatchPopup?.(summaryText);
+        } catch (refreshErr) {
+          console.warn('Assigned vehicle popup refresh failed', refreshErr);
+        }
+        const collector = typeof window.collectVisibleVehicleMatches === 'function'
+          ? window.collectVisibleVehicleMatches()
+          : [];
+        const matches = Array.isArray(collector) ? collector : [];
+        if (typeof window.openVehicleMatchPopup === 'function') {
+          try {
+            window.openVehicleMatchPopup(matches, summaryText);
+          } catch (openErr) {
+            console.warn('Failed to show assigned vehicle popup', openErr);
+          }
+        }
+      }
+
+      finalizeReleaseInteraction(summaryOverride) {
+        if (this.originalCarInput) {
+          this.originalCarInput.value = '';
+          try { delete this.originalCarInput.dataset.responsibleBeneficiary; } catch(_){ }
+        }
+        this.resetUserReleaseSelection();
+        this.hideReleaseForm();
+        this.closeModal();
+        this.showAssignedVehiclesPopup(summaryOverride);
+      }
+
       async confirmRelease() {
         await this.confirmUserRelease();
       }
@@ -3104,21 +3137,14 @@
             const message = releasedList.length === 1
               ? `Released ${releasedList[0]} from vehicle ${this.currentCarData.carNumber}.`
               : `Released ${releasedList.length} beneficiaries from vehicle ${this.currentCarData.carNumber}.`;
+            const popupSummary = payload.carNumber
+              ? `Assigned vehicles refreshed after releasing ${payload.carNumber}.`
+              : 'Assigned vehicles refreshed after release.';
             this.showSuccessMessage(message);
             if (Array.isArray(result.missingUsers) && result.missingUsers.length) {
               alert(`The following beneficiaries were skipped because they were not assigned: ${result.missingUsers.join(', ')}`);
             }
-
-            if (result.partial === false) {
-              if (this.originalCarInput) {
-                this.originalCarInput.value = '';
-                try { delete this.originalCarInput.dataset.responsibleBeneficiary; } catch(_){ }
-              }
-              this.closeModal();
-            } else {
-              this.resetUserReleaseSelection();
-              this.hideReleaseForm();
-            }
+            this.finalizeReleaseInteraction(popupSummary);
           } else {
             throw new Error((result && result.error) || 'Unknown error occurred');
           }
