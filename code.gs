@@ -3788,14 +3788,14 @@ function buildSubmissionReportHtml(context) {
 
   const teamColorMap = new Map();
   const pastelPalette = [
-    '#dbeafe', // Blue 100
-    '#dcfce7', // Green 100
-    '#fee2e2', // Red 100
-    '#fef3c7', // Amber 100
-    '#f3e8ff', // Purple 100
-    '#cffafe', // Cyan 100
-    '#fce7f3', // Pink 100
-    '#ffedd5'  // Orange 100
+    '#eff6ff', // Blue 50
+    '#f0fdf4', // Green 50
+    '#fef2f2', // Red 50
+    '#fffbeb', // Amber 50
+    '#faf5ff', // Purple 50
+    '#ecfeff', // Cyan 50
+    '#fdf2f8', // Pink 50
+    '#fff7ed'  // Orange 50
   ];
   
   function getTeamColor(teamLabel) {
@@ -3821,7 +3821,7 @@ function buildSubmissionReportHtml(context) {
       <th colspan="2">${formatCurrency(totals.airtime)}</th>
       <th colspan="2">${formatCurrency(totals.transport)}</th>
       <th colspan="2">${formatCurrency(totals.misc)}</th>
-      <th colspan="5">&nbsp;</th>
+      <th colspan="4">&nbsp;</th>
     </tr>`;
 
   const rowsHtml = rows.map(function(row, index) {
@@ -3854,7 +3854,6 @@ function buildSubmissionReportHtml(context) {
       <td${cellStyle}>${escapeHtml(row.displayName)}</td>
       <td${cellStyle}>${formatCurrency(row.whCharges)}</td>
       <td${cellStyle}>${escapeHtml(row.remarks)}</td>
-      <td${cellStyle}>${escapeHtml(row.submitter)}</td>
     </tr>`;
   }).join('');
 
@@ -3865,77 +3864,63 @@ function buildSubmissionReportHtml(context) {
         <style>
           @page {
             size: A4 landscape;
-            margin: 0.2in;
+            margin: 0.15in;
           }
           body {
             font-family: 'Segoe UI', 'Arial', sans-serif;
             color: #111;
-            margin: 0.25in 0.35in 0.25in 0.25in;
+            margin: 0;
           }
           h1 {
             text-align: center;
-            margin-bottom: 0.25in;
-            font-size: 18px;
-            letter-spacing: 1px;
+            margin-bottom: 0.15in;
+            font-size: 16px;
+            letter-spacing: 0.5px;
           }
           .meta {
-            margin-bottom: 0.35in;
-            font-size: 11px;
+            margin-bottom: 0.2in;
+            font-size: 10px;
+            padding-left: 0.1in;
           }
           table {
             width: 100%;
             border-collapse: collapse;
             font-size: 10px;
-            table-layout: fixed;
-            word-break: break-word;
+            table-layout: auto; /* Allow columns to adjust to content */
           }
           th, td {
             border: 1px solid #bbb;
-            padding: 3px 5px;
+            padding: 4px 4px;
             text-align: center;
-            word-break: break-word;
+            word-break: normal; /* Prevent aggressive breaking */
             white-space: normal;
-            max-width: 120px;
-            font-size: 9px;
           }
           th {
             background: #dfefff;
             color: #1c2a44;
-          }
-          /* Removed even/odd striping to allow team colors to show */
-          /*
-          tbody tr:nth-child(even) td {
-            background-color: #f9fafb;
-          }
-          tbody tr:nth-child(odd) td {
-            background-color: #fff;
-          }
-          */
-          .summary-row th {
-            background: #f8d8ff;
-            color: #422a52;
             font-weight: 600;
+            font-size: 9.5px;
           }
           .totals-row th {
             background: #f5f0ff;
             color: #1c2a44;
-            font-weight: 600;
+            font-weight: 700;
           }
           .expense-detail {
             display: block;
             font-size: 9px;
-            line-height: 1.3;
+            line-height: 1.2;
             text-align: center;
           }
           .day-pill {
             display: inline-block;
-            padding: 2px 6px;
+            padding: 1px 5px;
             margin-top: 2px;
             background: #ffedd5; /* Orange 100 */
             color: #9a3412;       /* Orange 800 */
             border: 1px solid #fed7aa; /* Orange 200 */
             border-radius: 999px;
-            font-size: 7px;
+            font-size: 7.5px;
             font-weight: 600;
           }
         </style>
@@ -3967,7 +3952,6 @@ function buildSubmissionReportHtml(context) {
               <th rowspan="2">Display Name</th>
               <th rowspan="2">W/H</th>
               <th rowspan="2">Remarks</th>
-              <th rowspan="2">Submitter</th>
             </tr>
             <tr>
               <th>Fuel Details</th><th>Fuel Amount</th>
