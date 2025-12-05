@@ -908,6 +908,8 @@
           activeUsers: new Map(),
           listenerAttached: false
         };
+        this.autoReleaseTargets = new Set();
+        this.lastReleaseOutcome = null;
         this.beneficiaryVehicleCache = null;
         this.beneficiaryInsightsPromise = null;
         this.beneficiaryInsightsReady = false;
@@ -1396,6 +1398,48 @@
         container.innerHTML = html;
         if (variant === 'not-using') {
           this.attachNotUsingPillEvents(container);
+        }
+      }
+
+      setAutoReleaseTargets(names = []) {
+        this.autoReleaseTargets.clear();
+        if (!Array.isArray(names)) {
+          if (typeof names === 'string') {
+            names = names.split(',').map(name => name.trim()).filter(Boolean);
+          } else {
+            names = [];
+          }
+        }
+        names.forEach((name) => {
+          const key = this.normalizeBeneficiaryKey(name);
+          if (key) {
+            this.autoReleaseTargets.add(key);
+          }
+        });
+        this.applyAutoReleaseTargets();
+      }
+
+      applyAutoReleaseTargets() {
+        if (!this.autoReleaseTargets.size) return;
+        if (!this.userReleaseSelection) return;
+        const container = document.getElementById('userReleaseTableContainer');
+        if (!container) return;
+        const checkboxes = container.querySelectorAll('.user-release-checkbox');
+        if (!checkboxes.length) return;
+        let changed = false;
+        checkboxes.forEach((checkbox) => {
+          const key = checkbox.getAttribute('data-beneficiary-key');
+          if (!key || !this.autoReleaseTargets.has(key)) return;
+          if (!checkbox.checked) {
+            checkbox.checked = true;
+            const name = checkbox.getAttribute('data-beneficiary-name') || key;
+            this.userReleaseSelection.selected.set(key, name);
+            changed = true;
+          }
+        });
+        if (changed) {
+          this.updateUserReleaseConfirmState();
+          this.syncUserReleaseSelectAllState();
         }
       }
 
@@ -2051,15 +2095,30 @@
       }
 
       hideModal() {
-        this.modal.setAttribute('data-open', 'false');
-        this.modal.setAttribute('aria-hidden', 'true');
+        const wasOpen = this.modal && this.modal.getAttribute('data-open') === 'true';
+        const carNumber = this.currentCarData?.carNumber || '';
+        if (wasOpen && this.lastReleaseOutcome !== 'completed') {
+          try {
+            document.dispatchEvent(new CustomEvent('frtz:car-release-dismissed', { detail: { carNumber } }));
+          } catch (evtErr) {
+            console.warn('frtz:car-release-dismissed dispatch failed', evtErr);
+          }
+        } else if (wasOpen && this.lastReleaseOutcome === 'completed') {
+          this.lastReleaseOutcome = null;
+        }
+        if (this.modal) {
+          this.modal.setAttribute('data-open', 'false');
+          this.modal.setAttribute('aria-hidden', 'true');
+        }
         if (this.hideTimer) {
           clearTimeout(this.hideTimer);
         }
-        this.hideTimer = setTimeout(() => {
-          this.modal.style.display = 'none';
-          this.hideTimer = null;
-        }, 200);
+        if (this.modal) {
+          this.hideTimer = setTimeout(() => {
+            this.modal.style.display = 'none';
+            this.hideTimer = null;
+          }, 200);
+        }
       }
 
       ensureHistoryContentStructure() {
@@ -2183,6 +2242,9 @@
             activeUsers: new Map(),
             listenerAttached: false
           };
+        }
+        if (this.autoReleaseTargets && this.autoReleaseTargets.size) {
+          this.autoReleaseTargets.clear();
         }
         this.userReleaseSelection.rows = [];
         this.userReleaseSelection.selected = new Map();
@@ -2508,6 +2570,7 @@
           container.addEventListener('change', this.handleUserReleaseCheckboxChange);
           this.userReleaseSelection.listenerAttached = true;
         }
+        this.applyAutoReleaseTargets();
       }
 
       handleUserReleaseCheckboxChange(event) {
@@ -3140,6 +3203,25 @@
             const popupSummary = payload.carNumber
               ? `Assigned vehicles refreshed after releasing ${payload.carNumber}.`
               : 'Assigned vehicles refreshed after release.';
+            const releaseDetailList = releasedList.slice();
+            const ratingValue = Number.isFinite(payload.stars) ? payload.stars : 0;
+            const releaseDetail = {
+              carNumber: payload.carNumber,
+              beneficiaries: releaseDetailList,
+              releasedBeneficiaries: releaseDetailList,
+              remarks: payload.remarks,
+              rating: ratingValue,
+              ratingSummary: `${ratingValue}/5`,
+              ratingValues: { stars: ratingValue },
+              team: payload.teamName || payload.team || '',
+              project: payload.projectName || payload.project || ''
+            };
+            this.lastReleaseOutcome = 'completed';
+            try {
+              document.dispatchEvent(new CustomEvent('frtz:car-release-completed', { detail: releaseDetail }));
+            } catch (evtErr) {
+              console.warn('frtz:car-release-completed dispatch failed', evtErr);
+            }
             this.showSuccessMessage(message);
             if (Array.isArray(result.missingUsers) && result.missingUsers.length) {
               alert(`The following beneficiaries were skipped because they were not assigned: ${result.missingUsers.join(', ')}`);
@@ -3654,10 +3736,11 @@
     // Initialize the system
     const carReleaseSystem = new CarReleaseSystem();
     
-    // Expose global functions for backward compatibility
+    // Expose global objects and functions for backward compatibility
+    window.carReleaseSystem = carReleaseSystem;
     window.openCarModal = (data, options) => carReleaseSystem.openModal(data, options);
     window.closeCarModal = () => carReleaseSystem.closeModal();
-  window.applyCarModalSupplementalData = (data) => carReleaseSystem.applySupplementalCarData(data);
+    window.applyCarModalSupplementalData = (data) => carReleaseSystem.applySupplementalCarData(data);
     
     // Legacy support for historical modal (redirect to main modal)
     window.openHistoricalModal = (carData, historicalData) => {

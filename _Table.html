@@ -3888,6 +3888,163 @@ document.addEventListener('keydown', function(event) {
     });
   }
 
+  function normalizeBeneficiaryForMatch(value) {
+    if (value === undefined || value === null) {
+      return '';
+    }
+    return String(value).replace(/\s+/g, ' ').trim().toLowerCase();
+  }
+
+  function eventDetailIncludesBeneficiary(detail, beneficiary) {
+    if (!beneficiary) {
+      return false;
+    }
+    var targetKey = normalizeBeneficiaryForMatch(beneficiary);
+    if (!targetKey) {
+      return false;
+    }
+    var candidates = [];
+    if (detail) {
+      if (Array.isArray(detail.beneficiaries)) {
+        candidates = candidates.concat(detail.beneficiaries);
+      }
+      if (Array.isArray(detail.releasedBeneficiaries)) {
+        candidates = candidates.concat(detail.releasedBeneficiaries);
+      }
+      if (Array.isArray(detail.releasedUsers)) {
+        candidates = candidates.concat(detail.releasedUsers);
+      }
+    }
+    for (var i = 0; i < candidates.length; i++) {
+      if (normalizeBeneficiaryForMatch(candidates[i]) === targetKey) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function buildContextWithVehicleReview(context, detail) {
+    var nextContext = context ? Object.assign({}, context) : {};
+    if (detail && typeof detail.remarks === 'string') {
+      nextContext.releaseReview = detail.remarks;
+    }
+    var ratingValue = detail && detail.rating != null && !isNaN(Number(detail.rating))
+      ? Number(detail.rating)
+      : null;
+    var ratingSummary = detail && detail.ratingSummary
+      ? detail.ratingSummary
+      : (ratingValue !== null ? ratingValue + '/5' : '');
+    if (ratingSummary) {
+      nextContext.releaseRatings = ratingSummary;
+    }
+    var ratingValues = detail && detail.ratingValues ? detail.ratingValues : null;
+    if (!ratingValues && ratingValue !== null) {
+      ratingValues = { stars: ratingValue };
+    }
+    if (ratingValues) {
+      nextContext.releaseRatingValues = ratingValues;
+    }
+    return nextContext;
+  }
+
+  function openVehicleReleaseWorkflow(carNumber, context, beneficiary) {
+    return new Promise(function(resolve, reject) {
+      var trimmedCar = carNumber ? String(carNumber).trim() : '';
+      if (!trimmedCar) {
+        reject(new Error('No vehicle assigned'));
+        return;
+      }
+      if (!beneficiary) {
+        reject(new Error('Beneficiary missing'));
+        return;
+      }
+      if (typeof window.openCarModal !== 'function') {
+        reject(new Error('Vehicle release modal unavailable'));
+        return;
+      }
+      var normalizedCar = trimmedCar.toUpperCase();
+      var cleanup = function() {
+        document.removeEventListener('frtz:car-release-completed', onComplete);
+        document.removeEventListener('frtz:car-release-dismissed', onDismissed);
+      };
+      var onComplete = function(event) {
+        var detail = event && event.detail ? event.detail : {};
+        var eventCar = detail && detail.carNumber ? String(detail.carNumber).trim().toUpperCase() : '';
+        if (eventCar !== normalizedCar) {
+          return;
+        }
+        if (!eventDetailIncludesBeneficiary(detail, beneficiary)) {
+          return;
+        }
+        cleanup();
+        resolve(detail);
+      };
+      var onDismissed = function(event) {
+        var detail = event && event.detail ? event.detail : {};
+        var eventCar = detail && detail.carNumber ? String(detail.carNumber).trim().toUpperCase() : '';
+        if (eventCar !== normalizedCar) {
+          return;
+        }
+        cleanup();
+        reject(new Error('Vehicle release cancelled'));
+      };
+      document.addEventListener('frtz:car-release-completed', onComplete);
+      document.addEventListener('frtz:car-release-dismissed', onDismissed);
+      if (window.carReleaseSystem && typeof window.carReleaseSystem.setAutoReleaseTargets === 'function') {
+        window.carReleaseSystem.setAutoReleaseTargets([beneficiary]);
+      }
+      try {
+        window.openCarModal({
+          carNumber: trimmedCar,
+          project: context && context.project ? context.project : '',
+          projectName: context && context.projectName
+            ? context.projectName
+            : (context && context.project ? context.project : ''),
+          team: context && context.team ? context.team : '',
+          teamName: context && context.teamName
+            ? context.teamName
+            : (context && context.team ? context.team : ''),
+          responsibleBeneficiary: beneficiary
+        }, { source: 'table-release' });
+      } catch (err) {
+        cleanup();
+        reject(err);
+      }
+    });
+  }
+
+  function releaseRowWithVehicle(row, context, carNumber) {
+    if (!row || row.dataset.vehicleReleasePending === 'true') {
+      return;
+    }
+    row.dataset.vehicleReleasePending = 'true';
+    var clearPendingFlag = function() {
+      try {
+        delete row.dataset.vehicleReleasePending;
+      } catch (err) {
+        row.dataset.vehicleReleasePending = 'false';
+      }
+    };
+    openVehicleReleaseWorkflow(carNumber, context, context.beneficiary)
+      .then(function(detail) {
+        clearPendingFlag();
+        var augmentedContext = buildContextWithVehicleReview(context, detail);
+        submitRelease(row, augmentedContext);
+      })
+      .catch(function(err) {
+        clearPendingFlag();
+        if (err && err.message === 'Vehicle release cancelled') {
+          alert('Without releasing the vehicle, the beneficiary can’t be released from the team.');
+          return;
+        }
+        if (err && err.message) {
+          console.warn('Vehicle release workflow aborted:', err.message);
+        }
+        alert('Vehicle release could not complete. You may retry or use the standard release prompt.');
+        confirmReleaseRow(row, context);
+      });
+  }
+
   function promptRowAction(row, context, totalText) {
     if (!row) return;
 
@@ -3977,7 +4134,15 @@ document.addEventListener('keydown', function(event) {
       if (action === 'deactivate') {
         deactivateRow(row);
       } else if (action === 'release') {
-        confirmReleaseRow(row, context);
+        var assignedVehicle = '';
+        if (typeof window.getAssignedVehicleNumber === 'function') {
+          assignedVehicle = String(window.getAssignedVehicleNumber(context.beneficiary, context.team, context.project)).trim();
+        }
+        if (assignedVehicle) {
+          releaseRowWithVehicle(row, context, assignedVehicle);
+        } else {
+          confirmReleaseRow(row, context);
+        }
       } else if (action === 'add-existing') {
         openAddBeneficiaryModal(context);
       } else if (action === 'add-new') {
