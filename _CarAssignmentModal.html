@@ -1,0 +1,1349 @@
+<!-- Car Assignment Modal - GAS Compatible Include File -->
+<!-- Import Shared Styles -->
+<!-- Shared styles loaded externally -->
+
+<style>
+  /* Car Assignment Modal Styles - Fixed CSS Variables */
+  .car-assignment-backdrop {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: rgba(0, 0, 0, 0.6);
+    padding: 20px;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease-out;
+    backdrop-filter: blur(4px);
+  }
+  
+  .car-assignment-backdrop[data-open="true"] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  .car-assignment-modal {
+    width: min(720px, 92vw);
+    max-height: 90vh;
+    background: #ffffff;
+    color: #0b1220;
+    border-radius: 16px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transform: translateY(4px) scale(0.98);
+    opacity: 0;
+    transition: transform 0.22s ease, opacity 0.22s ease;
+  }
+  
+  .car-assignment-backdrop[data-open="true"] .car-assignment-modal {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  
+  .car-assignment-header {
+    background: linear-gradient(90deg, #22c55e, #06b6d4);
+    color: #fff;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: background 0.3s ease;
+  }
+  
+  .car-assignment-header.new-vehicle-mode {
+    background: linear-gradient(90deg, #f59e0b, #ef4444);
+  }
+  
+  .car-assignment-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    text-shadow: 0 1px 0 rgba(0,0,0,0.06);
+  }
+  
+  .car-assignment-close {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: #fff;
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    cursor: pointer;
+  }
+  
+  .car-assignment-close:hover,
+  .car-assignment-close:focus {
+    outline: none;
+    background: rgba(255,255,255,0.15);
+  }
+  
+  .car-assignment-body {
+    padding: 20px 24px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+  }
+  
+  .car-assignment-body::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .car-assignment-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+  }
+  
+  .car-assignment-body::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 3px;
+  }
+  
+  .car-assignment-body::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+  }
+  
+  /* Toggle Switch Styles */
+  .toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  
+  .toggle-switch {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+  }
+  
+  .toggle-switch input[type="checkbox"] {
+    display: none;
+  }
+  
+  .toggle-slider {
+    position: relative;
+    width: 50px;
+    height: 24px;
+    background: linear-gradient(90deg, #22c55e, #06b6d4);
+    border-radius: 12px;
+    transition: background 0.3s ease;
+    order: 2;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  
+  .toggle-slider::before {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 20px;
+    height: 20px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+  }
+  
+  .toggle-switch input[type="checkbox"]:checked + .toggle-slider {
+    background: linear-gradient(90deg, #f59e0b, #ef4444);
+  }
+  
+  .toggle-switch input[type="checkbox"]:checked + .toggle-slider::before {
+    transform: translateX(26px);
+  }
+  
+  .toggle-label-left {
+    order: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    transition: color 0.3s ease;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  
+  .toggle-label-right {
+    order: 3;
+    font-size: 14px;
+    font-weight: 600;
+    color: #9ca3af;
+    transition: color 0.3s ease;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  
+  .toggle-switch input[type="checkbox"]:checked ~ .toggle-label-left {
+    color: #9ca3af;
+  }
+  
+  .toggle-switch input[type="checkbox"]:checked ~ .toggle-label-right {
+    color: #374151;
+  }
+  
+  /* History Section Styles */
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .history-item {
+    padding: 8px 10px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #374151;
+  }
+  
+  .history-item.empty {
+    color: #9ca3af;
+    font-style: italic;
+  }
+  
+  .rating-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .rating-stars {
+    color: #f59e0b;
+    font-size: 14px;
+  }
+  
+  @media (max-width: 768px) {
+    .history-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+  
+  .car-info-section {
+    margin-bottom: 24px;
+    padding: 20px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .car-info-grid {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: 16px;
+    align-items: center;
+  }
+  
+  .car-info-label {
+    color: #4b5563;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  
+  .car-info-value {
+    color: #0b1220;
+    font-weight: 500;
+  }
+  
+  .form-section {
+    margin-bottom: 32px;
+  }
+  
+  .form-section h3 {
+    margin: 0 0 20px 0;
+    color: #0b1220;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .form-field.full-width {
+    grid-column: 1 / -1;
+  }
+  
+  .form-label {
+    color: #374151;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  
+  .form-input,
+  .form-select {
+    padding: 10px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 14px;
+    background: #ffffff;
+    transition: border-color 0.15s ease;
+  }
+  
+  .form-input:focus,
+  .form-select:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+  
+  .car-assignment-footer {
+    display: flex;
+    gap: 16px;
+    justify-content: flex-end;
+    padding: 20px 24px 24px;
+    border-top: 1px solid #f1f5f9;
+    flex-shrink: 0;
+    background: #ffffff;
+  }
+  
+  .car-btn {
+    appearance: none;
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #0b1220;
+    padding: 12px 20px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 14px;
+  }
+  
+  .car-btn:hover {
+    background: #f9fafb;
+    border-color: #9ca3af;
+  }
+  
+  .car-btn--primary {
+    background: linear-gradient(90deg, #22c55e, #06b6d4);
+    color: #fff;
+    border: 0;
+    transition: background 0.3s ease;
+  }
+  
+  .car-btn--primary:hover {
+    background: linear-gradient(90deg, #16a34a, #0891b2);
+  }
+  
+  .car-btn--primary.new-vehicle-mode {
+    background: linear-gradient(90deg, #f59e0b, #ef4444);
+  }
+  
+  .car-btn--primary.new-vehicle-mode:hover {
+    background: linear-gradient(90deg, #d97706, #dc2626);
+  }
+  
+  .car-btn--secondary {
+    background: #6b7280;
+    color: #fff;
+    border: 0;
+  }
+  
+  .car-btn--secondary:hover {
+    background: #4b5563;
+  }
+  
+  @media (max-width: 768px) {
+    .car-assignment-modal {
+      width: min(560px, 96vw);
+      max-height: 95vh;
+    }
+    
+    .car-assignment-header {
+      padding: 16px 20px;
+    }
+    
+    .car-assignment-body {
+      padding: 16px 20px;
+    }
+    
+    .car-assignment-footer {
+      padding: 16px 20px 20px;
+      flex-direction: column;
+    }
+    
+    .car-btn {
+      width: 100%;
+      justify-content: center;
+    }
+    
+    .form-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    
+    .car-info-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    
+    .car-info-label {
+      font-weight: 700;
+      color: #1f2937;
+    }
+    
+    .toggle-container {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+    
+    .toggle-switch {
+      align-self: stretch;
+      justify-content: space-between;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .car-assignment-backdrop {
+      padding: 12px;
+    }
+    
+    .car-assignment-modal {
+      width: 100%;
+      max-height: 98vh;
+    }
+    
+    .car-assignment-title {
+      font-size: 18px;
+    }
+    
+    .history-grid {
+      grid-template-columns: 1fr !important;
+      gap: 16px;
+    }
+  }
+</style>
+
+<!-- Car Assignment Modal HTML -->
+<div class="car-assignment-backdrop" id="carAssignmentModal" hidden aria-hidden="true">
+  <div class="car-assignment-modal" role="dialog" aria-modal="true" aria-labelledby="carAssignmentTitle">
+    <div class="car-assignment-header">
+      <h2 class="car-assignment-title" id="carAssignmentTitle">Car Assignment</h2>
+      <button class="car-assignment-close" id="carAssignmentCloseBtn" aria-label="Close modal" title="Close">×</button>
+    </div>
+
+    <div class="car-assignment-body">
+      <!-- Current Row Information -->
+      <div class="car-info-section">
+        <h3 style="margin: 0 0 16px 0; color: #0b1220; font-size: 16px; font-weight: 700;">Assignment Details</h3>
+        <div class="car-info-grid">
+          <div class="car-info-label">Project:</div>
+          <div class="car-info-value" id="assignmentProject">Loading...</div>
+          
+          <div class="car-info-label">Team:</div>
+          <div class="car-info-value" id="assignmentTeam">Loading...</div>
+          
+          <div class="car-info-label">Beneficiary:</div>
+          <div class="car-info-value" id="assignmentBeneficiary">Loading...</div>
+          
+          <div class="car-info-label">Account Holder:</div>
+          <div class="car-info-value" id="assignmentAccountHolder">Loading...</div>
+        </div>
+      </div>
+
+      <!-- Car Selection Form -->
+      <div class="form-section">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+          <h3 style="margin: 0;">Vehicle Assignment</h3>
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" id="vehicleToggle">
+              <span class="toggle-slider"></span>
+              <span class="toggle-label-left">Existing Vehicle</span>
+              <span class="toggle-label-right">New Vehicle</span>
+            </label>
+          </div>
+        </div>
+        
+        <!-- Existing Car Selection -->
+        <div class="form-grid" id="existingVehicleSection">
+          <div class="form-field">
+            <label class="form-label" for="carMakeSelect">Make</label>
+            <select class="form-select" id="carMakeSelect">
+              <option value="">Select Make</option>
+              <!-- Options will be populated dynamically from CarT_P data -->
+            </select>
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label" for="carModelSelect">Model</label>
+            <select class="form-select" id="carModelSelect">
+              <option value="">Select Model</option>
+            </select>
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label" for="carNumberSelect">Car Number</label>
+            <select class="form-select" id="carNumberSelect">
+              <option value="">Select Car Number</option>
+            </select>
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label" for="usageTypeSelect">Usage Type</label>
+            <select class="form-select" id="usageTypeSelect">
+              <option value="">Select Usage Type</option>
+              <!-- Options will be populated dynamically from CarT_P data -->
+            </select>
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label" for="contractTypeSelect">Contract Type</label>
+            <select class="form-select" id="contractTypeSelect">
+              <option value="">Select Contract Type</option>
+              <!-- Options will be populated dynamically from CarT_P data -->
+            </select>
+          </div>
+          
+          <div class="form-field">
+            <label class="form-label" for="ownerInfo">Owner</label>
+            <input class="form-input" id="ownerInfo" type="text" placeholder="Owner information" readonly>
+          </div>
+          
+          <div class="form-field full-width">
+            <label class="form-label" for="remarksInfo">Remarks</label>
+            <textarea class="form-input" id="remarksInfo" rows="3" placeholder="Vehicle remarks and notes" readonly></textarea>
+          </div>
+        </div>
+        
+        <!-- Add New Car Option -->
+        <div id="newVehicleSection" style="display: none;">
+          <div class="form-grid">
+            <div class="form-field">
+              <label class="form-label" for="newCarMake">New Car Make</label>
+              <input class="form-input" id="newCarMake" type="text" placeholder="Enter make">
+            </div>
+            
+            <div class="form-field">
+              <label class="form-label" for="newCarModel">New Car Model</label>
+              <input class="form-input" id="newCarModel" type="text" placeholder="Enter model">
+            </div>
+            
+            <div class="form-field">
+              <label class="form-label" for="newCarNumber">New Car Number</label>
+              <input class="form-input" id="newCarNumber" type="text" placeholder="Enter car number">
+            </div>
+            
+            <div class="form-field">
+              <label class="form-label" for="newCarOwner">Owner</label>
+              <input class="form-input" id="newCarOwner" type="text" placeholder="Enter owner">
+            </div>
+            
+            <div class="form-field">
+              <label class="form-label" for="newUsageTypeSelect">Usage Type</label>
+              <select class="form-select" id="newUsageTypeSelect">
+                <option value="">Select Usage Type</option>
+                <!-- Options will be populated dynamically from CarT_P data -->
+              </select>
+            </div>
+            
+            <div class="form-field">
+              <label class="form-label" for="newContractTypeSelect">Contract Type</label>
+              <select class="form-select" id="newContractTypeSelect">
+                <option value="">Select Contract Type</option>
+                <!-- Options will be populated dynamically from CarT_P data -->
+              </select>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Car History Section (only visible when existing car is selected) -->
+        <div id="carHistorySection" style="display: none; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
+          <h4 style="margin: 0 0 20px 0; color: #0b1220; font-size: 14px; font-weight: 600;">Recent Car History</h4>
+          
+          <div class="history-grid" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px;">
+            <div class="history-section">
+                <h5 style="margin: 0 0 8px 0; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase;">Last 3 Users</h5>
+                <div id="lastUsers" class="history-list">
+                  <div class="history-item">Loading...</div>
+                </div>
+              </div>
+              
+              <div class="history-section">
+                <h5 style="margin: 0 0 8px 0; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase;">Last 3 Feedback</h5>
+                <div id="lastFeedback" class="history-list">
+                  <div class="history-item">Loading...</div>
+                </div>
+              </div>
+              
+              <div class="history-section">
+                <h5 style="margin: 0 0 8px 0; color: #6b7280; font-size: 12px; font-weight: 600; text-transform: uppercase;">Last 3 Ratings</h5>
+                <div id="lastRatings" class="history-list">
+                  <div class="history-item">Loading...</div>
+                </div>
+              </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="car-assignment-footer">
+      <button class="car-btn" id="carAssignmentCancelBtn">Cancel</button>
+      <button class="car-btn car-btn--primary" id="carAssignmentSaveBtn">Assign Car</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Car Assignment Modal JavaScript
+(function() {
+  'use strict';
+  
+  let currentRowData = null;
+  
+  // Modal elements
+  const backdrop = document.getElementById('carAssignmentModal');
+  const modal = backdrop?.querySelector('.car-assignment-modal');
+  const closeBtn = document.getElementById('carAssignmentCloseBtn');
+  const cancelBtn = document.getElementById('carAssignmentCancelBtn');
+  const saveBtn = document.getElementById('carAssignmentSaveBtn');
+  
+  // Toggle elements
+  const vehicleToggle = document.getElementById('vehicleToggle');
+  const existingVehicleSection = document.getElementById('existingVehicleSection');
+  const newVehicleSection = document.getElementById('newVehicleSection');
+  
+  // Form elements
+  const carMakeSelect = document.getElementById('carMakeSelect');
+  const carModelSelect = document.getElementById('carModelSelect');
+  const carNumberSelect = document.getElementById('carNumberSelect');
+  const usageTypeSelect = document.getElementById('usageTypeSelect');
+  const contractTypeSelect = document.getElementById('contractTypeSelect');
+  const ownerInfo = document.getElementById('ownerInfo');
+  
+  // New car fields
+  const newCarMake = document.getElementById('newCarMake');
+  const newCarModel = document.getElementById('newCarModel');
+  const newCarNumber = document.getElementById('newCarNumber');
+  const newCarOwner = document.getElementById('newCarOwner');
+  const newUsageTypeSelect = document.getElementById('newUsageTypeSelect');
+  const newContractTypeSelect = document.getElementById('newContractTypeSelect');
+  
+  // History section elements
+  const carHistorySection = document.getElementById('carHistorySection');
+  const lastUsers = document.getElementById('lastUsers');
+  const lastFeedback = document.getElementById('lastFeedback');
+  const lastRatings = document.getElementById('lastRatings');
+  
+  // Info display elements
+  const assignmentProject = document.getElementById('assignmentProject');
+  const assignmentTeam = document.getElementById('assignmentTeam');
+  const assignmentBeneficiary = document.getElementById('assignmentBeneficiary');
+  const assignmentAccountHolder = document.getElementById('assignmentAccountHolder');
+  
+  // Prevent duplicate concurrent loads
+  let carLoadInProgress = false;
+  function finishCarLoad(){ carLoadInProgress = false; }
+  
+  // Open modal function
+  window.openCarAssignmentModal = function(rowData) {
+    console.log('=== OPENING CAR ASSIGNMENT MODAL ===');
+    console.log('Modal data:', rowData);
+    console.log('DOM elements available:', {
+      carMakeSelect: !!carMakeSelect,
+      carModelSelect: !!carModelSelect,
+      carNumberSelect: !!carNumberSelect,
+      backdrop: !!backdrop
+    });
+    
+    currentRowData = rowData;
+    
+    // Populate assignment details
+    if (assignmentProject) assignmentProject.textContent = rowData.project || 'N/A';
+    if (assignmentTeam) assignmentTeam.textContent = rowData.team || 'N/A';
+    if (assignmentBeneficiary) assignmentBeneficiary.textContent = rowData.beneficiary || 'N/A';
+    if (assignmentAccountHolder) assignmentAccountHolder.textContent = rowData.accountHolder || 'N/A';
+    
+    // Reset form
+    resetForm();
+    
+    // Show modal first
+    if (backdrop) {
+      backdrop.hidden = false;
+      backdrop.setAttribute('aria-hidden', 'false');
+      backdrop.setAttribute('data-open', 'true');
+      console.log('Modal backdrop shown successfully');
+    } else {
+      console.error('ERROR: Modal backdrop not found!');
+      return;
+    }
+    
+    // Load available cars with a delay to ensure modal is fully rendered
+    console.log('Scheduling loadAvailableCars call...');
+    setTimeout(() => {
+      console.log('Calling loadAvailableCars now...');
+      if (carLoadInProgress) {
+        console.log('loadAvailableCars already running, skip duplicate trigger');
+        return;
+      }
+      loadAvailableCars();
+    }, 200);
+  };
+  
+  // Close modal function
+  function closeModal() {
+    if (backdrop) {
+      backdrop.setAttribute('data-open', 'false');
+      setTimeout(() => {
+        backdrop.hidden = true;
+        backdrop.setAttribute('aria-hidden', 'true');
+      }, 220);
+    }
+  }
+  
+  // Expose close function globally
+  window.closeCarAssignmentModal = closeModal;
+  
+  // Toggle vehicle sections
+  function toggleVehicleSections() {
+    const isNewMode = vehicleToggle?.checked;
+    const header = document.querySelector('.car-assignment-header');
+    const primaryBtn = document.querySelector('.car-btn--primary');
+    
+    console.log('Toggle state changed - isNewMode:', isNewMode);
+    
+    if (existingVehicleSection && newVehicleSection) {
+      if (isNewMode) {
+        existingVehicleSection.style.display = 'none';
+        newVehicleSection.style.display = 'block';
+      } else {
+        existingVehicleSection.style.display = 'grid';
+        newVehicleSection.style.display = 'none';
+      }
+    }
+    
+    // Update header and button colors based on toggle state
+    if (header && primaryBtn) {
+      if (isNewMode) {
+        // New Vehicle Mode - Orange colors
+        header.classList.add('new-vehicle-mode');
+        primaryBtn.classList.add('new-vehicle-mode');
+        console.log('Applied orange theme for new vehicle mode');
+      } else {
+        // Existing Vehicle Mode - Green colors
+        header.classList.remove('new-vehicle-mode');
+        primaryBtn.classList.remove('new-vehicle-mode');
+        console.log('Applied green theme for existing vehicle mode');
+      }
+    }
+    
+    // Hide car history when switching to new vehicle mode
+    if (isNewMode && carHistorySection) {
+      carHistorySection.style.display = 'none';
+    }
+  }
+  
+  // Load and display car history
+  function loadCarHistory(carNumber) {
+    if (!carNumber || !carHistorySection) return;
+    
+    // Show the history section
+    carHistorySection.style.display = 'block';
+    
+    // Reset to loading state
+    if (lastUsers) {
+      lastUsers.innerHTML = '<div class="history-item">Loading...</div>';
+    }
+    if (lastFeedback) {
+      lastFeedback.innerHTML = '<div class="history-item">Loading...</div>';
+    }
+    if (lastRatings) {
+      lastRatings.innerHTML = '<div class="history-item">Loading...</div>';
+    }
+    
+    // Call GAS function to get car history
+    google.script.run
+      .withSuccessHandler((historyData) => {
+        
+        // Display users
+        if (lastUsers && historyData.users) {
+          if (historyData.users.length > 0) {
+            lastUsers.innerHTML = historyData.users.map(user => 
+              `<div class="history-item">${user}</div>`
+            ).join('');
+          } else {
+            lastUsers.innerHTML = '<div class="history-item empty">No recent users</div>';
+          }
+        }
+        
+        // Display feedback
+        if (lastFeedback && historyData.feedback) {
+          if (historyData.feedback.length > 0) {
+            lastFeedback.innerHTML = historyData.feedback.map(feedback => 
+              `<div class="history-item">${feedback}</div>`
+            ).join('');
+          } else {
+            lastFeedback.innerHTML = '<div class="history-item empty">No recent feedback</div>';
+          }
+        }
+        
+        // Display ratings
+        if (lastRatings && historyData.ratings) {
+          if (historyData.ratings.length > 0) {
+            lastRatings.innerHTML = historyData.ratings.map(rating => 
+              `<div class="history-item rating-item">
+                <span class="rating-stars">${'★'.repeat(Math.floor(rating))}${'☆'.repeat(5-Math.floor(rating))}</span>
+                <span>${rating}/5</span>
+              </div>`
+            ).join('');
+          } else {
+            lastRatings.innerHTML = '<div class="history-item empty">No recent ratings</div>';
+          }
+        }
+      })
+      .withFailureHandler((error) => {
+        console.error('Failed to load car history:', error);
+        // Show error state
+        if (lastUsers) lastUsers.innerHTML = '<div class="history-item empty">Error loading users</div>';
+        if (lastFeedback) lastFeedback.innerHTML = '<div class="history-item empty">Error loading feedback</div>';
+        if (lastRatings) lastRatings.innerHTML = '<div class="history-item empty">Error loading ratings</div>';
+      })
+      .getCarHistory(carNumber);
+  }
+  
+  // Reset form
+  function resetForm() {
+    if (carMakeSelect) carMakeSelect.value = '';
+    if (carModelSelect) carModelSelect.value = '';
+    if (carNumberSelect) carNumberSelect.value = '';
+    if (usageTypeSelect) usageTypeSelect.value = '';
+    if (contractTypeSelect) contractTypeSelect.value = '';
+    if (ownerInfo) ownerInfo.value = '';
+    if (newCarMake) newCarMake.value = '';
+    if (newCarModel) newCarModel.value = '';
+    if (newCarNumber) newCarNumber.value = '';
+    if (newCarOwner) newCarOwner.value = '';
+    if (newUsageTypeSelect) newUsageTypeSelect.value = '';
+    if (newContractTypeSelect) newContractTypeSelect.value = '';
+    
+    // Hide car history section
+    if (carHistorySection) {
+      carHistorySection.style.display = 'none';
+    }
+    
+    // Reset toggle to existing vehicle mode
+    if (vehicleToggle) {
+      vehicleToggle.checked = false;
+      toggleVehicleSections();
+    }
+  }
+  
+  // Load cars from CarT_P sheet (latest per vehicle; all statuses)
+  function loadAvailableCars() {
+    console.log('Loading available cars from CarT_P sheet...');
+    console.log('DOM elements check - carMakeSelect:', !!carMakeSelect, 'carModelSelect:', !!carModelSelect, 'carNumberSelect:', !!carNumberSelect);
+    
+    if (carLoadInProgress) {
+      console.log('loadAvailableCars: another load is in progress; skipping');
+      return;
+    }
+    carLoadInProgress = true;
+    
+    // Ensure DOM elements are available
+    if (!carMakeSelect) {
+      console.error('carMakeSelect element not found! Retrying in 500ms...');
+      carLoadInProgress = false;
+      setTimeout(loadAvailableCars, 500);
+      return;
+    }
+
+    // Show a loading placeholder while we fetch
+    try {
+      if (carMakeSelect) carMakeSelect.innerHTML = '<option value="">Loading…</option>';
+      if (carModelSelect) carModelSelect.innerHTML = '<option value="">Select Model</option>';
+      if (carNumberSelect) carNumberSelect.innerHTML = '<option value="">Loading…</option>';
+    } catch(_) {}
+    
+    // Robust check: treat as GAS only when running on Apps Script domains and api exists
+    const isGasDomain = /script\.google\.com|googleusercontent\.com/.test(String(window.location && window.location.origin || ''));
+    const hasGasApi = !!(window.google && window.google.script && window.google.script.run);
+    const isGASEnv = isGasDomain && hasGasApi;
+
+    if (!isGASEnv) {
+      console.warn('Not in Apps Script runtime (or GAS API unavailable) — using mock data for local testing');
+      const mockCars = [
+        { carNumber: 'TZ-5678-XX', make: 'Toyota', model: 'Hilux', usageType: 'Field Work', contractType: 'Rental', owner: 'Fleet Manager', status: 'RELEASE', dateTime: new Date().toISOString() },
+        { carNumber: 'TZ-1234-AB', make: 'Nissan', model: 'Navara', usageType: 'Office', contractType: 'Owned', owner: 'Company', status: 'RELEASE', dateTime: new Date().toISOString() },
+        { carNumber: 'TZ-9876-CD', make: 'Ford', model: 'Ranger', usageType: 'Field Work', contractType: 'Lease', owner: 'Operations', status: 'RELEASE', dateTime: new Date().toISOString() }
+      ];
+      const releaseCars = mockCars.filter(car => String(car.status||'').toUpperCase() === 'RELEASE');
+      console.log('Using mock car data (RELEASE only):', releaseCars);
+      populateCarSelects(releaseCars);
+      finishCarLoad();
+      return;
+    }
+    
+    console.log('Google Apps Script is available AND running on GAS domain, making call to getAvailableCars...');
+    
+    function fallbackToMock(reason){
+      console.warn('Falling back to mock cars because:', reason);
+      try{
+        const mock = [
+          {carNumber:'TZ-5678-XX', make:'Toyota', model:'Hilux', usageType:'Field Work', contractType:'Rental', owner:'Fleet Manager', status:'RELEASE', dateTime:new Date().toISOString()},
+          {carNumber:'TZ-1234-AB', make:'Nissan', model:'Navara', usageType:'Office', contractType:'Owned', owner:'Company', status:'RELEASE', dateTime:new Date().toISOString()},
+          {carNumber:'TZ-9876-CD', make:'Ford', model:'Ranger', usageType:'Field Work', contractType:'Lease', owner:'Operations', status:'RELEASE', dateTime:new Date().toISOString()},
+        ];
+        populateCarSelects(mock);
+      }catch(err){ console.error('Mock fallback failed:', err); }
+      finally { finishCarLoad(); }
+    }
+    
+    google.script.run
+      .withSuccessHandler((cars) => {
+        console.log('Successfully loaded cars from getAvailableCars(true):', cars);
+        const list = Array.isArray(cars) ? cars : [];
+        const count = list.length;
+        console.log('Number of RELEASE cars returned:', count);
+        if (count > 0) {
+          populateCarSelects(list);
+          finishCarLoad();
+          return;
+        }
+        console.warn('No RELEASE cars from server-side filter. Falling back to client-side filter of all cars...');
+        google.script.run
+          .withSuccessHandler((allCars) => {
+            const allList = Array.isArray(allCars) ? allCars : [];
+            const release = allList.filter(c => String(c.status||'').toUpperCase() === 'RELEASE');
+            console.log('Fallback (all -> RELEASE) counts:', { all: allList.length, release: release.length });
+            if (release.length > 0) {
+              populateCarSelects(release);
+              finishCarLoad();
+            } else {
+              if (allList.length > 0) {
+                console.warn('Status column may be missing or mismatched; showing ALL vehicles temporarily');
+                populateCarSelects(allList);
+                finishCarLoad();
+              } else {
+                if (carMakeSelect) carMakeSelect.innerHTML = '<option value="">No cars available</option>';
+                if (carNumberSelect) carNumberSelect.innerHTML = '<option value="">No cars available</option>';
+                finishCarLoad();
+              }
+            }
+          })
+          .withFailureHandler((err) => {
+            console.error('Fallback getAvailableCars(false) failed:', err);
+            fallbackToMock('getAvailableCars(false) failed: ' + err);
+          })
+          .getAvailableCars(false);
+      })
+      .withFailureHandler((error) => {
+        console.error('Failed to load available cars:', error);
+        fallbackToMock('getAvailableCars(true) failed: ' + error);
+      })
+      .getAvailableCars(true);
+  }
+  
+  // Populate car selection dropdowns with CarT_P data
+  function populateCarSelects(cars) {
+    console.log('populateCarSelects called with:', cars);
+    console.log('DOM elements - carMakeSelect:', !!carMakeSelect, 'carModelSelect:', !!carModelSelect, 'carNumberSelect:', !!carNumberSelect);
+    
+    // Clear existing options
+    if (carMakeSelect) {
+      carMakeSelect.innerHTML = '<option value="">Select Make</option>';
+    }
+    if (carModelSelect) {
+      carModelSelect.innerHTML = '<option value="">Select Model</option>';
+    }
+    if (carNumberSelect) {
+      carNumberSelect.innerHTML = '<option value="">Select Car Number</option>';
+    }
+    if (usageTypeSelect) {
+      usageTypeSelect.innerHTML = '<option value="">Select Usage Type</option>';
+    }
+    if (contractTypeSelect) {
+      contractTypeSelect.innerHTML = '<option value="">Select Contract Type</option>';
+    }
+    if (newUsageTypeSelect) {
+      newUsageTypeSelect.innerHTML = '<option value="">Select Usage Type</option>';
+    }
+    if (newContractTypeSelect) {
+      newContractTypeSelect.innerHTML = '<option value="">Select Contract Type</option>';
+    }
+    
+    // Store cars data for later use
+    window.availableCarsData = cars;
+    
+    // Populate make dropdown with unique makes from available cars
+    if (carMakeSelect && cars.length > 0) {
+      console.log('Processing cars for make dropdown:', cars.length, 'cars');
+      const allMakes = cars.map(car => car.make);
+      console.log('All makes from cars:', allMakes);
+      const filteredMakes = allMakes.filter(make => make && make.trim());
+      console.log('Filtered makes (non-empty):', filteredMakes);
+      const uniqueMakes = [...new Set(filteredMakes)];
+      console.log('Unique makes:', uniqueMakes);
+      uniqueMakes.sort(); // Sort alphabetically
+      
+      uniqueMakes.forEach(make => {
+        const option = document.createElement('option');
+        option.value = make;
+        option.textContent = make;
+        carMakeSelect.appendChild(option);
+      });
+      
+      console.log('Populated make dropdown with:', uniqueMakes);
+    } else {
+      console.log('Cannot populate make dropdown - carMakeSelect:', !!carMakeSelect, 'cars.length:', cars.length);
+      if (cars.length === 0) {
+        console.warn('No cars available from CarT_P');
+      }
+    }
+    
+    // Populate Usage Type dropdowns with unique usage types from available cars
+    if (cars.length > 0) {
+      const allUsageTypes = cars.map(car => car.usageType);
+      const filteredUsageTypes = allUsageTypes.filter(type => type && type.trim());
+      const uniqueUsageTypes = [...new Set(filteredUsageTypes)];
+      uniqueUsageTypes.sort(); // Sort alphabetically
+      
+      // Populate existing vehicle usage type dropdown
+      if (usageTypeSelect) {
+        uniqueUsageTypes.forEach(type => {
+          const option = document.createElement('option');
+          option.value = type;
+          option.textContent = type;
+          usageTypeSelect.appendChild(option);
+        });
+      }
+      
+      // Populate new vehicle usage type dropdown
+      if (newUsageTypeSelect) {
+        uniqueUsageTypes.forEach(type => {
+          const option = document.createElement('option');
+          option.value = type;
+          option.textContent = type;
+          newUsageTypeSelect.appendChild(option);
+        });
+      }
+    }
+    
+    // Populate Contract Type dropdowns with unique contract types from available cars
+    if (cars.length > 0) {
+      const allContractTypes = cars.map(car => car.contractType);
+      const filteredContractTypes = allContractTypes.filter(type => type && type.trim());
+      const uniqueContractTypes = [...new Set(filteredContractTypes)];
+      uniqueContractTypes.sort(); // Sort alphabetically
+      
+      // Populate existing vehicle contract type dropdown
+      if (contractTypeSelect) {
+        uniqueContractTypes.forEach(type => {
+          const option = document.createElement('option');
+          option.value = type;
+          option.textContent = type;
+          contractTypeSelect.appendChild(option);
+        });
+      }
+      
+      // Populate new vehicle contract type dropdown
+      if (newContractTypeSelect) {
+        uniqueContractTypes.forEach(type => {
+          const option = document.createElement('option');
+          option.value = type;
+          option.textContent = type;
+          newContractTypeSelect.appendChild(option);
+        });
+      }
+    }
+    
+    // Remove existing event listeners to prevent duplicates
+     if (carMakeSelect) {
+       carMakeSelect.replaceWith(carMakeSelect.cloneNode(true));
+     }
+     if (carModelSelect) {
+       carModelSelect.replaceWith(carModelSelect.cloneNode(true));
+     }
+     if (carNumberSelect) {
+       carNumberSelect.replaceWith(carNumberSelect.cloneNode(true));
+     }
+     
+     // Re-acquire fresh elements
+     const makeEl = document.getElementById('carMakeSelect');
+     const modelEl = document.getElementById('carModelSelect');
+     const numberEl = document.getElementById('carNumberSelect');
+     
+     // Cross-filter dataset and UI state
+     const releaseCars = cars.slice();
+     let filters = { make: '', model: '', carNumber: '' };
+     let isUpdatingUI = false;
+     
+     const getUnique = (arr) => [...new Set(arr.filter(v => v && String(v).trim()))];
+     const sortAlpha = (a, b) => String(a).localeCompare(String(b), undefined, { sensitivity: 'base' });
+     const sortAlnum = (a, b) => String(a).localeCompare(String(b), undefined, { numeric: true, sensitivity: 'base' });
+     
+     function carsFiltered(excludeKey) {
+       return releaseCars.filter(c =>
+         (excludeKey === 'make' || !filters.make || c.make === filters.make) &&
+         (excludeKey === 'model' || !filters.model || c.model === filters.model) &&
+         (excludeKey === 'carNumber' || !filters.carNumber || c.carNumber === filters.carNumber)
+       );
+     }
+     
+     function renderAll() {
+       isUpdatingUI = true;
+       // Compute option sets based on cross-filters
+       const forMake = carsFiltered('make');
+       const forModel = carsFiltered('model');
+       const forNumber = carsFiltered('carNumber');
+       
+       // Render Make options
+       if (makeEl) {
+         makeEl.innerHTML = '<option value="">Select Make</option>';
+         const makes = getUnique(forMake.map(c => c.make)).sort(sortAlpha);
+         makes.forEach(m => {
+           const opt = document.createElement('option');
+           opt.value = m;
+           opt.textContent = m;
+           makeEl.appendChild(opt);
+         });
+         if (filters.make && makes.includes(filters.make)) {
+           makeEl.value = filters.make;
+         } else if (filters.make) {
+           // Selected make no longer valid; clear it
+           filters.make = '';
+         }
+       }
+       
+       // Render Model options
+       if (modelEl) {
+         modelEl.innerHTML = '<option value="">Select Model</option>';
+         const models = getUnique(forModel.map(c => c.model)).sort(sortAlpha);
+         models.forEach(mo => {
+           const opt = document.createElement('option');
+           opt.value = mo;
+           opt.textContent = mo;
+           modelEl.appendChild(opt);
+         });
+         if (filters.model && models.includes(filters.model)) {
+           modelEl.value = filters.model;
+         } else if (filters.model) {
+           filters.model = '';
+         }
+       }
+       
+       // Render Car Number options (also carry car data)
+       if (numberEl) {
+         numberEl.innerHTML = '<option value="">Select Car Number</option>';
+         const numbers = getUnique(forNumber.map(c => c.carNumber)).sort(sortAlnum);
+         numbers.forEach(n => {
+           const carObj = releaseCars.find(c => c.carNumber === n) || null;
+           const opt = document.createElement('option');
+           opt.value = n;
+           opt.textContent = n;
+           if (carObj) opt.dataset.carData = JSON.stringify(carObj);
+           numberEl.appendChild(opt);
+         });
+         if (filters.carNumber && numbers.includes(filters.carNumber)) {
+           numberEl.value = filters.carNumber;
+         } else if (filters.carNumber) {
+           filters.carNumber = '';
+         }
+       }
+       
+       isUpdatingUI = false;
+     }
+     
+     // Change handlers for cross-filtering
+     if (makeEl) {
+       makeEl.addEventListener('change', () => {
+         if (isUpdatingUI) return;
+         filters.make = makeEl.value || '';
+         // If current carNumber/model no longer valid, renderAll will clear them
+         renderAll();
+       });
+     }
+     
+     if (modelEl) {
+       modelEl.addEventListener('change', () => {
+         if (isUpdatingUI) return;
+         filters.model = modelEl.value || '';
+         renderAll();
+       });
+     }
+     
+     if (numberEl) {
+       numberEl.addEventListener('change', function() {
+         if (isUpdatingUI) return;
+         filters.carNumber = this.value || '';
+         const selectedOption = this.options[this.selectedIndex];
+         const carData = selectedOption && selectedOption.dataset && selectedOption.dataset.carData
+           ? JSON.parse(selectedOption.dataset.carData)
+           : null;
+         
+         if (carData) {
+           // Sync Make & Model with the selected Car Number
+           filters.make = carData.make || '';
+           filters.model = carData.model || '';
+           isUpdatingUI = true;
+           if (makeEl) makeEl.value = filters.make;
+           if (modelEl) modelEl.value = filters.model;
+           isUpdatingUI = false;
+           
+           // Populate details
+           const currentUsageTypeSelect = document.getElementById('usageTypeSelect');
+           if (currentUsageTypeSelect) currentUsageTypeSelect.value = carData.usageType || '';
+           const currentOwnerInfo = document.getElementById('ownerInfo');
+           if (currentOwnerInfo) currentOwnerInfo.value = carData.owner || '';
+           const remarksField = document.getElementById('remarksInfo');
+           if (remarksField) remarksField.value = carData.remarks || '';
+           const currentContractTypeSelect = document.getElementById('contractTypeSelect');
+           if (currentContractTypeSelect) currentContractTypeSelect.value = carData.contractType || '';
+           
+           // Load car history
+           if (this.value) {
+             loadCarHistory(this.value);
+           }
+         } else {
+           // If cleared, hide history
+           const currentCarHistorySection = document.getElementById('carHistorySection');
+           if (currentCarHistorySection) currentCarHistorySection.style.display = 'none';
+         }
+         
+         renderAll();
+       });
+     }
+     
+     // Initial render for all dropdowns
+     renderAll();
+  }
+  
+  // Save assignment
+  function saveAssignment() {
+    console.log('Saving car assignment...');
+    
+    const isNewMode = vehicleToggle?.checked;
+    let assignmentData;
+    
+    if (!isNewMode) {
+      // Validate existing vehicle selection
+      const carNumber = carNumberSelect?.value;
+      if (!carNumber) {
+        alert('Please select a car number.');
+        return;
+      }
+      
+      assignmentData = {
+        project: currentRowData?.project,
+        team: currentRowData?.team,
+        beneficiary: currentRowData?.beneficiary,
+        accountHolder: currentRowData?.accountHolder,
+        carNumber: carNumber,
+        make: carMakeSelect?.value,
+        model: carModelSelect?.value,
+        owner: ownerInfo?.value,
+        usageType: usageTypeSelect?.value,
+        contractType: contractTypeSelect?.value,
+        isNewVehicle: false
+      };
+    } else {
+      // Validate new vehicle data
+      const newCarNum = newCarNumber?.value;
+      const newMake = newCarMake?.value;
+      const newModel = newCarModel?.value;
+      const newOwner = newCarOwner?.value;
+      const newUsageType = newUsageTypeSelect?.value;
+      const newContractType = newContractTypeSelect?.value;
+      
+      if (!newCarNum || !newMake || !newModel || !newOwner) {
+        alert('Please fill in all new vehicle details.');
+        return;
+      }
+      
+      if (!newUsageType) {
+        alert('Please select usage type for new vehicle.');
+        return;
+      }
+      
+      if (!newContractType) {
+        alert('Please select contract type for new vehicle.');
+        return;
+      }
+      
+      assignmentData = {
+        project: currentRowData?.project,
+        team: currentRowData?.team,
+        beneficiary: currentRowData?.beneficiary,
+        accountHolder: currentRowData?.accountHolder,
+        carNumber: newCarNum,
+        make: newMake,
+        model: newModel,
+        owner: newOwner,
+        usageType: newUsageType,
+        contractType: newContractType,
+        isNewVehicle: true
+      };
+    }
+    
+    console.log('Assignment data:', assignmentData);
+    
+    // Update the car number input in the table
+    if (currentRowData?.carNumberInput && assignmentData.carNumber) {
+      currentRowData.carNumberInput.value = assignmentData.carNumber;
+    }
+    
+    // Close modal
+    closeModal();
+    
+    // Show success message
+    const vehicleType = isNewMode ? 'new' : 'existing';
+    alert(`${vehicleType.charAt(0).toUpperCase() + vehicleType.slice(1)} vehicle assigned successfully!`);
+  }
+  
+  // Event listeners
+  if (closeBtn) closeBtn.addEventListener('click', closeModal);
+  if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+  if (saveBtn) saveBtn.addEventListener('click', saveAssignment);
+  
+  // Toggle switch event listeners
+  if (vehicleToggle) {
+    vehicleToggle.addEventListener('change', toggleVehicleSections);
+    
+    // Add click handlers to labels for better responsiveness
+    const toggleLabels = document.querySelectorAll('.toggle-label-left, .toggle-label-right, .toggle-slider');
+    toggleLabels.forEach(label => {
+      label.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        vehicleToggle.checked = !vehicleToggle.checked;
+        vehicleToggle.dispatchEvent(new Event('change'));
+      });
+    });
+  }
+  
+  // Close on backdrop click
+  if (backdrop) {
+    backdrop.addEventListener('click', function(e) {
+      if (e.target === backdrop) {
+        closeModal();
+      }
+    });
+  }
+  
+  // Close on Escape key
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && backdrop?.getAttribute('data-open') === 'true') {
+      closeModal();
+    }
+  });
+  
+})();
+</script>

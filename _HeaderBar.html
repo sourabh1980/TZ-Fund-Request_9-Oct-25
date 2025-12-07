@@ -90,17 +90,192 @@
     gap: 6px
   }
 
-  #tableSearch {
-    height: 28px;
-    min-width: 260px;
-    padding: 0 12px;
-    border-radius: 12px;
+  .header-search-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: relative;
+  }
+
+  .header-search-trigger,
+  .header-theme-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    background: linear-gradient(135deg, #531dab 0%, #a855f7 100%);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .header-search-trigger:hover,
+  .header-theme-icon:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 24px rgba(14, 165, 233, 0.35);
+    border-color: rgba(255, 255, 255, 0.8);
+  }
+
+  .header-theme-icon span {
+    line-height: 1;
+  }
+
+  .header-search-trigger svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+  }
+
+  .header-search-panel {
+    position: absolute;
+    top: 48px;
+    right: 0;
+    width: 270px;
+    padding: 10px;
+    border-radius: 16px;
+    background: #140c3a;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: 0 18px 40px rgba(10, 5, 25, 0.65);
+    display: none;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 20;
+  }
+
+  .header-search-panel::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    right: 18px;
+    width: 16px;
+    height: 16px;
+    background: #140c3a;
+    border-left: 1px solid rgba(255, 255, 255, 0.25);
+    border-top: 1px solid rgba(255, 255, 255, 0.25);
+    transform: rotate(45deg);
+  }
+
+  .header-search-panel.open {
+    display: flex;
+  }
+
+  .header-search-input {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 10px;
     border: 1px solid #332b5c;
     background: #1b1a3b;
     color: #eef3ff;
+    font-size: 14px;
     font-weight: 700;
-    font-size: 12px;
-    outline: none
+    outline: none;
+  }
+
+  .header-search-close {
+    align-self: flex-end;
+    border: none;
+    background: transparent;
+    color: #e2e8f0;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: color 0.2s ease, background 0.2s ease;
+  }
+
+  .header-search-close:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+  }
+
+  .theme-panel {
+    position: relative;
+    margin-top: 4px;
+    background: #120a30;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 12px 30px rgba(8, 5, 20, 0.65);
+    padding-bottom: 16px;
+  }
+
+  .theme-panel__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  #themePanelClose {
+    background: transparent;
+    border: none;
+    color: #eef3ff;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 8px;
+  }
+
+  #themePanelClose:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .theme-panel__body {
+    padding: 18px;
+    text-align: center;
+    color: rgba(238, 243, 255, 0.9);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .theme-panel__content {
+    padding: 0 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .theme-panel__content h3 {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: #d4deff;
+  }
+
+  .theme-panel__content p {
+    margin: 0;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .theme-panel__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+
+  .theme-panel__card {
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    text-align: left;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .theme-panel__card strong {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 15px;
   }
 
   #btnExport {
@@ -773,7 +948,20 @@
           </g>
         </svg>
       </button>
-      <input id="tableSearch" type="search" placeholder="Search…" />
+      <div class="header-search-controls">
+        <button class="header-search-trigger" type="button" aria-label="Open search">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M15.5 14h-.79l-.28-.27A6 6 0 1 0 14 15.5l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-5.5 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"></path>
+          </svg>
+        </button>
+        <button id="headerThemeT" class="header-theme-icon" type="button" aria-label="Theme accent">
+          <span aria-hidden="true">T</span>
+        </button>
+        <div class="header-search-panel" role="search" aria-label="Table search">
+          <input id="tableSearch" class="header-search-input" type="search" placeholder="Search…" autocomplete="off">
+          <button type="button" class="header-search-close" aria-label="Close search panel">×</button>
+        </div>
+      </div>
       <button id="btnExport" type="button" title="Export">Export</button>
       <div class="user-account">
         <button id="userMenuTrigger" class="user-account__trigger" type="button" aria-haspopup="true" aria-expanded="false">
@@ -789,6 +977,36 @@
     </div>
   </div>
 </header>
+<div id="tThemePanel" class="theme-panel" hidden>
+  <div class="theme-panel__header">
+    <span>Theme “T” Console</span>
+    <button id="themePanelClose" type="button" aria-label="Close theme panel">×</button>
+  </div>
+  <div class="theme-panel__content">
+    <div class="theme-panel__body">
+      <h3>Theme “T” Experience</h3>
+      <p>
+        Explore the gradient-driven controls and storyboards that match the Fund Request Tanzania
+        atmosphere without leaving the current view. This panel mirrors the brand illustration you
+        wanted while keeping the core navigation intact.
+      </p>
+    </div>
+    <div class="theme-panel__grid">
+      <div class="theme-panel__card">
+        <strong>Immersive Header</strong>
+        Reloads the same header gradients and icons so you never lose sight of your navigation context.
+      </div>
+      <div class="theme-panel__card">
+        <strong>Layered Content</strong>
+        Use the cards below to highlight upcoming features, tips, or quick actions that complement your workflow.
+      </div>
+      <div class="theme-panel__card">
+        <strong>No External Loads</strong>
+        Everything renders instantly on this page, preventing Google Drive errors or blocked iframes.
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
   /* Project Button and Picker Integration */
@@ -1813,5 +2031,90 @@
     });
 
     searchInput.addEventListener('search', applySearch);
+
+    const searchControls = searchInput.closest('.header-search-controls');
+    const searchToggle = searchControls ? searchControls.querySelector('.header-search-trigger') : null;
+    const searchPanel = searchControls ? searchControls.querySelector('.header-search-panel') : null;
+    const searchClose = searchPanel ? searchPanel.querySelector('.header-search-close') : null;
+
+    function openHeaderSearch() {
+      if (searchPanel) {
+        searchPanel.classList.add('open');
+      }
+    }
+
+    function closeHeaderSearch() {
+      if (searchPanel) {
+        searchPanel.classList.remove('open');
+      }
+    }
+
+    if (searchToggle) {
+      searchToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openHeaderSearch();
+        try { searchInput.focus(); } catch (_e) {}
+      });
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('focus', () => {
+        openHeaderSearch();
+      });
+
+      searchInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+          searchInput.value = '';
+          applySearch();
+          closeHeaderSearch();
+          try {
+            if (searchToggle) searchToggle.focus();
+          } catch (_e) {}
+        }
+      });
+    }
+
+    if (searchClose) {
+      searchClose.addEventListener('click', () => {
+        closeHeaderSearch();
+        try { searchToggle && searchToggle.focus(); } catch (_e) {}
+      });
+    }
+
+    document.addEventListener('click', (event) => {
+      if (!searchPanel || !searchPanel.classList.contains('open')) return;
+      if (searchControls && !searchControls.contains(event.target)) {
+        closeHeaderSearch();
+      }
+    });
+
+    const themePanel = document.getElementById('tThemePanel');
+    const themeToggle = document.getElementById('headerThemeT');
+    const themePanelClose = document.getElementById('themePanelClose');
+
+    function openThemePanel() {
+      if (themePanel) {
+        themePanel.hidden = false;
+        themePanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function closeThemePanel() {
+      if (themePanel) {
+        themePanel.hidden = true;
+      }
+    }
+
+    if (themeToggle) {
+      themeToggle.addEventListener('click', (event) => {
+        event.stopPropagation();
+        openThemePanel();
+        closeHeaderSearch();
+      });
+    }
+
+    if (themePanelClose) {
+      themePanelClose.addEventListener('click', closeThemePanel);
+    }
   })();
 </script>

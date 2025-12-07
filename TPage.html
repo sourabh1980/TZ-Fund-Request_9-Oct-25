@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Theme “T” Page</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+      body {
+        margin: 0;
+        font-family: "Inter", system-ui, sans-serif;
+        background: radial-gradient(circle at top, rgba(255, 255, 255, 0.15), transparent 55%),
+          linear-gradient(135deg, #130533, #1a0e47 70%, #07030c);
+        color: #eef3ff;
+        min-height: 100vh;
+      }
+      #pageContent {
+        padding: 24px;
+        text-align: center;
+      }
+      h2 {
+        margin-top: 60px;
+        font-size: clamp(28px, 3vw, 38px);
+        background: linear-gradient(90deg, #ff6ad5, #06b6d4);
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+      p {
+        max-width: 760px;
+        margin: 0 auto;
+        font-size: 16px;
+        line-height: 1.6;
+        color: rgba(238, 243, 255, 0.9);
+      }
+      #headerPlaceholder {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="headerPlaceholder"></div>
+    <main id="pageContent">
+      <h2>Theme “T” Experience</h2>
+      <p>
+        This page mirrors the main header so you can continue operating with the same navigation
+        controls while exploring the new “T”-driven workflow.
+      </p>
+    </main>
+    <script>
+      (function () {
+        const target = document.getElementById('headerPlaceholder');
+        if (!target) return;
+        fetch('_HeaderBar.html')
+          .then(function (res) {
+            if (!res.ok) throw new Error('Failed to load header');
+            return res.text();
+          })
+          .then(function (html) {
+            target.innerHTML = html;
+          })
+          .catch(function (err) {
+            console.error('Unable to load header for T page', err);
+            target.innerHTML = '<header style="padding:16px;text-align:center">Header unavailable</header>';
+          });
+      })();
+    </script>
+  </body>
+</html>
