@@ -2330,6 +2330,11 @@
           return;
         }
 
+        if (!(window.google && google.script && google.script.run && typeof google.script.run.getInUseHistoryForcedWorking === 'function')) {
+          handleFailure(new Error('IN USE history data is unavailable outside of the Google Sheets web app.'));
+          return;
+        }
+
         google.script.run
           .withSuccessHandler((data) => {
             try { window.vehicleReleasePrefetch && window.vehicleReleasePrefetch.storeInUseHistory(carNumber, teamName, data); } catch(_){ /* ignore */ }
@@ -3243,6 +3248,10 @@
 
       async submitUserRelease(releaseData) {
         return new Promise((resolve, reject) => {
+          if (!(window.google && google.script && google.script.run && typeof google.script.run.releaseCarUser === 'function')) {
+            reject(new Error('Release workflow is only available inside the Google Sheets web app.'));
+            return;
+          }
           google.script.run
             .withSuccessHandler(resolve)
             .withFailureHandler(reject)
@@ -3337,6 +3346,10 @@
         }
 
         showLoadingState();
+        if (!(window.google && google.script && google.script.run && typeof google.script.run.getReleaseHistoryForcedWorking === 'function')) {
+          handleFailure(new Error('Release history service unavailable. Please try again from the Google Sheets web app.'));
+          return;
+        }
         google.script.run
           .withSuccessHandler((data) => {
             try { window.vehicleReleasePrefetch && window.vehicleReleasePrefetch.storeReleaseHistory(carNumber, data); } catch(_){ /* ignore */ }
@@ -3408,6 +3421,10 @@
         }
 
         showLoadingState();
+        if (!(window.google && google.script && google.script.run && typeof google.script.run.getInUseHistoryForcedWorking === 'function')) {
+          handleFailure(new Error('IN USE history service unavailable. Please open this workflow inside the Google Sheets web app.'));
+          return;
+        }
         google.script.run
           .withSuccessHandler((data) => {
             try { window.vehicleReleasePrefetch && window.vehicleReleasePrefetch.storeInUseHistory(carNumber, teamName, data); } catch(_){ /* ignore */ }
