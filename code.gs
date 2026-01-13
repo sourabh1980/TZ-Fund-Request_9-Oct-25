@@ -521,6 +521,43 @@ function getVehicleInUseSummary() {
   const starsIdx = idx(['Ratings', 'Stars', 'Rating']);
   const rBenTimeIdx = idx(['R.Ben Time','R.Ben timestamp','Responsible Beneficiary Time'], false);
 
+  const carTPRows = _readCarTP_objects_();
+  const cartpMetaByBeneficiary = Object.create(null);
+  if (carTPRows.length) {
+    carTPRows.forEach(function(row){
+      if (!row) return;
+      const vehicleKey = _vehicleKey_(row['Vehicle Number']);
+      const beneficiaryKey = _beneficiaryKey_(row.responsibleBeneficiary || row['R.Beneficiary'] || row['R. Ben'] || '');
+      if (!vehicleKey || !beneficiaryKey) return;
+
+      const tsRaw = row._ts || row['Date and time of entry'];
+      const ts = _parseTs_(tsRaw);
+      const rowIndex = Number(row._rowIndex || 0) || 0;
+      const key = vehicleKey + '|' + beneficiaryKey;
+      const existing = cartpMetaByBeneficiary[key];
+
+      const currentTs = (existing && isFinite(existing.ts)) ? existing.ts : null;
+      const candidateTs = isFinite(ts) ? ts : null;
+      const currentRowIdx = existing ? existing.rowIndex || 0 : 0;
+
+      const isNewer = (candidateTs != null && currentTs == null) ||
+        (candidateTs != null && currentTs != null && candidateTs > currentTs) ||
+        (candidateTs == null && currentTs == null && rowIndex > currentRowIdx);
+
+      if (!existing || isNewer) {
+        cartpMetaByBeneficiary[key] = {
+          ts: candidateTs,
+          rowIndex: rowIndex,
+          make: row.Make || '',
+          model: row.Model || '',
+          category: row.Category || '',
+          usageType: row['Usage Type'] || '',
+          owner: row.Owner || ''
+        };
+      }
+    });
+  }
+
   const assignments = summary.rows.map(function(row) {
     return {
       beneficiary: beneficiaryIdx >= 0 ? row[beneficiaryIdx] : '',
@@ -543,6 +580,25 @@ function getVehicleInUseSummary() {
   }).filter(function(entry) {
     return String(entry.vehicleNumber || '').trim() !== '';
   });
+
+  if (assignments.length) {
+    assignments.forEach(function(entry){
+      if (!entry) return;
+      const vehicleKey = _vehicleKey_(entry.vehicleNumber);
+      const beneficiaryKey = _beneficiaryKey_(entry.beneficiary || entry.responsibleBeneficiary || '');
+      if (!vehicleKey || !beneficiaryKey) return;
+      const meta = cartpMetaByBeneficiary[vehicleKey + '|' + beneficiaryKey];
+      if (!meta) {
+        console.info("[CARTP META] No IN-USE metadata for", vehicleKey, beneficiaryKey);
+        return;
+      }
+      if (!entry.make && meta.make) entry.make = meta.make;
+      if (!entry.model && meta.model) entry.model = meta.model;
+      if (!entry.category && meta.category) entry.category = meta.category;
+      if (!entry.usageType && meta.usageType) entry.usageType = meta.usageType;
+      if (!entry.owner && meta.owner) entry.owner = meta.owner;
+    });
+  }
 
   assignments.sort(function(a, b) {
     var tsA = a.latestTimestamp ? new Date(a.latestTimestamp).getTime() : 0;
@@ -11694,6 +11750,12 @@ function _readCarTP_objects_(){
   const iUse   = idx(['Usage Type','Usage','Use Type'], false);
   const iOwner = idx(['Owner','Owner Name','Owner Info'], false);
 
+  const makeIdx = iMake >= 0 ? iMake : (head.length >= 8 ? 7 : -1);
+  const modelIdx = iModel >= 0 ? iModel : (head.length >= 9 ? 8 : -1);
+  const categoryIdx = iCat >= 0 ? iCat : (head.length >= 10 ? 9 : -1);
+  const usageIdx = iUse >= 0 ? iUse : (head.length >= 11 ? 10 : -1);
+  const ownerIdx = iOwner >= 0 ? iOwner : (head.length >= 12 ? 11 : -1);
+
   const normalizedHead = head.map(function(h){ return String(h || '').trim().toLowerCase(); });
   const sanitizedHead = normalizedHead.map(function(h){ return h.replace(/[^a-z0-9]+/g, ''); });
   function findHeaderIndex(predicate) {
@@ -11786,20 +11848,24 @@ function _readCarTP_objects_(){
       }
     }
 
+    const statusValue = iStat>=0 ? (row[iStat] || disp[r][iStat] || '') : '';
+    const normalizedStatus = _normStatus_(statusValue);
+    if (normalizedStatus !== 'IN USE') continue;
+
     const obj = {
       Ref: iRef>=0 ? (row[iRef] || disp[r][iRef] || '') : '',
       'Date and time of entry': iDate>=0 ? (row[iDate] || disp[r][iDate] || '') : '',
       Project: iProj>=0 ? (row[iProj] || disp[r][iProj] || '') : '',
       Team: iTeam>=0 ? (row[iTeam] || disp[r][iTeam] || '') : '',
       'Vehicle Number': iCarNo>=0 ? (row[iCarNo] || disp[r][iCarNo] || '') : '',
-      Make: iMake>=0 ? (row[iMake] || disp[r][iMake] || '') : '',
-      Model: iModel>=0 ? (row[iModel] || disp[r][iModel] || '') : '',
-      Category: iCat>=0 ? (row[iCat] || disp[r][iCat] || '') : '',
-      'Usage Type': iUse>=0 ? (row[iUse] || disp[r][iUse] || '') : '',
-      Owner: iOwner>=0 ? (row[iOwner] || disp[r][iOwner] || '') : '',
+      Make: makeIdx>=0 ? (row[makeIdx] || disp[r][makeIdx] || '') : '',
+      Model: modelIdx>=0 ? (row[modelIdx] || disp[r][modelIdx] || '') : '',
+      Category: categoryIdx>=0 ? (row[categoryIdx] || disp[r][categoryIdx] || '') : '',
+      'Usage Type': usageIdx>=0 ? (row[usageIdx] || disp[r][usageIdx] || '') : '',
+      Owner: ownerIdx>=0 ? (row[ownerIdx] || disp[r][ownerIdx] || '') : '',
       'R.Beneficiary': beneficiaryValue,
       'R. Ben': responsibleValue || '',
-      Status: iStat>=0 ? (row[iStat] || disp[r][iStat] || '') : '',
+      Status: statusValue,
       'Last Users remarks': iRem>=0 ? (row[iRem] || disp[r][iRem] || '') : '',
       Ratings: iRate>=0 ? (row[iRate] || disp[r][iRate] || '') : '',
       'Submitter username': iSubmit>=0 ? (row[iSubmit] || disp[r][iSubmit] || '') : '',
