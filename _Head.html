@@ -308,4 +308,65 @@
   .pill-btn{padding:8px 14px;border-radius:999px;border:0;font-weight:900;font-size:12px;cursor:pointer;box-shadow:0 10px 22px rgba(0,0,0,.18);color:#0b1220}
   .pill-btn.primary{background:linear-gradient(135deg,#10b981,#06b6d4)}
   .pill-btn.ghost{background:linear-gradient(135deg,#e5e7eb,#f3f4f6);color:#0b1220}
+
+  /* Waveform loader component */
+  .wave-loader{display:none;align-items:flex-start;gap:10px;margin-top:6px;color:#0f172a;font-family:inherit}
+  .wave-loader--visible{display:flex}
+  .wave-loader__pill{display:flex;align-items:center;gap:12px;padding:8px 14px;border-radius:999px;border:1px solid rgba(14,165,233,.25);background:rgba(248,250,252,.92);box-shadow:0 12px 28px rgba(15,23,42,.08);min-width:0}
+  .wave-loader__bars{display:flex;align-items:flex-end;gap:4px;height:26px;min-width:36px}
+  .wave-loader__bar{width:5px;border-radius:999px;background:linear-gradient(180deg,#22d3ee,#0ea5e9);animation:waveLoaderPulse 1.4s ease-in-out infinite;transform-origin:bottom center}
+  .wave-loader__bar:nth-child(2){animation-delay:-.2s;background:linear-gradient(180deg,#38bdf8,#6366f1)}
+  .wave-loader__bar:nth-child(3){animation-delay:-.4s;background:linear-gradient(180deg,#6366f1,#8b5cf6)}
+  .wave-loader__bar:nth-child(4){animation-delay:-.1s;background:linear-gradient(180deg,#8b5cf6,#c084fc)}
+  .wave-loader__bar:nth-child(5){animation-delay:-.3s;background:linear-gradient(180deg,#fb923c,#f97316)}
+  .wave-loader__text{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .wave-loader__primary{font-size:13px;font-weight:700;line-height:1.3;color:inherit}
+  .wave-loader__secondary{font-size:12px;color:#475569;line-height:1.2}
+  .wave-loader__secondary:empty{display:none}
+  .wave-loader--compact .wave-loader__pill{padding:6px 12px;gap:10px}
+  .wave-loader--compact .wave-loader__primary{font-size:12px}
+  .wave-loader--compact .wave-loader__secondary{font-size:11px}
+  .wave-loader--on-dark .wave-loader__pill{background:rgba(15,23,42,.32);border-color:rgba(255,255,255,.35);box-shadow:none}
+  .wave-loader--on-dark .wave-loader__primary{color:#e0f2ff}
+  .wave-loader--on-dark .wave-loader__secondary{color:rgba(224,242,255,.88)}
+  .wave-loader--vp{width:100%;max-width:320px}
+  .wave-loader--vp .wave-loader__primary{color:#0f172a}
+  .wave-loader--vp .wave-loader__secondary{color:#1e293b}
+  @keyframes waveLoaderPulse{0%{transform:scaleY(.35)}20%{transform:scaleY(.95)}40%{transform:scaleY(.45)}60%{transform:scaleY(.85)}80%{transform:scaleY(.4)}100%{transform:scaleY(.5)}}
+  @media (prefers-reduced-motion:reduce){
+    .wave-loader__bar{animation-duration:0s}
+  }
 </style>
+
+<script>
+(function(){
+  if (window.createWaveLoaderController) return;
+  window.createWaveLoaderController = function(rootOrId){
+    var root = typeof rootOrId === 'string' ? document.getElementById(rootOrId) : rootOrId;
+    if (!root) return null;
+    var primaryEl = root.querySelector('[data-wave-primary]');
+    var secondaryEl = root.querySelector('[data-wave-secondary]');
+    var defaults = {
+      primary: primaryEl ? primaryEl.textContent.trim() : '',
+      secondary: secondaryEl ? secondaryEl.textContent.trim() : ''
+    };
+    function apply(primary, secondary){
+      if (primaryEl) primaryEl.textContent = primary || defaults.primary || '';
+      if (secondaryEl) secondaryEl.textContent = secondary || '';
+    }
+    return {
+      element: root,
+      show: function(primary, secondary){
+        apply(primary, secondary);
+        root.classList.add('wave-loader--visible');
+        root.removeAttribute('aria-hidden');
+      },
+      hide: function(){
+        root.classList.remove('wave-loader--visible');
+        root.setAttribute('aria-hidden','true');
+      },
+      update: apply
+    };
+  };
+})();
+</script>

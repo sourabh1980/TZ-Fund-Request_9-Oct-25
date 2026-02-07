@@ -462,7 +462,8 @@
         .vp-header{position:relative;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;padding:10px 70px 10px 18px;
           color:#fff;background:linear-gradient(135deg,var(--vp-primary),var(--vp-primary-deep));gap:12px}
         .vp-header__left{display:flex;align-items:center;gap:16px;flex:1;min-width:0;flex-wrap:wrap}
-        .vp-header__brand{display:flex;align-items:center;gap:10px;min-width:0}
+        .vp-header__brand{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-width:0}
+        .vp-header__brand-main{display:flex;align-items:center;gap:10px;min-width:0}
         .vp-header__icon{width:32px;height:32px;border-radius:11px;background:rgba(255,255,255,.2);display:grid;place-items:center;
           box-shadow:0 10px 30px rgba(15,23,42,.35)}
         .vp-header__icon svg{width:20px;height:20px;fill:#fff}
@@ -670,12 +671,29 @@
           <header class="vp-header">
             <div class="vp-header__left">
               <div class="vp-header__brand">
-                <span class="vp-header__icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" role="presentation">
-                    <path d="M4.6 10.2L6.4 6c.5-1 1.5-1.6 2.6-1.6h6c1.1 0 2.1.6 2.6 1.6l1.8 4.2c1.1.4 1.6 1.3 1.6 2.4v4c0 .8-.7 1.5-1.5 1.5h-.5c-.8 0-1.5-.7-1.5-1.5v-1H6v1c0 .8-.7 1.5-1.5 1.5H4c-.8 0-1.5-.7-1.5-1.5v-4c0-1.1.5-2 1.6-2.4ZM8 6.9L6.7 10h10.6L15.9 6.9c-.2-.4-.6-.6-1-.6h-6c-.4 0-.8.2-1 .6ZM5 13.5h14v-1c0-.3-.2-.5-.5-.5h-13c-.3 0-.5.2-.5.5v1Z"/>
-                  </svg>
-                </span>
-                <h2 id="vehiclePickerTitle" class="vp-title">Select Vehicle</h2>
+                <div class="vp-header__brand-main">
+                  <span class="vp-header__icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" role="presentation">
+                      <path d="M4.6 10.2L6.4 6c.5-1 1.5-1.6 2.6-1.6h6c1.1 0 2.1.6 2.6 1.6l1.8 4.2c1.1.4 1.6 1.3 1.6 2.4v4c0 .8-.7 1.5-1.5 1.5h-.5c-.8 0-1.5-.7-1.5-1.5v-1H6v1c0 .8-.7 1.5-1.5 1.5H4c-.8 0-1.5-.7-1.5-1.5v-4c0-1.1.5-2 1.6-2.4ZM8 6.9L6.7 10h10.6L15.9 6.9c-.2-.4-.6-.6-1-.6h-6c-.4 0-.8.2-1 .6ZM5 13.5h14v-1c0-.3-.2-.5-.5-.5h-13c-.3 0-.5.2-.5.5v1Z"/>
+                    </svg>
+                  </span>
+                  <h2 id="vehiclePickerTitle" class="vp-title">Select Vehicle</h2>
+                </div>
+                <div id="vpWaveLoader" class="wave-loader wave-loader--vp" aria-live="polite" aria-hidden="true" role="status">
+                  <div class="wave-loader__pill">
+                    <div class="wave-loader__bars" aria-hidden="true">
+                      <span class="wave-loader__bar"></span>
+                      <span class="wave-loader__bar"></span>
+                      <span class="wave-loader__bar"></span>
+                      <span class="wave-loader__bar"></span>
+                      <span class="wave-loader__bar"></span>
+                    </div>
+                    <div class="wave-loader__text">
+                      <div class="wave-loader__primary" data-wave-primary>Syncing live vehicle status…</div>
+                      <div class="wave-loader__secondary" data-wave-secondary>Loading latest fleet and IN USE information.</div>
+                    </div>
+                  </div>
+                </div>
               </div>
               <div class="vp-header__switch">
                 <div id="vpModeSwitch" class="vp-switch" role="tablist" aria-label="Car mode" data-mode="existing">
@@ -1095,9 +1113,67 @@
         let pendingVehiclePrefillValue = '';
         let pendingVehiclePrefillLabel = '';
         let vehiclePrefillApplied = true;
+        let vehicleWaveLoaderController = null;
+        let vehicleWaveHideTimer = null;
 
         function normalizeVehicleNumber(value){
           return String(value || '').trim().toUpperCase();
+        }
+
+        function getVehicleWaveLoader(){
+          if (vehicleWaveLoaderController) return vehicleWaveLoaderController;
+          if (typeof window.createWaveLoaderController !== 'function') return null;
+          vehicleWaveLoaderController = window.createWaveLoaderController('vpWaveLoader');
+          return vehicleWaveLoaderController;
+        }
+
+        function lockSelectButtonForWave(active){
+          const btn = document.getElementById('vpSelectBtn');
+          if (!btn) return;
+          if (active) {
+            if (!btn.dataset.waveLockState) {
+              btn.dataset.waveLockState = btn.disabled ? 'locked' : 'enabled';
+            }
+            btn.disabled = true;
+          } else if (btn.dataset.waveLockState) {
+            const shouldEnable = btn.dataset.waveLockState === 'enabled';
+            delete btn.dataset.waveLockState;
+            if (shouldEnable) {
+              btn.disabled = false;
+            }
+          }
+        }
+
+        function showVehicleWaveLoader(primaryText, secondaryText){
+          if (vehicleWaveHideTimer) {
+            clearTimeout(vehicleWaveHideTimer);
+            vehicleWaveHideTimer = null;
+          }
+          const ctrl = getVehicleWaveLoader();
+          if (!ctrl) return;
+          const primary = primaryText || 'Syncing live vehicle status…';
+          const secondary = secondaryText || 'Loading latest fleet and IN USE information.';
+          ctrl.show(primary, secondary);
+          lockSelectButtonForWave(true);
+        }
+
+        function hideVehicleWaveLoader(options){
+          const ctrl = getVehicleWaveLoader();
+          if (!ctrl) return;
+          const delay = options && typeof options.delay === 'number' ? Math.max(0, options.delay) : 0;
+          const finish = function(){
+            ctrl.hide();
+            lockSelectButtonForWave(false);
+            vehicleWaveHideTimer = null;
+          };
+          if (delay > 0) {
+            if (vehicleWaveHideTimer) {
+              clearTimeout(vehicleWaveHideTimer);
+            }
+            vehicleWaveHideTimer = setTimeout(finish, delay);
+          } else {
+            finish();
+          }
         }
 
         function deriveRowFromTarget(target){
@@ -1408,12 +1484,14 @@
 
         function manualRefreshVehiclePicker(){
           if (vpMode === 'new') {
+            hideVehicleWaveLoader();
             ensureNewVehicleOptions(true);
             return;
           }
           if (manualRefreshInProgress) return;
           manualRefreshInProgress = true;
           setRefreshButtonState(true);
+          showVehicleWaveLoader('Refreshing vehicle list…', 'We’re checking which cars are free for this team.');
 
           const statusEl = document.getElementById('vpStatus');
           if (statusEl) {
@@ -2927,6 +3005,7 @@
             ensureNewVehicleOptions(true);
             clearVehicleInsights();
             updateSelectButtonState();
+            hideVehicleWaveLoader();
             return;
           }
           if (statusEl) {
@@ -3103,6 +3182,7 @@
             statusEl.removeAttribute('data-state');
             statusEl.textContent = 'Loading latest vehicles…';
           }
+          showVehicleWaveLoader('Syncing live vehicle status…', 'Loading latest fleet and IN USE information.');
           setMode('existing', { autoFetch: false });
 
           const startedAt = (typeof performance !== 'undefined' && typeof performance.now === 'function') ? performance.now() : Date.now();
@@ -3183,6 +3263,7 @@
           modal.setAttribute('aria-hidden','true');
           document.body.style.overflow='';
           vehicleModalVisible = false;
+          hideVehicleWaveLoader();
           vehicleOpenInitialFetchDone = false;
           resetPickerUI();
           clearVehiclePrefill();
@@ -3222,6 +3303,10 @@
               statusEl.setAttribute('data-state', 'error');
               statusEl.textContent = 'Release vehicle catalog unavailable.';
             }
+            if (!silentFetch && vehicleModalVisible) {
+              showVehicleWaveLoader('Couldn’t reach the vehicle catalog.', 'Please try again in a moment.');
+              hideVehicleWaveLoader({ delay: 2800 });
+            }
             if (manualRefreshInProgress) {
               finalizeManualRefresh();
             }
@@ -3255,6 +3340,10 @@
               statusEl.setAttribute('data-state', 'error');
               statusEl.textContent = 'Unable to fetch release vehicles right now.';
             }
+            if (!silentFetch && vehicleModalVisible) {
+              showVehicleWaveLoader('Couldn’t reach the vehicle catalog.', 'Please try refreshing.');
+              hideVehicleWaveLoader({ delay: 2800 });
+            }
             if (manualRefreshInProgress) {
               finalizeManualRefresh();
             }
@@ -3265,6 +3354,13 @@
           if (!silentFetch && statusEl) {
             statusEl.removeAttribute('data-state');
             statusEl.textContent = 'Loading release vehicles…';
+          }
+          if (!silentFetch && vehicleModalVisible) {
+            const loaderPrimary = isManualFetch ? 'Refreshing vehicle list…' : 'Syncing live vehicle status…';
+            const loaderSecondary = isManualFetch
+              ? 'We’re checking which cars are free for this team.'
+              : 'Loading latest fleet and IN USE information.';
+            showVehicleWaveLoader(loaderPrimary, loaderSecondary);
           }
           releasePromise
             .then(function(list){
@@ -3285,6 +3381,10 @@
               if (!silentFetch && statusEl) {
                 statusEl.setAttribute('data-state', 'error');
                 statusEl.textContent = 'Failed to load release vehicles for selection.';
+              }
+              if (!silentFetch && vehicleModalVisible) {
+                showVehicleWaveLoader('Couldn’t reach the vehicle catalog.', 'Please try refreshing.');
+                hideVehicleWaveLoader({ delay: 2800 });
               }
               setDropdownLoading(true, 'Unable to load release vehicles');
               if (manualRefreshInProgress) {
@@ -3373,6 +3473,10 @@
             setDropdownLoading(true, 'No release vehicles available');
             const matchMetaEl = document.getElementById('vpMatchMeta');
             if (matchMetaEl) matchMetaEl.textContent = '0 vehicles match filters';
+            if (vehicleModalVisible) {
+              showVehicleWaveLoader('This is taking longer than usual…', 'Vehicle catalog returned no vehicles.');
+              hideVehicleWaveLoader({ delay: 2800 });
+            }
             if (manualRefreshInProgress) {
               finalizeManualRefresh();
             }
@@ -3396,6 +3500,9 @@
 
           window.__vpForceFreshVehicleFetch = true;
           renderVehicles(list);
+          if (vehicleModalVisible) {
+            hideVehicleWaveLoader({ delay: 200 });
+          }
           if (manualRefreshInProgress) {
             finalizeManualRefresh();
           }
