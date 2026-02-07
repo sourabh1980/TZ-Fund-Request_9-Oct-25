@@ -453,6 +453,13 @@
           --vp-bad:#ef4444;
           --vp-chip:#f8fafc;
         }
+        .voice-loader{--voice-loader-top:#22d3ee;--voice-loader-bottom:#6366f1;display:inline-flex;align-items:flex-end;gap:4px;opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;pointer-events:none}
+        .voice-loader span{width:6px;height:18px;border-radius:999px;background:linear-gradient(180deg,var(--voice-loader-top),var(--voice-loader-bottom));animation:voiceLoaderPulse 1s ease-in-out infinite;animation-delay:calc(var(--voice-index,0)*120ms);transform-origin:center bottom}
+        .voice-loader.is-active{opacity:1;visibility:visible}
+        .voice-loader--lg span{width:8px;height:26px}
+        .voice-loader--inline{min-height:24px}
+        .voice-loader--on-dark{--voice-loader-top:#f472b6;--voice-loader-bottom:#fb7185}
+        @keyframes voiceLoaderPulse{0%{transform:scaleY(.25)}50%{transform:scaleY(1)}100%{transform:scaleY(.25)}}
         .vp-backdrop{position:fixed;inset:0;background:rgba(2,6,23,.45);backdrop-filter:blur(6px);display:none;z-index:10000}
         .vp-backdrop[aria-hidden="false"]{display:grid;place-items:center}
         .vp-modal{position:relative;width:min(860px,96vw);max-height:86vh;background:var(--vp-surface);
@@ -482,7 +489,9 @@
         .vp-hold__sub{margin:0;font-size:13px;color:rgba(248,250,252,.8)}
         body.vp-hold-active{overflow:hidden}
         #vpExistingSection{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-        .vp-status{grid-column:1/-1;font-size:13px;color:var(--vp-muted);margin-top:-2px}
+        .vp-status-row{grid-column:1/-1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+        .vp-status{font-size:13px;color:var(--vp-muted);margin-top:-2px}
+        .vp-status-row .voice-loader{margin-left:auto}
         .vp-status[data-state="error"]{color:var(--vp-bad);font-weight:600}
 
         /* Top context row: 3 fields aligned in one line on desktop */
@@ -694,7 +703,16 @@
 
           <div class="vp-body">
             <div id="vpExistingSection">
-              <div id="vpStatus" class="vp-status">Loading latest vehicles…</div>
+              <div class="vp-status-row">
+                <div id="vpStatus" class="vp-status">Loading latest vehicles…</div>
+                <div id="vpLoadingIndicator" class="voice-loader voice-loader--inline" aria-hidden="true">
+                  <span style="--voice-index:0"></span>
+                  <span style="--voice-index:1"></span>
+                  <span style="--voice-index:2"></span>
+                  <span style="--voice-index:3"></span>
+                  <span style="--voice-index:4"></span>
+                </div>
+              </div>
 
               <!-- Top context row: aligned 3 fields -->
               <div class="vp-context" id="vpContextRow">
@@ -2927,6 +2945,7 @@
             ensureNewVehicleOptions(true);
             clearVehicleInsights();
             updateSelectButtonState();
+            setVehiclePickerLoaderActive(false);
             return;
           }
           if (statusEl) {
@@ -2947,6 +2966,14 @@
           } else {
             sel.disabled = false;
           }
+        }
+
+        function setVehiclePickerLoaderActive(isActive){
+          const loader = document.getElementById('vpLoadingIndicator');
+          if (!loader) return;
+          const active = !!isActive;
+          loader.classList.toggle('is-active', active);
+          loader.setAttribute('aria-hidden', active ? 'false' : 'true');
         }
 
         function resetPickerUI(){
@@ -3103,6 +3130,7 @@
             statusEl.removeAttribute('data-state');
             statusEl.textContent = 'Loading latest vehicles…';
           }
+          setVehiclePickerLoaderActive(true);
           setMode('existing', { autoFetch: false });
 
           const startedAt = (typeof performance !== 'undefined' && typeof performance.now === 'function') ? performance.now() : Date.now();
@@ -3186,10 +3214,11 @@
           vehicleOpenInitialFetchDone = false;
           resetPickerUI();
           clearVehiclePrefill();
-          
+
           // Clear source beneficiary
           window.__vpSourceBeneficiary = '';
           console.log('[VP] Cleared source beneficiary on modal close');
+          setVehiclePickerLoaderActive(false);
         }
 
         function fetchVehicles(options){
@@ -3198,6 +3227,7 @@
           const isManualFetch = opts.manual === true;
           if (vpMode !== 'existing') {
             vehicleVersionRefreshPending = false;
+            setVehiclePickerLoaderActive(false);
             return;
           }
           const statusEl = document.getElementById('vpStatus');
@@ -3208,6 +3238,9 @@
             if (!silentFetch && statusEl && !vehicleFetchPending) {
               statusEl.removeAttribute('data-state');
               statusEl.textContent = 'Vehicles already loaded.';
+            }
+            if (!vehicleFetchPending) {
+              setVehiclePickerLoaderActive(false);
             }
             return;
           }
@@ -3225,6 +3258,7 @@
             if (manualRefreshInProgress) {
               finalizeManualRefresh();
             }
+            setVehiclePickerLoaderActive(false);
             return;
           }
 
@@ -3258,6 +3292,7 @@
             if (manualRefreshInProgress) {
               finalizeManualRefresh();
             }
+            setVehiclePickerLoaderActive(false);
             return;
           }
 
@@ -3266,6 +3301,7 @@
             statusEl.removeAttribute('data-state');
             statusEl.textContent = 'Loading release vehicles…';
           }
+          setVehiclePickerLoaderActive(true);
           releasePromise
             .then(function(list){
               handleVehicleFetchSuccess({
@@ -3290,12 +3326,14 @@
               if (manualRefreshInProgress) {
                 finalizeManualRefresh();
               }
+              setVehiclePickerLoaderActive(false);
             });
           return releasePromise;
         }
 
         function handleVehicleFetchSuccess(res, startTs, opts){
           vehicleFetchPending = false;
+          setVehiclePickerLoaderActive(false);
           vehicleWarmInFlight = false;
           const isManualFetch = !!(opts && opts.manual === true);
           if (vehicleModalVisible && !isManualFetch) {

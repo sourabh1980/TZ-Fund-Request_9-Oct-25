@@ -3020,6 +3020,13 @@
 
 <!-- Release vehicles quick list -->
 <style>
+  .voice-loader{--voice-loader-top:#22d3ee;--voice-loader-bottom:#6366f1;display:inline-flex;align-items:flex-end;gap:4px;opacity:0;visibility:hidden;transition:opacity .25s ease,visibility .25s ease;pointer-events:none}
+  .voice-loader span{width:6px;height:18px;border-radius:999px;background:linear-gradient(180deg,var(--voice-loader-top),var(--voice-loader-bottom));animation:voiceLoaderPulse 1s ease-in-out infinite;animation-delay:calc(var(--voice-index,0)*120ms);transform-origin:center bottom}
+  .voice-loader.is-active{opacity:1;visibility:visible}
+  .voice-loader--lg span{width:8px;height:26px}
+  .voice-loader--inline{min-height:24px}
+  .voice-loader--on-dark{--voice-loader-top:#f472b6;--voice-loader-bottom:#fb7185}
+  @keyframes voiceLoaderPulse{0%{transform:scaleY(.25)}50%{transform:scaleY(1)}100%{transform:scaleY(.25)}}
   #releaseVehicleModal{position:fixed;inset:0;display:none;place-items:center;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);z-index:10002;padding:20px;}
   .release-vehicle-card{width:min(980px,96vw);max-height:86vh;background:#fff;border-radius:18px;box-shadow:0 30px 70px rgba(15,23,42,.35);display:flex;flex-direction:column;overflow:hidden;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;}
   .release-vehicle-header{padding:18px 20px;background:linear-gradient(135deg,#0ea5e9,#6366f1);color:#fff;display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
@@ -3037,7 +3044,7 @@
   #releaseVehicleCount{font-size:13px;color:#0f172a;font-weight:600;}
   #releaseVehicleOpenPicker{appearance:none;border:0;background:#0f172a;color:#fff;border-radius:10px;padding:8px 14px;font-weight:600;cursor:pointer;transition:background .2s;}
   #releaseVehicleOpenPicker:hover{background:#111827;}
-  .release-vehicle-status{padding:10px 20px;font-size:13px;color:#475569;border-bottom:1px solid #e2e8f0;background:#fff;}
+  .release-vehicle-status{padding:10px 20px;font-size:13px;color:#475569;border-bottom:1px solid #e2e8f0;background:#fff;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .release-vehicle-tablewrap{flex:1 1 auto;overflow:auto;background:#fff;}
   .release-vehicle-table{width:100%;border-collapse:collapse;font-size:13px;min-width:720px;}
   .release-vehicle-table th,.release-vehicle-table td{border-bottom:1px solid #f1f5f9;padding:10px 12px;text-align:left;vertical-align:middle;}
@@ -3077,9 +3084,18 @@
         <button id="releaseVehicleOpenPicker" type="button">Open Vehicle Picker</button>
       </div>
     </div>
-    <div id="releaseVehicleStatus" class="release-vehicle-status">Loading release vehicles…</div>
+    <div class="release-vehicle-status">
+      <div id="releaseVehicleLoader" class="voice-loader voice-loader--lg" aria-hidden="true">
+        <span style="--voice-index:0"></span>
+        <span style="--voice-index:1"></span>
+        <span style="--voice-index:2"></span>
+        <span style="--voice-index:3"></span>
+        <span style="--voice-index:4"></span>
+      </div>
+      <div id="releaseVehicleStatusText">Loading release vehicles…</div>
+    </div>
     <div id="releaseVehicleTableWrap" class="release-vehicle-tablewrap is-empty">
-      <table class="release-vehicle-table" aria-describedby="releaseVehicleStatus">
+      <table class="release-vehicle-table" aria-describedby="releaseVehicleStatusText">
         <thead>
           <tr>
             <th style="min-width:140px">Vehicle</th>
@@ -3100,15 +3116,23 @@
     const modal = document.getElementById('releaseVehicleModal');
     if (!modal) return;
     const searchInput = document.getElementById('releaseVehicleSearch');
-    const statusEl = document.getElementById('releaseVehicleStatus');
+    const statusEl = document.getElementById('releaseVehicleStatusText');
     const countEl = document.getElementById('releaseVehicleCount');
     const tableBody = document.getElementById('releaseVehicleTableBody');
     const tableWrap = document.getElementById('releaseVehicleTableWrap');
     const refreshBtn = document.getElementById('releaseVehicleRefresh');
     const closeBtn = document.getElementById('releaseVehicleClose');
     const openPickerBtn = document.getElementById('releaseVehicleOpenPicker');
+    const loaderEl = document.getElementById('releaseVehicleLoader');
     const body = document.body || document.documentElement;
     const state = { list: [], filtered: [], search: '', target: null, pending: null, cacheTs: 0 };
+
+    function setReleaseLoaderActive(active){
+      if (!loaderEl) return;
+      const isActive = !!active;
+      loaderEl.classList.toggle('is-active', isActive);
+      loaderEl.setAttribute('aria-hidden', isActive ? 'false' : 'true');
+    }
     const RELEASE_CACHE_TTL = 60 * 1000;
 
     function escapeHtml(value){
@@ -3302,6 +3326,7 @@
         body.style.overflow = 'hidden';
       }
       statusEl.textContent = 'Loading release vehicles…';
+      setReleaseLoaderActive(true);
       tableWrap.classList.add('is-empty');
       ensureReleaseVehicles()
         .then(function(list){
@@ -3318,6 +3343,9 @@
           statusEl.textContent = 'Unable to load release vehicles. Please try refreshing.';
           state.list = [];
           applyFilters();
+        })
+        .finally(function(){
+          setReleaseLoaderActive(false);
         });
     }
 
@@ -3328,6 +3356,7 @@
         body.style.overflow = state.prevOverflow || '';
       }
       state.target = null;
+      setReleaseLoaderActive(false);
     }
 
     function openVehiclePickerForTarget(){
@@ -3364,6 +3393,7 @@
     if (refreshBtn) {
       refreshBtn.addEventListener('click', function(){
         statusEl.textContent = 'Refreshing release vehicles…';
+        setReleaseLoaderActive(true);
         ensureReleaseVehicles({ force: true })
           .then(function(){
             statusEl.textContent = state.list.length
@@ -3374,6 +3404,9 @@
           .catch(function(err){
             console.warn('[ReleaseVehicles] Refresh failed', err);
             statusEl.textContent = 'Unable to refresh release vehicles. Please try again.';
+          })
+          .finally(function(){
+            setReleaseLoaderActive(false);
           });
       });
     }
